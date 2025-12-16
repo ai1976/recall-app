@@ -16,6 +16,8 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
+  const [courseLevel, setCourseLevel] = useState('')
+  const [customCourse, setCustomCourse] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -24,12 +26,15 @@ export default function Login() {
     try {
       if (isSignUp) {
         // Sign up
+        const finalCourseLevel = courseLevel === 'Other' ? customCourse : courseLevel;
+        
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               full_name: fullName,
+              course_level: finalCourseLevel,
             }
           }
         })
@@ -97,6 +102,45 @@ export default function Login() {
                   placeholder="Enter your name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="course">Which course are you studying?</Label>
+                <select
+                  id="course"
+                  value={courseLevel}
+                  onChange={(e) => setCourseLevel(e.target.value)}
+                  required
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="">Select your course...</option>
+                  <option value="CA Foundation">CA Foundation</option>
+                  <option value="CA Intermediate">CA Intermediate</option>
+                  <option value="CA Final">CA Final</option>
+                  <option value="CMA Foundation">CMA Foundation</option>
+                  <option value="CMA Intermediate">CMA Intermediate</option>
+                  <option value="CMA Final">CMA Final</option>
+                  <option value="CS Foundation">CS Foundation</option>
+                  <option value="CS Executive">CS Executive</option>
+                  <option value="CS Professional">CS Professional</option>
+                  <option value="Other">Other (Custom)</option>
+                </select>
+              </div>
+            )}
+
+            {isSignUp && courseLevel === 'Other' && (
+              <div className="space-y-2">
+                <Label htmlFor="customCourse">Specify your course</Label>
+                <Input
+                  id="customCourse"
+                  type="text"
+                  placeholder="e.g., CFA Level 1, ACCA, etc."
+                  value={customCourse}
+                  onChange={(e) => setCustomCourse(e.target.value)}
                   required
                 />
               </div>

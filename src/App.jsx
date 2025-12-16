@@ -10,6 +10,11 @@ import MyFlashcards from './components/flashcards/MyFlashcards'
 import StudyMode from './components/flashcards/StudyMode'
 import { Toaster } from './components/ui/toaster'
 import NoteEdit from './components/notes/NoteEdit';
+import Navigation from './components/Navigation'
+import SuperAdminDashboard from './components/admin/SuperAdminDashboard'
+import AdminDashboard from './components/admin/AdminDashboard'
+import ProfessorTools from './components/professor/ProfessorTools'
+import { AuthProvider } from './contexts/AuthContext'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -39,8 +44,10 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
+     <AuthProvider>
+  <BrowserRouter>
+    {session && <Navigation />}
+    <Routes>
         <Route 
           path="/login" 
           element={session ? <Navigate to="/dashboard" replace /> : <Login />} 
@@ -81,18 +88,37 @@ function App() {
           element={<Navigate to={session ? "/dashboard" : "/login"} replace />} 
         />
         
+        <Route
+  path="/super-admin"
+  element={session ? <SuperAdminDashboard /> : <Navigate to="/login" replace />}
+/>
+
+<Route
+  path="/admin"
+  element={session ? <AdminDashboard /> : <Navigate to="/login" replace />}
+/>
+
+<Route
+  path="/professor/tools"
+  element={session ? <ProfessorTools /> : <Navigate to="/login" replace />}
+/>
+
+<Route 
+  path="/notes/edit/:id" 
+  element={session ? <NoteEdit /> : <Navigate to="/login" replace />}
+/>
+
         <Route 
           path="*" 
           element={<Navigate to="/" replace />} 
         />
         
-        <Route path="/notes/edit/:id" 
-        element={<NoteEdit />} 
-        />
+        
       </Routes>
       
       <Toaster />
     </BrowserRouter>
+     </AuthProvider>
   )
 }
 

@@ -657,6 +657,27 @@ export default function FlashcardCreate() {
             {loading ? 'Creating...' : `Create ${flashcards.length} Flashcard(s)`}
           </Button>
         </div>
+
+        {/* Bulk Upload Link */}
+        <div className="border-t pt-6 mt-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+            <h3 className="font-semibold text-gray-900 mb-2">
+              Need to create multiple flashcards?
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Upload dozens or hundreds of flashcards at once using our CSV bulk upload feature
+            </p>
+            <Button
+              type="button"
+              onClick={() => navigate('/professor/tools')}
+              variant="outline"
+              className="gap-2 border-blue-600 text-blue-600 hover:bg-blue-50"
+            >
+              <Upload className="h-4 w-4" />
+              Go to Bulk Upload
+            </Button>
+          </div>
+        </div>
       </form>
     </div>
   );
