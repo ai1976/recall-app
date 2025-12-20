@@ -48,7 +48,8 @@ export default function FlashcardCreate() {
   }, [noteId]);
 
   useEffect(() => {
-    if (userCourseLevel && !noteId) {
+    // Fetch subjects regardless of course level (for super_admin)
+    if (!noteId) {
       fetchSubjects();
     }
   }, [userCourseLevel, noteId]);
@@ -108,17 +109,25 @@ export default function FlashcardCreate() {
 
   const fetchSubjects = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('subjects')
         .select(`
           *,
           discipline:disciplines!inner(name, level)
         `)
-        .eq('disciplines.level', userCourseLevel)
         .eq('is_active', true)
         .order('order');
 
+      // Only filter by course level if user has one (not super_admin)
+      if (userCourseLevel) {
+        query = query.eq('disciplines.level', userCourseLevel);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
+      
+      console.log('Fetched subjects:', data); // Debug log
       setSubjects(data || []);
     } catch (error) {
       console.error('Error fetching subjects:', error);
