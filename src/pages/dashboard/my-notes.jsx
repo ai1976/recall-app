@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { FileText, Search, Filter } from 'lucide-react';
+import { FileText, Search, Lock, Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-export default function BrowseNotes() {
+export default function MyNotes() {
   const navigate = useNavigate();
   const [notes, setNotes] = useState([]);
   const [filteredNotes, setFilteredNotes] = useState([]);
@@ -14,7 +14,7 @@ export default function BrowseNotes() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    fetchNotes();
+    fetchMyNotes();
   }, []);
 
   useEffect(() => {
@@ -34,34 +34,27 @@ export default function BrowseNotes() {
     }
   }, [searchQuery, notes]);
 
-  const fetchNotes = async () => {
+  const fetchMyNotes = async () => {
     try {
-      // Fetch public notes
-      const { data: notesData, error: notesError } = await supabase
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      // Fetch ALL notes created by this user (public AND private)
+      const { data, error } = await supabase
         .from('notes')
         .select('*')
-        .eq('is_public', true)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (notesError) throw notesError;
+      if (error) throw error;
 
-      // Get unique user IDs
-      const userIds = [...new Set(notesData.map(note => note.user_id))];
-
-      // Fetch user profiles
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, full_name, role')
-        .in('id', userIds);
-
-      // Merge notes with user data
-      const notesWithUsers = notesData.map(note => ({
-        ...note,
-        user: profilesData?.find(p => p.id === note.user_id) || null
-      }));
-
-      setNotes(notesWithUsers);
-      setFilteredNotes(notesWithUsers);
+      setNotes(data || []);
+      setFilteredNotes(data || []);
     } catch (error) {
       console.error('Error fetching notes:', error);
     } finally {
@@ -94,10 +87,10 @@ export default function BrowseNotes() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <FileText className="h-8 w-8 text-blue-600" />
-            Browse Notes
+            My Notes
           </h1>
           <p className="mt-2 text-gray-600">
-            Explore notes from professors and classmates
+            All notes you've created (public and private)
           </p>
         </div>
 
@@ -107,7 +100,7 @@ export default function BrowseNotes() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
               type="text"
-              placeholder="Search notes by subject, topic, or keyword..."
+              placeholder="Search your notes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -116,10 +109,14 @@ export default function BrowseNotes() {
         </div>
 
         {/* Results Count */}
-        <div className="mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <p className="text-sm text-gray-600">
-            {filteredNotes.length} {filteredNotes.length === 1 ? 'note' : 'notes'} found
+            {filteredNotes.length} {filteredNotes.length === 1 ? 'note' : 'notes'}
           </p>
+          <Button onClick={() => navigate('/dashboard/notes/new')}>
+            <FileText className="mr-2 h-4 w-4" />
+            Upload New Note
+          </Button>
         </div>
 
         {/* Notes Grid */}
@@ -128,12 +125,12 @@ export default function BrowseNotes() {
             <CardContent className="p-12 text-center">
               <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {searchQuery ? 'No notes found' : 'No public notes yet'}
+                {searchQuery ? 'No notes found' : 'No notes yet'}
               </h3>
               <p className="text-gray-600 mb-4">
                 {searchQuery 
                   ? 'Try a different search term'
-                  : 'Be the first to share your notes!'
+                  : 'Upload your first note to get started!'
                 }
               </p>
               {!searchQuery && (
@@ -152,9 +149,17 @@ export default function BrowseNotes() {
                 onClick={() => navigate(`/dashboard/notes/${note.id}`)}
               >
                 <CardHeader>
-                  <CardTitle className="text-lg line-clamp-2">
-                    {note.title || 'Untitled Note'}
-                  </CardTitle>
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-lg line-clamp-2 flex-1">
+                      {note.title || 'Untitled Note'}
+                    </CardTitle>
+                    {/* Public/Private Badge */}
+                    {note.is_public ? (
+                      <Globe className="h-4 w-4 text-green-600 flex-shrink-0 ml-2" title="Public" />
+                    ) : (
+                      <Lock className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" title="Private" />
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {/* Preview Image */}
@@ -177,13 +182,11 @@ export default function BrowseNotes() {
                   <div className="space-y-2">
                     {/* Course/Subject */}
                     {(note.target_course || note.subject) && (
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <Filter className="h-3 w-3" />
-                        <span>
-                          {note.target_course && `${note.target_course} • `}
-                          {note.subject}
-                          {note.topic && ` • ${note.topic}`}
-                        </span>
+                      <div className="text-xs text-gray-500">
+                        <span className="font-medium">For:</span>{' '}
+                        {note.target_course && `${note.target_course}`}
+                        {note.subject && ` • ${note.subject}`}
+                        {note.topic && ` • ${note.topic}`}
                       </div>
                     )}
 
@@ -206,13 +209,22 @@ export default function BrowseNotes() {
                       </div>
                     )}
 
-                    {/* Creator & Date */}
+                    {/* Date & Visibility */}
                     <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
-                      <span>
-                        {note.user?.role === 'professor' && '👨‍🏫 '}
-                        {note.user?.full_name || 'Anonymous'}
-                      </span>
                       <span>{formatDate(note.created_at)}</span>
+                      <span className="flex items-center gap-1">
+                        {note.is_public ? (
+                          <>
+                            <Globe className="h-3 w-3" />
+                            Public
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="h-3 w-3" />
+                            Private
+                          </>
+                        )}
+                      </span>
                     </div>
                   </div>
                 </CardContent>

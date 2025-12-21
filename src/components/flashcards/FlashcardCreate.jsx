@@ -1,24 +1,28 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Upload, ArrowLeft, Check, ChevronsUpDown } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Image as ImageIcon, Check, ChevronsUpDown } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 export default function FlashcardCreate() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const noteId = searchParams.get('noteId');
   const { toast } = useToast();
 
-  const [note, setNote] = useState(null);
+  // 🆕 NEW: Target course for two-tier model
+  const [targetCourse, setTargetCourse] = useState('');
+  const [showCustomCourse, setShowCustomCourse] = useState(false);
+  const [customCourse, setCustomCourse] = useState('');
+
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [topics, setTopics] = useState([]);
@@ -28,116 +32,54 @@ export default function FlashcardCreate() {
   const [customSubject, setCustomSubject] = useState('');
   const [showCustomTopic, setShowCustomTopic] = useState(false);
   const [customTopic, setCustomTopic] = useState('');
-  const [userCourseLevel, setUserCourseLevel] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  
+  const [flashcards, setFlashcards] = useState([
+    { front: '', back: '', frontImage: null, backImage: null }
+  ]);
+  
+  const [loading, setLoading] = useState(false);
 
   // Combobox states
   const [subjectOpen, setSubjectOpen] = useState(false);
   const [topicOpen, setTopicOpen] = useState(false);
 
-  const [flashcards, setFlashcards] = useState([
-    { front_text: '', front_image_url: null, back_text: '', back_image_url: null }
-  ]);
-
   useEffect(() => {
-    fetchUserCourseLevel();
-    if (noteId) {
-      fetchNoteDetails();
-    }
-  }, [noteId]);
-
-  useEffect(() => {
-    // Fetch subjects regardless of course level (for super_admin)
-    if (!noteId) {
-      fetchSubjects();
-    }
-  }, [userCourseLevel, noteId]);
-
-  useEffect(() => {
-    if (selectedSubject && !showCustomSubject) {
-      fetchTopics(selectedSubject);
-    } else {
-      setTopics([]);
-      setSelectedTopic(null);
-    }
-  }, [selectedSubject, showCustomSubject]);
-
-  const fetchUserCourseLevel = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('course_level')
-        .eq('id', user.id)
-        .single();
-
-      if (error) throw error;
-      setUserCourseLevel(profile?.course_level);
-    } catch (error) {
-      console.error('Error fetching user course level:', error);
-    }
-  };
-
-  const fetchNoteDetails = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('notes')
-        .select(`
-          *,
-          subject:subjects(id, name),
-          topic:topics(id, name)
-        `)
-        .eq('id', noteId)
-        .single();
-
-      if (error) throw error;
-      setNote(data);
-      // If creating from note, inherit its public status
-      setIsPublic(data.is_public || false);
-    } catch (error) {
-      console.error('Error fetching note:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load note details',
-        variant: 'destructive'
-      });
-    }
-  };
+    // Fetch ALL subjects - no filtering by user's course!
+    // This allows professors to create for any course, and students to help juniors
+    fetchSubjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchSubjects = async () => {
     try {
-      let query = supabase
+      // 🔧 FIXED: Get ALL subjects regardless of user's course level
+      const { data, error } = await supabase
         .from('subjects')
-        .select(`
-          *,
-          discipline:disciplines!inner(name, level)
-        `)
-        .eq('is_active', true)
-        .order('order');
-
-      // Only filter by course level if user has one (not super_admin)
-      if (userCourseLevel) {
-        query = query.eq('disciplines.level', userCourseLevel);
-      }
-
-      const { data, error } = await query;
+        .select('*')
+        .order('name');
 
       if (error) throw error;
-      
-      console.log('Fetched subjects:', data); // Debug log
       setSubjects(data || []);
     } catch (error) {
       console.error('Error fetching subjects:', error);
       toast({
         title: 'Error',
         description: 'Failed to load subjects',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
+
+  useEffect(() => {
+    if (selectedSubject) {
+      fetchTopics(selectedSubject.id);
+    } else {
+      setTopics([]);
+      setSelectedTopic(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubject]);
 
   const fetchTopics = async (subjectId) => {
     try {
@@ -145,8 +87,7 @@ export default function FlashcardCreate() {
         .from('topics')
         .select('*')
         .eq('subject_id', subjectId)
-        .eq('is_active', true)
-        .order('order');
+        .order('name');
 
       if (error) throw error;
       setTopics(data || []);
@@ -155,539 +96,527 @@ export default function FlashcardCreate() {
       toast({
         title: 'Error',
         description: 'Failed to load topics',
-        variant: 'destructive'
+        variant: 'destructive',
       });
-    }
-  };
-
-  const handleImageUpload = async (file, cardIndex, side) => {
-    if (!file) return null;
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}_${side}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('flashcard-images')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('flashcard-images')
-        .getPublicUrl(fileName);
-
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast({
-        title: 'Upload Error',
-        description: 'Failed to upload image',
-        variant: 'destructive'
-      });
-      return null;
-    }
-  };
-
-  const handleFrontImageChange = async (e, index) => {
-    const file = e.target.files[0];
-    if (file) {
-      const imageUrl = await handleImageUpload(file, index, 'front');
-      if (imageUrl) {
-        const newFlashcards = [...flashcards];
-        newFlashcards[index].front_image_url = imageUrl;
-        setFlashcards(newFlashcards);
-      }
-    }
-  };
-
-  const handleBackImageChange = async (e, index) => {
-    const file = e.target.files[0];
-    if (file) {
-      const imageUrl = await handleImageUpload(file, index, 'back');
-      if (imageUrl) {
-        const newFlashcards = [...flashcards];
-        newFlashcards[index].back_image_url = imageUrl;
-        setFlashcards(newFlashcards);
-      }
     }
   };
 
   const addFlashcard = () => {
     setFlashcards([
       ...flashcards,
-      { front_text: '', front_image_url: null, back_text: '', back_image_url: null }
+      { front: '', back: '', frontImage: null, backImage: null }
     ]);
   };
 
   const removeFlashcard = (index) => {
-    if (flashcards.length > 1) {
-      setFlashcards(flashcards.filter((_, i) => i !== index));
+    if (flashcards.length === 1) {
+      toast({
+        title: 'Cannot remove',
+        description: 'You must have at least one flashcard',
+        variant: 'destructive',
+      });
+      return;
     }
+    setFlashcards(flashcards.filter((_, i) => i !== index));
   };
 
   const updateFlashcard = (index, field, value) => {
-    const newFlashcards = [...flashcards];
-    newFlashcards[index][field] = value;
-    setFlashcards(newFlashcards);
+    const updated = [...flashcards];
+    updated[index][field] = value;
+    setFlashcards(updated);
+  };
+
+  const handleImageUpload = (index, side, file) => {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      updateFlashcard(index, `${side}Image`, reader.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validation
-    if (!noteId && !selectedSubject && !customSubject.trim()) {
-      toast({
-        title: 'Subject required',
-        description: 'Please select a subject or enter a custom subject',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    const hasEmptyCards = flashcards.some(card => 
-      !card.front_text.trim() && !card.front_image_url
-    );
-
-    if (hasEmptyCards) {
-      toast({
-        title: 'Incomplete flashcards',
-        description: 'Each flashcard must have at least front text or image',
-        variant: 'destructive'
-      });
-      return;
-    }
-
     setLoading(true);
 
     try {
+      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
-      
-      // Parse tags
-      const tagsArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      if (!user) throw new Error('Not authenticated');
 
-      const flashcardData = flashcards.map(card => ({
+      // 🆕 VALIDATION: Check target course
+      if (!targetCourse && !customCourse) {
+        throw new Error('Please select or enter which course these flashcards are for');
+      }
+
+      if (!selectedSubject && !customSubject) {
+        throw new Error('Please select or enter a subject');
+      }
+
+      // Validate flashcards
+      for (let i = 0; i < flashcards.length; i++) {
+        if (!flashcards[i].front.trim()) {
+          throw new Error(`Flashcard ${i + 1}: Front side cannot be empty`);
+        }
+        if (!flashcards[i].back.trim()) {
+          throw new Error(`Flashcard ${i + 1}: Back side cannot be empty`);
+        }
+      }
+
+      // Create flashcards in database
+      const flashcardsToInsert = flashcards.map(card => ({
         user_id: user.id,
-        note_id: noteId || null,
-        subject_id: note?.subject_id || selectedSubject || null,
-        topic_id: note?.topic_id || selectedTopic || null,
-        custom_subject: customSubject.trim() || null,
-        custom_topic: customTopic.trim() || null,
-        tags: tagsArray.length > 0 ? tagsArray : null,
-        front_text: card.front_text.trim(),
-        front_image_url: card.front_image_url,
-        back_text: card.back_text.trim(),
-        back_image_url: card.back_image_url,
-        is_public: isPublic
+        contributed_by: user.id,
+        target_course: customCourse || targetCourse, // 🆕 Use custom if provided
+        subject_id: selectedSubject?.id || null,
+        topic_id: selectedTopic?.id || null,
+        custom_subject: customSubject || null,
+        custom_topic: customTopic || null,
+        front_text: card.front,
+        back_text: card.back,
+        front_image_url: card.frontImage || null,
+        back_image_url: card.backImage || null,
+        tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        is_public: isPublic,
+        is_verified: false,
+        difficulty: 'medium'
       }));
 
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('flashcards')
-        .insert(flashcardData);
+        .insert(flashcardsToInsert);
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
+      // Success!
       toast({
-        title: 'Success',
-        description: `${flashcards.length} flashcard(s) created successfully`
+        title: 'Success!',
+        description: `${flashcards.length} flashcard(s) created successfully`,
       });
 
-      navigate('/flashcards');
+      navigate('/dashboard');
+
     } catch (error) {
-      console.error('Error creating flashcards:', error);
+      console.error('Create error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create flashcards',
-        variant: 'destructive'
+        description: error.message || 'Failed to create flashcards',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // Get selected subject name for display
-  const selectedSubjectName = subjects.find(s => s.id === selectedSubject)?.name || '';
-  const selectedTopicName = topics.find(t => t.id === selectedTopic)?.name || '';
-
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="mb-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <h1 className="text-3xl font-bold">Create Flashcards</h1>
-        {note && (
-          <p className="text-muted-foreground mt-2">
-            From note: {note.title}
-          </p>
-        )}
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Button
+        variant="ghost"
+        onClick={() => navigate(-1)}
+        className="mb-6"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back
+      </Button>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Subject and Topic Selection - Only show if not from a note */}
-        {!noteId && (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Create Flashcards</h1>
+          <p className="text-muted-foreground mt-2">
+            Build your own flashcard collection
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* 🆕 NEW: Course Selection Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Who are these flashcards for?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label htmlFor="target-course">Target Course *</Label>
+                {!showCustomCourse ? (
+                  <>
+                    <Select value={targetCourse} onValueChange={setTargetCourse} required={!showCustomCourse}>
+                      <SelectTrigger id="target-course">
+                        <SelectValue placeholder="Select course..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="CA Foundation">CA Foundation</SelectItem>
+                          <SelectItem value="CA Intermediate">CA Intermediate</SelectItem>
+                          <SelectItem value="CA Final">CA Final</SelectItem>
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectItem value="CMA Foundation">CMA Foundation</SelectItem>
+                          <SelectItem value="CMA Intermediate">CMA Intermediate</SelectItem>
+                          <SelectItem value="CMA Final">CMA Final</SelectItem>
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectItem value="CS Foundation">CS Foundation</SelectItem>
+                          <SelectItem value="CS Executive">CS Executive</SelectItem>
+                          <SelectItem value="CS Professional">CS Professional</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0 text-sm"
+                      onClick={() => {
+                        setShowCustomCourse(true);
+                        setTargetCourse('');
+                      }}
+                    >
+                      + Add custom course
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Input
+                      value={customCourse}
+                      onChange={(e) => setCustomCourse(e.target.value)}
+                      placeholder="Enter custom course name (e.g., JEE Foundation, NEET)"
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0 text-sm"
+                      onClick={() => {
+                        setShowCustomCourse(false);
+                        setCustomCourse('');
+                      }}
+                    >
+                      ← Back to course list
+                    </Button>
+                  </>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  Select which students should see these flashcards
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Subject & Topic Card */}
           <Card>
             <CardHeader>
               <CardTitle>Subject & Topic</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Subject Selection */}
+              
+              {/* Subject Combobox */}
               <div className="space-y-2">
-                <Label>Subject</Label>
-                {!showCustomSubject ? (
-                  <Popover open={subjectOpen} onOpenChange={setSubjectOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={subjectOpen}
-                        className="w-full justify-between"
-                      >
-                        {selectedSubject ? selectedSubjectName : "Select a subject..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search subject..." />
-                        <CommandEmpty>No subject found.</CommandEmpty>
-                        <CommandGroup className="max-h-[300px] overflow-y-auto">
-                          {subjects.map((subject) => (
-                            <CommandItem
-                              key={subject.id}
-                              value={subject.name}
-                              onSelect={() => {
-                                setSelectedSubject(subject.id);
-                                setSubjectOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedSubject === subject.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {subject.name}
-                            </CommandItem>
-                          ))}
+                <Label>Subject *</Label>
+                <Popover open={subjectOpen} onOpenChange={setSubjectOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={subjectOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedSubject ? selectedSubject.name : "Select a subject..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search subjects..." />
+                      <CommandEmpty>No subject found.</CommandEmpty>
+                      <CommandGroup>
+                        {subjects.map((subject) => (
                           <CommandItem
-                            value="custom"
+                            key={subject.id}
+                            value={subject.name}
                             onSelect={() => {
-                              setShowCustomSubject(true);
-                              setSelectedSubject(null);
+                              setSelectedSubject(subject);
                               setSubjectOpen(false);
+                              setShowCustomSubject(false);
                             }}
                           >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Custom Subject
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedSubject?.id === subject.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {subject.name}
                           </CommandItem>
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                ) : (
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="Enter custom subject name"
-                      value={customSubject}
-                      onChange={(e) => setCustomSubject(e.target.value)}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setShowCustomSubject(false);
-                        setCustomSubject('');
-                      }}
-                    >
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back to subject list
-                    </Button>
-                  </div>
-                )}
+                        ))}
+                        <CommandItem
+                          onSelect={() => {
+                            setShowCustomSubject(true);
+                            setSelectedSubject(null);
+                            setSubjectOpen(false);
+                          }}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add custom subject
+                        </CommandItem>
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              {/* Topic Selection */}
+              {/* Custom Subject Input */}
+              {showCustomSubject && (
+                <div className="space-y-2">
+                  <Label htmlFor="custom-subject">Custom Subject</Label>
+                  <Input
+                    id="custom-subject"
+                    value={customSubject}
+                    onChange={(e) => setCustomSubject(e.target.value)}
+                    placeholder="Enter subject name"
+                  />
+                </div>
+              )}
+
+              {/* Topic Combobox */}
               <div className="space-y-2">
                 <Label>Topic (Optional)</Label>
-                {!showCustomTopic ? (
-                  <Popover open={topicOpen} onOpenChange={setTopicOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={topicOpen}
-                        className="w-full justify-between"
-                        disabled={!selectedSubject && !customSubject}
-                      >
-                        {selectedTopic ? selectedTopicName : (
-                          selectedSubject || customSubject ? "Select a topic..." : "Select a subject first"
-                        )}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search topic..." />
-                        <CommandEmpty>No topic found.</CommandEmpty>
-                        <CommandGroup className="max-h-[300px] overflow-y-auto">
-                          {topics.map((topic) => (
-                            <CommandItem
-                              key={topic.id}
-                              value={topic.name}
-                              onSelect={() => {
-                                setSelectedTopic(topic.id);
-                                setTopicOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedTopic === topic.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {topic.name}
-                            </CommandItem>
-                          ))}
+                <Popover open={topicOpen} onOpenChange={setTopicOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={topicOpen}
+                      className="w-full justify-between"
+                      disabled={!selectedSubject}
+                    >
+                      {selectedTopic ? selectedTopic.name : "Select a topic..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search topics..." />
+                      <CommandEmpty>No topic found.</CommandEmpty>
+                      <CommandGroup>
+                        {topics.map((topic) => (
                           <CommandItem
-                            value="custom"
+                            key={topic.id}
+                            value={topic.name}
                             onSelect={() => {
-                              setShowCustomTopic(true);
-                              setSelectedTopic(null);
+                              setSelectedTopic(topic);
                               setTopicOpen(false);
+                              setShowCustomTopic(false);
                             }}
                           >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Custom Topic
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedTopic?.id === topic.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {topic.name}
                           </CommandItem>
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                ) : (
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="Enter custom topic name"
-                      value={customTopic}
-                      onChange={(e) => setCustomTopic(e.target.value)}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setShowCustomTopic(false);
-                        setCustomTopic('');
-                      }}
-                    >
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back to topic list
-                    </Button>
-                  </div>
-                )}
+                        ))}
+                        <CommandItem
+                          onSelect={() => {
+                            setShowCustomTopic(true);
+                            setSelectedTopic(null);
+                            setTopicOpen(false);
+                          }}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add custom topic
+                        </CommandItem>
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
+
+              {/* Custom Topic Input */}
+              {showCustomTopic && (
+                <div className="space-y-2">
+                  <Label htmlFor="custom-topic">Custom Topic</Label>
+                  <Input
+                    id="custom-topic"
+                    value={customTopic}
+                    onChange={(e) => setCustomTopic(e.target.value)}
+                    placeholder="Enter topic name"
+                  />
+                </div>
+              )}
 
               {/* Tags */}
               <div className="space-y-2">
                 <Label htmlFor="tags">Tags (Optional)</Label>
                 <Input
                   id="tags"
-                  placeholder="e.g., important, exam, revision (comma-separated)"
                   value={tags}
                   onChange={(e) => setTags(e.target.value)}
+                  placeholder="e.g., important, exam, revision (comma-separated)"
                 />
                 <p className="text-sm text-muted-foreground">
                   Separate multiple tags with commas
                 </p>
               </div>
 
-              {/* Public/Private Toggle */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="flashcard-public-toggle">Make these flashcards public</Label>
-                  <button
-                    type="button"
-                    id="flashcard-public-toggle"
-                    role="switch"
-                    aria-checked={isPublic}
-                    onClick={() => setIsPublic(!isPublic)}
-                    className={cn(
-                      "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
-                      isPublic ? "bg-blue-600" : "bg-gray-300"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                        isPublic ? "translate-x-6" : "translate-x-1"
-                      )}
-                    />
-                  </button>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {isPublic 
-                    ? "✓ Other students can view these flashcards" 
-                    : "○ Only you can see these flashcards"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Show inherited status if from note */}
-        {noteId && note && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Visibility</p>
+              {/* Public Toggle */}
+              <div className="flex items-center justify-between space-x-2">
+                <div className="space-y-0.5">
+                  <Label htmlFor="public-toggle">Make these flashcards public</Label>
                   <p className="text-sm text-muted-foreground">
-                    {isPublic 
-                      ? "These flashcards will be public (inherited from parent note)" 
-                      : "These flashcards will be private (inherited from parent note)"}
+                    {isPublic ? 'Visible to all students' : 'Only you can see these flashcards'}
                   </p>
                 </div>
-                <div className={cn(
-                  "px-3 py-1 rounded-full text-sm font-medium",
-                  isPublic ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"
-                )}>
-                  {isPublic ? "Public" : "Private"}
-                </div>
+                <Switch
+                  id="public-toggle"
+                  checked={isPublic}
+                  onCheckedChange={setIsPublic}
+                />
               </div>
             </CardContent>
           </Card>
-        )}
 
-        {/* Flashcards */}
-        {flashcards.map((card, index) => (
-          <Card key={index}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Flashcard {index + 1}</CardTitle>
-                {flashcards.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFlashcard(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Front */}
-              <div className="space-y-2">
-                <Label>Front</Label>
-                <Textarea
-                  placeholder="Question or prompt"
-                  value={card.front_text}
-                  onChange={(e) => updateFlashcard(index, 'front_text', e.target.value)}
-                  rows={3}
-                />
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFrontImageChange(e, index)}
-                    className="hidden"
-                    id={`front-image-${index}`}
-                  />
-                  <Label
-                    htmlFor={`front-image-${index}`}
-                    className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Add Image
-                  </Label>
-                  {card.front_image_url && (
-                    <span className="text-sm text-green-600">✓ Image added</span>
+          {/* Flashcards */}
+          {flashcards.map((card, index) => (
+            <Card key={index}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Flashcard {index + 1}</CardTitle>
+                  {flashcards.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFlashcard(index)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
-              </div>
-
-              {/* Back */}
-              <div className="space-y-2">
-                <Label>Back</Label>
-                <Textarea
-                  placeholder="Answer or explanation"
-                  value={card.back_text}
-                  onChange={(e) => updateFlashcard(index, 'back_text', e.target.value)}
-                  rows={3}
-                />
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleBackImageChange(e, index)}
-                    className="hidden"
-                    id={`back-image-${index}`}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                
+                {/* Front */}
+                <div className="space-y-2">
+                  <Label htmlFor={`front-${index}`}>Front</Label>
+                  <Textarea
+                    id={`front-${index}`}
+                    value={card.front}
+                    onChange={(e) => updateFlashcard(index, 'front', e.target.value)}
+                    placeholder="Question or prompt"
+                    rows={3}
                   />
-                  <Label
-                    htmlFor={`back-image-${index}`}
-                    className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Add Image
-                  </Label>
-                  {card.back_image_url && (
-                    <span className="text-sm text-green-600">✓ Image added</span>
+                  
+                  {/* Front Image */}
+                  <div className="flex items-center gap-2">
+                    <Label
+                      htmlFor={`front-image-${index}`}
+                      className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent"
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                      <span className="text-sm">Add Image</span>
+                    </Label>
+                    <input
+                      id={`front-image-${index}`}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(index, 'front', e.target.files?.[0])}
+                      className="hidden"
+                    />
+                  </div>
+                  {card.frontImage && (
+                    <img src={card.frontImage} alt="Front" className="mt-2 max-h-32 rounded-lg" />
                   )}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
 
-        {/* Actions */}
-        <div className="flex gap-4">
+                {/* Back */}
+                <div className="space-y-2">
+                  <Label htmlFor={`back-${index}`}>Back</Label>
+                  <Textarea
+                    id={`back-${index}`}
+                    value={card.back}
+                    onChange={(e) => updateFlashcard(index, 'back', e.target.value)}
+                    placeholder="Answer or explanation"
+                    rows={3}
+                  />
+                  
+                  {/* Back Image */}
+                  <div className="flex items-center gap-2">
+                    <Label
+                      htmlFor={`back-image-${index}`}
+                      className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent"
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                      <span className="text-sm">Add Image</span>
+                    </Label>
+                    <input
+                      id={`back-image-${index}`}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(index, 'back', e.target.files?.[0])}
+                      className="hidden"
+                    />
+                  </div>
+                  {card.backImage && (
+                    <img src={card.backImage} alt="Back" className="mt-2 max-h-32 rounded-lg" />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* Add Flashcard Button */}
           <Button
             type="button"
             variant="outline"
             onClick={addFlashcard}
-            className="flex-1"
+            className="w-full border-dashed"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Another Flashcard
           </Button>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="flex-1"
-          >
-            {loading ? 'Creating...' : `Create ${flashcards.length} Flashcard(s)`}
-          </Button>
-        </div>
 
-        {/* Bulk Upload Link */}
-        <div className="border-t pt-6 mt-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-            <h3 className="font-semibold text-gray-900 mb-2">
-              Need to create multiple flashcards?
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Upload dozens or hundreds of flashcards at once using our CSV bulk upload feature
-            </p>
+          {/* Action Buttons */}
+          <div className="flex gap-4">
             <Button
               type="button"
-              onClick={() => navigate('/professor/tools')}
               variant="outline"
-              className="gap-2 border-blue-600 text-blue-600 hover:bg-blue-50"
+              onClick={() => navigate(-1)}
+              className="flex-1"
             >
-              <Upload className="h-4 w-4" />
-              Go to Bulk Upload
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="flex-1"
+            >
+              {loading ? 'Creating...' : `Create ${flashcards.length} Flashcard${flashcards.length > 1 ? 's' : ''}`}
             </Button>
           </div>
-        </div>
-      </form>
+        </form>
+
+        {/* Bulk Upload Link */}
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-6">
+            <p className="text-sm text-blue-800">
+              💡 <strong>Pro Tip:</strong> Need to create many flashcards?{' '}
+              <Button
+                variant="link"
+                className="h-auto p-0 text-blue-600 hover:text-blue-700"
+                onClick={() => navigate('/professor/tools')}
+              >
+                Try Bulk Upload
+              </Button>
+              {' '}to upload via CSV
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      </div>
     </div>
   );
 }

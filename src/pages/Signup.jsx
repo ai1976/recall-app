@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../lib/AuthContext'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function Signup() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
-  const [courseLevel, setCourseLevel] = useState('Intermediate')
+  const [courseLevel, setCourseLevel] = useState('')
+  const [customCourse, setCustomCourse] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
@@ -21,10 +22,23 @@ export default function Signup() {
       return
     }
 
+    if (!courseLevel) {
+      setError('Please select your course')
+      return
+    }
+
+    if (courseLevel === 'Other' && !customCourse.trim()) {
+      setError('Please specify your course')
+      return
+    }
+
     setLoading(true)
 
     try {
-      await signUp(email, password, fullName)
+      // Use custom course if "Other" is selected, otherwise use selected course
+      const finalCourseLevel = courseLevel === 'Other' ? customCourse : courseLevel
+      
+      await signUp(email, password, fullName, finalCourseLevel)
       alert('Account created! Please check your email to verify your account.')
       navigate('/login')
     } catch (err) {
@@ -93,19 +107,60 @@ export default function Signup() {
 
           <div>
             <label htmlFor="courseLevel" className="block text-sm font-medium text-gray-700 mb-2">
-              CA Level
+              Which course are you studying?
             </label>
             <select
               id="courseLevel"
               value={courseLevel}
               onChange={(e) => setCourseLevel(e.target.value)}
+              required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
-              <option value="Foundation">CA Foundation</option>
-              <option value="Intermediate">CA Intermediate</option>
-              <option value="Final">CA Final</option>
+              <option value="">Select your course...</option>
+              
+              {/* CA Courses */}
+              <optgroup label="Chartered Accountancy (CA)">
+                <option value="CA Foundation">CA Foundation</option>
+                <option value="CA Intermediate">CA Intermediate</option>
+                <option value="CA Final">CA Final</option>
+              </optgroup>
+
+              {/* CMA Courses */}
+              <optgroup label="Cost & Management Accountant (CMA)">
+                <option value="CMA Foundation">CMA Foundation</option>
+                <option value="CMA Intermediate">CMA Intermediate</option>
+                <option value="CMA Final">CMA Final</option>
+              </optgroup>
+
+              {/* CS Courses */}
+              <optgroup label="Company Secretary (CS)">
+                <option value="CS Foundation">CS Foundation</option>
+                <option value="CS Executive">CS Executive</option>
+                <option value="CS Professional">CS Professional</option>
+              </optgroup>
+
+              {/* Other Option */}
+              <option value="Other">Other (Custom)</option>
             </select>
           </div>
+
+          {/* Custom Course Input (shown only when "Other" is selected) */}
+          {courseLevel === 'Other' && (
+            <div>
+              <label htmlFor="customCourse" className="block text-sm font-medium text-gray-700 mb-2">
+                Specify your course
+              </label>
+              <input
+                id="customCourse"
+                type="text"
+                required
+                value={customCourse}
+                onChange={(e) => setCustomCourse(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="e.g., CFA Level 1, ACCA, JEE, NEET, etc."
+              />
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">

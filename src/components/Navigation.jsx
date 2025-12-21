@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRole } from '@/hooks/useRole';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/supabase';
 import {
   LayoutDashboard,
   BookOpen,
@@ -17,7 +18,7 @@ import {
   BarChart3,
   ChevronDown
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,25 @@ export default function Navigation() {
   const { role, isSuperAdmin, isAdmin, isProfessor, isLoading } = useRole();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userName, setUserName] = useState('');
+
+  // Fetch user's full name from profiles table
+  useEffect(() => {
+    const fetchUserName = async () => {
+      if (user?.id) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+        
+        if (data?.full_name) {
+          setUserName(data.full_name);
+        }
+      }
+    };
+    fetchUserName();
+  }, [user?.id]);
 
   const isActive = (path) => {
     return location.pathname === path;
@@ -217,8 +237,13 @@ export default function Navigation() {
               )}
             </div>
 
-            {/* Right side: Role badge + Sign out */}
+            {/* Right side: User name + Role badge + Sign out */}
             <div className="hidden md:flex md:items-center md:space-x-4">
+              {!isLoading && userName && (
+                <span className="text-sm font-medium text-gray-700">
+                  {userName}
+                </span>
+              )}
               {!isLoading && role && (
                 <span className={`
                   px-3 py-1 text-xs font-medium rounded-full
@@ -397,12 +422,12 @@ export default function Navigation() {
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
-                      {user?.email?.charAt(0).toUpperCase()}
+                      {userName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
                     </div>
                   </div>
                   <div className="ml-3">
                     <div className="text-sm font-medium text-gray-800">
-                      {user?.email}
+                      {userName || user?.email}
                     </div>
                     {!isLoading && role && (
                       <div className="text-xs text-gray-500 mt-1">

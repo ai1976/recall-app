@@ -20,6 +20,7 @@ import MyProgress from '@/pages/dashboard/progress'
 import MyContributions from '@/pages/dashboard/my-contributions'
 import Home from './pages/Home' // 🆕 NEW: Landing page import
 import Signup from './pages/Signup' // ✅ FIXED: Correct path to Signup
+import MyNotes from './pages/dashboard/my-notes';
 
 function App() {
   const [session, setSession] = useState(null)
@@ -92,6 +93,11 @@ function App() {
             path="/dashboard/notes"
             element={session ? <BrowseNotes /> : <Navigate to="/login" replace />}
           />
+
+          <Route
+  path="/dashboard/my-notes"
+  element={session ? <MyNotes /> : <Navigate to="/login" replace />}
+/>
           
           <Route
             path="/notes/edit/:id" 

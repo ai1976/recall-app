@@ -1,6 +1,57 @@
+import { useState, useEffect } from 'react';
 import { BarChart3, FileText, CreditCard } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 export default function MyContributions() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [notesCount, setNotesCount] = useState(0);
+  const [flashcardsCount, setFlashcardsCount] = useState(0);
+
+  useEffect(() => {
+    fetchContributions();
+  }, []);
+
+  const fetchContributions = async () => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      // Fetch notes count for THIS user
+      const { count: notes } = await supabase
+        .from('notes')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      // Fetch flashcards count for THIS user
+      const { count: flashcards } = await supabase
+        .from('flashcards')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      setNotesCount(notes || 0);
+      setFlashcardsCount(flashcards || 0);
+    } catch (error) {
+      console.error('Error fetching contributions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
@@ -16,21 +67,27 @@ export default function MyContributions() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
+        <div 
+          className="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition"
+          onClick={() => navigate('/dashboard/my-notes')}
+        >
           <div className="flex items-center gap-4">
             <FileText className="h-10 w-10 text-blue-600" />
             <div>
-              <p className="text-2xl font-bold text-gray-900">4</p>
+              <p className="text-2xl font-bold text-gray-900">{notesCount}</p>
               <p className="text-sm text-gray-600">Notes Uploaded</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div 
+          className="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition"
+          onClick={() => navigate('/dashboard/flashcards')}
+        >
           <div className="flex items-center gap-4">
             <CreditCard className="h-10 w-10 text-purple-600" />
             <div>
-              <p className="text-2xl font-bold text-gray-900">2</p>
+              <p className="text-2xl font-bold text-gray-900">{flashcardsCount}</p>
               <p className="text-sm text-gray-600">Flashcards Created</p>
             </div>
           </div>
