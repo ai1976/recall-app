@@ -1,70 +1,189 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { FileText, Search, Lock, Globe } from 'lucide-react';
+import { FileText, Search, Lock, Globe, Trash2, Filter, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function MyNotes() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
   const [notes, setNotes] = useState([]);
   const [filteredNotes, setFilteredNotes] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Filter states
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterCourse, setFilterCourse] = useState('all');
+  const [filterSubject, setFilterSubject] = useState('all');
+  const [filterTopic, setFilterTopic] = useState('all');
+  const [filterDate, setFilterDate] = useState('all');
+  const [filterVisibility, setFilterVisibility] = useState('all');
+  
+  // Available options
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [availableSubjects, setAvailableSubjects] = useState([]);
+  const [availableTopics, setAvailableTopics] = useState([]);
 
   useEffect(() => {
     fetchMyNotes();
   }, []);
 
   useEffect(() => {
-    // Filter notes based on search query
-    if (searchQuery.trim() === '') {
-      setFilteredNotes(notes);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = notes.filter(note => 
-        note.title?.toLowerCase().includes(query) ||
-        note.description?.toLowerCase().includes(query) ||
-        note.subject?.toLowerCase().includes(query) ||
-        note.topic?.toLowerCase().includes(query) ||
-        note.tags?.some(tag => tag.toLowerCase().includes(query))
-      );
-      setFilteredNotes(filtered);
-    }
-  }, [searchQuery, notes]);
+    applyFilters();
+  }, [searchQuery, filterCourse, filterSubject, filterTopic, filterDate, filterVisibility, notes]);
 
   const fetchMyNotes = async () => {
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
       if (!user) {
         navigate('/login');
         return;
       }
 
-      // Fetch ALL notes created by this user (public AND private)
       const { data, error } = await supabase
         .from('notes')
-        .select('*')
+        .select(`
+          *,
+          subjects:subject_id (id, name),
+          topics:topic_id (id, name)
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       setNotes(data || []);
-      setFilteredNotes(data || []);
+
+      // Extract unique values for filters
+      const courses = [...new Set(data.map(n => n.target_course).filter(Boolean))];
+      const subjects = [...new Set(data.map(n => n.subjects?.name || n.custom_subject).filter(Boolean))];
+      const topics = [...new Set(data.map(n => n.topics?.name || n.custom_topic).filter(Boolean))];
+
+      setAvailableCourses(courses);
+      setAvailableSubjects(subjects);
+      setAvailableTopics(topics);
     } catch (error) {
       console.error('Error fetching notes:', error);
+      toast({
+        title: "Error loading notes",
+        description: error.message,
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  const applyFilters = () => {
+    let filtered = [...notes];
+
+    // Search filter
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(note => 
+        note.title?.toLowerCase().includes(query) ||
+        note.description?.toLowerCase().includes(query) ||
+        note.tags?.some(tag => tag.toLowerCase().includes(query))
+      );
+    }
+
+    // Course filter
+    if (filterCourse !== 'all') {
+      filtered = filtered.filter(note => note.target_course === filterCourse);
+    }
+
+    // Subject filter
+    if (filterSubject !== 'all') {
+      filtered = filtered.filter(note => 
+        (note.subjects?.name || note.custom_subject) === filterSubject
+      );
+    }
+
+    // Topic filter
+    if (filterTopic !== 'all') {
+      filtered = filtered.filter(note => 
+        (note.topics?.name || note.custom_topic) === filterTopic
+      );
+    }
+
+    // Visibility filter
+    if (filterVisibility !== 'all') {
+      filtered = filtered.filter(note => 
+        filterVisibility === 'public' ? note.is_public : !note.is_public
+      );
+    }
+
+    // Date filter
+    if (filterDate !== 'all') {
+      const now = new Date();
+      filtered = filtered.filter(note => {
+        const noteDate = new Date(note.created_at);
+        switch(filterDate) {
+          case 'today':
+            return noteDate.toDateString() === now.toDateString();
+          case 'week':
+            const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+            return noteDate >= weekAgo;
+          case 'month':
+            const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+            return noteDate >= monthAgo;
+          default:
+            return true;
+        }
+      });
+    }
+
+    setFilteredNotes(filtered);
+  };
+
+  const handleDelete = async (noteId, event) => {
+    event.stopPropagation(); // Prevent card click
+    
+    if (!confirm('Are you sure you want to delete this note? This will also delete all associated flashcards. This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', noteId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Note deleted",
+        description: "Note and associated flashcards have been removed"
+      });
+
+      // Remove from local state
+      setNotes(prev => prev.filter(note => note.id !== noteId));
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setFilterCourse('all');
+    setFilterSubject('all');
+    setFilterTopic('all');
+    setFilterDate('all');
+    setFilterVisibility('all');
+  };
+
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', { 
+    return new Date(dateString).toLocaleDateString('en-IN', { 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric' 
@@ -84,58 +203,179 @@ export default function MyNotes() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="h-8 w-8 text-blue-600" />
-            My Notes
-          </h1>
-          <p className="mt-2 text-gray-600">
-            All notes you've created (public and private)
-          </p>
-        </div>
-
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search your notes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+              <FileText className="h-8 w-8 text-blue-600" />
+              My Notes
+            </h1>
+            <p className="mt-2 text-gray-600">
+              {notes.length} total notes (public and private)
+            </p>
           </div>
-        </div>
-
-        {/* Results Count */}
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm text-gray-600">
-            {filteredNotes.length} {filteredNotes.length === 1 ? 'note' : 'notes'}
-          </p>
-          <Button onClick={() => navigate('/dashboard/notes/new')}>
-            <FileText className="mr-2 h-4 w-4" />
-            Upload New Note
+          <Button onClick={() => navigate('/dashboard/notes/new')} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Upload Note
           </Button>
         </div>
 
-        {/* Notes Grid */}
+        {/* Filters & Search */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search notes by title, description, or tags..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Filter Dropdowns */}
+              <div className="flex items-center gap-2 pt-2">
+                <Filter className="h-4 w-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">Filters</span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                {/* Course Filter */}
+                {availableCourses.length > 0 && (
+                  <div>
+                    <label className="text-sm text-gray-600 mb-2 block">Course</label>
+                    <Select value={filterCourse} onValueChange={setFilterCourse}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Courses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Courses</SelectItem>
+                        {availableCourses.map(course => (
+                          <SelectItem key={course} value={course}>
+                            {course}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Subject Filter */}
+                {availableSubjects.length > 0 && (
+                  <div>
+                    <label className="text-sm text-gray-600 mb-2 block">Subject</label>
+                    <Select value={filterSubject} onValueChange={setFilterSubject}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Subjects" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Subjects</SelectItem>
+                        {availableSubjects.map(subject => (
+                          <SelectItem key={subject} value={subject}>
+                            {subject}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Topic Filter */}
+                {availableTopics.length > 0 && (
+                  <div>
+                    <label className="text-sm text-gray-600 mb-2 block">Topic</label>
+                    <Select value={filterTopic} onValueChange={setFilterTopic}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Topics" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Topics</SelectItem>
+                        {availableTopics.map(topic => (
+                          <SelectItem key={topic} value={topic}>
+                            {topic}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Visibility Filter */}
+                <div>
+                  <label className="text-sm text-gray-600 mb-2 block">Visibility</label>
+                  <Select value={filterVisibility} onValueChange={setFilterVisibility}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Notes</SelectItem>
+                      <SelectItem value="public">Public Only</SelectItem>
+                      <SelectItem value="private">Private Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Date Filter */}
+                <div>
+                  <label className="text-sm text-gray-600 mb-2 block">Date Created</label>
+                  <Select value={filterDate} onValueChange={setFilterDate}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Time</SelectItem>
+                      <SelectItem value="today">Today</SelectItem>
+                      <SelectItem value="week">Last 7 Days</SelectItem>
+                      <SelectItem value="month">Last 30 Days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Results & Clear */}
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-sm text-gray-600">
+                  Showing {filteredNotes.length} of {notes.length} notes
+                </p>
+                {(searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || 
+                  filterTopic !== 'all' || filterDate !== 'all' || filterVisibility !== 'all') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAllFilters}
+                    className="text-sm"
+                  >
+                    Clear All Filters
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Notes Display */}
         {filteredNotes.length === 0 ? (
           <Card>
-            <CardContent className="p-12 text-center">
+            <CardContent className="py-12 text-center">
               <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {searchQuery ? 'No notes found' : 'No notes yet'}
+                {notes.length === 0 ? 'No notes yet' : 'No notes match your filters'}
               </h3>
               <p className="text-gray-600 mb-4">
-                {searchQuery 
-                  ? 'Try a different search term'
-                  : 'Upload your first note to get started!'
+                {notes.length === 0 
+                  ? 'Upload your first note to get started'
+                  : 'Try adjusting your filters or search query'
                 }
               </p>
-              {!searchQuery && (
+              {notes.length === 0 ? (
                 <Button onClick={() => navigate('/dashboard/notes/new')}>
                   Upload Your First Note
+                </Button>
+              ) : (
+                <Button onClick={clearAllFilters}>
+                  Clear All Filters
                 </Button>
               )}
             </CardContent>
@@ -145,20 +385,31 @@ export default function MyNotes() {
             {filteredNotes.map((note) => (
               <Card 
                 key={note.id} 
-                className="cursor-pointer hover:shadow-lg transition"
+                className="cursor-pointer hover:shadow-lg transition group"
                 onClick={() => navigate(`/dashboard/notes/${note.id}`)}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg line-clamp-2 flex-1">
+                    <CardTitle className="text-lg line-clamp-2 flex-1 pr-2">
                       {note.title || 'Untitled Note'}
                     </CardTitle>
-                    {/* Public/Private Badge */}
-                    {note.is_public ? (
-                      <Globe className="h-4 w-4 text-green-600 flex-shrink-0 ml-2" title="Public" />
-                    ) : (
-                      <Lock className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" title="Private" />
-                    )}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* Public/Private Badge */}
+                      {note.is_public ? (
+                        <Globe className="h-4 w-4 text-green-600" title="Public" />
+                      ) : (
+                        <Lock className="h-4 w-4 text-gray-400" title="Private" />
+                      )}
+                      {/* Delete Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleDelete(note.id, e)}
+                        className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-700 hover:bg-red-50 -mr-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -180,15 +431,16 @@ export default function MyNotes() {
 
                   {/* Metadata */}
                   <div className="space-y-2">
-                    {/* Course/Subject */}
-                    {(note.target_course || note.subject) && (
-                      <div className="text-xs text-gray-500">
-                        <span className="font-medium">For:</span>{' '}
-                        {note.target_course && `${note.target_course}`}
-                        {note.subject && ` • ${note.subject}`}
-                        {note.topic && ` • ${note.topic}`}
-                      </div>
-                    )}
+                    {/* Course/Subject/Topic */}
+                    <div className="text-xs text-gray-500">
+                      {note.target_course && <span className="font-medium">{note.target_course}</span>}
+                      {(note.subjects?.name || note.custom_subject) && (
+                        <span> • {note.subjects?.name || note.custom_subject}</span>
+                      )}
+                      {(note.topics?.name || note.custom_topic) && (
+                        <span> • {note.topics?.name || note.custom_topic}</span>
+                      )}
+                    </div>
 
                     {/* Tags */}
                     {note.tags && note.tags.length > 0 && (
@@ -209,22 +461,9 @@ export default function MyNotes() {
                       </div>
                     )}
 
-                    {/* Date & Visibility */}
-                    <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
-                      <span>{formatDate(note.created_at)}</span>
-                      <span className="flex items-center gap-1">
-                        {note.is_public ? (
-                          <>
-                            <Globe className="h-3 w-3" />
-                            Public
-                          </>
-                        ) : (
-                          <>
-                            <Lock className="h-3 w-3" />
-                            Private
-                          </>
-                        )}
-                      </span>
+                    {/* Date */}
+                    <div className="text-xs text-gray-500 pt-2 border-t">
+                      {formatDate(note.created_at)}
                     </div>
                   </div>
                 </CardContent>

@@ -18,9 +18,12 @@ import { AuthProvider } from './contexts/AuthContext'
 import BrowseNotes from '@/pages/dashboard/notes'
 import MyProgress from '@/pages/dashboard/progress'
 import MyContributions from '@/pages/dashboard/my-contributions'
-import Home from './pages/Home' // 🆕 NEW: Landing page import
-import Signup from './pages/Signup' // ✅ FIXED: Correct path to Signup
+import Home from './pages/Home'
+import Signup from './pages/Signup'
 import MyNotes from './pages/dashboard/my-notes';
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+import ReviewFlashcards from './pages/dashboard/review-flashcards'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -54,25 +57,29 @@ function App() {
       <BrowserRouter>
         {session && <Navigation />}
         <Routes>
-          {/* 🆕 NEW: Landing Page Route - Homepage for visitors */}
+          {/* Landing Page Route */}
           <Route 
             path="/" 
             element={session ? <Navigate to="/dashboard" replace /> : <Home />} 
           />
           
-          {/* 🆕 NEW: Signup Route */}
+          {/* Signup Route */}
           <Route 
             path="/signup" 
             element={session ? <Navigate to="/dashboard" replace /> : <Signup />} 
           />
+
+          {/* Password Reset Routes */}
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           
-          {/* Login Route - Modified to show Home instead of redirecting */}
+          {/* Login Route */}
           <Route 
             path="/login" 
             element={session ? <Navigate to="/dashboard" replace /> : <Login />} 
           />
           
-          {/* Dashboard Route - Main dashboard for logged-in users */}
+          {/* Dashboard Route */}
           <Route
             path="/dashboard"
             element={session ? <Dashboard /> : <Navigate to="/login" replace />}
@@ -95,9 +102,9 @@ function App() {
           />
 
           <Route
-  path="/dashboard/my-notes"
-  element={session ? <MyNotes /> : <Navigate to="/login" replace />}
-/>
+            path="/dashboard/my-notes"
+            element={session ? <MyNotes /> : <Navigate to="/login" replace />}
+          />
           
           <Route
             path="/notes/edit/:id" 
@@ -113,6 +120,12 @@ function App() {
           <Route
             path="/dashboard/flashcards"
             element={session ? <MyFlashcards /> : <Navigate to="/login" replace />}
+          />
+          
+          {/* Review Flashcards Route - NEW */}
+          <Route
+            path="/dashboard/review-flashcards"
+            element={session ? <ReviewFlashcards /> : <Navigate to="/login" replace />}
           />
           
           <Route
@@ -148,7 +161,7 @@ function App() {
             element={session ? <ProfessorTools /> : <Navigate to="/login" replace />}
           />
           
-          {/* Catch-all Route - Redirect to homepage */}
+          {/* Catch-all Route */}
           <Route 
             path="*" 
             element={<Navigate to="/" replace />} 

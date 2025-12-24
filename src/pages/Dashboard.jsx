@@ -17,7 +17,6 @@ import {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  // eslint-disable-next-line no-unused-vars
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -30,48 +29,65 @@ export default function Dashboard() {
   const [cardsMastered, setCardsMastered] = useState(0);
   const [reviewsDue, setReviewsDue] = useState(0);
   const [isNewUser, setIsNewUser] = useState(false);
-
-  // Professor content stats
-  // eslint-disable-next-line no-unused-vars
   const [professorCardsCount, setProfessorCardsCount] = useState(0);
 
   useEffect(() => {
     fetchUserAndStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUserAndStats = async () => {
-    try {
-      // Get current user
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) {
-        navigate('/login');
-        return;
-      }
-
-      // Get user profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      setUser(profile);
-
-      // Fetch all stats in parallel
-      await Promise.all([
-        fetchNotesCount(authUser.id),
-        fetchFlashcardsCount(authUser.id),
-        fetchReviewStats(authUser.id),
-        fetchProfessorContent()
-      ]);
-
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
+  try {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) {
+      navigate('/login');
+      return;
     }
-  };
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .single();
+
+    setUser(profile);
+
+    // Fetch all stats first
+    await Promise.all([
+      fetchNotesCount(authUser.id),
+      fetchFlashcardsCount(authUser.id),
+      fetchReviewStats(authUser.id),
+      fetchProfessorContent()
+    ]);
+
+    // Now check if user is truly new (after all data is loaded)
+    const { count: reviewsCount } = await supabase
+      .from('reviews')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', authUser.id);
+
+    const { count: notesTotal } = await supabase
+      .from('notes')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', authUser.id);
+
+    const { count: flashcardsTotal } = await supabase
+      .from('flashcards')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', authUser.id);
+
+    // User is new ONLY if they have zero activity across all metrics
+    setIsNewUser(
+      (!reviewsCount || reviewsCount === 0) && 
+      (!notesTotal || notesTotal === 0) && 
+      (!flashcardsTotal || flashcardsTotal === 0)
+    );
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchNotesCount = async (userId) => {
     const { count } = await supabase
@@ -92,38 +108,33 @@ export default function Dashboard() {
   };
 
   const fetchReviewStats = async (userId) => {
-    // Get all reviews for this user
-    const { data: reviews } = await supabase
-      .from('reviews')
-      .select('created_at, quality')
-      .eq('user_id', userId)
-      .order('created_at', { descending: true });
+  const { data: reviews } = await supabase
+    .from('reviews')
+    .select('created_at, quality')
+    .eq('user_id', userId)
+    .order('created_at', { descending: true });
 
-    if (!reviews || reviews.length === 0) {
-      setIsNewUser(true);
-      return;
-    }
+  // Don't set isNewUser here - we'll do it after all data is fetched
+  if (!reviews || reviews.length === 0) {
+    return;
+  }
 
     setIsNewUser(false);
 
-    // Calculate cards reviewed this week
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     const weeklyReviews = reviews.filter(r => new Date(r.created_at) > oneWeekAgo);
     setCardsReviewedThisWeek(weeklyReviews.length);
 
-    // Calculate study streak
     const streak = calculateStreak(reviews);
     setStudyStreak(streak);
 
-    // Calculate accuracy (last 7 days)
     if (weeklyReviews.length > 0) {
       const easyMedium = weeklyReviews.filter(r => r.quality === 5 || r.quality === 3).length;
       const acc = Math.round((easyMedium / weeklyReviews.length) * 100);
       setAccuracy(acc);
     }
 
-    // Calculate cards mastered (unique cards reviewed)
     const { data: uniqueCards } = await supabase
       .from('reviews')
       .select('flashcard_id')
@@ -132,7 +143,6 @@ export default function Dashboard() {
     const unique = new Set(uniqueCards?.map(r => r.flashcard_id) || []);
     setCardsMastered(unique.size);
 
-    // Calculate reviews due today
     const { data: dueCards } = await supabase
       .from('flashcards')
       .select('id')
@@ -145,7 +155,6 @@ export default function Dashboard() {
   const calculateStreak = (reviews) => {
     if (!reviews || reviews.length === 0) return 0;
 
-    // Get unique dates
     const dates = [...new Set(reviews.map(r => {
       const date = new Date(r.created_at);
       return date.toISOString().split('T')[0];
@@ -154,12 +163,10 @@ export default function Dashboard() {
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-    // Check if most recent review was today or yesterday
     if (dates[0] !== today && dates[0] !== yesterday) {
-      return 0; // Streak broken
+      return 0;
     }
 
-    // Count consecutive days
     let streak = 0;
     let currentDate = new Date();
     
@@ -179,7 +186,6 @@ export default function Dashboard() {
   };
 
   const fetchProfessorContent = async () => {
-    // Get count of public flashcards
     const { count: cardsCount } = await supabase
       .from('flashcards')
       .select('*', { count: 'exact', head: true })
@@ -200,7 +206,6 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       
-      {/* Welcome Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           {isNewUser ? 'Welcome to Recall! 👋' : 'Welcome back! 👋'}
@@ -215,10 +220,8 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Main Content Area */}
       <div className="space-y-6">
         
-        {/* New User Onboarding */}
         {isNewUser && (
           <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
             <CardHeader>
@@ -227,7 +230,6 @@ export default function Dashboard() {
             <CardContent>
               <div className="space-y-6">
                 
-                {/* Browse Content Section */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <FileText className="h-5 w-5 text-indigo-600" />
@@ -246,7 +248,7 @@ export default function Dashboard() {
                     </Button>
                     <Button 
                       variant="outline"
-                      onClick={() => navigate('/dashboard/study')}
+                      onClick={() => navigate('/dashboard/flashcards')}
                     >
                       <CreditCard className="mr-2 h-4 w-4" />
                       Browse Flashcards
@@ -254,7 +256,6 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Optional Create Section */}
                 <div className="pt-4 border-t">
                   <p className="text-sm text-gray-700">
                     💡 Don't find what you want? Create your own{' '}
@@ -278,7 +279,6 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Reviews Due Card (for returning users) */}
         {!isNewUser && reviewsDue > 0 && (
           <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
             <CardHeader>
@@ -298,7 +298,6 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* All Caught Up Card (for returning users with no reviews) */}
         {!isNewUser && reviewsDue === 0 && (
           <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
             <CardHeader>
@@ -313,7 +312,7 @@ export default function Dashboard() {
               <div className="flex gap-2">
                 <Button 
                   variant="outline"
-                  onClick={() => navigate('/dashboard/flashcards/new')}
+                  onClick={() => navigate('/dashboard/review-flashcards')}
                 >
                   Practice Anyway
                 </Button>
@@ -327,10 +326,8 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           
-          {/* Cards Reviewed This Week */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -346,7 +343,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Study Streak */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -362,7 +358,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Accuracy */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -378,7 +373,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Cards Mastered */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -395,11 +389,9 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Quick Actions (only for returning users) */}
         {!isNewUser && (
           <div className="grid gap-4 md:grid-cols-2">
             
-            {/* Upload Note */}
             <Card className="hover:bg-accent cursor-pointer transition" onClick={() => navigate('/dashboard/notes/new')}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -414,7 +406,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Create Flashcard */}
             <Card className="hover:bg-accent cursor-pointer transition" onClick={() => navigate('/dashboard/flashcards/new')}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -431,7 +422,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Your Contributions (only for returning users) */}
         {!isNewUser && (
           <Card>
             <CardHeader>
@@ -446,7 +436,6 @@ export default function Dashboard() {
               </p>
               <div className="grid gap-4 md:grid-cols-2">
                 
-                {/* Your Notes */}
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <BookOpen className="h-5 w-5 text-purple-600" />
@@ -464,7 +453,6 @@ export default function Dashboard() {
                   </Button>
                 </div>
 
-                {/* Your Flashcards */}
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <CreditCard className="h-5 w-5 text-blue-600" />

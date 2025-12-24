@@ -18,16 +18,61 @@ export default function ProfessorTools() {
   const hasAccess = true; // All authenticated users can access
 
   function downloadTemplate() {
-    const template = `subject,topic,front,back,tags,difficulty
-Taxation,Income Tax Basics,What is the basic exemption limit for individuals below 60 years?,₹2.5 lakhs,"#ITR,#basics",easy
-Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",easy
-Auditing,Audit Process,What are the 3 types of audit procedures?,"Inspection, Observation, Inquiry","#procedures,#basics",medium`;
+    // Enhanced template with reference lists
+    const template = `target_course,subject,topic,front,back,tags,difficulty
+CA Intermediate,Taxation,Income Tax Basics,What is the basic exemption limit for individuals below 60 years?,₹2.5 lakhs,"#ITR,#basics",easy
+CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",
+CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium
 
-    const blob = new Blob([template], { type: 'text/csv' });
+==================================================
+REFERENCE: VALID VALUES (Copy exactly as shown)
+==================================================
+
+COURSES (target_course):
+- CA Foundation
+- CA Intermediate  
+- CA Final
+- CMA Foundation
+- CMA Intermediate
+- CMA Final
+- CS Foundation
+- CS Executive
+- CS Professional
+
+DIFFICULTY (leave empty for default "medium"):
+- easy
+- medium
+- hard
+
+CA INTERMEDIATE SUBJECTS:
+- Advanced Accounting
+- Corporate & Other Laws
+- Cost & Management Accounting
+- Taxation
+- Auditing & Assurance
+- Enterprise Information Systems & Strategic Management
+
+CA FOUNDATION SUBJECTS:
+- Principles and Practice of Accounting
+- Business Laws
+- Quantitative Aptitude
+- Business Economics
+
+IMPORTANT NOTES:
+✓ Required: target_course, subject, front, back
+✓ Optional: topic, tags, difficulty
+✓ Use EXACT spelling/capitalization from reference
+✓ Empty difficulty defaults to "medium"
+✓ Tags format: "#tag1,#tag2" or leave empty
+✓ If subject not listed, will create custom entry
+✓ For multi-line text in cells, Excel/Sheets will auto-quote them
+`;
+
+    const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'flashcard_template.csv';
+    a.download = 'flashcard_template_with_reference.csv';
     a.click();
     window.URL.revokeObjectURL(url);
   }
@@ -47,50 +92,157 @@ Auditing,Audit Process,What are the 3 types of audit procedures?,"Inspection, Ob
   }
 
   function parseCSV(text) {
-    const lines = text.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',').map(h => h.trim());
-    
     const flashcards = [];
     const parseErrors = [];
-
+    
+    // More robust CSV parsing that handles quoted fields with line breaks
+    const lines = [];
+    let currentLine = '';
+    let insideQuotes = false;
+    
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const nextChar = text[i + 1];
+      
+      if (char === '"') {
+        insideQuotes = !insideQuotes;
+        currentLine += char;
+      } else if (char === '\n' && !insideQuotes) {
+        if (currentLine.trim()) {
+          lines.push(currentLine);
+        }
+        currentLine = '';
+      } else if (char === '\r') {
+        // Skip carriage returns
+        continue;
+      } else {
+        currentLine += char;
+      }
+    }
+    
+    // Add last line if exists
+    if (currentLine.trim()) {
+      lines.push(currentLine);
+    }
+    
+    if (lines.length === 0) {
+      return { flashcards: [], errors: ['CSV file is empty'] };
+    }
+    
+    // Parse header
+    const headerLine = lines[0];
+    const headers = parseCSVLine(headerLine);
+    
+    // Parse data rows
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
-      if (!line.trim()) continue;
-
+      
+      // Skip reference section lines
+      if (line.includes('====') || line.includes('REFERENCE:') || 
+          line.includes('COURSES') || line.includes('DIFFICULTY') ||
+          line.includes('SUBJECTS') || line.includes('IMPORTANT NOTES') ||
+          line.trim().startsWith('-') || line.trim().startsWith('✓')) {
+        continue;
+      }
+      
       try {
-        const values = line.split(',').map(v => v.trim());
+        const values = parseCSVLine(line);
+        
+        if (values.length === 0 || values.every(v => !v.trim())) {
+          continue; // Skip empty rows
+        }
         
         const flashcard = {};
         headers.forEach((header, index) => {
-          flashcard[header] = values[index] || '';
+          const value = values[index] || '';
+          // Clean the value: remove surrounding quotes, trim
+          const cleanValue = value.toString().trim().replace(/^["']|["']$/g, '');
+          flashcard[header] = cleanValue;
         });
-
-        if (!flashcard.subject || !flashcard.front || !flashcard.back) {
-          parseErrors.push(`Row ${i + 1}: Missing required fields (subject, front, back)`);
+        
+        // Validate ONLY required fields
+        if (!flashcard.target_course || !flashcard.subject || !flashcard.front || !flashcard.back) {
+          parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front, back)`);
           continue;
         }
-
-        if (flashcard.difficulty && 
-            !['easy', 'medium', 'hard'].includes(flashcard.difficulty.toLowerCase())) {
-          parseErrors.push(`Row ${i + 1}: Invalid difficulty (must be easy, medium, or hard)`);
-          continue;
+        
+        // Handle difficulty - accept valid values or default to medium
+        const cleanDifficulty = (flashcard.difficulty || '')
+          .toString()
+          .trim()
+          .replace(/['"]/g, '')
+          .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII characters
+          .toLowerCase();
+        
+        if (cleanDifficulty === 'easy') {
+          flashcard.difficulty = 'easy';
+        } else if (cleanDifficulty === 'hard') {
+          flashcard.difficulty = 'hard';
+        } else {
+          // Empty, 'medium', or anything else → default to medium
+          flashcard.difficulty = 'medium';
         }
-
-        if (flashcard.tags) {
-          flashcard.tags = flashcard.tags
-            .replace(/"/g, '')
+        
+        // Handle tags field
+        const cleanTags = (flashcard.tags || '')
+          .toString()
+          .trim()
+          .replace(/^["']|["']$/g, '');
+        
+        if (cleanTags !== '') {
+          flashcard.tags = cleanTags
             .split(',')
             .map(t => t.trim())
             .filter(t => t);
+        } else {
+          flashcard.tags = [];
         }
-
+        
+        // Clean up line breaks in front and back text (convert to spaces)
+        flashcard.front = flashcard.front.replace(/[\r\n]+/g, ' ').trim();
+        flashcard.back = flashcard.back.replace(/[\r\n]+/g, ' ').trim();
+        
         flashcards.push(flashcard);
       } catch (error) {
         parseErrors.push(`Row ${i + 1}: ${error.message}`);
       }
     }
-
+    
     return { flashcards, errors: parseErrors };
+  }
+  
+  // Helper function to parse a single CSV line (handles quoted fields)
+  function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let insideQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+      
+      if (char === '"') {
+        if (insideQuotes && nextChar === '"') {
+          // Escaped quote
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quote state
+          insideQuotes = !insideQuotes;
+        }
+      } else if (char === ',' && !insideQuotes) {
+        // End of field
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    // Add last field
+    result.push(current);
+    
+    return result;
   }
 
   async function uploadFlashcards() {
@@ -132,22 +284,22 @@ Auditing,Audit Process,What are the 3 types of audit procedures?,"Inspection, Ob
         );
 
         const topic = topics?.find(t => 
-          t.name.toLowerCase() === card.topic.toLowerCase() &&
+          t.name.toLowerCase() === (card.topic || '').toLowerCase() &&
           (!subject || t.subject_id === subject.id)
         );
 
         return {
           user_id: user.id,
           contributed_by: user.id,
-          target_course: 'CA Intermediate',
+          target_course: card.target_course,
           subject_id: subject?.id || null,
           topic_id: topic?.id || null,
           custom_subject: subject ? null : card.subject,
-          custom_topic: topic ? null : card.topic,
+          custom_topic: (topic || !card.topic) ? null : card.topic,
           front_text: card.front,
           back_text: card.back,
           tags: card.tags || [],
-          difficulty: card.difficulty?.toLowerCase() || 'medium',
+          difficulty: card.difficulty || 'medium',
           is_public: true,
           is_verified: isProfessor || isAdmin || isSuperAdmin
         };
@@ -166,14 +318,19 @@ Auditing,Audit Process,What are the 3 types of audit procedures?,"Inspection, Ob
         flashcards: data
       });
 
-      await supabase.from('admin_audit_log').insert({
-        action: 'bulk_upload_flashcards',
-        admin_id: user.id,
-        details: {
-          count: data.length,
-          filename: csvFile.name
-        }
-      });
+      // Try to log to audit table (ignore if it fails)
+      try {
+        await supabase.from('admin_audit_log').insert({
+          action: 'bulk_upload_flashcards',
+          admin_id: user.id,
+          details: {
+            count: data.length,
+            filename: csvFile.name
+          }
+        });
+      } catch (auditError) {
+        console.log('Audit log failed (non-critical):', auditError);
+      }
 
       setCsvFile(null);
       document.getElementById('csv-upload').value = '';
@@ -214,11 +371,11 @@ Auditing,Audit Process,What are the 3 types of audit procedures?,"Inspection, Ob
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-  Bulk Upload
-</h1>
-<p className="text-gray-600">
-  Upload multiple flashcards at once using CSV format
-</p>
+          Bulk Upload
+        </h1>
+        <p className="text-gray-600">
+          Upload multiple flashcards at once using CSV format
+        </p>
       </div>
 
       <Card className="mb-8">
@@ -237,7 +394,7 @@ Auditing,Audit Process,What are the 3 types of audit procedures?,"Inspection, Ob
               <div>
                 <p className="font-medium">Download the CSV Template</p>
                 <p className="text-sm text-gray-600">
-                  Click the button below to download a sample CSV file with the correct format
+                  Includes reference list of valid courses and subjects
                 </p>
               </div>
             </div>
@@ -249,7 +406,7 @@ Auditing,Audit Process,What are the 3 types of audit procedures?,"Inspection, Ob
               <div>
                 <p className="font-medium">Fill in Your Flashcards</p>
                 <p className="text-sm text-gray-600">
-                  Open the CSV in Excel/Google Sheets and add your flashcards. Required fields: subject, front, back
+                  Required: target_course, subject, front, back | Optional: topic, tags, difficulty
                 </p>
               </div>
             </div>
@@ -261,7 +418,7 @@ Auditing,Audit Process,What are the 3 types of audit procedures?,"Inspection, Ob
               <div>
                 <p className="font-medium">Upload the CSV File</p>
                 <p className="text-sm text-gray-600">
-                  Save your file as CSV and upload it using the form below
+                  Multi-line text is supported - Excel/Sheets will auto-quote cells
                 </p>
               </div>
             </div>
@@ -269,7 +426,7 @@ Auditing,Audit Process,What are the 3 types of audit procedures?,"Inspection, Ob
 
           <Button onClick={downloadTemplate} className="w-full sm:w-auto">
             <Download className="h-4 w-4 mr-2" />
-            Download CSV Template
+            Download Enhanced CSV Template
           </Button>
         </CardContent>
       </Card>
@@ -364,6 +521,12 @@ Auditing,Audit Process,What are the 3 types of audit procedures?,"Inspection, Ob
         <CardContent>
           <div className="space-y-3 text-sm">
             <div>
+              <p className="font-medium">target_course <span className="text-red-500">*</span></p>
+              <p className="text-gray-600">
+                Course level (e.g., "CA Foundation", "CA Intermediate", "CA Final")
+              </p>
+            </div>
+            <div>
               <p className="font-medium">subject <span className="text-red-500">*</span></p>
               <p className="text-gray-600">
                 Subject name (e.g., "Taxation", "Advanced Accounting")
@@ -384,7 +547,7 @@ Auditing,Audit Process,What are the 3 types of audit procedures?,"Inspection, Ob
             <div>
               <p className="font-medium">back <span className="text-red-500">*</span></p>
               <p className="text-gray-600">
-                Answer or back side of flashcard
+                Answer or back side of flashcard (multi-line text supported)
               </p>
             </div>
             <div>
@@ -396,7 +559,7 @@ Auditing,Audit Process,What are the 3 types of audit procedures?,"Inspection, Ob
             <div>
               <p className="font-medium">difficulty</p>
               <p className="text-gray-600">
-                Difficulty level: easy, medium, or hard
+                Difficulty level: easy, medium, or hard (defaults to medium if empty)
               </p>
             </div>
           </div>

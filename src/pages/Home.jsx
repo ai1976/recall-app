@@ -95,7 +95,7 @@ export default function Home() {
               Start Learning Now
             </Link>
             <a 
-              href="mailto:faculty@recallapp.in?subject=Interested in Contributing to Recall&body=Hi, I'm interested in becoming a contributing expert for Recall. Please send me more details.%0D%0A%0D%0AMy name: %0D%0AMy subject expertise: %0D%0AMy institution: %0D%0AMy contact number: "
+              href="mailto:recall@moreclassescommerce.com?subject=Interested in Contributing to Recall&body=Hi, I'm interested in becoming a contributing expert for Recall. Please send me more details.%0D%0A%0D%0AMy name: %0D%0AMy subject expertise: %0D%0AMy institution: %0D%0AMy contact number: "
               className="bg-white text-blue-600 border-2 border-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-50 transition"
             >
               I'm an Educator
@@ -373,13 +373,13 @@ export default function Home() {
 
               <div className="mt-8 pt-8 border-t border-white/20">
                 <a 
-                  href="mailto:faculty@recallapp.in?subject=Interested in Contributing to Recall&body=Hi, I'm interested in becoming a contributing faculty member for Recall. Please send me more details.%0D%0A%0D%0AMy name: %0D%0AMy subject expertise: %0D%0AMy institution: %0D%0AMy contact number: " 
+                  href="mailto:recall@moreclassescommerce.com?subject=Interested in Contributing to Recall&body=Hi, I'm interested in becoming a contributing faculty member for Recall. Please send me more details.%0D%0A%0D%0AMy name: %0D%0AMy subject expertise: %0D%0AMy institution: %0D%0AMy contact number: " 
                   className="block w-full bg-white text-blue-600 text-center px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition"
                 >
                   Become a Contributing Expert
                 </a>
                 <p className="text-center text-blue-100 text-sm mt-3">
-                  Or email us at: faculty@recallapp.in
+                  Or email us at: recall@moreclassescommerce.com
                 </p>
               </div>
             </div>
@@ -452,7 +452,7 @@ export default function Home() {
               Start Learning Now
             </Link>
             <a 
-              href="mailto:faculty@recallapp.in?subject=Interested in Contributing to Recall&body=Hi, I'm interested in becoming a contributing expert for Recall. Please send me more details.%0D%0A%0D%0AMy name: %0D%0AMy subject expertise: %0D%0AMy institution: %0D%0AMy contact number: "
+              href="mailto:recall@moreclassescommerce.com?subject=Interested in Contributing to Recall&body=Hi, I'm interested in becoming a contributing expert for Recall. Please send me more details.%0D%0A%0D%0AMy name: %0D%0AMy subject expertise: %0D%0AMy institution: %0D%0AMy contact number: "
               className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white/10 transition"
             >
               I'm an Educator
@@ -496,9 +496,9 @@ export default function Home() {
             <div>
               <h3 className="text-white font-semibold mb-4">For Educators</h3>
               <ul className="space-y-2 text-sm">
-                <li><a href="mailto:faculty@recallapp.in?subject=Become a Contributor" className="hover:text-white transition">Become a Contributor</a></li>
+                <li><a href="mailto:recall@moreclassescommerce.com?subject=Become a Contributor" className="hover:text-white transition">Become a Contributor</a></li>
                 <li><a href="#professors" className="hover:text-white transition">Faculty Benefits</a></li>
-                <li><a href="mailto:faculty@recallapp.in" className="hover:text-white transition">Contact Us</a></li>
+                <li><a href="mailto:recall@moreclassescommerce.com" className="hover:text-white transition">Contact Us</a></li>
               </ul>
             </div>
 
@@ -508,13 +508,13 @@ export default function Home() {
               <ul className="space-y-2 text-sm">
                 <li><a href="#" className="hover:text-white transition">Privacy Policy</a></li>
                 <li><a href="#" className="hover:text-white transition">Terms of Service</a></li>
-                <li><a href="mailto:support@recall.app" className="hover:text-white transition">Support</a></li>
+                <li><a href="mailto:recall@moreclassescommerce.com" className="hover:text-white transition">Support</a></li>
               </ul>
             </div>
           </div>
 
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-sm">
-            <p>© 2025 Recall. All rights reserved. Built with ❤️ for students everywhere.</p>
+            <p>© 2025 Recall. All rights reserved. Built with love for students everywhere.</p>
           </div>
         </div>
       </footer>

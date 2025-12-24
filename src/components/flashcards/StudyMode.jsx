@@ -9,7 +9,6 @@ export default function StudyMode() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const subjectFilter = searchParams.get('subject');
 
   const [flashcards, setFlashcards] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -30,36 +29,48 @@ export default function StudyMode() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      const subjectParam = searchParams.get('subject');
+      const topicParam = searchParams.get('topic');
+
+      // Fetch all public flashcards + user's own flashcards
       let query = supabase
         .from('flashcards')
         .select(`
           *,
-          notes (
-            id,
-            title,
-            subject,
-            topic
-          )
+          subjects:subject_id (id, name),
+          topics:topic_id (id, name)
         `)
-        .eq('user_id', user.id);
-
-      // Filter by subject if provided
-      if (subjectFilter) {
-        const { data: notesData } = await supabase
-          .from('notes')
-          .select('id')
-          .eq('subject', subjectFilter);
-        
-        const noteIds = notesData?.map(n => n.id) || [];
-        query = query.in('note_id', noteIds);
-      }
+        .or(`is_public.eq.true,user_id.eq.${user.id}`);
 
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
 
+      // Clean diamond characters and other special chars from text
+      let cleanedData = (data || []).map(card => ({
+        ...card,
+        front_text: card.front_text?.replace(/[\u25C6\u2666◆�]/g, '').trim() || '',
+        back_text: card.back_text?.replace(/[\u25C6\u2666◆�]/g, '').trim() || ''
+      }));
+
+      // Filter by subject if provided
+      if (subjectParam) {
+        cleanedData = cleanedData.filter(card => 
+          card.subjects?.name === subjectParam || 
+          card.custom_subject === subjectParam
+        );
+      }
+
+      // Filter by topic if provided
+      if (topicParam) {
+        cleanedData = cleanedData.filter(card => 
+          card.topics?.name === topicParam || 
+          card.custom_topic === topicParam
+        );
+      }
+
       // Shuffle flashcards for study session
-      const shuffled = [...(data || [])].sort(() => Math.random() - 0.5);
+      const shuffled = [...cleanedData].sort(() => Math.random() - 0.5);
       setFlashcards(shuffled);
     } catch (error) {
       console.error('Error fetching flashcards:', error);
@@ -105,7 +116,7 @@ export default function StudyMode() {
       const { data, error } = await supabase
         .from('reviews')
         .insert({
-          user_id: user.id, // ADDED: Missing user_id!
+          user_id: user.id,
           flashcard_id: currentCard.id,
           quality: quality === 'easy' ? 5 : quality === 'medium' ? 3 : 1,
           next_review_date: nextReview.toISOString().split('T')[0],
@@ -117,21 +128,9 @@ export default function StudyMode() {
 
       if (error) {
         console.error('Error saving review:', error);
-        toast({
-          title: "Failed to save review",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        console.log('Review saved successfully:', data);
       }
     } catch (error) {
       console.error('Error saving review:', error);
-      toast({
-        title: "Failed to save review",
-        description: error.message,
-        variant: "destructive"
-      });
     }
 
     // Move to next card
@@ -168,9 +167,9 @@ export default function StudyMode() {
         <div className="text-center">
           <Brain className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">No flashcards to study</h2>
-          <p className="text-gray-600 mb-6">Create some flashcards first to start studying!</p>
-          <Button onClick={() => navigate('/dashboard/flashcards/new')}>
-            Create Flashcards
+          <p className="text-gray-600 mb-6">No flashcards found for this selection</p>
+          <Button onClick={() => navigate('/dashboard/review-flashcards')}>
+            Choose Different Subject
           </Button>
         </div>
       </div>
@@ -189,11 +188,11 @@ export default function StudyMode() {
           <div className="flex items-center justify-between h-16">
             <Button
               variant="ghost"
-              onClick={() => navigate('/dashboard/flashcards')}
+              onClick={() => navigate('/dashboard/review-flashcards')}
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Exit Study Mode
+              Back to Selection
             </Button>
             <div className="flex items-center gap-4">
               <div className="text-sm text-gray-600">
@@ -281,10 +280,10 @@ export default function StudyMode() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/dashboard/review-flashcards')}
                 size="lg"
               >
-                Back to Dashboard
+                Choose Different Topic
               </Button>
             </div>
           </div>
@@ -292,20 +291,14 @@ export default function StudyMode() {
           // Flashcard Display
           <div>
             {/* Card Info */}
-            {currentCard.notes && (
+            {(currentCard.subjects || currentCard.custom_subject) && (
               <div className="text-center mb-4">
-                <p className="text-sm text-gray-600 mb-2">
-                  {currentCard.notes.subject} • {currentCard.notes.topic}
+                <p className="text-sm text-gray-600">
+                  {currentCard.subjects?.name || currentCard.custom_subject}
+                  {(currentCard.topics?.name || currentCard.custom_topic) && 
+                    ` • ${currentCard.topics?.name || currentCard.custom_topic}`
+                  }
                 </p>
-                <a
-                  href={`/dashboard/notes/${currentCard.notes.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 hover:underline"
-                >
-                  <FileText className="h-3 w-3" />
-                  View Original Note
-                </a>
               </div>
             )}
 

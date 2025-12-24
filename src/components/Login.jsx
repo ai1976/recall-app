@@ -1,49 +1,49 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { BookOpen } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { BookOpen, Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Login() {
-  const navigate = useNavigate()
-  const { toast } = useToast()
-  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     try {
-      // Sign in
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      })
+      });
       
-      if (error) throw error
+      if (error) throw error;
       
       toast({
         title: 'Welcome back!',
         description: 'Successfully signed in.',
-      })
+      });
       
-      navigate('/dashboard')
+      navigate('/dashboard');
     } catch (error) {
       toast({
         title: 'Error',
         description: error.message,
         variant: 'destructive',
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -51,9 +51,13 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <BookOpen className="w-10 h-10 text-primary" />
-            <h1 className="text-4xl font-bold">Recall</h1>
-          </div>
+  <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
+    <span className="text-white font-bold text-2xl">R</span>
+  </div>
+  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+    Recall
+  </h1>
+</div>
           <p className="text-muted-foreground">
             Remember Everything. Ace Every Exam.
           </p>
@@ -80,14 +84,34 @@ export default function Login() {
             
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => navigate('/forgot-password')}
+                className="text-sm text-primary hover:underline"
+              >
+                Forgot password?
+              </button>
             </div>
 
             <Button 
@@ -100,15 +124,16 @@ export default function Login() {
           </form>
 
           <div className="mt-4 text-center text-sm">
-            <Link
-              to="/signup"
+            <button
+              type="button"
+              onClick={() => navigate('/signup')}
               className="text-primary hover:underline"
             >
               Don't have an account? Sign up
-            </Link>
+            </button>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

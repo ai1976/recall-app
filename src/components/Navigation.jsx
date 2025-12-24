@@ -67,7 +67,7 @@ export default function Navigation() {
 
   // Check if any Study submenu item is active
   const isStudyActive = () => {
-    return location.pathname === '/dashboard/flashcards' || 
+    return location.pathname === '/dashboard/review-flashcards' || 
            location.pathname === '/dashboard/notes' ||
            location.pathname === '/dashboard/progress';
   };
@@ -135,7 +135,7 @@ export default function Navigation() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-48">
                       <DropdownMenuItem asChild>
-                        <Link to="/dashboard/flashcards" className="flex items-center gap-2 cursor-pointer">
+                        <Link to="/dashboard/review-flashcards" className="flex items-center gap-2 cursor-pointer">
                           <CreditCard className="h-4 w-4" />
                           Review Flashcards
                         </Link>
@@ -313,7 +313,7 @@ export default function Navigation() {
                     </div>
                   </div>
                   <Link
-                    to="/dashboard/flashcards"
+                    to="/dashboard/review-flashcards"
                     onClick={() => setMobileMenuOpen(false)}
                     className="block px-6 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                   >
