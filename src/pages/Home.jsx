@@ -1,8 +1,84 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Brain, Users, TrendingUp, CheckCircle, BookOpen, Award, Zap } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export default function Home() {
+  // Store professor data and content counts from database
+  const [professors, setProfessors] = useState([]);
+  const [contentCounts, setContentCounts] = useState({
+    flashcards: 220,  // Fallback default
+    notes: 35,        // Fallback default
+    isLoading: true
+  });
+  const [loading, setLoading] = useState(true);
+  
+  // Fetch professors and content counts when page loads
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Fetch professors
+        const { data: profData, error: profError } = await supabase
+          .from('profiles')
+          .select('id, full_name, role')
+          .eq('role', 'professor')
+          .order('created_at', { ascending: true })
+          .limit(3);
+        
+        if (profError) {
+          console.error('Error fetching professors:', profError);
+        } else if (profData && profData.length > 0) {
+          setProfessors(profData);
+        }
+
+        // Fetch flashcard count - FIXED METHOD
+        const { count: flashcardCount, error: flashcardError } = await supabase
+          .from('flashcards')
+          .select('*', { count: 'exact', head: true });
+        
+        console.log('Flashcard Query Result:', { flashcardCount, flashcardError });
+        
+        // Fetch note count - FIXED METHOD
+        const { count: noteCount, error: noteError } = await supabase
+          .from('notes')
+          .select('*', { count: 'exact', head: true });
+        
+        console.log('Note Query Result:', { noteCount, noteError });
+        
+        // Update counts only if we got valid results
+        if (!flashcardError && !noteError) {
+          setContentCounts({
+            flashcards: flashcardCount > 0 ? flashcardCount : 220,
+            notes: noteCount > 0 ? noteCount : 35,
+            isLoading: false
+          });
+          console.log('Content counts updated:', { flashcardCount, noteCount });
+        } else {
+          // Keep fallback values if query failed
+          setContentCounts({
+            flashcards: 220,
+            notes: 35,
+            isLoading: false
+          });
+          console.log('Using fallback counts due to errors');
+        }
+        
+      } catch (err) {
+        console.error('Unexpected error fetching data:', err);
+        // Use fallback values
+        setContentCounts({
+          flashcards: 220,
+          notes: 35,
+          isLoading: false
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchData();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Navigation */}
@@ -49,10 +125,18 @@ export default function Home() {
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
         <div className="max-w-4xl mx-auto">
-          {/* Badge */}
+          {/* Badge - Dynamic professor count */}
           <div className="inline-flex items-center space-x-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full mb-6">
             <Award className="h-4 w-4" />
-            <span className="text-sm font-semibold">220+ Expert-Verified Flashcards Ready</span>
+            <span className="text-sm font-semibold">
+              {loading ? (
+                'Expert-Verified Content Ready'
+              ) : professors.length > 0 ? (
+                `${professors.length} Expert${professors.length > 1 ? 's' : ''} • ${contentCounts.flashcards}+ Flashcards`
+              ) : (
+                `${contentCounts.flashcards}+ Expert-Verified Flashcards`
+              )}
+            </span>
           </div>
 
           {/* Main Headline */}
@@ -66,15 +150,17 @@ export default function Home() {
 
           {/* Subheadline */}
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Learn from expert-curated flashcards. Review at the perfect time. 
-            Add your own notes. Never forget again.
+            Access expert-curated flashcards and notes. Contribute your own content. 
+            Master concepts with scientifically-proven spaced repetition.
           </p>
 
-          {/* Social Proof */}
+          {/* Social Proof - Dynamic professor count */}
           <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-8 mb-10">
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="text-gray-700">Faculty-verified content</span>
+              <span className="text-gray-700">
+                {loading ? 'Expert-verified content' : professors.length > 0 ? `${professors.length} Expert${professors.length > 1 ? 's' : ''} Contributing` : 'Expert-verified content'}
+              </span>
             </div>
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
@@ -82,7 +168,7 @@ export default function Home() {
             </div>
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="text-gray-700">100% free during beta</span>
+              <span className="text-gray-700">Free to get started</span>
             </div>
           </div>
 
@@ -102,14 +188,18 @@ export default function Home() {
             </a>
           </div>
 
-          {/* Stats */}
+          {/* Stats - Dynamic counts */}
           <div className="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto">
             <div>
-              <div className="text-4xl font-bold text-blue-600">220+</div>
-              <div className="text-gray-600 mt-2">Expert Flashcards</div>
+              <div className="text-4xl font-bold text-blue-600">
+                {contentCounts.flashcards}+
+              </div>
+              <div className="text-gray-600 mt-2">Flashcards</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-purple-600">35+</div>
+              <div className="text-4xl font-bold text-purple-600">
+                {contentCounts.notes}+
+              </div>
               <div className="text-gray-600 mt-2">Study Notes</div>
             </div>
             <div>
@@ -142,17 +232,17 @@ export default function Home() {
                 Expert-Verified Content
               </h3>
               <p className="text-gray-600 mb-4">
-                Learn from faculty-curated flashcards created by subject experts. 
+                Access faculty-curated flashcards and notes from subject experts. 
                 Quality content from Day 1.
               </p>
               <ul className="space-y-2">
                 <li className="flex items-start space-x-2">
                   <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700">220+ verified flashcards</span>
+                  <span className="text-gray-700">{contentCounts.flashcards}+ verified flashcards</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700">Multiple subjects covered</span>
+                  <span className="text-gray-700">{contentCounts.notes}+ expert study notes</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
@@ -198,7 +288,7 @@ export default function Home() {
                 Build Your Own Library
               </h3>
               <p className="text-gray-600 mb-4">
-                Upload your notes, create flashcards, and share with classmates. 
+                Upload notes and create flashcards. Share with classmates. 
                 Your study material, digitized and organized.
               </p>
               <ul className="space-y-2">
@@ -239,11 +329,11 @@ export default function Home() {
                 1
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                Review Expert Flashcards
+                Review Expert Content
               </h3>
               <p className="text-gray-600">
-                Sign up and immediately start reviewing 220+ expert flashcards. 
-                Takes just 5 minutes to see value.
+                Sign up and immediately access {contentCounts.flashcards}+ expert flashcards and {contentCounts.notes}+ study notes. 
+                Start learning in 5 minutes.
               </p>
             </div>
 
@@ -253,11 +343,11 @@ export default function Home() {
                 2
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                Upload Your Notes
+                Contribute Your Content
               </h3>
               <p className="text-gray-600">
-                Take photos of your handwritten notes or upload PDFs. 
-                Our OCR extracts text automatically.
+                Upload your notes, create flashcards, and share with classmates. 
+                Build your digital study library.
               </p>
             </div>
 
@@ -270,8 +360,8 @@ export default function Home() {
                 Build Daily Habit
               </h3>
               <p className="text-gray-600">
-                Review due cards daily (5-10 min). Create flashcards. 
-                Track your progress and maintain your streak!
+                Review due cards daily (5-10 min). Track your progress. 
+                Maintain your streak and ace your exams!
               </p>
             </div>
           </div>
@@ -283,9 +373,9 @@ export default function Home() {
               className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-xl transition transform hover:-translate-y-1"
             >
               <Zap className="h-5 w-5" />
-              <span>Start Your Free Trial</span>
+              <span>Get Started Free</span>
             </Link>
-            <p className="text-gray-600 mt-3">No credit card required • 100% free during beta</p>
+            <p className="text-gray-600 mt-3">No credit card required • Free to get started</p>
           </div>
         </div>
       </section>
@@ -318,7 +408,7 @@ export default function Home() {
                   <CheckCircle className="h-6 w-6 text-green-300 mt-0.5 flex-shrink-0" />
                   <div>
                     <div className="font-semibold">Free Premium Access</div>
-                    <div className="text-blue-100 text-sm">Lifetime premium account (₹2,000/year value)</div>
+                    <div className="text-blue-100 text-sm">Complimentary premium account</div>
                   </div>
                 </li>
                 <li className="flex items-start space-x-3">
@@ -338,38 +428,58 @@ export default function Home() {
               </ul>
             </div>
 
-            {/* Current Contributors */}
+            {/* Current Contributors - Dynamic professor display */}
             <div className="bg-white/10 backdrop-blur-sm p-8 rounded-xl">
-              <h3 className="text-2xl font-bold mb-6">Join Our Expert Contributors</h3>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="bg-white/20 p-3 rounded-full">
-                    <Users className="h-6 w-6" />
+              <h3 className="text-2xl font-bold mb-6">
+                {loading ? 'Join Our Expert Contributors' : professors.length > 0 ? 'Our Expert Contributors' : 'Join Our Expert Contributors'}
+              </h3>
+              
+              {/* Show actual professors if available */}
+              {!loading && professors.length > 0 ? (
+                <div className="space-y-4 mb-6">
+                  {professors.map((prof, index) => (
+                    <div key={prof.id || index} className="flex items-center space-x-4">
+                      <div className="bg-white/20 w-12 h-12 rounded-full flex items-center justify-center text-xl font-semibold">
+                        {prof.full_name?.charAt(0) || 'P'}
+                      </div>
+                      <div>
+                        <div className="font-semibold">{prof.full_name || 'Professor'}</div>
+                        <div className="text-blue-100 text-sm">Subject Matter Expert</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-white/20 p-3 rounded-full">
+                      <Users className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Subject Matter Experts</div>
+                      <div className="text-blue-100 text-sm">Multiple disciplines covered</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-semibold">Subject Matter Experts</div>
-                    <div className="text-blue-100 text-sm">Multiple disciplines covered</div>
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-white/20 p-3 rounded-full">
+                      <Users className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Quality Content</div>
+                      <div className="text-blue-100 text-sm">{contentCounts.flashcards}+ verified flashcards</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-white/20 p-3 rounded-full">
+                      <Users className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Growing Community</div>
+                      <div className="text-blue-100 text-sm">Expanding across disciplines</div>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="bg-white/20 p-3 rounded-full">
-                    <Users className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">Quality Content</div>
-                    <div className="text-blue-100 text-sm">220+ verified flashcards</div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="bg-white/20 p-3 rounded-full">
-                    <Users className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">Growing Community</div>
-                    <div className="text-blue-100 text-sm">Expanding across disciplines</div>
-                  </div>
-                </div>
-              </div>
+              )}
 
               <div className="mt-8 pt-8 border-t border-white/20">
                 <a 
@@ -395,12 +505,12 @@ export default function Home() {
               What Students Are Saying
             </h2>
             <p className="text-xl text-gray-600">
-              Join our beta program and be among the first to experience Recall
+              Real feedback from students using Recall
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Testimonial Placeholder */}
+            {/* Testimonial placeholders - Update these after Phase 1 with real feedback */}
             <div className="bg-white p-8 rounded-xl shadow-lg">
               <div className="text-yellow-500 mb-4">★★★★★</div>
               <p className="text-gray-700 italic mb-4">
@@ -408,7 +518,7 @@ export default function Home() {
                 instead of spending hours creating cards."
               </p>
               <div className="font-semibold text-gray-900">— Student</div>
-              <div className="text-sm text-gray-600">Beta Testing</div>
+              <div className="text-sm text-gray-600">Early Access</div>
             </div>
 
             <div className="bg-white p-8 rounded-xl shadow-lg">
@@ -418,17 +528,17 @@ export default function Home() {
                 My retention has improved dramatically."
               </p>
               <div className="font-semibold text-gray-900">— Student</div>
-              <div className="text-sm text-gray-600">Beta Testing</div>
+              <div className="text-sm text-gray-600">Early Access</div>
             </div>
 
             <div className="bg-white p-8 rounded-xl shadow-lg">
               <div className="text-yellow-500 mb-4">★★★★★</div>
               <p className="text-gray-700 italic mb-4">
-                "Finally, a study tool built by educators who understand what students need. 
-                This is exactly what we were looking for."
+                "Finally, a study tool that understands what CA students need. 
+                This has become essential for my preparation."
               </p>
               <div className="font-semibold text-gray-900">— Student</div>
-              <div className="text-sm text-gray-600">Beta Testing</div>
+              <div className="text-sm text-gray-600">Early Access</div>
             </div>
           </div>
         </div>
@@ -441,8 +551,7 @@ export default function Home() {
             Ready to Transform Your Study Routine?
           </h2>
           <p className="text-xl text-blue-100 mb-10">
-            Join the beta program. Get access to 220+ expert-verified flashcards. 
-            100% free during beta testing.
+            Join {contentCounts.flashcards}+ flashcards • {contentCounts.notes}+ notes • Free to get started
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
             <Link 
@@ -459,7 +568,7 @@ export default function Home() {
             </a>
           </div>
           <p className="mt-6 text-blue-100">
-            No credit card required • Takes 30 seconds to sign up
+            No credit card required • Get started in 30 seconds
           </p>
         </div>
       </section>

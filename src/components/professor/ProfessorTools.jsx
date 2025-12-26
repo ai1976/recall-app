@@ -4,6 +4,8 @@ import { useRole } from '@/hooks/useRole';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload, CheckCircle, XCircle, AlertCircle, Download } from 'lucide-react';
 
@@ -14,11 +16,12 @@ export default function ProfessorTools() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResults, setUploadResults] = useState(null);
   const [errors, setErrors] = useState([]);
+  // 🆕 NEW: Batch description state
+  const [batchDescription, setBatchDescription] = useState('');
 
   const hasAccess = true; // All authenticated users can access
 
   function downloadTemplate() {
-    // Enhanced template with reference lists
     const template = `target_course,subject,topic,front,back,tags,difficulty
 CA Intermediate,Taxation,Income Tax Basics,What is the basic exemption limit for individuals below 60 years?,₹2.5 lakhs,"#ITR,#basics",easy
 CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",
@@ -66,6 +69,8 @@ IMPORTANT NOTES:
 ✓ Tags format: "#tag1,#tag2" or leave empty
 ✓ If subject not listed, will create custom entry
 ✓ For multi-line text in cells, Excel/Sheets will auto-quote them
+✓ All flashcards are created as PRIVATE by default
+✓ You can make them public later from My Flashcards page
 `;
 
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
@@ -95,14 +100,12 @@ IMPORTANT NOTES:
     const flashcards = [];
     const parseErrors = [];
     
-    // More robust CSV parsing that handles quoted fields with line breaks
     const lines = [];
     let currentLine = '';
     let insideQuotes = false;
     
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
-      const nextChar = text[i + 1];
       
       if (char === '"') {
         insideQuotes = !insideQuotes;
@@ -113,14 +116,12 @@ IMPORTANT NOTES:
         }
         currentLine = '';
       } else if (char === '\r') {
-        // Skip carriage returns
         continue;
       } else {
         currentLine += char;
       }
     }
     
-    // Add last line if exists
     if (currentLine.trim()) {
       lines.push(currentLine);
     }
@@ -129,15 +130,12 @@ IMPORTANT NOTES:
       return { flashcards: [], errors: ['CSV file is empty'] };
     }
     
-    // Parse header
     const headerLine = lines[0];
     const headers = parseCSVLine(headerLine);
     
-    // Parse data rows
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
       
-      // Skip reference section lines
       if (line.includes('====') || line.includes('REFERENCE:') || 
           line.includes('COURSES') || line.includes('DIFFICULTY') ||
           line.includes('SUBJECTS') || line.includes('IMPORTANT NOTES') ||
@@ -149,29 +147,26 @@ IMPORTANT NOTES:
         const values = parseCSVLine(line);
         
         if (values.length === 0 || values.every(v => !v.trim())) {
-          continue; // Skip empty rows
+          continue;
         }
         
         const flashcard = {};
         headers.forEach((header, index) => {
           const value = values[index] || '';
-          // Clean the value: remove surrounding quotes, trim
           const cleanValue = value.toString().trim().replace(/^["']|["']$/g, '');
           flashcard[header] = cleanValue;
         });
         
-        // Validate ONLY required fields
         if (!flashcard.target_course || !flashcard.subject || !flashcard.front || !flashcard.back) {
           parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front, back)`);
           continue;
         }
         
-        // Handle difficulty - accept valid values or default to medium
         const cleanDifficulty = (flashcard.difficulty || '')
           .toString()
           .trim()
           .replace(/['"]/g, '')
-          .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII characters
+          .replace(/[^\x00-\x7F]/g, '')
           .toLowerCase();
         
         if (cleanDifficulty === 'easy') {
@@ -179,11 +174,9 @@ IMPORTANT NOTES:
         } else if (cleanDifficulty === 'hard') {
           flashcard.difficulty = 'hard';
         } else {
-          // Empty, 'medium', or anything else → default to medium
           flashcard.difficulty = 'medium';
         }
         
-        // Handle tags field
         const cleanTags = (flashcard.tags || '')
           .toString()
           .trim()
@@ -198,7 +191,6 @@ IMPORTANT NOTES:
           flashcard.tags = [];
         }
         
-        // Clean up line breaks in front and back text (convert to spaces)
         flashcard.front = flashcard.front.replace(/[\r\n]+/g, ' ').trim();
         flashcard.back = flashcard.back.replace(/[\r\n]+/g, ' ').trim();
         
@@ -211,7 +203,6 @@ IMPORTANT NOTES:
     return { flashcards, errors: parseErrors };
   }
   
-  // Helper function to parse a single CSV line (handles quoted fields)
   function parseCSVLine(line) {
     const result = [];
     let current = '';
@@ -223,15 +214,12 @@ IMPORTANT NOTES:
       
       if (char === '"') {
         if (insideQuotes && nextChar === '"') {
-          // Escaped quote
           current += '"';
-          i++; // Skip next quote
+          i++;
         } else {
-          // Toggle quote state
           insideQuotes = !insideQuotes;
         }
       } else if (char === ',' && !insideQuotes) {
-        // End of field
         result.push(current);
         current = '';
       } else {
@@ -239,7 +227,6 @@ IMPORTANT NOTES:
       }
     }
     
-    // Add last field
     result.push(current);
     
     return result;
@@ -278,6 +265,10 @@ IMPORTANT NOTES:
         .from('topics')
         .select('id, name, subject_id');
 
+      // 🆕 NEW: Generate single batch_id for all cards in this upload
+      const batchId = crypto.randomUUID();
+      const trimmedDescription = batchDescription.trim() || null;
+
       const flashcardsToInsert = flashcards.map(card => {
         const subject = subjects?.find(s => 
           s.name.toLowerCase() === card.subject.toLowerCase()
@@ -300,8 +291,11 @@ IMPORTANT NOTES:
           back_text: card.back,
           tags: card.tags || [],
           difficulty: card.difficulty || 'medium',
-          is_public: true,
-          is_verified: isProfessor || isAdmin || isSuperAdmin
+          is_public: false,
+          is_verified: isProfessor || isAdmin || isSuperAdmin,
+          // 🆕 NEW: Add batch tracking
+          batch_id: batchId,
+          batch_description: trimmedDescription
         };
       });
 
@@ -318,21 +312,23 @@ IMPORTANT NOTES:
         flashcards: data
       });
 
-      // Try to log to audit table (ignore if it fails)
       try {
         await supabase.from('admin_audit_log').insert({
           action: 'bulk_upload_flashcards',
           admin_id: user.id,
           details: {
             count: data.length,
-            filename: csvFile.name
+            filename: csvFile.name,
+            batch_description: trimmedDescription
           }
         });
       } catch (auditError) {
         console.log('Audit log failed (non-critical):', auditError);
       }
 
+      // 🆕 Clear form
       setCsvFile(null);
+      setBatchDescription('');
       document.getElementById('csv-upload').value = '';
 
     } catch (error) {
@@ -435,10 +431,26 @@ IMPORTANT NOTES:
         <CardHeader>
           <CardTitle>Upload Flashcards</CardTitle>
           <CardDescription>
-            Select your CSV file and click upload
+            Select your CSV file and click upload. All flashcards will be created as private by default.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* 🆕 NEW: Batch Description Field */}
+          <div className="space-y-2">
+            <Label htmlFor="batch-description">
+              Batch Description (Optional)
+            </Label>
+            <Input
+              id="batch-description"
+              value={batchDescription}
+              onChange={(e) => setBatchDescription(e.target.value)}
+              placeholder="e.g., Treasury Management - Part 1"
+            />
+            <p className="text-sm text-muted-foreground">
+              💡 Helps organize and identify related flashcards
+            </p>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               CSV File
@@ -480,6 +492,13 @@ IMPORTANT NOTES:
               </>
             )}
           </Button>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-800">
+              <strong>📌 Privacy Notice:</strong> All flashcards will be created as <strong>private</strong> by default. 
+              You can make them public later from the My Flashcards page.
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -502,10 +521,15 @@ IMPORTANT NOTES:
           <CheckCircle className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
             <p className="font-medium">
-              Successfully uploaded {uploadResults.count} flashcard(s)!
+              Successfully uploaded {uploadResults.count} flashcard(s) as private!
             </p>
+            {batchDescription && (
+              <p className="text-sm mt-1">
+                📦 Batch: "{batchDescription}"
+              </p>
+            )}
             <p className="text-sm mt-1">
-              Your flashcards are now live and students can start reviewing them.
+              Go to My Flashcards to review and make them public if needed.
             </p>
           </AlertDescription>
         </Alert>

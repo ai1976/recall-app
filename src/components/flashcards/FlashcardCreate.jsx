@@ -18,7 +18,6 @@ export default function FlashcardCreate() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // 🆕 NEW: Target course for two-tier model
   const [targetCourse, setTargetCourse] = useState('');
   const [showCustomCourse, setShowCustomCourse] = useState(false);
   const [customCourse, setCustomCourse] = useState('');
@@ -39,21 +38,15 @@ export default function FlashcardCreate() {
   ]);
   
   const [loading, setLoading] = useState(false);
-
-  // Combobox states
   const [subjectOpen, setSubjectOpen] = useState(false);
   const [topicOpen, setTopicOpen] = useState(false);
 
   useEffect(() => {
-    // Fetch ALL subjects - no filtering by user's course!
-    // This allows professors to create for any course, and students to help juniors
     fetchSubjects();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchSubjects = async () => {
     try {
-      // 🔧 FIXED: Get ALL subjects regardless of user's course level
       const { data, error } = await supabase
         .from('subjects')
         .select('*')
@@ -78,7 +71,6 @@ export default function FlashcardCreate() {
       setTopics([]);
       setSelectedTopic(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubject]);
 
   const fetchTopics = async (subjectId) => {
@@ -141,11 +133,9 @@ export default function FlashcardCreate() {
     setLoading(true);
 
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // 🆕 VALIDATION: Check target course
       if (!targetCourse && !customCourse) {
         throw new Error('Please select or enter which course these flashcards are for');
       }
@@ -154,7 +144,6 @@ export default function FlashcardCreate() {
         throw new Error('Please select or enter a subject');
       }
 
-      // Validate flashcards
       for (let i = 0; i < flashcards.length; i++) {
         if (!flashcards[i].front.trim()) {
           throw new Error(`Flashcard ${i + 1}: Front side cannot be empty`);
@@ -164,11 +153,10 @@ export default function FlashcardCreate() {
         }
       }
 
-      // Create flashcards in database
       const flashcardsToInsert = flashcards.map(card => ({
         user_id: user.id,
         contributed_by: user.id,
-        target_course: customCourse || targetCourse, // 🆕 Use custom if provided
+        target_course: customCourse || targetCourse,
         subject_id: selectedSubject?.id || null,
         topic_id: selectedTopic?.id || null,
         custom_subject: customSubject || null,
@@ -180,7 +168,10 @@ export default function FlashcardCreate() {
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
         is_public: isPublic,
         is_verified: false,
-        difficulty: 'medium'
+        difficulty: 'medium',
+        // 🆕 NEW: Each manually created card gets unique batch_id
+        batch_id: crypto.randomUUID(),
+        batch_description: null
       }));
 
       const { error: insertError } = await supabase
@@ -189,7 +180,6 @@ export default function FlashcardCreate() {
 
       if (insertError) throw insertError;
 
-      // Success!
       toast({
         title: 'Success!',
         description: `${flashcards.length} flashcard(s) created successfully`,
@@ -231,7 +221,6 @@ export default function FlashcardCreate() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           
-          {/* 🆕 NEW: Course Selection Card */}
           <Card>
             <CardHeader>
               <CardTitle>Who are these flashcards for?</CardTitle>
@@ -303,14 +292,12 @@ export default function FlashcardCreate() {
             </CardContent>
           </Card>
 
-          {/* Subject & Topic Card */}
           <Card>
             <CardHeader>
               <CardTitle>Subject & Topic</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               
-              {/* Subject Combobox */}
               <div className="space-y-2">
                 <Label>Subject *</Label>
                 <Popover open={subjectOpen} onOpenChange={setSubjectOpen}>
@@ -365,7 +352,6 @@ export default function FlashcardCreate() {
                 </Popover>
               </div>
 
-              {/* Custom Subject Input */}
               {showCustomSubject && (
                 <div className="space-y-2">
                   <Label htmlFor="custom-subject">Custom Subject</Label>
@@ -378,7 +364,6 @@ export default function FlashcardCreate() {
                 </div>
               )}
 
-              {/* Topic Combobox */}
               <div className="space-y-2">
                 <Label>Topic (Optional)</Label>
                 <Popover open={topicOpen} onOpenChange={setTopicOpen}>
@@ -434,7 +419,6 @@ export default function FlashcardCreate() {
                 </Popover>
               </div>
 
-              {/* Custom Topic Input */}
               {showCustomTopic && (
                 <div className="space-y-2">
                   <Label htmlFor="custom-topic">Custom Topic</Label>
@@ -447,7 +431,6 @@ export default function FlashcardCreate() {
                 </div>
               )}
 
-              {/* Tags */}
               <div className="space-y-2">
                 <Label htmlFor="tags">Tags (Optional)</Label>
                 <Input
@@ -461,7 +444,6 @@ export default function FlashcardCreate() {
                 </p>
               </div>
 
-              {/* Public Toggle */}
               <div className="flex items-center justify-between space-x-2">
                 <div className="space-y-0.5">
                   <Label htmlFor="public-toggle">Make these flashcards public</Label>
@@ -478,7 +460,6 @@ export default function FlashcardCreate() {
             </CardContent>
           </Card>
 
-          {/* Flashcards */}
           {flashcards.map((card, index) => (
             <Card key={index}>
               <CardHeader>
@@ -499,7 +480,6 @@ export default function FlashcardCreate() {
               </CardHeader>
               <CardContent className="space-y-4">
                 
-                {/* Front */}
                 <div className="space-y-2">
                   <Label htmlFor={`front-${index}`}>Front</Label>
                   <Textarea
@@ -510,7 +490,6 @@ export default function FlashcardCreate() {
                     rows={3}
                   />
                   
-                  {/* Front Image */}
                   <div className="flex items-center gap-2">
                     <Label
                       htmlFor={`front-image-${index}`}
@@ -532,7 +511,6 @@ export default function FlashcardCreate() {
                   )}
                 </div>
 
-                {/* Back */}
                 <div className="space-y-2">
                   <Label htmlFor={`back-${index}`}>Back</Label>
                   <Textarea
@@ -543,7 +521,6 @@ export default function FlashcardCreate() {
                     rows={3}
                   />
                   
-                  {/* Back Image */}
                   <div className="flex items-center gap-2">
                     <Label
                       htmlFor={`back-image-${index}`}
@@ -568,7 +545,6 @@ export default function FlashcardCreate() {
             </Card>
           ))}
 
-          {/* Add Flashcard Button */}
           <Button
             type="button"
             variant="outline"
@@ -579,7 +555,6 @@ export default function FlashcardCreate() {
             Add Another Flashcard
           </Button>
 
-          {/* Action Buttons */}
           <div className="flex gap-4">
             <Button
               type="button"
@@ -599,7 +574,6 @@ export default function FlashcardCreate() {
           </div>
         </form>
 
-        {/* Bulk Upload Link */}
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="pt-6">
             <p className="text-sm text-blue-800">

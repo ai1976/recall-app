@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Plus, Search, Trash2, Filter, Edit2, Save, X } from 'lucide-react';
+import { Brain, Plus, Search, Trash2, Filter, Edit2, Save, X, Globe, Lock, Eye, EyeOff, Calendar, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -37,6 +37,14 @@ export default function MyFlashcards() {
     back_text: ''
   });
 
+  // View mode state
+  const [viewMode, setViewMode] = useState('grid');
+
+  // 🆕 NEW: Merge functionality states
+  const [selectedBatches, setSelectedBatches] = useState(new Set());
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [newBatchName, setNewBatchName] = useState('');
+
   useEffect(() => {
     fetchFlashcards();
   }, []);
@@ -61,18 +69,17 @@ export default function MyFlashcards() {
 
       if (error) throw error;
 
-      // Clean diamond characters
       const cleanedData = (data || []).map(card => ({
         ...card,
         front_text: card.front_text?.replace(/[\u25C6\u2666◆�]/g, '').trim() || '',
         back_text: card.back_text?.replace(/[\u25C6\u2666◆�]/g, '').trim() || '',
         custom_subject: card.custom_subject?.replace(/[\u25C6\u2666◆�]/g, '').trim() || null,
-        custom_topic: card.custom_topic?.replace(/[\u25C6\u2666◆�]/g, '').trim() || null
+        custom_topic: card.custom_topic?.replace(/[\u25C6\u2666◆�]/g, '').trim() || null,
+        is_public: card.is_public || false
       }));
 
       setFlashcards(cleanedData);
 
-      // Extract unique values for filters
       const courses = [...new Set(cleanedData.map(c => c.target_course).filter(Boolean))];
       const subjects = [...new Set(cleanedData.map(c => c.subjects?.name || c.custom_subject).filter(Boolean))];
       const topics = [...new Set(cleanedData.map(c => c.topics?.name || c.custom_topic).filter(Boolean))];
@@ -95,7 +102,6 @@ export default function MyFlashcards() {
   const applyFilters = () => {
     let filtered = [...flashcards];
 
-    // Search filter
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(card =>
@@ -104,26 +110,22 @@ export default function MyFlashcards() {
       );
     }
 
-    // Course filter
     if (filterCourse !== 'all') {
       filtered = filtered.filter(card => card.target_course === filterCourse);
     }
 
-    // Subject filter
     if (filterSubject !== 'all') {
       filtered = filtered.filter(card => 
         (card.subjects?.name || card.custom_subject) === filterSubject
       );
     }
 
-    // Topic filter
     if (filterTopic !== 'all') {
       filtered = filtered.filter(card => 
         (card.topics?.name || card.custom_topic) === filterTopic
       );
     }
 
-    // Date filter
     if (filterDate !== 'all') {
       const now = new Date();
       filtered = filtered.filter(card => {
@@ -146,6 +148,40 @@ export default function MyFlashcards() {
     setFilteredCards(filtered);
   };
 
+  // 🆕 NEW: Group by batch_id instead of timestamp
+  const getGroupedFlashcards = () => {
+    const grouped = {};
+    
+    filteredCards.forEach(card => {
+      const batchId = card.batch_id || 'no-batch';
+      const course = card.target_course || 'No Course';
+      const subject = card.subjects?.name || card.custom_subject || 'Uncategorized';
+      const topic = card.topics?.name || card.custom_topic || 'No Topic';
+      
+      const key = batchId;
+      
+      if (!grouped[key]) {
+        grouped[key] = {
+          batchId: batchId,
+          batchDescription: card.batch_description || null,
+          course,
+          subject,
+          topic,
+          createdDate: new Date(card.created_at),
+          cards: []
+        };
+      }
+      
+      grouped[key].cards.push(card);
+    });
+    
+    const sortedGroups = Object.entries(grouped).sort((a, b) => {
+      return b[1].createdDate - a[1].createdDate;
+    });
+    
+    return Object.fromEntries(sortedGroups);
+  };
+
   const startEdit = (card) => {
     setEditingCardId(card.id);
     setEditForm({
@@ -164,7 +200,6 @@ export default function MyFlashcards() {
 
   const handleSaveEdit = async (cardId) => {
     try {
-      // Validate
       if (!editForm.front_text.trim()) {
         toast({
           title: "Validation Error",
@@ -179,7 +214,6 @@ export default function MyFlashcards() {
         .update({
           front_text: editForm.front_text.trim(),
           back_text: editForm.back_text.trim(),
-          
         })
         .eq('id', cardId);
 
@@ -190,14 +224,12 @@ export default function MyFlashcards() {
         description: "Your changes have been saved"
       });
 
-      // Update local state
       setFlashcards(prev => prev.map(card => 
         card.id === cardId 
           ? { ...card, front_text: editForm.front_text.trim(), back_text: editForm.back_text.trim() }
           : card
       ));
 
-      // Exit edit mode
       cancelEdit();
     } catch (error) {
       console.error('Error updating flashcard:', error);
@@ -231,7 +263,6 @@ export default function MyFlashcards() {
 
       setFlashcards(prev => prev.filter(card => card.id !== cardId));
       
-      // Exit edit mode if deleting card being edited
       if (editingCardId === cardId) {
         cancelEdit();
       }
@@ -239,6 +270,134 @@ export default function MyFlashcards() {
       console.error('Error deleting flashcard:', error);
       toast({
         title: "Delete failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const togglePublic = async (cardId, currentStatus, event) => {
+    event.stopPropagation();
+    
+    try {
+      const { error } = await supabase
+        .from('flashcards')
+        .update({ is_public: !currentStatus })
+        .eq('id', cardId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Visibility updated",
+        description: `Flashcard is now ${!currentStatus ? 'public' : 'private'}`
+      });
+
+      setFlashcards(prev => prev.map(card => 
+        card.id === cardId 
+          ? { ...card, is_public: !currentStatus }
+          : card
+      ));
+    } catch (error) {
+      console.error('Error toggling visibility:', error);
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const toggleGroupVisibility = async (groupCards) => {
+    try {
+      const cardIds = groupCards.map(c => c.id);
+      const allPublic = groupCards.every(c => c.is_public === true);
+      const newStatus = !allPublic;
+      
+      const { error } = await supabase
+        .from('flashcards')
+        .update({ is_public: newStatus })
+        .in('id', cardIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Visibility updated",
+        description: `${cardIds.length} flashcard${cardIds.length > 1 ? 's are' : ' is'} now ${newStatus ? 'public' : 'private'}`
+      });
+
+      setFlashcards(prev => prev.map(card => 
+        cardIds.includes(card.id)
+          ? { ...card, is_public: newStatus }
+          : card
+      ));
+    } catch (error) {
+      console.error('Error toggling group visibility:', error);
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  // 🆕 NEW: Batch selection functions
+  const toggleBatchSelection = (batchId) => {
+    const newSelection = new Set(selectedBatches);
+    if (newSelection.has(batchId)) {
+      newSelection.delete(batchId);
+    } else {
+      newSelection.add(batchId);
+    }
+    setSelectedBatches(newSelection);
+  };
+
+  const handleMergeBatches = () => {
+    if (selectedBatches.size < 2) {
+      toast({
+        title: "Selection Required",
+        description: "Please select at least 2 batches to merge",
+        variant: "destructive"
+      });
+      return;
+    }
+    setShowMergeDialog(true);
+  };
+
+  // 🆕 NEW: Execute merge
+  const executeMerge = async () => {
+    try {
+      const batchIds = Array.from(selectedBatches);
+      const targetBatchId = batchIds[0]; // Use first batch as target
+      const finalDescription = newBatchName.trim() || null;
+      
+      // Update all cards from selected batches
+      const { error } = await supabase
+        .from('flashcards')
+        .update({ 
+          batch_id: targetBatchId,
+          batch_description: finalDescription 
+        })
+        .in('batch_id', batchIds);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Batches Merged",
+        description: `${batchIds.length} batches merged successfully`
+      });
+      
+      // Reset state
+      setSelectedBatches(new Set());
+      setShowMergeDialog(false);
+      setNewBatchName('');
+      
+      // Refresh data
+      fetchFlashcards();
+      
+    } catch (error) {
+      console.error('Merge error:', error);
+      toast({
+        title: "Merge Failed",
         description: error.message,
         variant: "destructive"
       });
@@ -261,6 +420,16 @@ export default function MyFlashcards() {
     });
   };
 
+  const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -272,11 +441,166 @@ export default function MyFlashcards() {
   const hasActiveFilters = searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || 
                           filterTopic !== 'all' || filterDate !== 'all';
 
+  const groupedFlashcards = viewMode === 'grouped' ? getGroupedFlashcards() : null;
+
+  const FlashcardCard = ({ card }) => {
+    const isEditing = editingCardId === card.id;
+    
+    return (
+      <Card key={card.id} className={`hover:shadow-lg transition-shadow ${isEditing ? 'ring-2 ring-blue-500' : ''}`}>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-xs text-gray-500">
+                  {card.target_course || 'No course'} 
+                  {(card.subjects?.name || card.custom_subject) && 
+                    ` • ${card.subjects?.name || card.custom_subject}`
+                  }
+                </p>
+                {card.is_public ? (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-700">
+                    <Globe className="h-3 w-3 mr-0.5" />
+                    Public
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                    <Lock className="h-3 w-3 mr-0.5" />
+                    Private
+                  </span>
+                )}
+              </div>
+              {(card.topics?.name || card.custom_topic) && (
+                <p className="text-xs text-gray-400">
+                  {card.topics?.name || card.custom_topic}
+                </p>
+              )}
+            </div>
+            {!isEditing && (
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => startEdit(card)}
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 -mt-2"
+                  title="Edit"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => togglePublic(card.id, card.is_public, e)}
+                  className="text-gray-600 hover:text-gray-700 hover:bg-gray-50 -mt-2"
+                  title={card.is_public ? "Make Private" : "Make Public"}
+                >
+                  {card.is_public ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => handleDelete(card.id, e)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 -mt-2 -mr-2"
+                  title="Delete"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isEditing ? (
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">
+                  Question
+                </label>
+                <Textarea
+                  value={editForm.front_text}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, front_text: e.target.value }))}
+                  placeholder="Enter question..."
+                  className="min-h-[80px]"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">
+                  Answer
+                </label>
+                <Textarea
+                  value={editForm.back_text}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, back_text: e.target.value }))}
+                  placeholder="Enter answer..."
+                  className="min-h-[80px]"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  onClick={() => handleSaveEdit(card.id)}
+                  className="flex-1 gap-2"
+                  size="sm"
+                >
+                  <Save className="h-4 w-4" />
+                  Save
+                </Button>
+                <Button
+                  onClick={cancelEdit}
+                  variant="outline"
+                  className="flex-1 gap-2"
+                  size="sm"
+                >
+                  <X className="h-4 w-4" />
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mb-4 pb-4 border-b border-gray-200">
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Question</p>
+                {card.front_image_url && (
+                  <img
+                    src={card.front_image_url}
+                    alt="Front"
+                    className="w-full h-32 object-cover rounded mb-2"
+                  />
+                )}
+                <p className="text-sm text-gray-900 whitespace-pre-wrap line-clamp-3">
+                  {card.front_text}
+                </p>
+              </div>
+              <div className="bg-blue-50 -mx-6 -mb-6 p-4 rounded-b-lg">
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Answer</p>
+                {card.back_image_url && (
+                  <img
+                    src={card.back_image_url}
+                    alt="Back"
+                    className="w-full h-32 object-cover rounded mb-2"
+                  />
+                )}
+                {card.back_text ? (
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap line-clamp-3">
+                    {card.back_text}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">No answer provided</p>
+                )}
+              </div>
+              <div className="mt-4 pt-3 border-t border-gray-200 text-xs text-gray-500">
+                Created {formatDate(card.created_at)}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
@@ -284,10 +608,28 @@ export default function MyFlashcards() {
               My Flashcards
             </h1>
             <p className="mt-2 text-gray-600">
-              {flashcards.length} total flashcards created
+              {flashcards.length} total flashcard{flashcards.length !== 1 ? 's' : ''} created
             </p>
           </div>
           <div className="flex gap-3">
+            <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="rounded-none"
+              >
+                Grid
+              </Button>
+              <Button
+                variant={viewMode === 'grouped' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grouped')}
+                className="rounded-none"
+              >
+                Grouped
+              </Button>
+            </div>
             <Button
               onClick={() => navigate('/dashboard/review-flashcards')}
               className="gap-2"
@@ -307,11 +649,9 @@ export default function MyFlashcards() {
           </div>
         </div>
 
-        {/* Filters & Search */}
         <Card className="mb-6">
           <CardContent className="pt-6">
             <div className="space-y-4">
-              {/* Search Bar */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -323,14 +663,12 @@ export default function MyFlashcards() {
                 />
               </div>
 
-              {/* Filters Section */}
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-600" />
                 <span className="text-sm font-medium text-gray-700">Filters</span>
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {/* Course Filter */}
                 {availableCourses.length > 0 && (
                   <div>
                     <label className="text-sm text-gray-600 mb-2 block">Course</label>
@@ -350,7 +688,6 @@ export default function MyFlashcards() {
                   </div>
                 )}
 
-                {/* Subject Filter */}
                 {availableSubjects.length > 0 && (
                   <div>
                     <label className="text-sm text-gray-600 mb-2 block">Subject</label>
@@ -370,7 +707,6 @@ export default function MyFlashcards() {
                   </div>
                 )}
 
-                {/* Topic Filter */}
                 {availableTopics.length > 0 && (
                   <div>
                     <label className="text-sm text-gray-600 mb-2 block">Topic</label>
@@ -390,7 +726,6 @@ export default function MyFlashcards() {
                   </div>
                 )}
 
-                {/* Date Filter */}
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">Date Created</label>
                   <Select value={filterDate} onValueChange={setFilterDate}>
@@ -407,10 +742,9 @@ export default function MyFlashcards() {
                 </div>
               </div>
 
-              {/* Results & Clear */}
               <div className="flex items-center justify-between pt-2">
                 <p className="text-sm text-gray-600">
-                  Showing {filteredCards.length} of {flashcards.length} flashcards
+                  Showing {filteredCards.length} of {flashcards.length} flashcard{flashcards.length !== 1 ? 's' : ''}
                 </p>
                 {hasActiveFilters && (
                   <Button
@@ -427,7 +761,32 @@ export default function MyFlashcards() {
           </CardContent>
         </Card>
 
-        {/* Flashcards Display */}
+        {/* 🆕 NEW: Merge action bar */}
+        {viewMode === 'grouped' && selectedBatches.size > 0 && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+            <p className="text-sm text-blue-800">
+              {selectedBatches.size} batch{selectedBatches.size !== 1 ? 'es' : ''} selected
+            </p>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setSelectedBatches(new Set())}
+                variant="outline"
+                size="sm"
+              >
+                Clear Selection
+              </Button>
+              <Button
+                onClick={handleMergeBatches}
+                size="sm"
+                disabled={selectedBatches.size < 2}
+              >
+                <Package className="h-4 w-4 mr-2" />
+                Merge Selected Batches
+              </Button>
+            </div>
+          </div>
+        )}
+
         {filteredCards.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -452,152 +811,140 @@ export default function MyFlashcards() {
               )}
             </CardContent>
           </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCards.map((card) => {
-              const isEditing = editingCardId === card.id;
+        ) : viewMode === 'grouped' ? (
+          <div className="space-y-6">
+            {Object.entries(groupedFlashcards).map(([groupKey, group]) => {
+              const allPublic = group.cards.every(c => c.is_public === true);
+              const allPrivate = group.cards.every(c => c.is_public === false);
+              const publicCount = group.cards.filter(c => c.is_public).length;
               
               return (
-                <Card key={card.id} className={`hover:shadow-lg transition-shadow ${isEditing ? 'ring-2 ring-blue-500' : ''}`}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
+                <Card key={groupKey}>
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
+                    <div className="flex items-center gap-3">
+                      {/* 🆕 NEW: Batch selection checkbox */}
+                      <input
+                        type="checkbox"
+                        checked={selectedBatches.has(group.batchId)}
+                        onChange={() => toggleBatchSelection(group.batchId)}
+                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      
                       <div className="flex-1">
-                        <p className="text-xs text-gray-500 mb-1">
-                          {card.target_course || 'No course'} 
-                          {(card.subjects?.name || card.custom_subject) && 
-                            ` • ${card.subjects?.name || card.custom_subject}`
-                          }
+                        <CardTitle className="text-lg">
+                          📚 {group.course} &gt; {group.subject}
+                        </CardTitle>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {group.topic} ({group.cards.length} card{group.cards.length !== 1 ? 's' : ''})
+                          {!allPublic && !allPrivate && (
+                            <span className="ml-2 text-xs">
+                              • {publicCount} public, {group.cards.length - publicCount} private
+                            </span>
+                          )}
                         </p>
-                        {(card.topics?.name || card.custom_topic) && (
-                          <p className="text-xs text-gray-400">
-                            {card.topics?.name || card.custom_topic}
+                        
+                        {/* 🆕 NEW: Show batch description */}
+                        {group.batchDescription && (
+                          <p className="text-sm text-blue-600 mt-1 font-medium flex items-center gap-1">
+                            <Package className="h-3 w-3" />
+                            {group.batchDescription}
                           </p>
                         )}
+                        
+                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Uploaded: {formatDateTime(group.createdDate)}
+                        </p>
                       </div>
-                      {!isEditing && (
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => startEdit(card)}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 -mt-2"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => handleDelete(card.id, e)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 -mt-2 -mr-2"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
+                      
+                      <Button
+                        onClick={() => toggleGroupVisibility(group.cards)}
+                        size="sm"
+                        variant={allPublic ? "outline" : "default"}
+                        className="gap-2"
+                      >
+                        {allPublic ? (
+                          <>
+                            <Lock className="h-4 w-4" />
+                            Make All Private
+                          </>
+                        ) : (
+                          <>
+                            <Globe className="h-4 w-4" />
+                            Make All Public
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    {isEditing ? (
-                      // EDIT MODE
-                      <div className="space-y-4">
-                        {/* Front Text */}
-                        <div>
-                          <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">
-                            Question
-                          </label>
-                          <Textarea
-                            value={editForm.front_text}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, front_text: e.target.value }))}
-                            placeholder="Enter question..."
-                            className="min-h-[80px]"
-                            autoFocus
-                          />
-                        </div>
-
-                        {/* Back Text */}
-                        <div>
-                          <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">
-                            Answer
-                          </label>
-                          <Textarea
-                            value={editForm.back_text}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, back_text: e.target.value }))}
-                            placeholder="Enter answer..."
-                            className="min-h-[80px]"
-                          />
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex gap-2 pt-2">
-                          <Button
-                            onClick={() => handleSaveEdit(card.id)}
-                            className="flex-1 gap-2"
-                            size="sm"
-                          >
-                            <Save className="h-4 w-4" />
-                            Save
-                          </Button>
-                          <Button
-                            onClick={cancelEdit}
-                            variant="outline"
-                            className="flex-1 gap-2"
-                            size="sm"
-                          >
-                            <X className="h-4 w-4" />
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      // VIEW MODE
-                      <>
-                        {/* Front Side */}
-                        <div className="mb-4 pb-4 border-b border-gray-200">
-                          <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Question</p>
-                          {card.front_image_url && (
-                            <img
-                              src={card.front_image_url}
-                              alt="Front"
-                              className="w-full h-32 object-cover rounded mb-2"
-                            />
-                          )}
-                          <p className="text-sm text-gray-900 whitespace-pre-wrap line-clamp-3">
-                            {card.front_text}
-                          </p>
-                        </div>
-
-                        {/* Back Side */}
-                        <div className="bg-blue-50 -mx-6 -mb-6 p-4 rounded-b-lg">
-                          <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Answer</p>
-                          {card.back_image_url && (
-                            <img
-                              src={card.back_image_url}
-                              alt="Back"
-                              className="w-full h-32 object-cover rounded mb-2"
-                            />
-                          )}
-                          {card.back_text ? (
-                            <p className="text-sm text-gray-900 whitespace-pre-wrap line-clamp-3">
-                              {card.back_text}
-                            </p>
-                          ) : (
-                            <p className="text-sm text-gray-500 italic">No answer provided</p>
-                          )}
-                        </div>
-
-                        {/* Footer */}
-                        <div className="mt-4 pt-3 border-t border-gray-200 text-xs text-gray-500">
-                          Created {formatDate(card.created_at)}
-                        </div>
-                      </>
-                    )}
+                  <CardContent className="pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {group.cards.map(card => (
+                        <FlashcardCard key={card.id} card={card} />
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               );
             })}
           </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCards.map(card => (
+              <FlashcardCard key={card.id} card={card} />
+            ))}
+          </div>
         )}
       </div>
+
+      {/* 🆕 NEW: Merge Dialog */}
+      {showMergeDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Merge Batches</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Merging {selectedBatches.size} batches. All cards will be combined into one batch.
+              </p>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  New Batch Name (Optional)
+                </label>
+                <Input
+                  value={newBatchName}
+                  onChange={(e) => setNewBatchName(e.target.value)}
+                  placeholder="e.g., Treasury - Complete"
+                />
+                <p className="text-xs text-gray-500">
+                  Leave blank to remove batch description
+                </p>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => {
+                    setShowMergeDialog(false);
+                    setNewBatchName('');
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={executeMerge}
+                  className="flex-1"
+                >
+                  Merge Batches
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

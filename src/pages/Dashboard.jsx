@@ -36,58 +36,58 @@ export default function Dashboard() {
   }, []);
 
   const fetchUserAndStats = async () => {
-  try {
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) {
-      navigate('/login');
-      return;
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        navigate('/login');
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+
+      setUser(profile);
+
+      // Fetch all stats first
+      await Promise.all([
+        fetchNotesCount(authUser.id),
+        fetchFlashcardsCount(authUser.id),
+        fetchReviewStats(authUser.id),
+        fetchProfessorContent()
+      ]);
+
+      // Now check if user is truly new (after all data is loaded)
+      const { count: reviewsCount } = await supabase
+        .from('reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', authUser.id);
+
+      const { count: notesTotal } = await supabase
+        .from('notes')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', authUser.id);
+
+      const { count: flashcardsTotal } = await supabase
+        .from('flashcards')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', authUser.id);
+
+      // User is new ONLY if they have zero activity across all metrics
+      setIsNewUser(
+        (!reviewsCount || reviewsCount === 0) && 
+        (!notesTotal || notesTotal === 0) && 
+        (!flashcardsTotal || flashcardsTotal === 0)
+      );
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
     }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authUser.id)
-      .single();
-
-    setUser(profile);
-
-    // Fetch all stats first
-    await Promise.all([
-      fetchNotesCount(authUser.id),
-      fetchFlashcardsCount(authUser.id),
-      fetchReviewStats(authUser.id),
-      fetchProfessorContent()
-    ]);
-
-    // Now check if user is truly new (after all data is loaded)
-    const { count: reviewsCount } = await supabase
-      .from('reviews')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', authUser.id);
-
-    const { count: notesTotal } = await supabase
-      .from('notes')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', authUser.id);
-
-    const { count: flashcardsTotal } = await supabase
-      .from('flashcards')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', authUser.id);
-
-    // User is new ONLY if they have zero activity across all metrics
-    setIsNewUser(
-      (!reviewsCount || reviewsCount === 0) && 
-      (!notesTotal || notesTotal === 0) && 
-      (!flashcardsTotal || flashcardsTotal === 0)
-    );
-
-  } catch (error) {
-    console.error('Error fetching data:', error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const fetchNotesCount = async (userId) => {
     const { count } = await supabase
@@ -108,16 +108,16 @@ export default function Dashboard() {
   };
 
   const fetchReviewStats = async (userId) => {
-  const { data: reviews } = await supabase
-    .from('reviews')
-    .select('created_at, quality')
-    .eq('user_id', userId)
-    .order('created_at', { descending: true });
+    const { data: reviews } = await supabase
+      .from('reviews')
+      .select('created_at, quality')
+      .eq('user_id', userId)
+      .order('created_at', { descending: true });
 
-  // Don't set isNewUser here - we'll do it after all data is fetched
-  if (!reviews || reviews.length === 0) {
-    return;
-  }
+    // Don't set isNewUser here - we'll do it after all data is fetched
+    if (!reviews || reviews.length === 0) {
+      return;
+    }
 
     setIsNewUser(false);
 
@@ -206,274 +206,288 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          {isNewUser ? 'Welcome to Recall! 👋' : 'Welcome back! 👋'}
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          {isNewUser 
-            ? "Let's get you started on your journey to mastering your subjects."
-            : reviewsDue > 0 
-              ? `You have ${reviewsDue} card${reviewsDue > 1 ? 's' : ''} ready for review!`
-              : "All caught up! Great work! 🎉"
-          }
-        </p>
-      </div>
-
-      <div className="space-y-6">
-        
-        {isNewUser && (
-          <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
-            <CardHeader>
-              <CardTitle className="text-lg">Get Started</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-5 w-5 text-indigo-600" />
-                    <h3 className="font-semibold">Browse Content</h3>
-                  </div>
-                  <p className="text-sm text-gray-700 mb-3">
-                    Explore expert notes and flashcards created by professors
-                  </p>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => navigate('/dashboard/notes')}
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      Browse Notes
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={() => navigate('/dashboard/flashcards')}
-                    >
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Browse Flashcards
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-gray-700">
-                    💡 Don't find what you want? Create your own{' '}
-                    <button
-                      onClick={() => navigate('/dashboard/notes/new')}
-                      className="text-indigo-600 hover:text-indigo-700 underline font-medium"
-                    >
-                      notes
-                    </button>
-                    {' '}or{' '}
-                    <button
-                      onClick={() => navigate('/dashboard/flashcards/new')}
-                      className="text-indigo-600 hover:text-indigo-700 underline font-medium"
-                    >
-                      flashcards
-                    </button>
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {!isNewUser && reviewsDue > 0 && (
-          <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                Ready to Review
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-lg font-semibold mb-4">
-                {reviewsDue} flashcard{reviewsDue > 1 ? 's' : ''} ready for review
-              </p>
-              <Button onClick={() => navigate('/dashboard/study')}>
-                Start Review Session
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {!isNewUser && reviewsDue === 0 && (
-          <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                🎉 All Caught Up!
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                No reviews due right now. Your next review is scheduled for tomorrow.
-              </p>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline"
-                  onClick={() => navigate('/dashboard/review-flashcards')}
-                >
-                  Practice Anyway
-                </Button>
-                <Button 
-                  onClick={() => navigate('/dashboard/notes')}
-                >
-                  Browse Content
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                This Week
-              </CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{cardsReviewedThisWeek}</div>
-              <p className="text-xs text-muted-foreground">
-                Cards Reviewed
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Days
-              </CardTitle>
-              <Flame className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{studyStreak}</div>
-              <p className="text-xs text-muted-foreground">
-                Day Streak
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Last 7 Days
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{accuracy}%</div>
-              <p className="text-xs text-muted-foreground">
-                Accuracy
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total
-              </CardTitle>
-              <Award className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{cardsMastered}</div>
-              <p className="text-xs text-muted-foreground">
-                Cards Mastered
-              </p>
-            </CardContent>
-          </Card>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            {isNewUser ? 'Welcome to Recall! 👋' : 'Welcome back! 👋'}
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            {isNewUser 
+              ? "Let's get you started on your journey to mastering your subjects."
+              : reviewsDue > 0 
+                ? `You have ${reviewsDue} card${reviewsDue > 1 ? 's' : ''} ready for review!`
+                : "All caught up! Great work! 🎉"
+            }
+          </p>
         </div>
 
-        {!isNewUser && (
-          <div className="grid gap-4 md:grid-cols-2">
-            
-            <Card className="hover:bg-accent cursor-pointer transition" onClick={() => navigate('/dashboard/notes/new')}>
+        <div className="space-y-6">
+          
+          {/* New User Onboarding */}
+          {isNewUser && (
+            <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Upload className="h-5 w-5 text-purple-600" />
-                  Upload Note
+                <CardTitle className="text-lg">Get Started</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="h-5 w-5 text-indigo-600" />
+                      <h3 className="font-semibold">Browse Content</h3>
+                    </div>
+                    <p className="text-sm text-gray-700 mb-3">
+                      Explore expert notes and flashcards created by professors
+                    </p>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => navigate('/dashboard/notes')}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Browse Notes
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => navigate('/dashboard/review-flashcards')}
+                      >
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Browse Flashcards
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-gray-700">
+                      💡 Don't find what you want? Create your own{' '}
+                      <button
+                        onClick={() => navigate('/dashboard/notes/new')}
+                        className="text-indigo-600 hover:text-indigo-700 underline font-medium"
+                      >
+                        notes
+                      </button>
+                      {' '}or{' '}
+                      <button
+                        onClick={() => navigate('/dashboard/flashcards/new')}
+                        className="text-indigo-600 hover:text-indigo-700 underline font-medium"
+                      >
+                        flashcards
+                      </button>
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Reviews Due */}
+          {!isNewUser && reviewsDue > 0 && (
+            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  Ready to Review
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Add photos or PDFs of your notes
+                <p className="text-lg font-semibold mb-4">
+                  {reviewsDue} flashcard{reviewsDue > 1 ? 's' : ''} ready for review
+                </p>
+                <Button onClick={() => navigate('/dashboard/review-flashcards')}>
+                  Start Review Session
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* All Caught Up */}
+          {!isNewUser && reviewsDue === 0 && (
+            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  🎉 All Caught Up!
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  No reviews due right now. Your next review is scheduled for tomorrow.
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate('/dashboard/review-flashcards')}
+                  >
+                    Practice Anyway
+                  </Button>
+                  <Button 
+                    onClick={() => navigate('/dashboard/notes')}
+                  >
+                    Browse Content
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Stats Grid */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  This Week
+                </CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{cardsReviewedThisWeek}</div>
+                <p className="text-xs text-muted-foreground">
+                  Cards Reviewed
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="hover:bg-accent cursor-pointer transition" onClick={() => navigate('/dashboard/flashcards/new')}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <PlusCircle className="h-5 w-5 text-blue-600" />
-                  Create Flashcard
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Days
                 </CardTitle>
+                <Flame className="h-4 w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Make your own flashcards
+                <div className="text-2xl font-bold">{studyStreak}</div>
+                <p className="text-xs text-muted-foreground">
+                  Day Streak
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Last 7 Days
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{accuracy}%</div>
+                <p className="text-xs text-muted-foreground">
+                  Accuracy
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total
+                </CardTitle>
+                <Award className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{cardsMastered}</div>
+                <p className="text-xs text-muted-foreground">
+                  Cards Mastered
                 </p>
               </CardContent>
             </Card>
           </div>
-        )}
 
-        {!isNewUser && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                Your Contributions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Track your personal study library
-              </p>
-              <div className="grid gap-4 md:grid-cols-2">
-                
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <BookOpen className="h-5 w-5 text-purple-600" />
-                    <div>
-                      <p className="font-medium text-sm">Your Notes</p>
-                      <p className="text-xs text-muted-foreground">{notesCount} uploaded</p>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/dashboard/notes/new')}
-                  >
-                    Upload
-                  </Button>
-                </div>
+          {/* Quick Actions */}
+          {!isNewUser && (
+            <div className="grid gap-4 md:grid-cols-2">
+              
+              <Card className="hover:bg-accent cursor-pointer transition" onClick={() => navigate('/dashboard/notes/new')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Upload className="h-5 w-5 text-purple-600" />
+                    Upload Note
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Add photos or PDFs of your notes
+                  </p>
+                </CardContent>
+              </Card>
 
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <CreditCard className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <p className="font-medium text-sm">Your Flashcards</p>
-                      <p className="text-xs text-muted-foreground">{flashcardsCount} created</p>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/dashboard/flashcards/new')}
+              <Card className="hover:bg-accent cursor-pointer transition" onClick={() => navigate('/dashboard/flashcards/new')}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <PlusCircle className="h-5 w-5 text-blue-600" />
+                    Create Flashcard
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Make your own flashcards
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* My Contributions - FIXED SECTION */}
+          {!isNewUser && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  My Contributions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Track your personal study library
+                </p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  
+                  {/* My Notes Card - FIXED */}
+                  <div 
+                    className="flex items-center justify-between p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
+                    onClick={() => navigate('/dashboard/my-notes')}
                   >
-                    Create
-                  </Button>
+                    <div className="flex items-center gap-3">
+                      <BookOpen className="h-5 w-5 text-purple-600" />
+                      <div>
+                        <p className="font-medium text-sm">My Notes</p>
+                        <p className="text-xs text-muted-foreground">{notesCount} uploaded</p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="text-primary pointer-events-none"
+                    >
+                      View →
+                    </Button>
+                  </div>
+
+                  {/* My Flashcards Card - FIXED */}
+                  <div 
+                    className="flex items-center justify-between p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
+                    onClick={() => navigate('/dashboard/flashcards')}
+                  >
+                    <div className="flex items-center gap-3">
+                      <CreditCard className="h-5 w-5 text-blue-600" />
+                      <div>
+                        <p className="font-medium text-sm">My Flashcards</p>
+                        <p className="text-xs text-muted-foreground">{flashcardsCount} created</p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="text-primary pointer-events-none"
+                    >
+                      View →
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   );
