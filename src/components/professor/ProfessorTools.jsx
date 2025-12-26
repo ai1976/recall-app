@@ -1,73 +1,206 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRole } from '@/hooks/useRole';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, CheckCircle, XCircle, AlertCircle, Download } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Upload, CheckCircle, XCircle, AlertCircle, Download, AlertTriangle, ArrowRight } from 'lucide-react';
 
 export default function ProfessorTools() {
   const { isProfessor, isAdmin, isSuperAdmin, isLoading: roleLoading } = useRole();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [csvFile, setCsvFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResults, setUploadResults] = useState(null);
   const [errors, setErrors] = useState([]);
-  // 🆕 NEW: Batch description state
   const [batchDescription, setBatchDescription] = useState('');
+  
+  // 🆕 NEW: Course selection state
+  const [courses, setCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [courseStats, setCourseStats] = useState({ subjects: 0, topics: 0 });
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   const hasAccess = true; // All authenticated users can access
+
+  // 🆕 NEW: Load courses on mount
+  useEffect(() => {
+    loadCourses();
+  }, []);
+
+  // 🆕 NEW: Load course stats when course selected
+  useEffect(() => {
+    if (selectedCourse) {
+      loadCourseStats(selectedCourse);
+    }
+  }, [selectedCourse]);
+
+  // 🆕 NEW: Fetch all courses
+  async function loadCourses() {
+    try {
+      const { data, error } = await supabase
+        .from('disciplines')
+        .select('id, name')
+        .order('name');
+
+      if (error) throw error;
+      setCourses(data || []);
+      
+      // Auto-select first course if only one exists
+      if (data?.length === 1) {
+        setSelectedCourse(data[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading courses:', error);
+    }
+  }
+
+  // 🆕 NEW: Load stats for selected course
+  async function loadCourseStats(courseId) {
+    setIsLoadingStats(true);
+    try {
+      // Get subjects count
+      const { data: subjects, error: subError } = await supabase
+        .from('subjects')
+        .select('id, name')
+        .eq('discipline_id', courseId);
+
+      if (subError) throw subError;
+
+      // Get topics count for this course
+      const subjectIds = subjects?.map(s => s.id) || [];
+      const { data: topics, error: topError } = await supabase
+        .from('topics')
+        .select('id, name')
+        .in('subject_id', subjectIds);
+
+      if (topError) throw topError;
+
+      setCourseStats({
+        subjects: subjects?.length || 0,
+        topics: topics?.length || 0
+      });
+    } catch (error) {
+      console.error('Error loading course stats:', error);
+      setCourseStats({ subjects: 0, topics: 0 });
+    } finally {
+      setIsLoadingStats(false);
+    }
+  }
+
+  // 🆕 NEW: Download valid entries for selected course
+  async function downloadValidEntries() {
+    if (!selectedCourse) {
+      alert('Please select a course first');
+      return;
+    }
+
+    try {
+      // Get course name
+      const course = courses.find(c => c.id === selectedCourse);
+      if (!course) return;
+
+      // Get subjects for this course
+      const { data: subjects, error: subError } = await supabase
+        .from('subjects')
+        .select('id, name')
+        .eq('discipline_id', selectedCourse)
+        .order('name');
+
+      if (subError) throw subError;
+
+      // Get topics for these subjects
+      const subjectIds = subjects?.map(s => s.id) || [];
+      const { data: topics, error: topError } = await supabase
+        .from('topics')
+        .select('id, name, subject_id')
+        .in('subject_id', subjectIds)
+        .order('name');
+
+      if (topError) throw topError;
+
+      // Build CSV content
+      let csv = 'Course,Subject,Topic\n';
+
+      // For each topic, add a row
+      topics?.forEach(topic => {
+        const subject = subjects.find(s => s.id === topic.subject_id);
+        if (subject) {
+          csv += `"${course.name}","${subject.name}","${topic.name}"\n`;
+        }
+      });
+
+      // Also add subjects without topics (so professors know they exist)
+      subjects?.forEach(subject => {
+        const hasTopics = topics?.some(t => t.subject_id === subject.id);
+        if (!hasTopics) {
+          csv += `"${course.name}","${subject.name}",""\n`;
+        }
+      });
+
+      // Trigger download
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `recall_valid_entries_${course.name.replace(/\s+/g, '_')}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error('Error downloading valid entries:', error);
+      alert('Failed to download valid entries. Please try again.');
+    }
+  }
 
   function downloadTemplate() {
     const template = `target_course,subject,topic,front,back,tags,difficulty
 CA Intermediate,Taxation,Income Tax Basics,What is the basic exemption limit for individuals below 60 years?,₹2.5 lakhs,"#ITR,#basics",easy
-CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",
+CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium
 CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium
+
+==================================================
+⚠️ IMPORTANT: READ THIS BEFORE FILLING
+==================================================
+
+BULK UPLOAD LIMITATIONS:
+❌ Cannot create NEW courses/subjects/topics here
+✅ Must use EXISTING entries from Valid Entries file
+
+TO ADD NEW COURSE/SUBJECT/TOPIC:
+1. Close this file
+2. Go to Recall → Upload Note or Create Flashcard
+3. Create ONE flashcard/note with your custom entry
+4. Return to Bulk Upload page
+5. Download Valid Entries again (will include your new entry)
+6. Continue with bulk upload
 
 ==================================================
 REFERENCE: VALID VALUES (Copy exactly as shown)
 ==================================================
 
-COURSES (target_course):
-- CA Foundation
-- CA Intermediate  
-- CA Final
-- CMA Foundation
-- CMA Intermediate
-- CMA Final
-- CS Foundation
-- CS Executive
-- CS Professional
+⚠️ DO NOT GUESS SPELLINGS!
+Download the "Valid Entries" file from Bulk Upload page
+to see exact course/subject/topic names for your course.
 
 DIFFICULTY (leave empty for default "medium"):
 - easy
 - medium
 - hard
 
-CA INTERMEDIATE SUBJECTS:
-- Advanced Accounting
-- Corporate & Other Laws
-- Cost & Management Accounting
-- Taxation
-- Auditing & Assurance
-- Enterprise Information Systems & Strategic Management
-
-CA FOUNDATION SUBJECTS:
-- Principles and Practice of Accounting
-- Business Laws
-- Quantitative Aptitude
-- Business Economics
-
 IMPORTANT NOTES:
 ✓ Required: target_course, subject, front, back
 ✓ Optional: topic, tags, difficulty
-✓ Use EXACT spelling/capitalization from reference
+✓ Use EXACT spelling/capitalization from Valid Entries
 ✓ Empty difficulty defaults to "medium"
 ✓ Tags format: "#tag1,#tag2" or leave empty
-✓ If subject not listed, will create custom entry
+✓ If subject/topic not in Valid Entries, create via single upload first
 ✓ For multi-line text in cells, Excel/Sheets will auto-quote them
 ✓ All flashcards are created as PRIVATE by default
 ✓ You can make them public later from My Flashcards page
@@ -77,7 +210,7 @@ IMPORTANT NOTES:
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'flashcard_template_with_reference.csv';
+    a.download = 'flashcard_template_with_instructions.csv';
     a.click();
     window.URL.revokeObjectURL(url);
   }
@@ -139,7 +272,10 @@ IMPORTANT NOTES:
       if (line.includes('====') || line.includes('REFERENCE:') || 
           line.includes('COURSES') || line.includes('DIFFICULTY') ||
           line.includes('SUBJECTS') || line.includes('IMPORTANT NOTES') ||
-          line.trim().startsWith('-') || line.trim().startsWith('✓')) {
+          line.includes('BULK UPLOAD LIMITATIONS') || line.includes('TO ADD NEW') ||
+          line.trim().startsWith('-') || line.trim().startsWith('✓') || 
+          line.trim().startsWith('❌') || line.trim().startsWith('✅') ||
+          line.trim().startsWith('⚠️')) {
         continue;
       }
       
@@ -246,7 +382,34 @@ IMPORTANT NOTES:
       const { flashcards, errors: parseErrors } = parseCSV(text);
 
       if (parseErrors.length > 0) {
-        setErrors(parseErrors);
+        // 🆕 NEW: Smart error messages for custom entries
+        const customEntryErrors = parseErrors.filter(err => 
+          err.toLowerCase().includes('not found')
+        );
+        
+        if (customEntryErrors.length > 0) {
+          setErrors([
+            '⚠️ CUSTOM ENTRIES DETECTED',
+            '',
+            ...parseErrors,
+            '',
+            '💡 HOW TO FIX THIS:',
+            '',
+            'Option 1: Use existing entries',
+            '→ Download Valid Entries file below',
+            '→ Copy exact spelling from that file',
+            '',
+            'Option 2: Add your custom entries first',
+            '→ Go to "Upload Note" or "Create Flashcard"',
+            '→ Create entries for the missing items',
+            '→ Return here and download Valid Entries again',
+            '→ Try bulk upload again',
+            '',
+            '⚠️ Bulk upload cannot create new courses/subjects/topics'
+          ]);
+        } else {
+          setErrors(parseErrors);
+        }
         setIsUploading(false);
         return;
       }
@@ -265,7 +428,6 @@ IMPORTANT NOTES:
         .from('topics')
         .select('id, name, subject_id');
 
-      // 🆕 NEW: Generate single batch_id for all cards in this upload
       const batchId = crypto.randomUUID();
       const trimmedDescription = batchDescription.trim() || null;
 
@@ -293,7 +455,6 @@ IMPORTANT NOTES:
           difficulty: card.difficulty || 'medium',
           is_public: false,
           is_verified: isProfessor || isAdmin || isSuperAdmin,
-          // 🆕 NEW: Add batch tracking
           batch_id: batchId,
           batch_description: trimmedDescription
         };
@@ -326,7 +487,6 @@ IMPORTANT NOTES:
         console.log('Audit log failed (non-critical):', auditError);
       }
 
-      // 🆕 Clear form
       setCsvFile(null);
       setBatchDescription('');
       document.getElementById('csv-upload').value = '';
@@ -374,6 +534,7 @@ IMPORTANT NOTES:
         </p>
       </div>
 
+      {/* Instructions Card */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>How to Bulk Upload Flashcards</CardTitle>
@@ -388,9 +549,9 @@ IMPORTANT NOTES:
                 1
               </div>
               <div>
-                <p className="font-medium">Download the CSV Template</p>
+                <p className="font-medium">Download the Blank Template</p>
                 <p className="text-sm text-gray-600">
-                  Includes reference list of valid courses and subjects
+                  CSV file with all required columns and helpful instructions
                 </p>
               </div>
             </div>
@@ -400,9 +561,13 @@ IMPORTANT NOTES:
                 2
               </div>
               <div>
-                <p className="font-medium">Fill in Your Flashcards</p>
+                <p className="font-medium">Download Valid Entries for Your Course</p>
                 <p className="text-sm text-gray-600">
-                  Required: target_course, subject, front, back | Optional: topic, tags, difficulty
+                  Complete list of courses, subjects & topics (copy exact names from here)
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  ⚠️ Only these entries will work in bulk upload. Need something not listed? 
+                  Add it via single upload first.
                 </p>
               </div>
             </div>
@@ -412,21 +577,134 @@ IMPORTANT NOTES:
                 3
               </div>
               <div>
-                <p className="font-medium">Upload the CSV File</p>
+                <p className="font-medium">Fill Template with Your Flashcards</p>
                 <p className="text-sm text-gray-600">
-                  Multi-line text is supported - Excel/Sheets will auto-quote cells
+                  Use EXACT spelling from Valid Entries file to avoid errors
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="bg-blue-100 text-blue-800 rounded-full w-8 h-8 flex items-center justify-center font-bold flex-shrink-0">
+                4
+              </div>
+              <div>
+                <p className="font-medium">Upload the Completed CSV</p>
+                <p className="text-sm text-gray-600">
+                  All flashcards will be created as private (you can make them public later)
                 </p>
               </div>
             </div>
           </div>
 
-          <Button onClick={downloadTemplate} className="w-full sm:w-auto">
-            <Download className="h-4 w-4 mr-2" />
-            Download Enhanced CSV Template
-          </Button>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+            <p className="text-sm text-blue-800">
+              <strong>💡 Pro Tip:</strong> Keep both CSV files open side-by-side. 
+              Copy exact Course, Subject, Topic names from Valid Entries to avoid spelling errors!
+            </p>
+          </div>
         </CardContent>
       </Card>
 
+      {/* Download Files Section */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Download Files</CardTitle>
+          <CardDescription>
+            Get the template and valid entries reference
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Template Download */}
+          <div>
+            <Label className="text-base font-semibold mb-2 block">
+              Step 1: Download Template CSV
+            </Label>
+            <Button onClick={downloadTemplate} className="w-full sm:w-auto">
+              <Download className="h-4 w-4 mr-2" />
+              Download Template CSV
+            </Button>
+            <p className="text-xs text-gray-500 mt-1">
+              Blank template with all required columns
+            </p>
+          </div>
+
+          {/* Valid Entries Download with Course Selection */}
+          <div className="border-t pt-6">
+            <Label className="text-base font-semibold mb-2 block">
+              Step 2: Download Valid Entries
+            </Label>
+            
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="course-select" className="text-sm mb-1 block">
+                  Select Course:
+                </Label>
+                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                  <SelectTrigger id="course-select" className="w-full sm:w-64">
+                    <SelectValue placeholder="Select a course..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courses.map(course => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button 
+                onClick={downloadValidEntries}
+                disabled={!selectedCourse || isLoadingStats}
+                className="w-full sm:w-auto"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Valid Entries
+              </Button>
+
+              {selectedCourse && courseStats.topics > 0 && (
+                <p className="text-sm text-green-700">
+                  ✓ {courseStats.subjects} subjects • {courseStats.topics} topics available
+                </p>
+              )}
+
+              {selectedCourse && courseStats.topics === 0 && (
+                <p className="text-sm text-amber-700">
+                  ⚠️ No topics found for this course. Add some via Upload Note first.
+                </p>
+              )}
+            </div>
+
+            {/* Warning about custom entries */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
+              <p className="text-sm text-amber-900 font-medium mb-2">
+                ⚠️ Don't see your subject or topic in the downloaded file?
+              </p>
+              <p className="text-sm text-amber-800 mb-3">
+                You must create it first using <strong>Upload Note</strong> or <strong>Create Flashcard</strong>. 
+                Once created, download this file again to see it in the list.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  size="sm"
+                  onClick={() => navigate('/dashboard/upload-note')}
+                >
+                  Upload Note
+                </Button>
+                <Button 
+                  size="sm"
+                  onClick={() => navigate('/dashboard/create-flashcard')}
+                >
+                  Create Flashcard
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Upload Section */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Upload Flashcards</CardTitle>
@@ -435,7 +713,6 @@ IMPORTANT NOTES:
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* 🆕 NEW: Batch Description Field */}
           <div className="space-y-2">
             <Label htmlFor="batch-description">
               Batch Description (Optional)
@@ -502,20 +779,23 @@ IMPORTANT NOTES:
         </CardContent>
       </Card>
 
+      {/* Error Messages */}
       {errors.length > 0 && (
         <Alert variant="destructive" className="mb-8">
           <XCircle className="h-4 w-4" />
           <AlertDescription>
-            <p className="font-medium mb-2">Upload failed with {errors.length} error(s):</p>
-            <ul className="list-disc list-inside space-y-1">
+            <div className="space-y-1">
               {errors.map((error, index) => (
-                <li key={index} className="text-sm">{error}</li>
+                <p key={index} className={error.startsWith('⚠️') || error.startsWith('💡') ? 'font-medium mt-2' : ''}>
+                  {error}
+                </p>
               ))}
-            </ul>
+            </div>
           </AlertDescription>
         </Alert>
       )}
 
+      {/* Success Message */}
       {uploadResults?.success && (
         <Alert className="mb-8 border-green-200 bg-green-50">
           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -535,62 +815,113 @@ IMPORTANT NOTES:
         </Alert>
       )}
 
+      {/* CSV Format Guide with Limitations */}
       <Card>
         <CardHeader>
-          <CardTitle>CSV Format Guide</CardTitle>
+          <CardTitle>📋 CSV Format Guide</CardTitle>
           <CardDescription>
             Column descriptions and requirements
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3 text-sm">
-            <div>
-              <p className="font-medium">target_course <span className="text-red-500">*</span></p>
-              <p className="text-gray-600">
-                Course level (e.g., "CA Foundation", "CA Intermediate", "CA Final")
+          <div className="space-y-4 text-sm">
+            <div className="bg-amber-50 border-l-4 border-amber-500 p-4">
+              <p className="font-bold text-amber-900 mb-2">
+                ⚠️ IMPORTANT LIMITATION
               </p>
-            </div>
-            <div>
-              <p className="font-medium">subject <span className="text-red-500">*</span></p>
-              <p className="text-gray-600">
-                Subject name (e.g., "Taxation", "Advanced Accounting")
+              <p className="text-amber-800 mb-3">
+                Bulk upload <strong>ONLY</strong> works with existing courses, subjects, and topics. 
+                You <strong>cannot create new ones</strong> during bulk upload.
               </p>
-            </div>
-            <div>
-              <p className="font-medium">topic</p>
-              <p className="text-gray-600">
-                Topic within the subject (e.g., "Income Tax Basics", "AS 1")
+              <p className="text-amber-800 mb-2">
+                <strong>To add a new course/subject/topic:</strong>
               </p>
+              <ol className="list-decimal list-inside space-y-1 text-amber-800 ml-2">
+                <li>Use "Upload Note" or "Create Flashcard"</li>
+                <li>Create one entry with your custom values</li>
+                <li>Return here and download Updated Valid Entries</li>
+                <li>Now bulk upload will work with your new entries</li>
+              </ol>
             </div>
-            <div>
-              <p className="font-medium">front <span className="text-red-500">*</span></p>
-              <p className="text-gray-600">
-                Question or front side of flashcard
-              </p>
+
+            <div className="space-y-3 pt-4">
+              <div>
+                <p className="font-medium">
+                  target_course <span className="text-red-500">*</span>
+                  <span className="text-amber-600 text-xs ml-2">⚠️ MUST match Valid Entries</span>
+                </p>
+                <p className="text-gray-600">
+                  Course level (e.g., "CA Foundation", "CA Intermediate", "CA Final")
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  ❌ Custom courses not supported in bulk upload
+                </p>
+              </div>
+
+              <div>
+                <p className="font-medium">
+                  subject <span className="text-red-500">*</span>
+                  <span className="text-amber-600 text-xs ml-2">⚠️ MUST match Valid Entries</span>
+                </p>
+                <p className="text-gray-600">
+                  Subject name (e.g., "Taxation", "Advanced Accounting")
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  ❌ Custom subjects not supported in bulk upload
+                </p>
+              </div>
+
+              <div>
+                <p className="font-medium">
+                  topic
+                  <span className="text-amber-600 text-xs ml-2">⚠️ MUST match Valid Entries if provided</span>
+                </p>
+                <p className="text-gray-600">
+                  Topic within the subject (e.g., "Income Tax Basics", "AS 1")
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  ❌ Custom topics not supported in bulk upload
+                </p>
+                <p className="text-xs text-blue-700 mt-1">
+                  💡 Leave blank if no specific topic
+                </p>
+              </div>
+
+              <div>
+                <p className="font-medium">front <span className="text-red-500">*</span></p>
+                <p className="text-gray-600">
+                  Question or front side of flashcard (free text - no restrictions)
+                </p>
+              </div>
+
+              <div>
+                <p className="font-medium">back <span className="text-red-500">*</span></p>
+                <p className="text-gray-600">
+                  Answer or back side of flashcard (free text - multi-line supported)
+                </p>
+              </div>
+
+              <div>
+                <p className="font-medium">tags</p>
+                <p className="text-gray-600">
+                  Comma-separated tags (e.g., "#ITR,#basics,#important")
+                </p>
+              </div>
+
+              <div>
+                <p className="font-medium">difficulty</p>
+                <p className="text-gray-600">
+                  Difficulty level: easy, medium, or hard (defaults to medium if empty)
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-medium">back <span className="text-red-500">*</span></p>
-              <p className="text-gray-600">
-                Answer or back side of flashcard (multi-line text supported)
-              </p>
-            </div>
-            <div>
-              <p className="font-medium">tags</p>
-              <p className="text-gray-600">
-                Comma-separated tags (e.g., "#ITR,#basics,#important")
-              </p>
-            </div>
-            <div>
-              <p className="font-medium">difficulty</p>
-              <p className="text-gray-600">
-                Difficulty level: easy, medium, or hard (defaults to medium if empty)
+
+            <div className="pt-4 border-t">
+              <p className="text-xs text-gray-500">
+                <span className="text-red-500">*</span> Required fields
               </p>
             </div>
           </div>
-
-          <p className="text-xs text-gray-500 mt-4">
-            <span className="text-red-500">*</span> Required fields
-          </p>
         </CardContent>
       </Card>
     </div>

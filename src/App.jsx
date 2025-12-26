@@ -24,6 +24,8 @@ import MyNotes from './pages/dashboard/my-notes';
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import ReviewFlashcards from './pages/dashboard/review-flashcards'
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 function App() {
   const [session, setSession] = useState(null)
@@ -78,6 +80,9 @@ function App() {
             path="/login" 
             element={session ? <Navigate to="/dashboard" replace /> : <Login />} 
           />
+
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           
           {/* Dashboard Route */}
           <Route
