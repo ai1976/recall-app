@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Plus, Trash2, Image as ImageIcon, Check, ChevronsUpDown } from 'lucide-react';
@@ -21,6 +21,7 @@ export default function FlashcardCreate() {
   const [targetCourse, setTargetCourse] = useState('');
   const [showCustomCourse, setShowCustomCourse] = useState(false);
   const [customCourse, setCustomCourse] = useState('');
+  const [allCourses, setAllCourses] = useState([]); // 🔧 NEW: Store all courses (predefined + custom)
 
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -43,6 +44,9 @@ export default function FlashcardCreate() {
 
   useEffect(() => {
     fetchSubjects();
+    // 🔧 NEW: Fetch all courses (predefined + custom)
+    fetchAllCourses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchSubjects = async () => {
@@ -64,6 +68,81 @@ export default function FlashcardCreate() {
     }
   };
 
+  // 🔧 FIXED: Fetch all courses (predefined + custom from ALL tables)
+  const fetchAllCourses = async () => {
+    try {
+      // Fetch custom courses from notes table
+      const { data: noteCourses, error: noteError } = await supabase
+        .from('notes')
+        .select('target_course')
+        .not('target_course', 'is', null);
+
+      // Fetch custom courses from flashcards table
+      const { data: flashcardCourses, error: flashError } = await supabase
+        .from('flashcards')
+        .select('target_course')
+        .not('target_course', 'is', null);
+
+      // 🆕 NEW: Fetch custom courses from profiles table
+      const { data: profileCourses, error: profileError } = await supabase
+        .from('profiles')
+        .select('course_level')
+        .not('course_level', 'is', null);
+
+      if (noteError) throw noteError;
+      if (flashError) throw flashError;
+      if (profileError) throw profileError;
+
+      // Pre-defined courses
+      const predefinedCourses = [
+        'CA Foundation',
+        'CA Intermediate',
+        'CA Final',
+        'CMA Foundation',
+        'CMA Intermediate',
+        'CMA Final',
+        'CS Foundation',
+        'CS Executive',
+        'CS Professional'
+      ];
+
+      // Extract unique custom courses from database
+      const customFromNotes = noteCourses?.map(n => n.target_course) || [];
+      const customFromFlashcards = flashcardCourses?.map(f => f.target_course) || [];
+      const customFromProfiles = profileCourses?.map(p => p.course_level) || []; // 🆕 NEW
+      
+      const allCustomCourses = [...new Set([
+        ...customFromNotes, 
+        ...customFromFlashcards,
+        ...customFromProfiles // 🆕 NEW: Include courses from profiles
+      ])];
+
+      // Filter out courses that are already in predefined list
+      const uniqueCustomCourses = allCustomCourses.filter(
+        course => !predefinedCourses.includes(course)
+      );
+
+      // Merge and sort
+      const mergedCourses = [...predefinedCourses, ...uniqueCustomCourses].sort();
+
+      setAllCourses(mergedCourses);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      // Fallback to predefined courses only
+      setAllCourses([
+        'CA Foundation',
+        'CA Intermediate',
+        'CA Final',
+        'CMA Foundation',
+        'CMA Intermediate',
+        'CMA Final',
+        'CS Foundation',
+        'CS Executive',
+        'CS Professional'
+      ]);
+    }
+  };
+
   useEffect(() => {
     if (selectedSubject) {
       fetchTopics(selectedSubject.id);
@@ -71,6 +150,7 @@ export default function FlashcardCreate() {
       setTopics([]);
       setSelectedTopic(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubject]);
 
   const fetchTopics = async (subjectId) => {
@@ -235,21 +315,11 @@ export default function FlashcardCreate() {
                         <SelectValue placeholder="Select course..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectGroup>
-                          <SelectItem value="CA Foundation">CA Foundation</SelectItem>
-                          <SelectItem value="CA Intermediate">CA Intermediate</SelectItem>
-                          <SelectItem value="CA Final">CA Final</SelectItem>
-                        </SelectGroup>
-                        <SelectGroup>
-                          <SelectItem value="CMA Foundation">CMA Foundation</SelectItem>
-                          <SelectItem value="CMA Intermediate">CMA Intermediate</SelectItem>
-                          <SelectItem value="CMA Final">CMA Final</SelectItem>
-                        </SelectGroup>
-                        <SelectGroup>
-                          <SelectItem value="CS Foundation">CS Foundation</SelectItem>
-                          <SelectItem value="CS Executive">CS Executive</SelectItem>
-                          <SelectItem value="CS Professional">CS Professional</SelectItem>
-                        </SelectGroup>
+                        {allCourses.map((course) => (
+                          <SelectItem key={course} value={course}>
+                            {course}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <Button
