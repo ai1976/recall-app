@@ -26,10 +26,12 @@ export default function ReviewFlashcards() {
 
   useEffect(() => {
     fetchFlashcardSets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterCourse, filterSubject, filterAuthor, searchQuery, allSets]);
 
   const fetchFlashcardSets = async () => {

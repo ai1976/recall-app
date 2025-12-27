@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Brain, ArrowLeft, RotateCcw, CheckCircle, XCircle, AlertCircle, FileText } from 'lucide-react';
+import { Brain, ArrowLeft, RotateCcw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function StudyMode() {
@@ -22,6 +22,7 @@ export default function StudyMode() {
 
   useEffect(() => {
     fetchFlashcards();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchFlashcards = async () => {
@@ -113,7 +114,8 @@ export default function StudyMode() {
         nextReview.setDate(today.getDate() + 1);
       }
 
-      const { data, error } = await supabase
+      // ✅ FIXED: Removed unused 'data' variable
+      const { error } = await supabase
         .from('reviews')
         .insert({
           user_id: user.id,

@@ -15,6 +15,7 @@ export default function NoteDetail() {
 
   useEffect(() => {
     fetchNote();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchNote = async () => {

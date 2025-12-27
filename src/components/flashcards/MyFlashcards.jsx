@@ -47,10 +47,12 @@ export default function MyFlashcards() {
 
   useEffect(() => {
     fetchFlashcards();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, filterCourse, filterSubject, filterTopic, filterDate, flashcards]);
 
   const fetchFlashcards = async () => {
@@ -133,12 +135,14 @@ export default function MyFlashcards() {
         switch(filterDate) {
           case 'today':
             return cardDate.toDateString() === now.toDateString();
-          case 'week':
+          case 'week': {
             const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
             return cardDate >= weekAgo;
-          case 'month':
+          }
+          case 'month': {
             const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
             return cardDate >= monthAgo;
+          }
           default:
             return true;
         }

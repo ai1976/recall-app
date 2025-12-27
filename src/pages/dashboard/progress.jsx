@@ -1,192 +1,198 @@
-import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Calendar, Flame } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { Calendar, TrendingUp, Target, Award } from 'lucide-react';
 
 export default function MyProgress() {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     studyStreak: 0,
     cardsReviewed: 0,
-    studyTime: 0,
     accuracy: 0,
+    totalMastered: 0,
     loading: true
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchProgressStats();
-    }
-  }, [user]);
-
+  // ✅ FIXED: Function declared BEFORE useEffect
   const fetchProgressStats = async () => {
+    if (!user) return;
+    
     try {
       // Get reviews from last 7 days
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-      const { data: reviews } = await supabase
+      
+      // ✅ FIXED: Use 'created_at' instead of 'reviewed_at'
+      const { data: reviews, error: reviewsError } = await supabase
         .from('reviews')
         .select('*')
         .eq('user_id', user.id)
         .gte('created_at', sevenDaysAgo.toISOString());
+      
+      if (reviewsError) throw reviewsError;
 
-      // Calculate accuracy
-      let accuracy = 0;
-      if (reviews && reviews.length > 0) {
-        const easyCount = reviews.filter(r => r.quality >= 4).length;
-        const mediumCount = reviews.filter(r => r.quality === 3).length;
-        const totalReviewed = reviews.length;
-        
-        // Simple method: (Easy + Medium) / Total
-        accuracy = Math.round(((easyCount + mediumCount) / totalReviewed) * 100);
-      }
+      // Calculate stats
+      const cardsReviewed = reviews?.length || 0;
+      
+      // Calculate accuracy (Easy = 5, Medium = 3, Hard = 1)
+      // Easy + Medium count as correct
+      const correctReviews = reviews?.filter(r => r.quality >= 3).length || 0;
+      const accuracy = cardsReviewed > 0 
+        ? Math.round((correctReviews / cardsReviewed) * 100) 
+        : 0;
 
-      // Calculate study streak (reuse from Dashboard)
+      // Calculate study streak
       const studyStreak = await calculateStudyStreak(user.id);
+      
+      // Get unique flashcards mastered
+      const uniqueCards = new Set(reviews?.map(r => r.flashcard_id));
+      const totalMastered = uniqueCards.size;
 
       setStats({
-        studyStreak: studyStreak,
-        cardsReviewed: reviews?.length || 0,
-        studyTime: 0, // Not implemented yet
-        accuracy: accuracy,
+        studyStreak,
+        cardsReviewed,
+        accuracy,
+        totalMastered,
         loading: false
       });
-    } catch (error) {
-      console.error('Error fetching progress stats:', error);
+      
+    } catch (err) {
+      console.error('Error fetching progress stats:', err);
       setStats(prev => ({ ...prev, loading: false }));
     }
   };
 
+  // ✅ NOW useEffect can call fetchProgressStats
+  useEffect(() => {
+    if (user) {
+      fetchProgressStats();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Calculate study streak function
   const calculateStudyStreak = async (userId) => {
     try {
-      const { data: reviews } = await supabase
+      // ✅ FIXED: Use 'created_at' instead of 'reviewed_at'
+      const { data: reviews, error } = await supabase
         .from('reviews')
         .select('created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
+      
+      if (error || !reviews || reviews.length === 0) return 0;
 
-      if (!reviews || reviews.length === 0) return 0;
-
-      const uniqueDates = [...new Set(
-        reviews.map(r => new Date(r.created_at).toDateString())
-      )].sort((a, b) => new Date(b) - new Date(a));
-
-      if (uniqueDates.length === 0) return 0;
-
-      const today = new Date().toDateString();
-      const yesterday = new Date(Date.now() - 86400000).toDateString();
-      const mostRecentDate = uniqueDates[0];
-
-      if (mostRecentDate !== today && mostRecentDate !== yesterday) {
-        return 0;
+      // Get unique dates (extract just the date part)
+      const dates = reviews.map(r => {
+        const date = new Date(r.created_at);
+        return date.toISOString().split('T')[0];
+      });
+      
+      const uniqueDates = [...new Set(dates)];
+      
+      // Check if reviewed today or yesterday
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      
+      if (uniqueDates[0] !== today && uniqueDates[0] !== yesterday) {
+        return 0; // Streak broken
       }
-
+      
+      // Count consecutive days
       let streak = 0;
       let currentDate = new Date();
       
       for (let i = 0; i < uniqueDates.length; i++) {
-        const expectedDate = new Date(currentDate);
-        expectedDate.setDate(expectedDate.getDate() - i);
-        const expectedDateStr = expectedDate.toDateString();
+        const checkDate = new Date(currentDate);
+        checkDate.setDate(checkDate.getDate() - i);
+        const checkDateStr = checkDate.toISOString().split('T')[0];
         
-        if (uniqueDates[i] === expectedDateStr) {
+        if (uniqueDates.includes(checkDateStr)) {
           streak++;
         } else {
           break;
         }
       }
-
+      
       return streak;
-    } catch (error) {
-      console.error('Error calculating streak:', error);
+      
+    } catch (err) {
+      console.error('Error calculating streak:', err);
       return 0;
     }
   };
 
   if (stats.loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-          <BarChart3 className="h-8 w-8 text-blue-600" />
-          My Progress
-        </h1>
-        <p className="mt-2 text-gray-600">
-          Track your study habits and performance
-        </p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Study Streak */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Study Streak</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.studyStreak}</p>
-              <p className="text-xs text-gray-500 mt-1">days</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">My Progress</h1>
+        
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Study Streak */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <Calendar className="h-8 w-8 text-orange-600" />
+              <span className="text-3xl font-bold text-gray-900">{stats.studyStreak}</span>
             </div>
-            <Flame className="h-12 w-12 text-orange-500" />
+            <h3 className="text-sm font-medium text-gray-600">Study Streak</h3>
+            <p className="text-xs text-gray-500 mt-1">Consecutive days</p>
+          </div>
+
+          {/* Cards Reviewed */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <TrendingUp className="h-8 w-8 text-blue-600" />
+              <span className="text-3xl font-bold text-gray-900">{stats.cardsReviewed}</span>
+            </div>
+            <h3 className="text-sm font-medium text-gray-600">Cards Reviewed</h3>
+            <p className="text-xs text-gray-500 mt-1">Last 7 days</p>
+          </div>
+
+          {/* Accuracy */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <Target className="h-8 w-8 text-green-600" />
+              <span className="text-3xl font-bold text-gray-900">{stats.accuracy}%</span>
+            </div>
+            <h3 className="text-sm font-medium text-gray-600">Accuracy</h3>
+            <p className="text-xs text-gray-500 mt-1">Last 7 days</p>
+          </div>
+
+          {/* Total Mastered */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <Award className="h-8 w-8 text-purple-600" />
+              <span className="text-3xl font-bold text-gray-900">{stats.totalMastered}</span>
+            </div>
+            <h3 className="text-sm font-medium text-gray-600">Cards Mastered</h3>
+            <p className="text-xs text-gray-500 mt-1">Unique cards reviewed</p>
           </div>
         </div>
 
-        {/* Cards Reviewed */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Cards Reviewed</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.cardsReviewed}</p>
-              <p className="text-xs text-gray-500 mt-1">this week</p>
-            </div>
-            <TrendingUp className="h-12 w-12 text-green-500" />
+        {/* Empty State */}
+        {stats.cardsReviewed === 0 && (
+          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+            <p className="text-blue-800 mb-2">
+              <strong>No reviews yet!</strong>
+            </p>
+            <p className="text-sm text-blue-700">
+              Start reviewing flashcards to see your progress statistics.
+            </p>
           </div>
-        </div>
-
-        {/* Study Time */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Study Time</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.studyTime}</p>
-              <p className="text-xs text-gray-500 mt-1">minutes today</p>
-            </div>
-            <Calendar className="h-12 w-12 text-blue-500" />
-          </div>
-        </div>
-
-        {/* Accuracy */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Accuracy</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.accuracy}%</p>
-              <p className="text-xs text-gray-500 mt-1">success rate</p>
-            </div>
-            <BarChart3 className="h-12 w-12 text-purple-500" />
-          </div>
-        </div>
-      </div>
-
-      {/* Coming Soon Message */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
-        <BarChart3 className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Detailed Analytics - Coming Soon!
-        </h2>
-        <p className="text-gray-600 mb-4">
-          Track your study patterns, subject-wise performance, and more.
-        </p>
-        <p className="text-sm text-gray-500">
-          Available after Phase 1 launch
-        </p>
+        )}
       </div>
     </div>
   );

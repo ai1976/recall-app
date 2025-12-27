@@ -32,10 +32,12 @@ export default function MyNotes() {
 
   useEffect(() => {
     fetchMyNotes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, filterCourse, filterSubject, filterTopic, filterDate, filterVisibility, notes]);
 
   const fetchMyNotes = async () => {
@@ -126,12 +128,14 @@ export default function MyNotes() {
         switch(filterDate) {
           case 'today':
             return noteDate.toDateString() === now.toDateString();
-          case 'week':
+          case 'week': {
             const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
             return noteDate >= weekAgo;
-          case 'month':
+          }
+          case 'month': {
             const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
             return noteDate >= monthAgo;
+          }
           default:
             return true;
         }

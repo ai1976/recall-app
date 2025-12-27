@@ -11,6 +11,7 @@ export default function MyContributions() {
 
   useEffect(() => {
     fetchContributions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchContributions = async () => {

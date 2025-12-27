@@ -28,7 +28,8 @@ import {
 
 export default function Navigation() {
   const { user, signOut } = useAuth();
-  const { role, isSuperAdmin, isAdmin, isProfessor, isLoading } = useRole();
+  // ✅ FIXED: Removed unused 'isProfessor' variable
+  const { role, isSuperAdmin, isAdmin, isLoading } = useRole();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userName, setUserName] = useState('');

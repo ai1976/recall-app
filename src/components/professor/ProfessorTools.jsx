@@ -302,7 +302,7 @@ IMPORTANT NOTES:
           .toString()
           .trim()
           .replace(/['"]/g, '')
-          .replace(/[^\x00-\x7F]/g, '')
+          .replace(/[^\x20-\x7E]/g, '')
           .toLowerCase();
         
         if (cleanDifficulty === 'easy') {

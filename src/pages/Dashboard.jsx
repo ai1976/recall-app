@@ -17,7 +17,6 @@ import {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
   // Stats
@@ -29,10 +28,10 @@ export default function Dashboard() {
   const [cardsMastered, setCardsMastered] = useState(0);
   const [reviewsDue, setReviewsDue] = useState(0);
   const [isNewUser, setIsNewUser] = useState(false);
-  const [professorCardsCount, setProfessorCardsCount] = useState(0);
 
   useEffect(() => {
     fetchUserAndStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUserAndStats = async () => {
@@ -43,20 +42,11 @@ export default function Dashboard() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      setUser(profile);
-
       // Fetch all stats first
       await Promise.all([
         fetchNotesCount(authUser.id),
         fetchFlashcardsCount(authUser.id),
         fetchReviewStats(authUser.id),
-        fetchProfessorContent()
       ]);
 
       // Now check if user is truly new (after all data is loaded)
@@ -185,14 +175,6 @@ export default function Dashboard() {
     return streak;
   };
 
-  const fetchProfessorContent = async () => {
-    const { count: cardsCount } = await supabase
-      .from('flashcards')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_public', true);
-    
-    setProfessorCardsCount(cardsCount || 0);
-  };
 
   if (loading) {
     return (
