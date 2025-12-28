@@ -104,7 +104,6 @@ export default function Dashboard() {
       .eq('user_id', userId)
       .order('created_at', { descending: true });
 
-    // Don't set isNewUser here - we'll do it after all data is fetched
     if (!reviews || reviews.length === 0) {
       return;
     }
@@ -186,7 +185,8 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-x-hidden">
+        {/* 🔧 ADDED: overflow-x-hidden */}
       
         <div className="mb-8">
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -206,7 +206,8 @@ export default function Dashboard() {
           
           {/* New User Onboarding */}
           {isNewUser && (
-            <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
+            <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200 w-full overflow-hidden">
+              {/* 🔧 ADDED: w-full overflow-hidden */}
               <CardHeader>
                 <CardTitle className="text-lg">Get Started</CardTitle>
               </CardHeader>
@@ -221,17 +222,21 @@ export default function Dashboard() {
                     <p className="text-sm text-gray-700 mb-3">
                       Explore expert notes and flashcards created by professors
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      {/* 🔧 ADDED: flex-wrap */}
                       <Button 
                         variant="outline" 
                         onClick={() => navigate('/dashboard/notes')}
+                        className="flex-1 min-w-[140px]"
                       >
+                        {/* 🔧 ADDED: flex-1 min-w-[140px] for better mobile wrapping */}
                         <FileText className="mr-2 h-4 w-4" />
                         Browse Notes
                       </Button>
                       <Button 
                         variant="outline"
                         onClick={() => navigate('/dashboard/review-flashcards')}
+                        className="flex-1 min-w-[140px]"
                       >
                         <CreditCard className="mr-2 h-4 w-4" />
                         Browse Flashcards
@@ -294,7 +299,8 @@ export default function Dashboard() {
                 <p className="text-muted-foreground mb-4">
                   No reviews due right now. Your next review is scheduled for tomorrow.
                 </p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  {/* 🔧 ADDED: flex-wrap */}
                   <Button 
                     variant="outline"
                     onClick={() => navigate('/dashboard/review-flashcards')}
@@ -312,7 +318,8 @@ export default function Dashboard() {
           )}
 
           {/* Stats Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+            {/* 🔧 CHANGED: grid-cols-2 for mobile (was md:grid-cols-2) */}
             
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -409,7 +416,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* My Contributions - FIXED SECTION */}
+          {/* My Contributions */}
           {!isNewUser && (
             <Card>
               <CardHeader>
@@ -424,7 +431,7 @@ export default function Dashboard() {
                 </p>
                 <div className="grid gap-4 md:grid-cols-2">
                   
-                  {/* My Notes Card - FIXED */}
+                  {/* My Notes Card */}
                   <div 
                     className="flex items-center justify-between p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
                     onClick={() => navigate('/dashboard/my-notes')}
@@ -445,7 +452,7 @@ export default function Dashboard() {
                     </Button>
                   </div>
 
-                  {/* My Flashcards Card - FIXED */}
+                  {/* My Flashcards Card */}
                   <div 
                     className="flex items-center justify-between p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
                     onClick={() => navigate('/dashboard/flashcards')}
