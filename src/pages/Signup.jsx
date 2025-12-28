@@ -9,33 +9,28 @@ export default function Signup() {
   const [fullName, setFullName] = useState('')
   const [courseLevel, setCourseLevel] = useState('')
   const [customCourse, setCustomCourse] = useState('')
-  const [allCourses, setAllCourses] = useState([]) // 🆕 NEW: Store all courses
+  const [allCourses, setAllCourses] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
 
-  // 🆕 NEW: Fetch all courses on component mount
   useEffect(() => {
     fetchAllCourses()
   }, [])
 
-  // 🆕 NEW: Fetch all courses (predefined + custom from database)
   const fetchAllCourses = async () => {
     try {
-      // Fetch custom courses from notes table
       const { data: noteCourses, error: noteError } = await supabase
         .from('notes')
         .select('target_course')
         .not('target_course', 'is', null);
 
-      // Fetch custom courses from flashcards table
       const { data: flashcardCourses, error: flashError } = await supabase
         .from('flashcards')
         .select('target_course')
         .not('target_course', 'is', null);
 
-      // Fetch custom courses from profiles table
       const { data: profileCourses, error: profileError } = await supabase
         .from('profiles')
         .select('course_level')
@@ -45,7 +40,6 @@ export default function Signup() {
       if (flashError) throw flashError;
       if (profileError) throw profileError;
 
-      // Pre-defined courses
       const predefinedCourses = [
         'CA Foundation',
         'CA Intermediate',
@@ -58,7 +52,6 @@ export default function Signup() {
         'CS Professional'
       ];
 
-      // Extract unique custom courses from database
       const customFromNotes = noteCourses?.map(n => n.target_course) || [];
       const customFromFlashcards = flashcardCourses?.map(f => f.target_course) || [];
       const customFromProfiles = profileCourses?.map(p => p.course_level) || [];
@@ -69,18 +62,15 @@ export default function Signup() {
         ...customFromProfiles
       ])];
 
-      // Filter out courses that are already in predefined list
       const uniqueCustomCourses = allCustomCourses.filter(
         course => !predefinedCourses.includes(course)
       );
 
-      // Merge and sort (predefined first, then custom alphabetically)
       const mergedCourses = [...predefinedCourses, ...uniqueCustomCourses.sort()];
 
       setAllCourses(mergedCourses);
     } catch (error) {
       console.error('Error fetching courses:', error);
-      // Fallback to predefined courses only
       setAllCourses([
         'CA Foundation',
         'CA Intermediate',
@@ -117,11 +107,20 @@ export default function Signup() {
     setLoading(true)
 
     try {
-      // Use custom course if "Other" is selected, otherwise use selected course
       const finalCourseLevel = courseLevel === 'Other' ? customCourse : courseLevel
       
       await signUp(email, password, fullName, finalCourseLevel)
-      alert('Account created! Please check your email to verify your account.')
+      
+      // 🔧 UPDATED: Better success message with email delay warning
+      alert(
+        '🎉 Account Created Successfully!\n\n' +
+        '📧 Verification Email Sent\n\n' +
+        'We\'ve sent a verification link to:\n' + email + '\n\n' +
+        '⏰ Please allow 5-10 minutes for the email to arrive.\n\n' +
+        '💡 Tip: Check your spam/junk folder if you don\'t see it.\n\n' +
+        'You can now go to the login page.'
+      )
+      
       navigate('/login')
     } catch (err) {
       setError(err.message || 'Failed to create account')
@@ -133,13 +132,11 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        {/* Logo/Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-indigo-600 mb-2">Recall</h1>
           <p className="text-gray-600">Create your account</p>
         </div>
 
-        {/* Signup Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
@@ -200,8 +197,6 @@ export default function Signup() {
             >
               <option value="">Select your course...</option>
               
-              {/* 🔧 UPDATED: Dynamically render courses from database */}
-              {/* Group CA courses */}
               <optgroup label="Chartered Accountancy (CA)">
                 {allCourses
                   .filter(course => course.startsWith('CA '))
@@ -213,7 +208,6 @@ export default function Signup() {
                 }
               </optgroup>
 
-              {/* Group CMA courses */}
               <optgroup label="Cost & Management Accountant (CMA)">
                 {allCourses
                   .filter(course => course.startsWith('CMA '))
@@ -225,7 +219,6 @@ export default function Signup() {
                 }
               </optgroup>
 
-              {/* Group CS courses */}
               <optgroup label="Company Secretary (CS)">
                 {allCourses
                   .filter(course => course.startsWith('CS '))
@@ -237,7 +230,6 @@ export default function Signup() {
                 }
               </optgroup>
 
-              {/* 🆕 NEW: Show custom courses in separate group */}
               {allCourses.some(course => 
                 !course.startsWith('CA ') && 
                 !course.startsWith('CMA ') && 
@@ -259,7 +251,6 @@ export default function Signup() {
                 </optgroup>
               )}
 
-              {/* Other Option (to add new custom course) */}
               <option value="Other">+ Add custom course</option>
             </select>
             <p className="text-xs text-gray-500 mt-1">
@@ -267,7 +258,6 @@ export default function Signup() {
             </p>
           </div>
 
-          {/* Custom Course Input (shown only when "Other" is selected) */}
           {courseLevel === 'Other' && (
             <div>
               <label htmlFor="customCourse" className="block text-sm font-medium text-gray-700 mb-2">
@@ -303,7 +293,6 @@ export default function Signup() {
           </button>
         </form>
 
-        {/* Login Link */}
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             Already have an account?{' '}
