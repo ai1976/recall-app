@@ -37,7 +37,8 @@ export const AuthProvider = ({ children }) => {
       if (error) throw error
       return data
     },
-    signUp: async (email, password, fullName) => {
+    signUp: async (email, password, fullName, courseLevel) => {  // 🔧 FIXED: Added courseLevel parameter
+      // Step 1: Create auth user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -48,6 +49,26 @@ export const AuthProvider = ({ children }) => {
         },
       })
       if (error) throw error
+      
+      // Step 2: 🆕 NEW - Insert profile with course_level
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: email,
+            full_name: fullName,
+            course_level: courseLevel,  // 🔧 FIXED: Now saving course_level!
+            institution: 'In-house',
+            role: 'student'
+          });
+        
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // Don't throw - auth user already created, just log the error
+        }
+      }
+      
       return data
     },
     signOut: async () => {
