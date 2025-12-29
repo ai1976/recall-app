@@ -222,24 +222,22 @@ export default function Dashboard() {
                       Explore expert notes and flashcards created by professors
                     </p>
                     {/* 🔧 CHANGE 2: Added max-w-2xl to limit button container width */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-2xl">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => navigate('/dashboard/notes')}
-                        className="w-full"
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        Browse Notes
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        onClick={() => navigate('/dashboard/review-flashcards')}
-                        className="w-full"
-                      >
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        Browse Flashcards
-                      </Button>
-                    </div>
+                    <div className="flex flex-wrap gap-3 items-center">
+  <Button 
+    variant="outline" 
+    onClick={() => navigate('/dashboard/notes')}
+  >
+    <FileText className="mr-2 h-4 w-4" />
+    Browse Notes
+  </Button>
+  <Button 
+    variant="outline"
+    onClick={() => navigate('/dashboard/review-flashcards')}
+  >
+    <CreditCard className="mr-2 h-4 w-4" />
+    Browse Flashcards
+  </Button>
+</div>
                   </div>
 
                   <div className="pt-4 border-t">
@@ -297,21 +295,19 @@ export default function Dashboard() {
                 <p className="text-sm sm:text-base text-muted-foreground mb-4">
                   No reviews due right now. Your next review is scheduled for tomorrow.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-2xl">
-                  <Button 
-                    variant="outline"
-                    onClick={() => navigate('/dashboard/review-flashcards')}
-                    className="w-full"
-                  >
-                    Practice Anyway
-                  </Button>
-                  <Button 
-                    onClick={() => navigate('/dashboard/notes')}
-                    className="w-full"
-                  >
-                    Browse Content
-                  </Button>
-                </div>
+                <div className="flex flex-wrap gap-3 items-center">
+  <Button 
+    variant="outline"
+    onClick={() => navigate('/dashboard/review-flashcards')}
+  >
+    Practice Anyway
+  </Button>
+  <Button 
+    onClick={() => navigate('/dashboard/notes')}
+  >
+    Browse Content
+  </Button>
+</div>
               </CardContent>
             </Card>
           )}
