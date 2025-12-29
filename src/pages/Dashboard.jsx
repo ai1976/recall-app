@@ -185,8 +185,8 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 🔧 UPDATED: Added max-w-6xl and better responsive padding */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      {/* 🔧 CHANGED: max-w-5xl for better desktop width */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
@@ -222,7 +222,6 @@ export default function Dashboard() {
                       Explore expert notes and flashcards created by professors
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {/* 🔧 CHANGED: grid layout instead of flex */}
                       <Button 
                         variant="outline" 
                         onClick={() => navigate('/dashboard/notes')}
@@ -298,7 +297,6 @@ export default function Dashboard() {
                   No reviews due right now. Your next review is scheduled for tomorrow.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {/* 🔧 CHANGED: grid layout */}
                   <Button 
                     variant="outline"
                     onClick={() => navigate('/dashboard/review-flashcards')}
