@@ -37,39 +37,55 @@ export const AuthProvider = ({ children }) => {
       if (error) throw error
       return data
     },
-    signUp: async (email, password, fullName, courseLevel) => {  // 🔧 FIXED: Added courseLevel parameter
-      // Step 1: Create auth user
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
-      })
-      if (error) throw error
-      
-      // Step 2: 🆕 NEW - Insert profile with course_level
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: email,
-            full_name: fullName,
-            course_level: courseLevel,  // 🔧 FIXED: Now saving course_level!
-            institution: 'In-house',
-            role: 'student'
-          });
-        
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          // Don't throw - auth user already created, just log the error
+    signUp: async (email, password, fullName, courseLevel) => {
+      try {
+        // Step 1: Create auth user
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+              course_level: courseLevel
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        // Step 2: Wait for auth.users to be created (100ms delay)
+        // This prevents the race condition where profile insert happens
+        // before auth.users entry exists
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Step 3: Create profile (with error handling)
+        if (data.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              email: email,
+              full_name: fullName,
+              course_level: courseLevel,
+              institution: 'In-house',
+              role: 'student'
+            });
+
+          // If profile creation fails, log warning but don't throw
+          // This handles cases where profile might already exist
+          // or if there's a temporary database issue
+          if (profileError) {
+            console.warn('Profile creation warning:', profileError);
+            // Don't throw - continue with signup
+            // The important part (auth user) is already created
+          }
         }
+
+        return data;
+      } catch (error) {
+        console.error('Signup error:', error);
+        throw error;
       }
-      
-      return data
     },
     signOut: async () => {
       const { error } = await supabase.auth.signOut()

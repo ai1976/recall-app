@@ -185,11 +185,11 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-x-hidden">
-        {/* 🔧 ADDED: overflow-x-hidden */}
+      {/* 🔧 UPDATED: Added max-w-6xl and better responsive padding */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
             {isNewUser ? 'Welcome to Recall! 👋' : 'Welcome back! 👋'}
           </h1>
           <p className="text-muted-foreground mt-2">
@@ -202,41 +202,39 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           
           {/* New User Onboarding */}
           {isNewUser && (
-            <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200 w-full overflow-hidden">
-              {/* 🔧 ADDED: w-full overflow-hidden */}
+            <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
               <CardHeader>
-                <CardTitle className="text-lg">Get Started</CardTitle>
+                <CardTitle className="text-base sm:text-lg">Get Started</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <FileText className="h-5 w-5 text-indigo-600" />
-                      <h3 className="font-semibold">Browse Content</h3>
+                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
+                      <h3 className="font-semibold text-sm sm:text-base">Browse Content</h3>
                     </div>
-                    <p className="text-sm text-gray-700 mb-3">
+                    <p className="text-xs sm:text-sm text-gray-700 mb-3">
                       Explore expert notes and flashcards created by professors
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                      {/* 🔧 ADDED: flex-wrap */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {/* 🔧 CHANGED: grid layout instead of flex */}
                       <Button 
                         variant="outline" 
                         onClick={() => navigate('/dashboard/notes')}
-                        className="flex-1 min-w-[140px]"
+                        className="w-full"
                       >
-                        {/* 🔧 ADDED: flex-1 min-w-[140px] for better mobile wrapping */}
                         <FileText className="mr-2 h-4 w-4" />
                         Browse Notes
                       </Button>
                       <Button 
                         variant="outline"
                         onClick={() => navigate('/dashboard/review-flashcards')}
-                        className="flex-1 min-w-[140px]"
+                        className="w-full"
                       >
                         <CreditCard className="mr-2 h-4 w-4" />
                         Browse Flashcards
@@ -245,7 +243,7 @@ export default function Dashboard() {
                   </div>
 
                   <div className="pt-4 border-t">
-                    <p className="text-sm text-gray-700">
+                    <p className="text-xs sm:text-sm text-gray-700">
                       💡 Don't find what you want? Create your own{' '}
                       <button
                         onClick={() => navigate('/dashboard/notes/new')}
@@ -271,13 +269,13 @@ export default function Dashboard() {
           {!isNewUser && reviewsDue > 0 && (
             <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                   Ready to Review
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-lg font-semibold mb-4">
+                <p className="text-base sm:text-lg font-semibold mb-4">
                   {reviewsDue} flashcard{reviewsDue > 1 ? 's' : ''} ready for review
                 </p>
                 <Button onClick={() => navigate('/dashboard/review-flashcards')}>
@@ -291,24 +289,26 @@ export default function Dashboard() {
           {!isNewUser && reviewsDue === 0 && (
             <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                   🎉 All Caught Up!
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground mb-4">
+                <p className="text-sm sm:text-base text-muted-foreground mb-4">
                   No reviews due right now. Your next review is scheduled for tomorrow.
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {/* 🔧 ADDED: flex-wrap */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {/* 🔧 CHANGED: grid layout */}
                   <Button 
                     variant="outline"
                     onClick={() => navigate('/dashboard/review-flashcards')}
+                    className="w-full"
                   >
                     Practice Anyway
                   </Button>
                   <Button 
                     onClick={() => navigate('/dashboard/notes')}
+                    className="w-full"
                   >
                     Browse Content
                   </Button>
@@ -318,19 +318,18 @@ export default function Dashboard() {
           )}
 
           {/* Stats Grid */}
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-            {/* 🔧 CHANGED: grid-cols-2 for mobile (was md:grid-cols-2) */}
+          <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
             
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-xs sm:text-sm font-medium">
                   This Week
                 </CardTitle>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{cardsReviewedThisWeek}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xl sm:text-2xl font-bold">{cardsReviewedThisWeek}</div>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
                   Cards Reviewed
                 </p>
               </CardContent>
@@ -338,14 +337,14 @@ export default function Dashboard() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-xs sm:text-sm font-medium">
                   Days
                 </CardTitle>
-                <Flame className="h-4 w-4 text-orange-500" />
+                <Flame className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{studyStreak}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xl sm:text-2xl font-bold">{studyStreak}</div>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
                   Day Streak
                 </p>
               </CardContent>
@@ -353,14 +352,14 @@ export default function Dashboard() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-xs sm:text-sm font-medium">
                   Last 7 Days
                 </CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{accuracy}%</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xl sm:text-2xl font-bold">{accuracy}%</div>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
                   Accuracy
                 </p>
               </CardContent>
@@ -368,14 +367,14 @@ export default function Dashboard() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-xs sm:text-sm font-medium">
                   Total
                 </CardTitle>
-                <Award className="h-4 w-4 text-muted-foreground" />
+                <Award className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{cardsMastered}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-xl sm:text-2xl font-bold">{cardsMastered}</div>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
                   Cards Mastered
                 </p>
               </CardContent>
@@ -384,17 +383,17 @@ export default function Dashboard() {
 
           {/* Quick Actions */}
           {!isNewUser && (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
               
               <Card className="hover:bg-accent cursor-pointer transition" onClick={() => navigate('/dashboard/notes/new')}>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Upload className="h-5 w-5 text-purple-600" />
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                    <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
                     Upload Note
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Add photos or PDFs of your notes
                   </p>
                 </CardContent>
@@ -402,13 +401,13 @@ export default function Dashboard() {
 
               <Card className="hover:bg-accent cursor-pointer transition" onClick={() => navigate('/dashboard/flashcards/new')}>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <PlusCircle className="h-5 w-5 text-blue-600" />
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                    <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                     Create Flashcard
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Make your own flashcards
                   </p>
                 </CardContent>
@@ -420,33 +419,33 @@ export default function Dashboard() {
           {!isNewUser && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
                   My Contributions
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4">
                   Track your personal study library
                 </p>
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                   
                   {/* My Notes Card */}
                   <div 
-                    className="flex items-center justify-between p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
+                    className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
                     onClick={() => navigate('/dashboard/my-notes')}
                   >
-                    <div className="flex items-center gap-3">
-                      <BookOpen className="h-5 w-5 text-purple-600" />
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
                       <div>
-                        <p className="font-medium text-sm">My Notes</p>
-                        <p className="text-xs text-muted-foreground">{notesCount} uploaded</p>
+                        <p className="font-medium text-xs sm:text-sm">My Notes</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">{notesCount} uploaded</p>
                       </div>
                     </div>
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      className="text-primary pointer-events-none"
+                      className="text-primary pointer-events-none text-xs sm:text-sm"
                     >
                       View →
                     </Button>
@@ -454,20 +453,20 @@ export default function Dashboard() {
 
                   {/* My Flashcards Card */}
                   <div 
-                    className="flex items-center justify-between p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
+                    className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
                     onClick={() => navigate('/dashboard/flashcards')}
                   >
-                    <div className="flex items-center gap-3">
-                      <CreditCard className="h-5 w-5 text-blue-600" />
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                       <div>
-                        <p className="font-medium text-sm">My Flashcards</p>
-                        <p className="text-xs text-muted-foreground">{flashcardsCount} created</p>
+                        <p className="font-medium text-xs sm:text-sm">My Flashcards</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">{flashcardsCount} created</p>
                       </div>
                     </div>
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      className="text-primary pointer-events-none"
+                      className="text-primary pointer-events-none text-xs sm:text-sm"
                     >
                       View →
                     </Button>
