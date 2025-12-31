@@ -297,7 +297,7 @@ export default function Home() {
               <Zap className="h-5 w-5" />
               <span>Create Your First Flashcard</span>
             </Link>
-            <p className="text-gray-600 mt-3">No credit card required • Free forever</p>
+            <p className="text-gray-600 mt-3">Start free • Upgrade anytime</p>
           </div>
         </div>
       </section>
@@ -621,7 +621,7 @@ export default function Home() {
             Ready to Build Your Study Library?
           </h2>
           <p className="text-xl text-blue-100 mb-10">
-            Join {stats.students} students • {stats.educators} educators • Free forever
+            Join {stats.students} students • {stats.educators} educators • Start free
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
             <Link 
@@ -638,7 +638,7 @@ export default function Home() {
             </a>
           </div>
           <p className="mt-6 text-blue-100">
-            No credit card required • Start in 30 seconds
+            Start free • Upgrade for unlimited access
           </p>
         </div>
       </section>
