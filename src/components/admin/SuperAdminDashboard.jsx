@@ -578,6 +578,12 @@ Are you ABSOLUTELY SURE?`;
         </Card>
       </div>
 
+{/* DEBUG: Check if stats exists */}
+{console.log('🎨 RENDERING: stats object:', stats)}
+
+{/* User Activity Report */}
+<div className="mb-8">
+</div>
       {/* User Activity Report */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
@@ -850,17 +856,51 @@ Are you ABSOLUTELY SURE?`;
                                   </Button>
                                 </>
                               )}
-                              {(user.role === 'professor' || user.role === 'admin') && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => demoteUser(user.id)}
-                                  className="text-xs text-orange-700 hover:bg-orange-50 border-orange-300"
-                                >
-                                  <TrendingDown className="h-3 w-3 mr-1" />
-                                  Student
-                                </Button>
-                              )}
+                              {user.role === 'professor' && (
+  <>
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={() => promoteToAdmin(user.id)}
+      className="text-xs text-green-700 hover:bg-green-50 border-green-300"
+    >
+      <TrendingUp className="h-3 w-3 mr-1" />
+      Admin
+    </Button>
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={() => demoteUser(user.id)}
+      className="text-xs text-orange-700 hover:bg-orange-50 border-orange-300"
+    >
+      <TrendingDown className="h-3 w-3 mr-1" />
+      Student
+    </Button>
+  </>
+)}
+{user.role === 'admin' && (
+  <>
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={() => changeUserRole(user.id, 'professor', 'Demoted from admin to professor')}
+      className="text-xs text-orange-700 hover:bg-orange-50 border-orange-300"
+    >
+      <TrendingDown className="h-3 w-3 mr-1" />
+      Prof
+    </Button>
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={() => demoteUser(user.id)}
+      className="text-xs text-orange-700 hover:bg-orange-50 border-orange-300"
+    >
+      <TrendingDown className="h-3 w-3 mr-1" />
+      Student
+    </Button>
+  </>
+)}
+                              
                               {user.role !== 'super_admin' && (
                                 <Button
                                   size="sm"

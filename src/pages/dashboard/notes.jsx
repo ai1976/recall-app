@@ -24,10 +24,12 @@ export default function BrowseNotes() {
 
   useEffect(() => {
     fetchNotes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, filterCourse, filterSubject, filterAuthor, allGroupedNotes]);
 
   const fetchNotes = async () => {

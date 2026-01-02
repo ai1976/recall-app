@@ -43,12 +43,14 @@ export default function NoteEdit() {
   useEffect(() => {
     fetchUserCourseLevel();
     fetchNote();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
     if (userCourseLevel) {
       fetchSubjects();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userCourseLevel]);
 
   useEffect(() => {

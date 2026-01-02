@@ -20,11 +20,11 @@ export default function AdminDashboard() {
   const [recentUsers, setRecentUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!roleLoading && (isAdmin || isSuperAdmin)) {
       fetchDashboardData();
     }
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, isSuperAdmin, roleLoading]);
 
   async function fetchDashboardData() {
