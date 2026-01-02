@@ -94,7 +94,7 @@ export default function StudyMode() {
       [quality]: prev[quality] + 1
     }));
 
-    // Save review to database (for future spaced repetition)
+    // Save review to database (for spaced repetition)
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -105,34 +105,75 @@ export default function StudyMode() {
       const today = new Date();
       const nextReview = new Date();
       
-      // Simple interval calculation
+      // Calculate next review date
+      let intervalDays;
+      let qualityScore;
+      let easeFactor;
+      
       if (quality === 'easy') {
-        nextReview.setDate(today.getDate() + 7);
+        intervalDays = 7;
+        qualityScore = 5;
+        easeFactor = 2.6;
       } else if (quality === 'medium') {
-        nextReview.setDate(today.getDate() + 3);
+        intervalDays = 3;
+        qualityScore = 3;
+        easeFactor = 2.5;
       } else {
-        nextReview.setDate(today.getDate() + 1);
+        intervalDays = 1;
+        qualityScore = 1;
+        easeFactor = 2.3;
       }
+      
+      nextReview.setDate(today.getDate() + intervalDays);
 
-      // ✅ FIXED: Removed unused 'data' variable
-      const { error } = await supabase
+      // ✅ FIX 1: Save review to reviews table
+      const { error: reviewError } = await supabase
         .from('reviews')
         .insert({
           user_id: user.id,
           flashcard_id: currentCard.id,
-          quality: quality === 'easy' ? 5 : quality === 'medium' ? 3 : 1,
-          next_review_date: nextReview.toISOString().split('T')[0],
-          interval: quality === 'easy' ? 7 : quality === 'medium' ? 3 : 1,
-          repetition: 1,
-          easiness: quality === 'easy' ? 2.6 : quality === 'medium' ? 2.5 : 2.3
-        })
-        .select();
+          quality: qualityScore,
+          created_at: new Date().toISOString()
+        });
 
-      if (error) {
-        console.error('Error saving review:', error);
+      if (reviewError) {
+        console.error('Error saving review:', reviewError);
       }
+
+      // ✅ FIX 2: Update flashcard's next_review in flashcards table
+      // This is the CRITICAL missing step!
+      const { error: updateError } = await supabase
+        .from('flashcards')
+        .update({
+          next_review: nextReview.toISOString(),
+          interval: intervalDays,
+          ease_factor: easeFactor,
+          repetitions: (currentCard.repetitions || 0) + 1
+        })
+        .eq('id', currentCard.id);
+
+      if (updateError) {
+        console.error('Error updating flashcard:', updateError);
+        toast({
+          title: "Warning",
+          description: "Review saved, but scheduling may not work correctly",
+          variant: "destructive"
+        });
+      } else {
+        // ✅ Success toast
+        toast({
+          title: "Card saved! ✅",
+          description: `Will review again in ${intervalDays} day${intervalDays > 1 ? 's' : ''}`,
+        });
+      }
+
     } catch (error) {
       console.error('Error saving review:', error);
+      toast({
+        title: "Error saving review",
+        description: error.message,
+        variant: "destructive"
+      });
     }
 
     // Move to next card

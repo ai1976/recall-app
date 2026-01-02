@@ -132,11 +132,26 @@ export default function Dashboard() {
     const unique = new Set(uniqueCards?.map(r => r.flashcard_id) || []);
     setCardsMastered(unique.size);
 
+    // ✅ FIX: Get flashcards that THIS USER has studied (not just ones they created)
+    // Step 1: Get all flashcard IDs this user has reviewed
+    const { data: reviewedCards } = await supabase
+      .from('reviews')
+      .select('flashcard_id')
+      .eq('user_id', userId);
+    
+    const reviewedCardIds = reviewedCards?.map(r => r.flashcard_id) || [];
+    
+    if (reviewedCardIds.length === 0) {
+      setReviewsDue(0);
+      return;
+    }
+
+    // Step 2: Get flashcards that are due for review
     const { data: dueCards } = await supabase
       .from('flashcards')
       .select('id')
-      .eq('user_id', userId)
-      .lte('next_review', new Date().toISOString());
+      .in('id', reviewedCardIds)  // ✅ Only cards user has studied
+      .lte('next_review', new Date().toISOString());  // ✅ Due today or earlier
     
     setReviewsDue(dueCards?.length || 0);
   };
@@ -185,7 +200,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 🔧 CHANGE 1: max-w-5xl (applies to BOTH new and returning users) */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       
         <div className="mb-6 sm:mb-8">
@@ -221,23 +235,22 @@ export default function Dashboard() {
                     <p className="text-xs sm:text-sm text-gray-700 mb-3">
                       Explore expert notes and flashcards created by professors
                     </p>
-                    {/* 🔧 CHANGE 2: Added max-w-2xl to limit button container width */}
                     <div className="flex flex-wrap gap-3 items-center">
-  <Button 
-    variant="outline" 
-    onClick={() => navigate('/dashboard/notes')}
-  >
-    <FileText className="mr-2 h-4 w-4" />
-    Browse Notes
-  </Button>
-  <Button 
-    variant="outline"
-    onClick={() => navigate('/dashboard/review-flashcards')}
-  >
-    <CreditCard className="mr-2 h-4 w-4" />
-    Browse Flashcards
-  </Button>
-</div>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => navigate('/dashboard/notes')}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Browse Notes
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => navigate('/dashboard/review-flashcards')}
+                      >
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Browse Flashcards
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="pt-4 border-t">
@@ -296,18 +309,18 @@ export default function Dashboard() {
                   No reviews due right now. Your next review is scheduled for tomorrow.
                 </p>
                 <div className="flex flex-wrap gap-3 items-center">
-  <Button 
-    variant="outline"
-    onClick={() => navigate('/dashboard/review-flashcards')}
-  >
-    Practice Anyway
-  </Button>
-  <Button 
-    onClick={() => navigate('/dashboard/notes')}
-  >
-    Browse Content
-  </Button>
-</div>
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate('/dashboard/review-flashcards')}
+                  >
+                    Practice Anyway
+                  </Button>
+                  <Button 
+                    onClick={() => navigate('/dashboard/notes')}
+                  >
+                    Browse Content
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -425,7 +438,6 @@ export default function Dashboard() {
                 </p>
                 <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                   
-                  {/* My Notes Card */}
                   <div 
                     className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
                     onClick={() => navigate('/dashboard/my-notes')}
@@ -446,7 +458,6 @@ export default function Dashboard() {
                     </Button>
                   </div>
 
-                  {/* My Flashcards Card */}
                   <div 
                     className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
                     onClick={() => navigate('/dashboard/flashcards')}
