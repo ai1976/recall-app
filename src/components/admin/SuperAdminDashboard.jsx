@@ -72,123 +72,93 @@ export default function SuperAdminDashboard() {
   }
 
   async function fetchStats() {
-  console.log('🔍 fetchStats() - START');
-  // TEST: Check if function exists
-const { data: testData, error: testError } = await supabase
-  .rpc('get_user_activity_stats');
-
-console.log('🧪 DIRECT RPC TEST:');
-console.log('   Data:', testData);
-console.log('   Error:', testError);
-console.log('   Data stringified:', JSON.stringify(testData, null, 2));
-
-  try {
-    // Role counts
-    const { data: profiles, error } = await supabase
-      .from('profiles')
-      .select('role');
-
-    if (error) throw error;
-
-    const roleCounts = {
-      total: profiles.length,
-      students: profiles.filter(p => p.role === 'student').length,
-      professors: profiles.filter(p => p.role === 'professor').length,
-      admins: profiles.filter(p => p.role === 'admin').length,
-      super_admins: profiles.filter(p => p.role === 'super_admin').length
-    };
-
-    console.log('📊 Role counts:', roleCounts);
-
-    // Content counts
-    const { count: notesCount } = await supabase
-      .from('notes')
-      .select('*', { count: 'exact', head: true });
-
-    const { count: flashcardsCount } = await supabase
-      .from('flashcards')
-      .select('*', { count: 'exact', head: true });
-
-    console.log('📝 Content counts:', { notesCount, flashcardsCount });
-
-    // User Activity Stats
-    console.log('🔄 Attempting to call SQL function: get_user_activity_stats()');
-
-    const { data: activityData, error: activityError } = await supabase
-      .rpc('get_user_activity_stats');
-
-    console.log('📡 RPC Response RAW:', activityData);
-    console.log('📡 RPC Response TYPE:', typeof activityData);
-    console.log('📡 RPC Response IS ARRAY:', Array.isArray(activityData));
-    console.log('📡 RPC Response LENGTH:', activityData?.length);
-    console.log('📡 RPC Error:', activityError);
-
-    let activityStats = {
-      daily_active_users: 0,
-      daily_active_percent: 0,
-      weekly_active_users: 0,
-      weekly_active_percent: 0
-    };
-
-    if (!activityError && activityData) {
-  console.log('🔍 Checking activityData format...');
-  console.log('   Is Array?', Array.isArray(activityData));
-  console.log('   Length:', activityData?.length);
-  console.log('   First item:', activityData?.[0]);
-  console.log('   Full data:', JSON.stringify(activityData, null, 2));
-  
-  // Check if it's an array with items
-  if (Array.isArray(activityData) && activityData.length > 0) {
-    const firstItem = activityData[0];
-    console.log('📦 First item details:', firstItem);
-    console.log('   daily_active_users:', firstItem.daily_active_users);
-    console.log('   weekly_active_users:', firstItem.weekly_active_users);
+    console.log('🔍 fetchStats() - START');
     
-    // Use the first item directly
-    activityStats = {
-      daily_active_users: firstItem.daily_active_users || 0,
-      daily_active_percent: firstItem.daily_active_percent || 0,
-      weekly_active_users: firstItem.weekly_active_users || 0,
-      weekly_active_percent: firstItem.weekly_active_percent || 0
-    };
-    console.log('✅ Using SQL function (array format):', activityStats);
-  }
-  // Check if it's a single object
-  else if (!Array.isArray(activityData) && typeof activityData === 'object') {
-    activityStats = {
-      daily_active_users: activityData.daily_active_users || 0,
-      daily_active_percent: activityData.daily_active_percent || 0,
-      weekly_active_users: activityData.weekly_active_users || 0,
-      weekly_active_percent: activityData.weekly_active_percent || 0
-    };
-    console.log('✅ Using SQL function (object format):', activityStats);
-  }
-  else {
-    console.warn('⚠️ Unexpected data format:', activityData);
-  }
-} else {
-  console.error('❌ RPC call failed or returned null:', activityError);
-}
+    try {
+      // Role counts
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('role');
 
-    const finalStats = {
-      ...roleCounts,
-      totalNotes: notesCount || 0,
-      totalFlashcards: flashcardsCount || 0,
-      dailyActiveUsers: activityStats.daily_active_users || 0,
-      dailyActivePercent: Math.round(activityStats.daily_active_percent || 0),
-      weeklyActiveUsers: activityStats.weekly_active_users || 0,
-      weeklyActivePercent: Math.round(activityStats.weekly_active_percent || 0)
-    };
+      if (error) throw error;
 
-    console.log('📊 Final stats to display:', finalStats);
-    setStats(finalStats);
+      const roleCounts = {
+        total: profiles.length,
+        students: profiles.filter(p => p.role === 'student').length,
+        professors: profiles.filter(p => p.role === 'professor').length,
+        admins: profiles.filter(p => p.role === 'admin').length,
+        super_admins: profiles.filter(p => p.role === 'super_admin').length
+      };
 
-  } catch (error) {
-    console.error('❌ Error in fetchStats():', error);
+      console.log('📊 Role counts:', roleCounts);
+
+      // Content counts
+      const { count: notesCount } = await supabase
+        .from('notes')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: flashcardsCount } = await supabase
+        .from('flashcards')
+        .select('*', { count: 'exact', head: true });
+
+      console.log('📝 Content counts:', { notesCount, flashcardsCount });
+
+      // User Activity Stats
+      console.log('🔄 Attempting to call SQL function: get_user_activity_stats()');
+
+      const { data: activityData, error: activityError } = await supabase
+        .rpc('get_user_activity_stats');
+
+      console.log('📡 RPC Response:', activityData);
+      console.log('📡 RPC Error:', activityError);
+
+      let activityStats = {
+        daily_active_users: 0,
+        daily_active_percent: 0,
+        weekly_active_users: 0,
+        weekly_active_percent: 0
+      };
+
+      if (!activityError && activityData) {
+        if (Array.isArray(activityData) && activityData.length > 0) {
+          const firstItem = activityData[0];
+          activityStats = {
+            daily_active_users: firstItem.daily_active_users || 0,
+            daily_active_percent: firstItem.daily_active_percent || 0,
+            weekly_active_users: firstItem.weekly_active_users || 0,
+            weekly_active_percent: firstItem.weekly_active_percent || 0
+          };
+          console.log('✅ Using SQL function (array format):', activityStats);
+        } else if (!Array.isArray(activityData) && typeof activityData === 'object') {
+          activityStats = {
+            daily_active_users: activityData.daily_active_users || 0,
+            daily_active_percent: activityData.daily_active_percent || 0,
+            weekly_active_users: activityData.weekly_active_users || 0,
+            weekly_active_percent: activityData.weekly_active_percent || 0
+          };
+          console.log('✅ Using SQL function (object format):', activityStats);
+        }
+      }
+
+      const finalStats = {
+        ...roleCounts,
+        totalNotes: notesCount || 0,
+        totalFlashcards: flashcardsCount || 0,
+        dailyActiveUsers: activityStats.daily_active_users || 0,
+        dailyActivePercent: Math.round(activityStats.daily_active_percent || 0),
+        weeklyActiveUsers: activityStats.weekly_active_users || 0,
+        weeklyActivePercent: Math.round(activityStats.weekly_active_percent || 0)
+      };
+
+      console.log('📊 Final stats to display:', finalStats);
+      setStats(finalStats);
+
+    } catch (error) {
+      console.error('❌ Error in fetchStats():', error);
+    }
+
+    console.log('🔍 fetchStats() - END');
   }
-
-  console.log('🔍 fetchStats() - END');
-}
 
   async function fetchUsers() {
     try {
@@ -332,11 +302,13 @@ Email: ${targetUser.email}
 Role: ${targetUser.role}
 
 This will DELETE:
-- User account (authentication)
-- Profile data
+- User profile data
 - ${notesCount || 0} notes
 - ${flashcardsCount || 0} flashcards
 - All reviews
+
+⚠️ NOTE: Authentication account requires manual deletion
+(You'll get instructions after this step)
 
 Are you ABSOLUTELY SURE?`;
 
@@ -366,24 +338,7 @@ Are you ABSOLUTELY SURE?`;
 
       if (deleteProfileError) throw deleteProfileError;
 
-      // Step 3: Delete from Supabase Auth
-      console.log('Deleting from authentication...');
-      
-      try {
-        const { error: authDeleteError } = await supabase.auth.admin.deleteUser(userId);
-        
-        if (authDeleteError) {
-          console.error('Auth deletion error:', authDeleteError);
-          alert(`⚠️ User profile deleted but authentication account still exists. Contact support to complete deletion.\n\nError: ${authDeleteError.message}`);
-        } else {
-          console.log('✅ User deleted from authentication');
-        }
-      } catch (authError) {
-        console.error('Auth deletion failed:', authError);
-        alert(`⚠️ User profile deleted but authentication account may still exist.\n\nYou may need to delete manually from Supabase Auth dashboard.`);
-      }
-
-      // Log the deletion
+      // Step 3: Log the deletion
       const { data: { user } } = await supabase.auth.getUser();
       
       await supabase
@@ -395,13 +350,37 @@ Are you ABSOLUTELY SURE?`;
           details: {
             deleted_user: targetUser.email,
             deleted_role: targetUser.role,
-            deleted_content: totalContent
+            deleted_content: totalContent,
+            auth_deletion: 'manual_required'
           }
         });
 
-      alert(`✅ User deleted successfully!\n\nDeleted: ${targetUser.full_name || targetUser.email}\nContent removed: ${totalContent} items`);
+      // Success message with manual Auth deletion steps
+      alert(`✅ USER PROFILE & CONTENT DELETED SUCCESSFULLY!
+
+Deleted User: ${targetUser.full_name || targetUser.email}
+Email: ${targetUser.email}
+Content Removed: ${totalContent} items (notes + flashcards)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ MANUAL STEP REQUIRED - COMPLETE DELETION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The authentication account still exists.
+To complete deletion:
+
+1. Open Supabase Dashboard
+2. Go to: Authentication → Users
+3. Search for: ${targetUser.email}
+4. Click the trash icon (🗑️) to delete
+
+Why manual? 
+Auth deletion requires service role access (not available in browser for security).
+
+This will be automated in Phase 2 with Edge Functions.`);
       
       fetchDashboardData();
+      
     } catch (error) {
       console.error('Error deleting user:', error);
       alert('❌ Failed to delete user: ' + error.message);
@@ -578,12 +557,6 @@ Are you ABSOLUTELY SURE?`;
         </Card>
       </div>
 
-{/* DEBUG: Check if stats exists */}
-{console.log('🎨 RENDERING: stats object:', stats)}
-
-{/* User Activity Report */}
-<div className="mb-8">
-</div>
       {/* User Activity Report */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
@@ -857,49 +830,49 @@ Are you ABSOLUTELY SURE?`;
                                 </>
                               )}
                               {user.role === 'professor' && (
-  <>
-    <Button
-      size="sm"
-      variant="outline"
-      onClick={() => promoteToAdmin(user.id)}
-      className="text-xs text-green-700 hover:bg-green-50 border-green-300"
-    >
-      <TrendingUp className="h-3 w-3 mr-1" />
-      Admin
-    </Button>
-    <Button
-      size="sm"
-      variant="outline"
-      onClick={() => demoteUser(user.id)}
-      className="text-xs text-orange-700 hover:bg-orange-50 border-orange-300"
-    >
-      <TrendingDown className="h-3 w-3 mr-1" />
-      Student
-    </Button>
-  </>
-)}
-{user.role === 'admin' && (
-  <>
-    <Button
-      size="sm"
-      variant="outline"
-      onClick={() => changeUserRole(user.id, 'professor', 'Demoted from admin to professor')}
-      className="text-xs text-orange-700 hover:bg-orange-50 border-orange-300"
-    >
-      <TrendingDown className="h-3 w-3 mr-1" />
-      Prof
-    </Button>
-    <Button
-      size="sm"
-      variant="outline"
-      onClick={() => demoteUser(user.id)}
-      className="text-xs text-orange-700 hover:bg-orange-50 border-orange-300"
-    >
-      <TrendingDown className="h-3 w-3 mr-1" />
-      Student
-    </Button>
-  </>
-)}
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => promoteToAdmin(user.id)}
+                                    className="text-xs text-green-700 hover:bg-green-50 border-green-300"
+                                  >
+                                    <TrendingUp className="h-3 w-3 mr-1" />
+                                    Admin
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => demoteUser(user.id)}
+                                    className="text-xs text-orange-700 hover:bg-orange-50 border-orange-300"
+                                  >
+                                    <TrendingDown className="h-3 w-3 mr-1" />
+                                    Student
+                                  </Button>
+                                </>
+                              )}
+                              {user.role === 'admin' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => changeUserRole(user.id, 'professor', 'Demoted from admin to professor')}
+                                    className="text-xs text-orange-700 hover:bg-orange-50 border-orange-300"
+                                  >
+                                    <TrendingDown className="h-3 w-3 mr-1" />
+                                    Prof
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => demoteUser(user.id)}
+                                    className="text-xs text-orange-700 hover:bg-orange-50 border-orange-300"
+                                  >
+                                    <TrendingDown className="h-3 w-3 mr-1" />
+                                    Student
+                                  </Button>
+                                </>
+                              )}
                               
                               {user.role !== 'super_admin' && (
                                 <Button
