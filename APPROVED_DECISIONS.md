@@ -830,5 +830,40 @@ Note: Existing cards with corrupted symbols (?) will NOT be automatically fixed.
 Only new uploads will display correctly. Users can manually edit old cards or 
 re-upload to fix corrupted data.
 ---
+---
+
+### Spaced Repetition - Review Scheduling (Midnight Fix)
+
+Status: ✅ LOCKED
+Approved: January 3, 2026
+Deployed: January 3, 2026
+
+**Review Time Calculation:**
+- Reviews are scheduled for **midnight (00:00:00 UTC)** of the target day
+- NOT exact 24-hour intervals
+- setHours(0, 0, 0, 0) ensures midnight scheduling
+
+**Example:**
+- Study at 10:14 PM Jan 2 → Due at 12:00 AM Jan 4 (Hard - 1 day)
+- Study at 2:00 PM Jan 2 → Due at 12:00 AM Jan 6 (Medium - 3 days)
+- Study at 8:00 AM Jan 2 → Due at 12:00 AM Jan 10 (Easy - 7 days)
+
+**Reason:** 
+- Matches user expectations ("tomorrow" means "tomorrow morning")
+- Aligns with calendar days instead of exact 24-hour periods
+- Industry standard (Duolingo, Anki, Quizlet all use midnight)
+- Predictable review schedule
+- Fixed time zone confusion (IST browser vs UTC database)
+
+**Root Cause Diagnosis:**
+- Issue: Cards appeared due at same time next day (e.g., 10PM → 10PM)
+- Confirmed NOT an RLS policy issue (via diagnostic queries)
+- Confirmed 100% time calculation issue
+- Solution: Calculate target date, then set time to midnight
+
+**Files Modified:**
+- src/components/flashcards/StudyMode.jsx (Line 129: added .setHours(0,0,0,0))
+
+---
 
 **END OF APPROVED_DECISIONS.md**

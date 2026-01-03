@@ -103,7 +103,6 @@ export default function StudyMode() {
       }
 
       const today = new Date();
-      const nextReview = new Date();
       
       // Calculate next review date
       let intervalDays;
@@ -124,7 +123,10 @@ export default function StudyMode() {
         easeFactor = 2.3;
       }
       
+      // Set next review to midnight (start of day) instead of exact 24 hours
+      const nextReview = new Date();
       nextReview.setDate(today.getDate() + intervalDays);
+      nextReview.setHours(0, 0, 0, 0);  // Set to midnight (12:00 AM)
 
       // ✅ FIX 1: Save review to reviews table
       const { error: reviewError } = await supabase
