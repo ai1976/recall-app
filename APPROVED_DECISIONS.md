@@ -746,6 +746,89 @@ Paid tiers introduced in Phase 2 (Month 2-3).
 **Current Version:** v1.9  
 **Total Approved Decisions:** 32
 
+### Spaced Repetition System - FULLY IMPLEMENTED
+
+Status: ✅ LOCKED & WORKING
+Approved: January 2, 2026
+Last Tested: January 2, 2026
+
+Implementation:
+- Reviews saved to `reviews` table (history tracking)
+- Flashcards updated with `next_review` timestamp (scheduling)
+- Dashboard fetches cards user has studied (not just created)
+- Toast notifications on save success
+
+Intervals:
+- Hard = 1 day (quality score: 1, ease_factor: 2.3)
+- Medium = 3 days (quality score: 3, ease_factor: 2.5)
+- Easy = 7 days (quality score: 5, ease_factor: 2.6)
+
+Database Columns (flashcards table):
+- next_review: TIMESTAMP WITH TIME ZONE
+- interval: INTEGER DEFAULT 1
+- ease_factor: NUMERIC DEFAULT 2.5
+- repetitions: INTEGER DEFAULT 0
+
+Files:
+- src/components/flashcards/StudyMode.jsx (review handler)
+- src/pages/Dashboard.jsx (reviews due query)
+
+Verified Working: January 2, 2026 ✅
+- 3 test cards reviewed (1 easy, 1 medium, 1 hard)
+- Database updates confirmed
+- Toast notifications working
+- No console errors
+
+Reason: SuperMemo-2 algorithm requires tracking per-card scheduling data.
+Cards appear in dashboard when next_review <= current_date.
+
+---
+
+### Delete Group & Edit Group Features
+
+Status: ✅ LOCKED
+Approved: January 2, 2026
+
+Features:
+- Delete entire group button (cascade delete all cards in batch)
+- Edit group info dialog (update course, subject, topic, description)
+- Changes apply to all cards in group simultaneously
+- Uses native HTML select elements for reliability
+
+Implementation:
+- Delete Group: Red button in group header, confirmation required
+- Edit Info: Modal dialog with course/subject/topic/description fields
+- All cards in batch_id updated together
+- Native <select> instead of shadcn Select (better compatibility)
+
+Reason: Essential for managing bulk uploads. Professors need ability to 
+fix mistakes or reorganize content without deleting cards one-by-one. 
+Native select elements used to avoid shadcn/ui Select strict value validation issues.
+
+---
+
+### UTF-8 CSV Encoding Support
+
+Status: ✅ LOCKED  
+Approved: January 2, 2026
+
+Implementation:
+- Added UTF-8 BOM (\uFEFF) to template downloads
+- CSV parser explicitly reads files as UTF-8 using FileReader.readAsText(file, 'UTF-8')
+- Preserves special characters (₹, %, °, etc.)
+- Updated template with UTF-8 encoding instructions
+
+Files Modified:
+- src/components/professor/ProfessorTools.jsx (CSV parser + downloads)
+- Template now includes ₹ symbol in examples
+
+Reason: Indian currency symbol (₹) is essential for CA students studying taxation, 
+accounting, and finance. Previous implementation corrupted UTF-8 characters due to 
+incorrect encoding during CSV file reading and template generation.
+
+Note: Existing cards with corrupted symbols (?) will NOT be automatically fixed. 
+Only new uploads will display correctly. Users can manually edit old cards or 
+re-upload to fix corrupted data.
 ---
 
 **END OF APPROVED_DECISIONS.md**

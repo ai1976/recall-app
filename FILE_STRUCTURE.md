@@ -172,6 +172,21 @@ git add FILE_STRUCTURE.md
 git commit -m "Update file structure documentation"
 git push
 ```
+## 🔧 RECENTLY MODIFIED (Jan 2, 2026)
+
+### **Critical Bug Fixes & Feature Additions:**
+- ✅ src/components/flashcards/MyFlashcards.jsx (Delete Group + Edit Group Info)
+- ✅ src/components/professor/ProfessorTools.jsx (UTF-8 CSV encoding)
+
+### **New Features:**
+- ✅ Delete entire group button (cascade delete all cards in batch)
+- ✅ Edit group info dialog (update course/subject/topic/description)
+- ✅ UTF-8 CSV encoding support (₹ symbol displays correctly)
+
+### **Bug Fixes:**
+- ✅ Fixed shadcn Select crash (replaced with native HTML select)
+- ✅ Fixed CSV encoding (UTF-8 BOM + explicit FileReader encoding)
+- ✅ Fixed Edit dialog blank screen issue
 
 ---
 

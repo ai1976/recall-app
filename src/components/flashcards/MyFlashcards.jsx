@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Plus, Search, Trash2, Filter, Edit2, Save, X, Globe, Lock, Eye, EyeOff, Calendar, Package } from 'lucide-react';
+import { Brain, Plus, Search, Trash2, Filter, Edit2, Save, X, Globe, Lock, Eye, EyeOff, Calendar, Package, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -40,13 +40,27 @@ export default function MyFlashcards() {
   // View mode state
   const [viewMode, setViewMode] = useState('grid');
 
-  // 🆕 NEW: Merge functionality states
+  // Merge functionality states
   const [selectedBatches, setSelectedBatches] = useState(new Set());
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [newBatchName, setNewBatchName] = useState('');
 
+  // 🆕 NEW: Edit Group Info states
+  const [editingGroupBatchId, setEditingGroupBatchId] = useState(null);
+  const [showEditGroupDialog, setShowEditGroupDialog] = useState(false);
+  const [editGroupForm, setEditGroupForm] = useState({
+    course: '',
+    subject: '',
+    topic: '',
+    description: ''
+  });
+  const [allCourses, setAllCourses] = useState([]);
+  const [allSubjects, setAllSubjects] = useState([]);
+  const [allTopics, setAllTopics] = useState([]);
+
   useEffect(() => {
     fetchFlashcards();
+    fetchAllCoursesSubjectsTopics();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -54,6 +68,42 @@ export default function MyFlashcards() {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, filterCourse, filterSubject, filterTopic, filterDate, flashcards]);
+
+  // 🆕 NEW: Fetch all available courses, subjects, topics for edit dialog
+  const fetchAllCoursesSubjectsTopics = async () => {
+    try {
+      // Fetch from notes, flashcards, and profiles tables
+      const [notesRes, flashcardsRes, profilesRes] = await Promise.all([
+        supabase.from('notes').select('target_course').not('target_course', 'is', null),
+        supabase.from('flashcards').select('target_course').not('target_course', 'is', null),
+        supabase.from('profiles').select('course_level').not('course_level', 'is', null)
+      ]);
+
+      const courses = new Set([
+        ...(notesRes.data || []).map(n => n.target_course),
+        ...(flashcardsRes.data || []).map(f => f.target_course),
+        ...(profilesRes.data || []).map(p => p.course_level)
+      ]);
+      setAllCourses([...courses].sort());
+
+      // Fetch subjects
+      const { data: subjects } = await supabase
+        .from('subjects')
+        .select('id, name')
+        .order('name');
+      setAllSubjects(subjects || []);
+
+      // Fetch topics
+      const { data: topics } = await supabase
+        .from('topics')
+        .select('id, name, subject_id')
+        .order('name');
+      setAllTopics(topics || []);
+
+    } catch (error) {
+      console.error('Error fetching options:', error);
+    }
+  };
 
   const fetchFlashcards = async () => {
     try {
@@ -152,7 +202,6 @@ export default function MyFlashcards() {
     setFilteredCards(filtered);
   };
 
-  // 🆕 NEW: Group by batch_id instead of timestamp
   const getGroupedFlashcards = () => {
     const grouped = {};
     
@@ -171,6 +220,10 @@ export default function MyFlashcards() {
           course,
           subject,
           topic,
+          subjectId: card.subject_id,
+          topicId: card.topic_id,
+          customSubject: card.custom_subject,
+          customTopic: card.custom_topic,
           createdDate: new Date(card.created_at),
           cards: []
         };
@@ -280,6 +333,114 @@ export default function MyFlashcards() {
     }
   };
 
+  // 🆕 NEW: Delete entire group
+  const handleDeleteGroup = async (groupCards, groupInfo) => {
+    const count = groupCards.length;
+    const groupName = `${groupInfo.course} > ${groupInfo.subject}`;
+    
+    if (!confirm(`⚠️ Delete entire group?\n\n${groupName}\n${count} card${count !== 1 ? 's' : ''}\n\nThis action CANNOT be undone!`)) {
+      return;
+    }
+
+    try {
+      const cardIds = groupCards.map(c => c.id);
+      
+      const { error } = await supabase
+        .from('flashcards')
+        .delete()
+        .in('id', cardIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Group deleted",
+        description: `${count} flashcard${count !== 1 ? 's' : ''} removed successfully`
+      });
+
+      // Remove from state
+      setFlashcards(prev => prev.filter(card => !cardIds.includes(card.id)));
+      
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  // 🆕 NEW: Open edit group dialog
+  const openEditGroupDialog = async (group) => {
+    // Ensure data is loaded
+    if (allCourses.length === 0 || allSubjects.length === 0) {
+      await fetchAllCoursesSubjectsTopics();
+    }
+    
+    setEditingGroupBatchId(group.batchId);
+    setEditGroupForm({
+      course: group.course || '',
+      subject: group.subject || '',
+      topic: group.topic || '',
+      description: group.batchDescription || ''
+    });
+    setShowEditGroupDialog(true);
+  };
+
+  // 🆕 NEW: Save group info changes
+  const handleSaveGroupInfo = async () => {
+    try {
+      if (!editGroupForm.course.trim() || !editGroupForm.subject.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Course and Subject are required",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Find subject_id and topic_id
+      const subject = allSubjects.find(s => s.name === editGroupForm.subject);
+      const topic = editGroupForm.topic ? allTopics.find(t => t.name === editGroupForm.topic) : null;
+
+      const updates = {
+        target_course: editGroupForm.course.trim(),
+        subject_id: subject?.id || null,
+        custom_subject: subject ? null : editGroupForm.subject.trim(),
+        topic_id: topic?.id || null,
+        custom_topic: (topic || !editGroupForm.topic) ? null : editGroupForm.topic.trim(),
+        batch_description: editGroupForm.description.trim() || null
+      };
+
+      const { error } = await supabase
+        .from('flashcards')
+        .update(updates)
+        .eq('batch_id', editingGroupBatchId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Group updated",
+        description: "All cards in this group have been updated"
+      });
+
+      setShowEditGroupDialog(false);
+      setEditingGroupBatchId(null);
+      setEditGroupForm({ course: '', subject: '', topic: '', description: '' });
+      
+      // Refresh data
+      fetchFlashcards();
+
+    } catch (error) {
+      console.error('Error updating group:', error);
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   const togglePublic = async (cardId, currentStatus, event) => {
     event.stopPropagation();
     
@@ -344,7 +505,6 @@ export default function MyFlashcards() {
     }
   };
 
-  // 🆕 NEW: Batch selection functions
   const toggleBatchSelection = (batchId) => {
     const newSelection = new Set(selectedBatches);
     if (newSelection.has(batchId)) {
@@ -367,14 +527,12 @@ export default function MyFlashcards() {
     setShowMergeDialog(true);
   };
 
-  // 🆕 NEW: Execute merge
   const executeMerge = async () => {
     try {
       const batchIds = Array.from(selectedBatches);
-      const targetBatchId = batchIds[0]; // Use first batch as target
+      const targetBatchId = batchIds[0];
       const finalDescription = newBatchName.trim() || null;
       
-      // Update all cards from selected batches
       const { error } = await supabase
         .from('flashcards')
         .update({ 
@@ -390,12 +548,10 @@ export default function MyFlashcards() {
         description: `${batchIds.length} batches merged successfully`
       });
       
-      // Reset state
       setSelectedBatches(new Set());
       setShowMergeDialog(false);
       setNewBatchName('');
       
-      // Refresh data
       fetchFlashcards();
       
     } catch (error) {
@@ -765,7 +921,6 @@ export default function MyFlashcards() {
           </CardContent>
         </Card>
 
-        {/* 🆕 NEW: Merge action bar */}
         {viewMode === 'grouped' && selectedBatches.size > 0 && (
           <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
             <p className="text-sm text-blue-800">
@@ -826,7 +981,6 @@ export default function MyFlashcards() {
                 <Card key={groupKey}>
                   <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
                     <div className="flex items-center gap-3">
-                      {/* 🆕 NEW: Batch selection checkbox */}
                       <input
                         type="checkbox"
                         checked={selectedBatches.has(group.batchId)}
@@ -847,7 +1001,6 @@ export default function MyFlashcards() {
                           )}
                         </p>
                         
-                        {/* 🆕 NEW: Show batch description */}
                         {group.batchDescription && (
                           <p className="text-sm text-blue-600 mt-1 font-medium flex items-center gap-1">
                             <Package className="h-3 w-3" />
@@ -861,24 +1014,50 @@ export default function MyFlashcards() {
                         </p>
                       </div>
                       
-                      <Button
-                        onClick={() => toggleGroupVisibility(group.cards)}
-                        size="sm"
-                        variant={allPublic ? "outline" : "default"}
-                        className="gap-2"
-                      >
-                        {allPublic ? (
-                          <>
-                            <Lock className="h-4 w-4" />
-                            Make All Private
-                          </>
-                        ) : (
-                          <>
-                            <Globe className="h-4 w-4" />
-                            Make All Public
-                          </>
-                        )}
-                      </Button>
+                      <div className="flex gap-2">
+                        {/* 🆕 NEW: Edit Group Info button */}
+                        <Button
+                          onClick={() => openEditGroupDialog(group)}
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          title="Edit group info (course, subject, topic, description)"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                          Edit Info
+                        </Button>
+
+                        <Button
+                          onClick={() => toggleGroupVisibility(group.cards)}
+                          size="sm"
+                          variant={allPublic ? "outline" : "default"}
+                          className="gap-2"
+                        >
+                          {allPublic ? (
+                            <>
+                              <Lock className="h-4 w-4" />
+                              Make All Private
+                            </>
+                          ) : (
+                            <>
+                              <Globe className="h-4 w-4" />
+                              Make All Public
+                            </>
+                          )}
+                        </Button>
+
+                        {/* 🆕 NEW: Delete Group button */}
+                        <Button
+                          onClick={() => handleDeleteGroup(group.cards, group)}
+                          size="sm"
+                          variant="destructive"
+                          className="gap-2"
+                          title="Delete entire group"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete Group ({group.cards.length})
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6">
@@ -901,7 +1080,7 @@ export default function MyFlashcards() {
         )}
       </div>
 
-      {/* 🆕 NEW: Merge Dialog */}
+      {/* Merge Dialog */}
       {showMergeDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md">
@@ -943,6 +1122,151 @@ export default function MyFlashcards() {
                   className="flex-1"
                 >
                   Merge Batches
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 🆕 NEW: Edit Group Info Dialog */}
+      {showEditGroupDialog && editingGroupBatchId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <CardTitle>Edit Group Information</CardTitle>
+              <p className="text-sm text-gray-600">
+                Changes will apply to all {groupedFlashcards[editingGroupBatchId]?.cards.length || 0} cards in this group
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              
+              {/* Course Selection - Using native select */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Course <span className="text-red-500">*</span>
+                </label>
+                {allCourses.length > 0 ? (
+                  <select
+                    value={editGroupForm.course || ''}
+                    onChange={(e) => setEditGroupForm(prev => ({ ...prev, course: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select course...</option>
+                    {allCourses.map(course => (
+                      <option key={course} value={course}>
+                        {course}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <Input
+                    value={editGroupForm.course || ''}
+                    onChange={(e) => setEditGroupForm(prev => ({ ...prev, course: e.target.value }))}
+                    placeholder="Enter course..."
+                  />
+                )}
+              </div>
+
+              {/* Subject Selection - Using native select */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Subject <span className="text-red-500">*</span>
+                </label>
+                {allSubjects.length > 0 ? (
+                  <select
+                    value={editGroupForm.subject || ''}
+                    onChange={(e) => setEditGroupForm(prev => ({ ...prev, subject: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select subject...</option>
+                    {allSubjects.map(subject => (
+                      <option key={subject.id} value={subject.name}>
+                        {subject.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <Input
+                    value={editGroupForm.subject || ''}
+                    onChange={(e) => setEditGroupForm(prev => ({ ...prev, subject: e.target.value }))}
+                    placeholder="Enter subject..."
+                  />
+                )}
+              </div>
+
+              {/* Topic Selection - Using native select */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Topic (Optional)
+                </label>
+                {allTopics.length > 0 ? (
+                  <select
+                    value={editGroupForm.topic || ''}
+                    onChange={(e) => setEditGroupForm(prev => ({ ...prev, topic: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">No Topic</option>
+                    {allTopics
+                      .filter(topic => {
+                        const selectedSubject = allSubjects.find(s => s.name === editGroupForm.subject);
+                        return !selectedSubject || topic.subject_id === selectedSubject.id;
+                      })
+                      .map(topic => (
+                        <option key={topic.id} value={topic.name}>
+                          {topic.name}
+                        </option>
+                      ))}
+                  </select>
+                ) : (
+                  <Input
+                    value={editGroupForm.topic || ''}
+                    onChange={(e) => setEditGroupForm(prev => ({ ...prev, topic: e.target.value }))}
+                    placeholder="Enter topic (optional)..."
+                  />
+                )}
+              </div>
+
+              {/* Batch Description */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Batch Description (Optional)
+                </label>
+                <Input
+                  value={editGroupForm.description || ''}
+                  onChange={(e) => setEditGroupForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="e.g., Treasury Management - Part 1"
+                />
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm text-amber-800 flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    Changing course or subject will update <strong>all cards</strong> in this group. 
+                    Make sure the new values are correct before saving.
+                  </span>
+                </p>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => {
+                    setShowEditGroupDialog(false);
+                    setEditingGroupBatchId(null);
+                    setEditGroupForm({ course: '', subject: '', topic: '', description: '' });
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveGroupInfo}
+                  className="flex-1"
+                  disabled={!editGroupForm.course?.trim() || !editGroupForm.subject?.trim()}
+                >
+                  Save Changes
                 </Button>
               </div>
             </CardContent>

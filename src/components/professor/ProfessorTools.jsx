@@ -21,27 +21,23 @@ export default function ProfessorTools() {
   const [errors, setErrors] = useState([]);
   const [batchDescription, setBatchDescription] = useState('');
   
-  // 🆕 NEW: Course selection state
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courseStats, setCourseStats] = useState({ subjects: 0, topics: 0 });
   const [isLoadingStats, setIsLoadingStats] = useState(false);
 
-  const hasAccess = true; // All authenticated users can access
+  const hasAccess = true;
 
-  // 🆕 NEW: Load courses on mount
   useEffect(() => {
     loadCourses();
   }, []);
 
-  // 🆕 NEW: Load course stats when course selected
   useEffect(() => {
     if (selectedCourse) {
       loadCourseStats(selectedCourse);
     }
   }, [selectedCourse]);
 
-  // 🆕 NEW: Fetch all courses
   async function loadCourses() {
     try {
       const { data, error } = await supabase
@@ -52,7 +48,6 @@ export default function ProfessorTools() {
       if (error) throw error;
       setCourses(data || []);
       
-      // Auto-select first course if only one exists
       if (data?.length === 1) {
         setSelectedCourse(data[0].id);
       }
@@ -61,11 +56,9 @@ export default function ProfessorTools() {
     }
   }
 
-  // 🆕 NEW: Load stats for selected course
   async function loadCourseStats(courseId) {
     setIsLoadingStats(true);
     try {
-      // Get subjects count
       const { data: subjects, error: subError } = await supabase
         .from('subjects')
         .select('id, name')
@@ -73,7 +66,6 @@ export default function ProfessorTools() {
 
       if (subError) throw subError;
 
-      // Get topics count for this course
       const subjectIds = subjects?.map(s => s.id) || [];
       const { data: topics, error: topError } = await supabase
         .from('topics')
@@ -94,7 +86,6 @@ export default function ProfessorTools() {
     }
   }
 
-  // 🆕 NEW: Download valid entries for selected course
   async function downloadValidEntries() {
     if (!selectedCourse) {
       alert('Please select a course first');
@@ -102,11 +93,9 @@ export default function ProfessorTools() {
     }
 
     try {
-      // Get course name
       const course = courses.find(c => c.id === selectedCourse);
       if (!course) return;
 
-      // Get subjects for this course
       const { data: subjects, error: subError } = await supabase
         .from('subjects')
         .select('id, name')
@@ -115,7 +104,6 @@ export default function ProfessorTools() {
 
       if (subError) throw subError;
 
-      // Get topics for these subjects
       const subjectIds = subjects?.map(s => s.id) || [];
       const { data: topics, error: topError } = await supabase
         .from('topics')
@@ -125,10 +113,10 @@ export default function ProfessorTools() {
 
       if (topError) throw topError;
 
-      // Build CSV content
-      let csv = 'Course,Subject,Topic\n';
+      // 🆕 FIXED: Add UTF-8 BOM for proper encoding
+      let csv = '\uFEFF'; // UTF-8 BOM
+      csv += 'Course,Subject,Topic\n';
 
-      // For each topic, add a row
       topics?.forEach(topic => {
         const subject = subjects.find(s => s.id === topic.subject_id);
         if (subject) {
@@ -136,7 +124,6 @@ export default function ProfessorTools() {
         }
       });
 
-      // Also add subjects without topics (so professors know they exist)
       subjects?.forEach(subject => {
         const hasTopics = topics?.some(t => t.subject_id === subject.id);
         if (!hasTopics) {
@@ -144,7 +131,6 @@ export default function ProfessorTools() {
         }
       });
 
-      // Trigger download
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -160,7 +146,8 @@ export default function ProfessorTools() {
   }
 
   function downloadTemplate() {
-    const template = `target_course,subject,topic,front,back,tags,difficulty
+    // 🆕 FIXED: Add UTF-8 BOM to template for proper ₹ symbol support
+    const template = '\uFEFF' + `target_course,subject,topic,front,back,tags,difficulty
 CA Intermediate,Taxation,Income Tax Basics,What is the basic exemption limit for individuals below 60 years?,₹2.5 lakhs,"#ITR,#basics",easy
 CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium
 CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium
@@ -204,6 +191,7 @@ IMPORTANT NOTES:
 ✓ For multi-line text in cells, Excel/Sheets will auto-quote them
 ✓ All flashcards are created as PRIVATE by default
 ✓ You can make them public later from My Flashcards page
+✓ Special characters like ₹ are supported (save as UTF-8)
 `;
 
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
@@ -229,114 +217,142 @@ IMPORTANT NOTES:
     setErrors([]);
   }
 
-  function parseCSV(text) {
-    const flashcards = [];
-    const parseErrors = [];
-    
-    const lines = [];
-    let currentLine = '';
-    let insideQuotes = false;
-    
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
+  // 🆕 FIXED: Improved CSV parser with explicit UTF-8 support
+  async function parseCSV(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
       
-      if (char === '"') {
-        insideQuotes = !insideQuotes;
-        currentLine += char;
-      } else if (char === '\n' && !insideQuotes) {
-        if (currentLine.trim()) {
-          lines.push(currentLine);
+      reader.onload = function(event) {
+        try {
+          let text = event.target.result;
+          
+          // Remove UTF-8 BOM if present
+          if (text.charCodeAt(0) === 0xFEFF) {
+            text = text.substring(1);
+          }
+          
+          const flashcards = [];
+          const parseErrors = [];
+          
+          const lines = [];
+          let currentLine = '';
+          let insideQuotes = false;
+          
+          for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            
+            if (char === '"') {
+              insideQuotes = !insideQuotes;
+              currentLine += char;
+            } else if (char === '\n' && !insideQuotes) {
+              if (currentLine.trim()) {
+                lines.push(currentLine);
+              }
+              currentLine = '';
+            } else if (char === '\r') {
+              continue;
+            } else {
+              currentLine += char;
+            }
+          }
+          
+          if (currentLine.trim()) {
+            lines.push(currentLine);
+          }
+          
+          if (lines.length === 0) {
+            resolve({ flashcards: [], errors: ['CSV file is empty'] });
+            return;
+          }
+          
+          const headerLine = lines[0];
+          const headers = parseCSVLine(headerLine);
+          
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            
+            // Skip instruction lines
+            if (line.includes('====') || line.includes('REFERENCE:') || 
+                line.includes('COURSES') || line.includes('DIFFICULTY') ||
+                line.includes('SUBJECTS') || line.includes('IMPORTANT NOTES') ||
+                line.includes('BULK UPLOAD LIMITATIONS') || line.includes('TO ADD NEW') ||
+                line.trim().startsWith('-') || line.trim().startsWith('✓') || 
+                line.trim().startsWith('❌') || line.trim().startsWith('✅') ||
+                line.trim().startsWith('⚠️')) {
+              continue;
+            }
+            
+            try {
+              const values = parseCSVLine(line);
+              
+              if (values.length === 0 || values.every(v => !v.trim())) {
+                continue;
+              }
+              
+              const flashcard = {};
+              headers.forEach((header, index) => {
+                const value = values[index] || '';
+                const cleanValue = value.toString().trim().replace(/^["']|["']$/g, '');
+                flashcard[header] = cleanValue;
+              });
+              
+              if (!flashcard.target_course || !flashcard.subject || !flashcard.front || !flashcard.back) {
+                parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front, back)`);
+                continue;
+              }
+              
+              const cleanDifficulty = (flashcard.difficulty || '')
+                .toString()
+                .trim()
+                .replace(/['"]/g, '')
+                .replace(/[^\x20-\x7E]/g, '')
+                .toLowerCase();
+              
+              if (cleanDifficulty === 'easy') {
+                flashcard.difficulty = 'easy';
+              } else if (cleanDifficulty === 'hard') {
+                flashcard.difficulty = 'hard';
+              } else {
+                flashcard.difficulty = 'medium';
+              }
+              
+              const cleanTags = (flashcard.tags || '')
+                .toString()
+                .trim()
+                .replace(/^["']|["']$/g, '');
+              
+              if (cleanTags !== '') {
+                flashcard.tags = cleanTags
+                  .split(',')
+                  .map(t => t.trim())
+                  .filter(t => t);
+              } else {
+                flashcard.tags = [];
+              }
+              
+              // Preserve special characters (like ₹) instead of stripping
+              flashcard.front = flashcard.front.replace(/[\r\n]+/g, ' ').trim();
+              flashcard.back = flashcard.back.replace(/[\r\n]+/g, ' ').trim();
+              
+              flashcards.push(flashcard);
+            } catch (error) {
+              parseErrors.push(`Row ${i + 1}: ${error.message}`);
+            }
+          }
+          
+          resolve({ flashcards, errors: parseErrors });
+        } catch (error) {
+          reject(error);
         }
-        currentLine = '';
-      } else if (char === '\r') {
-        continue;
-      } else {
-        currentLine += char;
-      }
-    }
-    
-    if (currentLine.trim()) {
-      lines.push(currentLine);
-    }
-    
-    if (lines.length === 0) {
-      return { flashcards: [], errors: ['CSV file is empty'] };
-    }
-    
-    const headerLine = lines[0];
-    const headers = parseCSVLine(headerLine);
-    
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
+      };
       
-      if (line.includes('====') || line.includes('REFERENCE:') || 
-          line.includes('COURSES') || line.includes('DIFFICULTY') ||
-          line.includes('SUBJECTS') || line.includes('IMPORTANT NOTES') ||
-          line.includes('BULK UPLOAD LIMITATIONS') || line.includes('TO ADD NEW') ||
-          line.trim().startsWith('-') || line.trim().startsWith('✓') || 
-          line.trim().startsWith('❌') || line.trim().startsWith('✅') ||
-          line.trim().startsWith('⚠️')) {
-        continue;
-      }
+      reader.onerror = function() {
+        reject(new Error('Failed to read file'));
+      };
       
-      try {
-        const values = parseCSVLine(line);
-        
-        if (values.length === 0 || values.every(v => !v.trim())) {
-          continue;
-        }
-        
-        const flashcard = {};
-        headers.forEach((header, index) => {
-          const value = values[index] || '';
-          const cleanValue = value.toString().trim().replace(/^["']|["']$/g, '');
-          flashcard[header] = cleanValue;
-        });
-        
-        if (!flashcard.target_course || !flashcard.subject || !flashcard.front || !flashcard.back) {
-          parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front, back)`);
-          continue;
-        }
-        
-        const cleanDifficulty = (flashcard.difficulty || '')
-          .toString()
-          .trim()
-          .replace(/['"]/g, '')
-          .replace(/[^\x20-\x7E]/g, '')
-          .toLowerCase();
-        
-        if (cleanDifficulty === 'easy') {
-          flashcard.difficulty = 'easy';
-        } else if (cleanDifficulty === 'hard') {
-          flashcard.difficulty = 'hard';
-        } else {
-          flashcard.difficulty = 'medium';
-        }
-        
-        const cleanTags = (flashcard.tags || '')
-          .toString()
-          .trim()
-          .replace(/^["']|["']$/g, '');
-        
-        if (cleanTags !== '') {
-          flashcard.tags = cleanTags
-            .split(',')
-            .map(t => t.trim())
-            .filter(t => t);
-        } else {
-          flashcard.tags = [];
-        }
-        
-        flashcard.front = flashcard.front.replace(/[\r\n]+/g, ' ').trim();
-        flashcard.back = flashcard.back.replace(/[\r\n]+/g, ' ').trim();
-        
-        flashcards.push(flashcard);
-      } catch (error) {
-        parseErrors.push(`Row ${i + 1}: ${error.message}`);
-      }
-    }
-    
-    return { flashcards, errors: parseErrors };
+      // 🆕 CRITICAL: Read as UTF-8 text
+      reader.readAsText(file, 'UTF-8');
+    });
   }
   
   function parseCSVLine(line) {
@@ -378,11 +394,9 @@ IMPORTANT NOTES:
     setErrors([]);
 
     try {
-      const text = await csvFile.text();
-      const { flashcards, errors: parseErrors } = parseCSV(text);
+      const { flashcards, errors: parseErrors } = await parseCSV(csvFile);
 
       if (parseErrors.length > 0) {
-        // 🆕 NEW: Smart error messages for custom entries
         const customEntryErrors = parseErrors.filter(err => 
           err.toLowerCase().includes('not found')
         );
@@ -449,8 +463,8 @@ IMPORTANT NOTES:
           topic_id: topic?.id || null,
           custom_subject: subject ? null : card.subject,
           custom_topic: (topic || !card.topic) ? null : card.topic,
-          front_text: card.front,
-          back_text: card.back,
+          front_text: card.front, // UTF-8 preserved
+          back_text: card.back,   // UTF-8 preserved
           tags: card.tags || [],
           difficulty: card.difficulty || 'medium',
           is_public: false,
@@ -534,7 +548,6 @@ IMPORTANT NOTES:
         </p>
       </div>
 
-      {/* Instructions Card */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>How to Bulk Upload Flashcards</CardTitle>
@@ -581,6 +594,9 @@ IMPORTANT NOTES:
                 <p className="text-sm text-gray-600">
                   Use EXACT spelling from Valid Entries file to avoid errors
                 </p>
+                <p className="text-xs text-green-700 mt-1">
+                  ✅ Special characters like ₹ are fully supported (save as UTF-8)
+                </p>
               </div>
             </div>
 
@@ -606,7 +622,6 @@ IMPORTANT NOTES:
         </CardContent>
       </Card>
 
-      {/* Download Files Section */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Download Files</CardTitle>
@@ -615,7 +630,6 @@ IMPORTANT NOTES:
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Template Download */}
           <div>
             <Label className="text-base font-semibold mb-2 block">
               Step 1: Download Template CSV
@@ -625,11 +639,10 @@ IMPORTANT NOTES:
               Download Template CSV
             </Button>
             <p className="text-xs text-gray-500 mt-1">
-              Blank template with all required columns
+              Blank template with all required columns (₹ symbol included in example)
             </p>
           </div>
 
-          {/* Valid Entries Download with Course Selection */}
           <div className="border-t pt-6">
             <Label className="text-base font-semibold mb-2 block">
               Step 2: Download Valid Entries
@@ -676,7 +689,6 @@ IMPORTANT NOTES:
               )}
             </div>
 
-            {/* Warning about custom entries */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
               <p className="text-sm text-amber-900 font-medium mb-2">
                 ⚠️ Don't see your subject or topic in the downloaded file?
@@ -704,7 +716,6 @@ IMPORTANT NOTES:
         </CardContent>
       </Card>
 
-      {/* Upload Section */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Upload Flashcards</CardTitle>
@@ -779,7 +790,6 @@ IMPORTANT NOTES:
         </CardContent>
       </Card>
 
-      {/* Error Messages */}
       {errors.length > 0 && (
         <Alert variant="destructive" className="mb-8">
           <XCircle className="h-4 w-4" />
@@ -795,7 +805,6 @@ IMPORTANT NOTES:
         </Alert>
       )}
 
-      {/* Success Message */}
       {uploadResults?.success && (
         <Alert className="mb-8 border-green-200 bg-green-50">
           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -815,7 +824,6 @@ IMPORTANT NOTES:
         </Alert>
       )}
 
-      {/* CSV Format Guide with Limitations */}
       <Card>
         <CardHeader>
           <CardTitle>📋 CSV Format Guide</CardTitle>
@@ -844,6 +852,16 @@ IMPORTANT NOTES:
               </ol>
             </div>
 
+            <div className="bg-green-50 border-l-4 border-green-500 p-4">
+              <p className="font-bold text-green-900 mb-2">
+                ✅ UTF-8 ENCODING SUPPORT
+              </p>
+              <p className="text-green-800">
+                Special characters like <strong>₹ (Rupee symbol)</strong> are fully supported! 
+                Make sure to save your CSV as <strong>UTF-8</strong> format in Excel/Google Sheets.
+              </p>
+            </div>
+
             <div className="space-y-3 pt-4">
               <div>
                 <p className="font-medium">
@@ -852,9 +870,6 @@ IMPORTANT NOTES:
                 </p>
                 <p className="text-gray-600">
                   Course level (e.g., "CA Foundation", "CA Intermediate", "CA Final")
-                </p>
-                <p className="text-xs text-amber-700 mt-1">
-                  ❌ Custom courses not supported in bulk upload
                 </p>
               </div>
 
@@ -866,9 +881,6 @@ IMPORTANT NOTES:
                 <p className="text-gray-600">
                   Subject name (e.g., "Taxation", "Advanced Accounting")
                 </p>
-                <p className="text-xs text-amber-700 mt-1">
-                  ❌ Custom subjects not supported in bulk upload
-                </p>
               </div>
 
               <div>
@@ -879,25 +891,19 @@ IMPORTANT NOTES:
                 <p className="text-gray-600">
                   Topic within the subject (e.g., "Income Tax Basics", "AS 1")
                 </p>
-                <p className="text-xs text-amber-700 mt-1">
-                  ❌ Custom topics not supported in bulk upload
-                </p>
-                <p className="text-xs text-blue-700 mt-1">
-                  💡 Leave blank if no specific topic
-                </p>
               </div>
 
               <div>
                 <p className="font-medium">front <span className="text-red-500">*</span></p>
                 <p className="text-gray-600">
-                  Question or front side of flashcard (free text - no restrictions)
+                  Question or front side of flashcard (supports special characters: ₹, %, etc.)
                 </p>
               </div>
 
               <div>
                 <p className="font-medium">back <span className="text-red-500">*</span></p>
                 <p className="text-gray-600">
-                  Answer or back side of flashcard (free text - multi-line supported)
+                  Answer or back side of flashcard (supports special characters: ₹, %, etc.)
                 </p>
               </div>
 
