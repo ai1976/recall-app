@@ -36,7 +36,7 @@ src/
 │   ├── flashcards/
 │   │   ├── FlashcardCreate.jsx ⭐ (EDITED: Dec 22)
 │   │   ├── MyFlashcards.jsx
-│   │   └── StudyMode.jsx
+│   │   └── StudyMode.jsx ⭐ (EDITED: Jan 3 - now accepts flashcards prop)
 │   ├── notes/
 │   │   ├── index.jsx
 │   │   ├── NoteDetails.jsx
@@ -66,16 +66,23 @@ src/
 ├── lib/
 │   ├── supabase.js
 │   └── utils.js
-├── pages/
+├─├── pages/
+│   ├── Home.jsx
+│   ├── Dashboard.jsx ⭐ (EDITED: Jan 3 - button navigation)
+│   ├── Login.jsx
+│   ├── Signup.jsx
+│   ├── ForgotPassword.jsx
+│   ├── ResetPassword.jsx
+│   ├── TermsOfService.jsx
+│   ├── PrivacyPolicy.jsx
 │   └── dashboard/
 │       ├── my-contributions.jsx
 │       ├── my-notes.jsx
 │       ├── notes.jsx (Browse Notes)
 │       ├── progress.jsx
-│       ├── Dashboard.jsx
-│       ├── Home.jsx
-│       ├── Login.jsx
-│       └── Signup.jsx
+│       ├── review-flashcards.jsx
+│       ├── review-session.jsx ⭐ (NEW: Jan 3 - dedicated review route)
+│       └── Review.jsx
 ├── store/
 ├── utils/
 ├── App.jsx
@@ -189,5 +196,18 @@ git push
 - ✅ Fixed Edit dialog blank screen issue
 
 ---
+## 🔧 RECENTLY MODIFIED (Jan 3, 2026 - Evening)
+
+### **Review Session Route & StudyMode Props:**
+- ✅ src/pages/dashboard/review-session.jsx (NEW - dedicated review route)
+- ✅ src/components/flashcards/StudyMode.jsx (accepts flashcards prop)
+- ✅ src/pages/Dashboard.jsx (button navigation updated)
+- ✅ src/App.jsx (added ReviewSession route)
+
+### **New Features:**
+- ✅ Dedicated review session for due cards only
+- ✅ StudyMode flexible: accepts props OR fetches data
+- ✅ Backwards compatible with existing routes
+- ✅ Clean separation: Review Session vs Browse Flashcards
 
 **END OF FILE STRUCTURE DOCUMENT**

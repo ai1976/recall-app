@@ -26,6 +26,7 @@ import ResetPassword from './pages/ResetPassword'
 import ReviewFlashcards from './pages/dashboard/review-flashcards'
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import ReviewSession from '@/pages/dashboard/review-session';
 
 function App() {
   const [session, setSession] = useState(null)
@@ -133,6 +134,12 @@ function App() {
             element={session ? <ReviewFlashcards /> : <Navigate to="/login" replace />}
           />
           
+          {/* Review Session Route - Due Cards Only */}
+<Route
+  path="/dashboard/review-session"
+  element={session ? <ReviewSession /> : <Navigate to="/login" replace />}
+/>
+
           <Route
             path="/dashboard/study"
             element={session ? <StudyMode /> : <Navigate to="/login" replace />}

@@ -5,7 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Brain, ArrowLeft, RotateCcw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-export default function StudyMode() {
+// ✅ NOW ACCEPTS PROPS!
+export default function StudyMode({ 
+  flashcards: propFlashcards = null,  // Cards passed from ReviewSession
+  onComplete = null,                   // Optional callback when done
+  onExit = null                        // Optional exit callback
+}) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -21,9 +26,19 @@ export default function StudyMode() {
   });
 
   useEffect(() => {
-    fetchFlashcards();
+    // ✅ FIX: Check if flashcards were passed as props
+    if (propFlashcards && propFlashcards.length > 0) {
+      // Use the flashcards passed from ReviewSession
+      console.log('✅ Using passed flashcards:', propFlashcards.length);
+      setFlashcards(propFlashcards);
+      setLoading(false);
+    } else {
+      // No flashcards passed, fetch all flashcards (original behavior)
+      console.log('🔍 No flashcards passed, fetching all...');
+      fetchFlashcards();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [propFlashcards]);
 
   const fetchFlashcards = async () => {
     try {
@@ -188,6 +203,11 @@ export default function StudyMode() {
         title: "Study session complete! 🎉",
         description: `You reviewed ${flashcards.length} flashcards`
       });
+      
+      // ✅ Call onComplete callback if provided (for ReviewSession)
+      if (onComplete) {
+        onComplete(sessionStats);
+      }
     }
   };
 
@@ -195,7 +215,19 @@ export default function StudyMode() {
     setCurrentIndex(0);
     setShowAnswer(false);
     setSessionStats({ easy: 0, medium: 0, hard: 0 });
-    fetchFlashcards(); // Reshuffle
+    
+    // ✅ If using passed flashcards, just reset. Otherwise, refetch.
+    if (!propFlashcards) {
+      fetchFlashcards(); // Reshuffle
+    }
+  };
+
+  const handleExit = () => {
+    if (onExit) {
+      onExit();
+    } else {
+      navigate('/dashboard/review-flashcards');
+    }
   };
 
   if (loading) {
@@ -213,7 +245,7 @@ export default function StudyMode() {
           <Brain className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">No flashcards to study</h2>
           <p className="text-gray-600 mb-6">No flashcards found for this selection</p>
-          <Button onClick={() => navigate('/dashboard/review-flashcards')}>
+          <Button onClick={handleExit}>
             Choose Different Subject
           </Button>
         </div>
@@ -233,7 +265,7 @@ export default function StudyMode() {
           <div className="flex items-center justify-between h-16">
             <Button
               variant="ghost"
-              onClick={() => navigate('/dashboard/review-flashcards')}
+              onClick={handleExit}
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -325,10 +357,10 @@ export default function StudyMode() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate('/dashboard/review-flashcards')}
+                onClick={handleExit}
                 size="lg"
               >
-                Choose Different Topic
+                {onExit ? 'Exit Review' : 'Choose Different Topic'}
               </Button>
             </div>
           </div>

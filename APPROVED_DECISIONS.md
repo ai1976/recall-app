@@ -864,6 +864,59 @@ Deployed: January 3, 2026
 **Files Modified:**
 - src/components/flashcards/StudyMode.jsx (Line 129: added .setHours(0,0,0,0))
 
+### User Deletion (Phase 1)
+
+Status: ✅ LOCKED
+Approved: January 3, 2026
+
+Two-step deletion process:
+1. Automatic: Profile + content (notes, flashcards, reviews)
+2. Manual: Authentication account (via Supabase Dashboard)
+
+Reason: Auth deletion requires service role key, not available in client-side React. Edge Function solution postponed to Phase 2 to avoid deployment complexity.
+
+Phase 2 Enhancement: Create delete-user Edge Function with service role access for fully automated deletion.
 ---
 
+## ADD THIS TO YOUR APPROVED_DECISIONS.md FILE
+
+After the "Spaced Repetition - Review Scheduling (Midnight Fix)" section, add:
+
+---
+
+### Review Session - Dedicated Route for Due Cards
+
+Status: ✅ LOCKED
+Approved: January 3, 2026
+Deployed: January 3, 2026
+
+**Implementation:**
+- Dedicated route: /dashboard/review-session
+- Fetches ONLY cards where next_review <= NOW()
+- Automatically starts study mode (no manual start button)
+- Passes flashcards as props to StudyMode component
+
+**User Flow:**
+1. Dashboard shows "X cards ready for review"
+2. Click "Start Review Session" button
+3. Navigate to /dashboard/review-session
+4. Automatically load ONLY due cards
+5. Start studying immediately
+6. Return to dashboard when complete
+
+**StudyMode Component Changes:**
+- NOW accepts flashcards prop (optional)
+- If flashcards prop provided: Use those cards (ReviewSession use case)
+- If NO flashcards prop: Fetch all cards (Browse Flashcards use case)
+- Backwards compatible with existing /dashboard/review-flashcards route
+
+**Files:**
+- src/pages/dashboard/review-session.jsx (NEW - 200+ lines)
+- src/components/flashcards/StudyMode.jsx (MODIFIED - accepts props)
+- src/pages/Dashboard.jsx (Line 337: navigate to review-session)
+- src/App.jsx (Added route)
+
+**Reason:** Solves UX confusion - students expect "Start Review Session" to show ONLY due cards, not all 241 cards. Dedicated route provides clean, focused review experience.
+
+---
 **END OF APPROVED_DECISIONS.md**

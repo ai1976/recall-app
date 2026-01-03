@@ -276,7 +276,7 @@ export default function Dashboard() {
             </Card>
           )}
 
-          {/* Reviews Due */}
+          {/* Reviews Due - UPDATED BUTTON */}
           {!isNewUser && reviewsDue > 0 && (
             <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
               <CardHeader>
@@ -289,7 +289,7 @@ export default function Dashboard() {
                 <p className="text-base sm:text-lg font-semibold mb-4">
                   {reviewsDue} flashcard{reviewsDue > 1 ? 's' : ''} ready for review
                 </p>
-                <Button onClick={() => navigate('/dashboard/review-flashcards')}>
+                <Button onClick={() => navigate('/dashboard/review-session')}>
                   Start Review Session
                 </Button>
               </CardContent>
