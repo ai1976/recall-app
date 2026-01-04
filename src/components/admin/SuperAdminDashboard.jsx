@@ -15,7 +15,15 @@ import {
   Activity,
   Trash2,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  UserX,
+  UserCheck,
+  Clock,
+  BookOpen,
+  CreditCard,
+  Target,
+  Award,
+  Flame
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
@@ -29,16 +37,21 @@ export default function SuperAdminDashboard() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [filteredUsers, setFilteredUsers] = useState([]);
 
+  // New state for additional reports
+  const [contentStats, setContentStats] = useState(null);
+  const [engagementStats, setEngagementStats] = useState(null);
+  const [retentionStats, setRetentionStats] = useState(null);
+
   useEffect(() => {
     if (!roleLoading && isSuperAdmin) {
       fetchDashboardData();
     }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuperAdmin, roleLoading]);
 
   useEffect(() => {
     filterUsers();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, roleFilter, users]);
 
   function filterUsers() {
@@ -65,7 +78,10 @@ export default function SuperAdminDashboard() {
       fetchStats(),
       fetchUsers(),
       fetchAdmins(),
-      fetchRecentAuditLogs()
+      fetchRecentAuditLogs(),
+      fetchContentStats(),
+      fetchEngagementStats(),
+      fetchRetentionStats()
     ]);
     setIsLoading(false);
     console.log('✅ Super Admin Dashboard: All data loaded');
@@ -160,6 +176,57 @@ export default function SuperAdminDashboard() {
     console.log('🔍 fetchStats() - END');
   }
 
+  async function fetchContentStats() {
+    try {
+      const { data, error } = await supabase.rpc('get_content_creation_stats');
+      
+      if (error) {
+        console.error('Error fetching content stats:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setContentStats(data[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching content stats:', error);
+    }
+  }
+
+  async function fetchEngagementStats() {
+    try {
+      const { data, error } = await supabase.rpc('get_study_engagement_stats');
+      
+      if (error) {
+        console.error('Error fetching engagement stats:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setEngagementStats(data[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching engagement stats:', error);
+    }
+  }
+
+  async function fetchRetentionStats() {
+    try {
+      const { data, error } = await supabase.rpc('get_user_retention_stats');
+      
+      if (error) {
+        console.error('Error fetching retention stats:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setRetentionStats(data[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching retention stats:', error);
+    }
+  }
+
   async function fetchUsers() {
     try {
       const { data, error } = await supabase
@@ -191,14 +258,51 @@ export default function SuperAdminDashboard() {
 
   async function fetchRecentAuditLogs() {
     try {
-      const { data, error } = await supabase
+      // Fetch audit logs
+      const { data: logs, error } = await supabase
         .from('admin_audit_log')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(20);
 
       if (error) throw error;
-      setAuditLogs(data || []);
+
+      if (!logs || logs.length === 0) {
+        setAuditLogs([]);
+        return;
+      }
+
+      // Get unique user IDs (admin_id and target_user_id)
+      const userIds = new Set();
+      logs.forEach(log => {
+        if (log.admin_id) userIds.add(log.admin_id);
+        if (log.target_user_id) userIds.add(log.target_user_id);
+      });
+
+      // Fetch user profiles for those IDs
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', Array.from(userIds));
+
+      if (profileError) throw profileError;
+
+      // Create a map of user ID to user info
+      const userMap = {};
+      (profiles || []).forEach(p => {
+        userMap[p.id] = p;
+      });
+
+      // Merge user info into logs
+      const enrichedLogs = logs.map(log => ({
+        ...log,
+        admin_name: userMap[log.admin_id]?.full_name || userMap[log.admin_id]?.email || 'Unknown Admin',
+        target_user_name: log.target_user_id 
+          ? (userMap[log.target_user_id]?.full_name || userMap[log.target_user_id]?.email || 'Unknown User')
+          : null
+      }));
+
+      setAuditLogs(enrichedLogs);
     } catch (error) {
       console.error('Error fetching audit logs:', error);
     }
@@ -275,13 +379,11 @@ export default function SuperAdminDashboard() {
         return;
       }
 
-      // Prevent deleting super admin
       if (targetUser.role === 'super_admin') {
         alert('Cannot delete Super Admin accounts!');
         return;
       }
 
-      // Get user's content count
       const { count: notesCount } = await supabase
         .from('notes')
         .select('*', { count: 'exact', head: true })
@@ -294,7 +396,6 @@ export default function SuperAdminDashboard() {
 
       const totalContent = (notesCount || 0) + (flashcardsCount || 0);
 
-      // Confirmation dialog
       const confirmMessage = `⚠️ DELETE USER - CANNOT BE UNDONE
 
 User: ${targetUser.full_name || targetUser.email}
@@ -316,20 +417,17 @@ Are you ABSOLUTELY SURE?`;
         return;
       }
 
-      // Second confirmation for safety
       const secondConfirm = prompt('Type DELETE in capital letters to confirm:');
       if (secondConfirm !== 'DELETE') {
         alert('Deletion cancelled - incorrect confirmation');
         return;
       }
 
-      // Step 1: Delete user's content (cascade delete)
       console.log('Deleting user content...');
       await supabase.from('reviews').delete().eq('user_id', userId);
       await supabase.from('flashcards').delete().eq('user_id', userId);
       await supabase.from('notes').delete().eq('user_id', userId);
 
-      // Step 2: Delete profile
       console.log('Deleting user profile...');
       const { error: deleteProfileError } = await supabase
         .from('profiles')
@@ -338,7 +436,6 @@ Are you ABSOLUTELY SURE?`;
 
       if (deleteProfileError) throw deleteProfileError;
 
-      // Step 3: Log the deletion
       const { data: { user } } = await supabase.auth.getUser();
       
       await supabase
@@ -355,7 +452,6 @@ Are you ABSOLUTELY SURE?`;
           }
         });
 
-      // Success message with manual Auth deletion steps
       alert(`✅ USER PROFILE & CONTENT DELETED SUCCESSFULLY!
 
 Deleted User: ${targetUser.full_name || targetUser.email}
@@ -428,6 +524,60 @@ This will be automated in Phase 2 with Edge Functions.`);
     }, 100);
   }
 
+  // ✅ NEW: Click handlers for retention cards
+  function handleNewUsersClick() {
+    const userManagementTab = document.querySelector('[value="users"]');
+    if (userManagementTab) {
+      userManagementTab.click();
+    }
+    
+    // Filter for users created in last 7 days
+    setRoleFilter('student');
+    
+    setTimeout(() => {
+      const userList = document.getElementById('user-management-section');
+      if (userList) {
+        userList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  }
+
+  function handleInactiveUsersClick() {
+    const userManagementTab = document.querySelector('[value="users"]');
+    if (userManagementTab) {
+      userManagementTab.click();
+    }
+    
+    setRoleFilter('student');
+    
+    setTimeout(() => {
+      const userList = document.getElementById('user-management-section');
+      if (userList) {
+        userList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      // TODO: Add filter for inactive users (0 activity)
+      alert('Filtering for inactive users (students with 0 notes, 0 flashcards, 0 reviews). This requires additional filtering logic.');
+    }, 100);
+  }
+
+  function handleRetentionClick() {
+    const userManagementTab = document.querySelector('[value="users"]');
+    if (userManagementTab) {
+      userManagementTab.click();
+    }
+    
+    setRoleFilter('student');
+    
+    setTimeout(() => {
+      const userList = document.getElementById('user-management-section');
+      if (userList) {
+        userList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      // TODO: Add filter for users who came back after signup
+      alert('Filtering for users who came back after signup (7-day retention). This requires additional filtering logic.');
+    }, 100);
+  }
+
   if (roleLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -463,7 +613,7 @@ This will be automated in Phase 2 with Edge Functions.`);
         </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Original 5 Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <Card 
           className="cursor-pointer hover:shadow-lg transition-shadow"
@@ -557,7 +707,88 @@ This will be automated in Phase 2 with Edge Functions.`);
         </Card>
       </div>
 
-      {/* User Activity Report */}
+      {/* User Retention Cards - NOW CLICKABLE ✅ */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <Clock className="h-5 w-5 text-purple-600" />
+          <h2 className="text-xl font-bold text-gray-900">User Growth & Retention</h2>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* New Users This Week - CLICKABLE */}
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={handleNewUsersClick}
+          >
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <UserCheck className="h-5 w-5 text-green-600" />
+                New Users This Week
+              </CardTitle>
+              <CardDescription>Students who signed up in last 7 days</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold text-gray-900">
+                {retentionStats?.new_users_this_week || 0}
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Click to view new students
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Inactive Users - CLICKABLE */}
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={handleInactiveUsersClick}
+          >
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <UserX className="h-5 w-5 text-red-600" />
+                Inactive Users
+              </CardTitle>
+              <CardDescription>Signed up but never engaged</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold text-red-600">
+                {retentionStats?.inactive_users || 0}
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Click to view inactive students
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* 7-Day Retention - CLICKABLE */}
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={handleRetentionClick}
+          >
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Target className="h-5 w-5 text-blue-600" />
+                7-Day Retention
+              </CardTitle>
+              <CardDescription>Users who came back after signup</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-bold text-blue-600">
+                  {Math.round(retentionStats?.seven_day_retention_rate || 0)}%
+                </span>
+                <span className="text-xl text-gray-500">
+                  ({retentionStats?.seven_day_retention_count || 0}/{retentionStats?.new_users_this_week || 0})
+                </span>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Click to view retained students
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* User Activity Report (Existing - DAU & WAU) */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <Activity className="h-5 w-5 text-blue-600" />
@@ -693,6 +924,197 @@ This will be automated in Phase 2 with Edge Functions.`);
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Content Creation Report */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <BookOpen className="h-5 w-5 text-indigo-600" />
+          <h2 className="text-xl font-bold text-gray-900">Content Creation Report</h2>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Notes Per Student */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Avg Notes/Student</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {contentStats?.avg_notes_per_student 
+                  ? parseFloat(contentStats.avg_notes_per_student).toFixed(1) 
+                  : '0.0'}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Total: {contentStats?.total_notes || 0} notes
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Flashcards Per Student */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Avg Cards/Student</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {contentStats?.avg_flashcards_per_student 
+                  ? parseFloat(contentStats.avg_flashcards_per_student).toFixed(1) 
+                  : '0.0'}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Total: {contentStats?.total_flashcards || 0} flashcards
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Top Note Contributor */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Top Note Contributor</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {contentStats?.top_note_contributor_name ? (
+                <>
+                  <div className="text-lg font-semibold truncate">
+                    {contentStats.top_note_contributor_name}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {contentStats.top_note_contributor_count} notes uploaded
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">No contributors yet</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Top Flashcard Contributor */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Top Card Contributor</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {contentStats?.top_flashcard_contributor_name ? (
+                <>
+                  <div className="text-lg font-semibold truncate">
+                    {contentStats.top_flashcard_contributor_name}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {contentStats.top_flashcard_contributor_count} flashcards
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">No contributors yet</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Zero Contributors Alert */}
+        {contentStats?.zero_contributors_count > 0 && (
+          <Alert className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>{contentStats.zero_contributors_count} students</strong> haven't created any content yet. 
+              Consider sending them reminders or tutorials.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
+
+      {/* Study Engagement Report */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <CreditCard className="h-5 w-5 text-purple-600" />
+          <h2 className="text-xl font-bold text-gray-900">Study Engagement Report</h2>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Total Reviews */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Total Reviews</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {engagementStats?.total_reviews_completed || 0}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">All-time count</p>
+            </CardContent>
+          </Card>
+
+          {/* Reviews This Week */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Reviews This Week</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {engagementStats?.reviews_this_week || 0}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Last 7 days</p>
+            </CardContent>
+          </Card>
+
+          {/* Avg Reviews Per Student */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Avg Reviews/Student</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {engagementStats?.avg_reviews_per_student 
+                  ? parseFloat(engagementStats.avg_reviews_per_student).toFixed(1) 
+                  : '0.0'}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Per student average</p>
+            </CardContent>
+          </Card>
+
+          {/* Students with Streaks */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-1">
+                <Flame className="h-4 w-4 text-orange-500" />
+                Active Streaks
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {engagementStats?.students_with_streaks || 0}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">3+ consecutive days</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Review Completion Rate */}
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Award className="h-5 w-5 text-yellow-600" />
+              Review Completion Rate
+            </CardTitle>
+            <CardDescription>Percentage of due cards reviewed today</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 bg-gray-200 rounded-full h-4">
+                <div 
+                  className="bg-gradient-to-r from-green-400 to-green-600 h-4 rounded-full transition-all"
+                  style={{ width: `${Math.min(engagementStats?.review_completion_rate || 0, 100)}%` }}
+                />
+              </div>
+              <span className="text-3xl font-bold text-green-600">
+                {Math.round(engagementStats?.review_completion_rate || 0)}%
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              Cards reviewed today out of total due today
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tabs Section */}
@@ -968,13 +1390,27 @@ This will be automated in Phase 2 with Edge Functions.`);
                           <p className="font-medium text-sm text-gray-900">
                             {log.action.replace(/_/g, ' ').toUpperCase()}
                           </p>
+                          
+                          {/* Admin who performed action */}
+                          <p className="text-xs text-gray-600 mt-1">
+                            <span className="font-semibold">By:</span> {log.admin_name}
+                          </p>
+                          
+                          {/* Target user (if applicable) */}
+                          {log.target_user_name && (
+                            <p className="text-xs text-gray-600">
+                              <span className="font-semibold">Target:</span> {log.target_user_name}
+                            </p>
+                          )}
+                          
+                          {/* Details */}
                           {log.details && (
                             <p className="text-xs text-gray-500 mt-1">
-                              {JSON.stringify(log.details)}
+                              {log.details.reason || JSON.stringify(log.details)}
                             </p>
                           )}
                         </div>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
                           {new Date(log.created_at).toLocaleString()}
                         </span>
                       </div>
