@@ -210,4 +210,46 @@ git push
 - ✅ Backwards compatible with existing routes
 - ✅ Clean separation: Review Session vs Browse Flashcards
 
+## 🗄️ DATABASE DOCUMENTATION (NEW)
+
+### **Root Level Files:**
+- DATABASE_SCHEMA.md (NEW - Jan 9, 2026)
+  - Complete schema reference
+  - Table relationships
+  - Column definitions
+  - Schema change log
+
+### **Supabase SQL Folders:**
+- SCHEMA/ (12 queries)
+  - All Database Tables
+  - All Columns for Major Tables
+  - Add Creator ID to Flashcards (NEW)
+  - Backfill Creator ID for Existing Flashcards (NEW)
+  - Create Friendships Table (NEW)
+  - Add Indexes for Friendships Table (NEW)
+  - Create Content Creators Table (NEW)
+  - Link Flashcards to Content Creators (NEW)
+
+- DATA/ (queries for viewing data)
+- DIAGNOSTIC/ (troubleshooting queries)
+- FIX/ (one-time data corrections)
+- REPORTS/ (analytics queries)
+
+---
+
+## 📋 RECENT ADDITIONS (Jan 9, 2026)
+
+### Database:
+- ✅ friendships table (social features)
+- ✅ content_creators table (revenue tracking)
+- ✅ flashcards.creator_id (user attribution)
+- ✅ flashcards.content_creator_id (financial attribution)
+
+### Documentation:
+- ✅ DATABASE_SCHEMA.md (new file)
+- ✅ APPROVED_DECISIONS.md (3 new entries)
+- ✅ CONTEXT_FOR_CLAUDE.md (updated status)
+
+---
+
 **END OF FILE STRUCTURE DOCUMENT**

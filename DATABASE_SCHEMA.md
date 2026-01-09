@@ -25,21 +25,29 @@
 ## 1. OVERVIEW
 
 ### Quick Stats
-- **Total Tables:** 14
+- **Total Tables:** 16 ⭐ (was 14, added 2 new tables)
 - **Custom Functions:** 1
 - **RLS Policies:** 24
-- **Indexes:** 50+
+- **Indexes:** 53+ ⭐ (was 50+, added 3 indexes)
 - **Triggers:** 0 (currently)
 - **Database Size:** ~50 MB (estimated for 20 users)
 
 ### Core Tables
 - **profiles** - User accounts with 4-tier role system
 - **notes** - Student notes with OCR
-- **flashcards** - Spaced repetition cards with batch tracking
+- **flashcards** - Spaced repetition cards with batch tracking ⭐ (now with creator attribution)
 - **reviews** - Review history for SuperMemo-2 algorithm
 - **disciplines, subjects, topics** - Course structure (CA Inter pre-loaded)
 - **admin_audit_log** - Audit trail for admin actions
 - **role_change_log** - Role promotion/demotion history
+
+### Social Tables ⭐ NEW
+- **friendships** - Friend connections between users (pending/accepted/rejected)
+- **upvotes** - Upvote tracking for notes (already existed, moved here for clarity)
+- **comments** - Comments on shared notes (already existed, moved here for clarity)
+
+### Revenue Tracking ⭐ NEW
+- **content_creators** - Content creators for revenue sharing (Vivitsu, professors)
 
 ### Supporting Tables
 - **comments** - Comments on shared notes
@@ -126,7 +134,7 @@
 
 **Purpose:** Spaced repetition flashcards with batch tracking  
 **Created:** December 2025  
-**Columns:** 21
+**Columns:** 23 ⭐ (was 21, added creator_id + content_creator_id)
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -144,6 +152,8 @@
 | topic_id | uuid | YES | NULL | Foreign key to topics |
 | batch_id | uuid | NO | uuid_generate_v4() | Groups cards from same upload |
 | batch_description | text | YES | NULL | Optional batch label |
+| creator_id | uuid | YES | NULL | Foreign key to profiles.id (who uploaded) ⭐ NEW |
+| content_creator_id | uuid | YES | NULL | Foreign key to content_creators.id (who gets paid) ⭐ NEW |
 | is_verified | boolean | NO | false | Professor-verified badge |
 | difficulty | text | YES | NULL | easy/medium/hard |
 | is_public | boolean | NO | false | Public/Private sharing |
@@ -155,6 +165,11 @@
 - `difficulty` helps professors tag question complexity
 - `front_image_url` and `back_image_url` support visual learning
 - `contributed_by` enables professor attribution separate from uploader
+- **NEW:** `creator_id` tracks WHO uploaded the content (operational attribution)
+- **NEW:** `content_creator_id` tracks WHO gets revenue credit (financial attribution)
+- Example: Prof. Anand uploads flashcards on behalf of Vivitsu
+  - creator_id = Prof. Anand (shows in UI)
+  - content_creator_id = Vivitsu (gets 30% revenue share)
 
 **Related Tables:** profiles, notes, reviews, disciplines, subjects, topics  
 **Key Indexes:** user_id, batch_id (critical for grouping), target_course, is_public, created_at  
@@ -432,6 +447,116 @@ INSERT INTO role_permissions VALUES
 **Related Tables:** notes, profiles  
 **Key Indexes:** note_id, user_id, UNIQUE(note_id, user_id)  
 **RLS Policies:** Standard CRUD policies
+
+---
+
+### 2.13 friendships ⭐ NEW
+
+**Purpose:** Friend connections between users (social features)  
+**Created:** January 9, 2026  
+**Columns:** 6
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | uuid | NO | uuid_generate_v4() | Primary key |
+| user_id | uuid | NO | - | Foreign key to profiles.id (who sent request) |
+| friend_id | uuid | NO | - | Foreign key to profiles.id (who received request) |
+| status | text | NO | 'pending' | pending/accepted/rejected |
+| created_at | timestamp | NO | NOW() | When request was sent |
+| updated_at | timestamp | NO | NOW() | When status changed |
+
+**Why This Structure:**
+- Bidirectional friendship model (A → B request, B accepts)
+- `status` tracks request lifecycle (pending → accepted OR rejected)
+- UNIQUE constraint on (user_id, friend_id) prevents duplicate requests
+- Cascade delete: If user deleted, their friendships removed
+
+**Friendship States:**
+```
+User A sends request → INSERT with status='pending'
+User B accepts → UPDATE status='accepted'
+User B rejects → UPDATE status='rejected'
+```
+
+**Use Cases:**
+- Find Friends page (search by name/email)
+- Friend Requests (list pending requests)
+- My Friends (list accepted friends)
+- Friends-only sharing (share note with specific friends)
+
+**Related Tables:** profiles  
+**Key Indexes:** user_id, friend_id, status  
+**RLS Policies:** Standard CRUD policies (users manage own friendships)
+
+**UNIQUE Constraint:**
+```sql
+UNIQUE(user_id, friend_id)
+```
+Prevents: User A sending multiple requests to User B
+
+---
+---
+
+### 2.14 content_creators ⭐ NEW
+
+**Purpose:** Track content creators (Vivitsu, professors) for revenue attribution  
+**Created:** January 9, 2026  
+**Columns:** 6
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | uuid | NO | uuid_generate_v4() | Primary key |
+| name | text | NO | - | Display name (e.g., "Vivitsu", "Prof. Sharma") |
+| type | text | NO | 'individual' | individual/organization |
+| email | text | YES | NULL | Contact email (unique if provided) |
+| revenue_share_percentage | decimal | NO | 30.0 | Default 30% (configurable per creator) |
+| created_at | timestamp | NO | NOW() | When creator was added |
+
+**Why This Structure:**
+- Flexible system supports both individual professors AND organizations (Vivitsu)
+- `revenue_share_percentage` configurable per creator:
+  - Vivitsu (organization): 30%
+  - Professors (individual): 40%
+  - Student creators (individual): 40% (future)
+- `type` enables different handling for orgs vs individuals
+
+**Creator Types:**
+
+**Organization Example (Vivitsu):**
+```sql
+INSERT INTO content_creators (name, type, email, revenue_share_percentage)
+VALUES ('Vivitsu', 'organization', 'contact@vivitsu.com', 30.0);
+```
+
+**Individual Example (Professor):**
+```sql
+INSERT INTO content_creators (name, type, email, revenue_share_percentage)
+VALUES ('Prof. Sharma', 'individual', 'sharma@example.com', 40.0);
+```
+
+**Revenue Attribution Flow:**
+1. Student reviews flashcard
+2. System checks flashcard.content_creator_id
+3. Monthly: Calculate usage per creator
+4. Payout: creator_revenue = total_revenue × usage_percentage × revenue_share_percentage
+
+**Use Cases:**
+- Vivitsu partnership (revenue sharing)
+- Professor contributor payments
+- Student creator monetization (Phase 3+)
+
+**Related Tables:** flashcards (content_creator_id), profiles  
+**Key Indexes:** email (unique), type  
+**RLS Policies:** Public read, admin write
+
+**Phase 1-2 Usage:**
+- Manual entry (you create rows via SQL)
+- Track Vivitsu partnership
+
+**Phase 3+ Usage:**
+- Self-service creator onboarding
+- Automated revenue tracking
+- Creator dashboard
 
 ---
 
@@ -733,9 +858,23 @@ CREATE INDEX idx_flashcards_created_at ON flashcards(created_at);
 CREATE INDEX idx_flashcards_discipline_id ON flashcards(discipline_id);
 CREATE INDEX idx_flashcards_subject_id ON flashcards(subject_id);
 CREATE INDEX idx_flashcards_topic_id ON flashcards(topic_id);
+CREATE INDEX idx_flashcards_creator_id ON flashcards(creator_id); -- ⭐ NEW (Jan 9, 2026)
 ```
 
 **CRITICAL:** `idx_flashcards_batch_id` is essential for MyFlashcards.jsx grouping performance.
+
+#### friendships Table ⭐ NEW
+```sql
+CREATE INDEX idx_friendships_user_id ON friendships(user_id);
+CREATE INDEX idx_friendships_friend_id ON friendships(friend_id);
+CREATE INDEX idx_friendships_status ON friendships(status);
+```
+
+**Why These Indexes:**
+- `user_id` index: Find all requests sent by a user
+- `friend_id` index: Find all requests received by a user
+- `status` index: Filter by pending/accepted/rejected
+- All three enable fast "Find Friends", "Friend Requests", "My Friends" pages
 
 #### reviews Table
 ```sql
@@ -872,6 +1011,62 @@ CREATE INDEX idx_flashcards_batch_id ON flashcards(batch_id);
 **Function:** `get_user_activity_stats()`
 
 **Why:** Centralized statistics calculation, improved performance
+
+---
+
+---
+
+### Migration 005: Content Creator Attribution (January 9, 2026)
+**File:** `005_content_creator_attribution.sql`  
+**Created:** January 9, 2026  
+**Purpose:** Add creator attribution and prepare for Vivitsu partnership
+
+**Changes:**
+```sql
+-- 1. Add creator_id to flashcards (user attribution)
+ALTER TABLE flashcards ADD COLUMN creator_id UUID REFERENCES profiles(id);
+
+-- 2. Backfill existing flashcards
+UPDATE flashcards SET creator_id = user_id WHERE creator_id IS NULL;
+
+-- 3. Create content_creators table
+CREATE TABLE content_creators (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  type TEXT CHECK (type IN ('individual', 'organization')) DEFAULT 'individual',
+  email TEXT UNIQUE,
+  revenue_share_percentage DECIMAL DEFAULT 30.0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 4. Link flashcards to content creators
+ALTER TABLE flashcards ADD COLUMN content_creator_id UUID REFERENCES content_creators(id);
+
+-- 5. Create friendships table
+CREATE TABLE friendships (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  friend_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  status TEXT CHECK (status IN ('pending', 'accepted', 'rejected')) DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, friend_id)
+);
+
+-- 6. Add indexes
+CREATE INDEX idx_flashcards_creator_id ON flashcards(creator_id);
+CREATE INDEX idx_friendships_user_id ON friendships(user_id);
+CREATE INDEX idx_friendships_friend_id ON friendships(friend_id);
+CREATE INDEX idx_friendships_status ON friendships(status);
+```
+
+**Why:**
+- Enables Vivitsu partnership with clear revenue tracking
+- Separates operational attribution (who uploaded) from financial attribution (who gets paid)
+- Prepares for February social features (friend requests)
+- Future-proofs for B2B expansion and student creator monetization
+
+**Backfill Note:** All existing flashcards got creator_id = user_id (original uploader)
 
 ---
 
@@ -1202,11 +1397,42 @@ LIMIT 10;
 **Next Review:** February 1, 2026
 
 ---
+---
+
+## 13. SCHEMA CHANGE LOG ⭐ NEW
+
+**Purpose:** Quick reference for what changed and when
+
+### January 9, 2026
+- ✅ Added `creator_id` to flashcards table (user attribution)
+- ✅ Added `content_creator_id` to flashcards table (revenue attribution)
+- ✅ Created `friendships` table (social features)
+- ✅ Created `content_creators` table (Vivitsu partnership)
+- ✅ Added 4 indexes (3 for friendships, 1 for creator_id)
+- ✅ Total tables: 14 → 16
+- ✅ Total indexes: 50+ → 53+
+
+**Ready For:**
+- ✅ February friend request feature
+- ✅ March Vivitsu partnership (revenue tracking)
+- ✅ Future B2B expansion (organization support)
+- ✅ Future student creator monetization
+
+### December 26, 2025
+- Added batch_id and batch_description to flashcards
+- Created indexes for batch_id
+
+### December 15, 2025
+- Initial schema created (12 core tables)
+
+---
 
 ## 📝 DOCUMENT HISTORY
 
+## 📝 DOCUMENT HISTORY
+
+- **v1.1** (Jan 9, 2026) - Added friendships + content_creators tables, updated flashcards with creator attribution
 - **v1.0** (Jan 2, 2026) - Initial documentation created after 2-hour RLS debugging session
-- Future versions will be tracked here
 
 ---
 

@@ -919,4 +919,88 @@ Deployed: January 3, 2026
 **Reason:** Solves UX confusion - students expect "Start Review Session" to show ONLY due cards, not all 241 cards. Dedicated route provides clean, focused review experience.
 
 ---
+---
+
+### Friendships & Social Features
+
+Status: ✅ LOCKED  
+Approved: January 9, 2026
+
+Implementation:
+- friendships table with status (pending/accepted/rejected)
+- Three-way friendship model (user → friend, bidirectional)
+- Indexes on user_id, friend_id, status for performance
+- Cascade delete (if user deleted, friendships removed)
+
+Friend Request Flow:
+1. User A sends request → status='pending'
+2. User B accepts → status='accepted'
+3. OR User B rejects → status='rejected'
+4. Both users can see each other's public content when accepted
+
+UI Features:
+- Find Friends page (search by name/email)
+- Friend Requests (pending list)
+- My Friends (accepted list)
+- Friends-only sharing (share note with specific friends)
+
+Reason: Students requested "friends only" feature. This enables private study groups without building full social network.
+
+---
+
+### Content Creator Attribution System
+
+Status: ✅ LOCKED  
+Approved: January 9, 2026
+
+Two-tier attribution:
+1. creator_id (profiles table) - WHO uploaded the content
+2. content_creator_id (content_creators table) - WHO gets revenue credit
+
+Example:
+- Vivitsu (organization) = content_creator
+- Prof. Anand (your account) uploads flashcards on Vivitsu's behalf
+- creator_id = Prof. Anand (uploader)
+- content_creator_id = Vivitsu (revenue recipient)
+
+Database:
+- flashcards.creator_id → profiles.id (who uploaded)
+- flashcards.content_creator_id → content_creators.id (who gets paid)
+- content_creators.revenue_share_percentage (default 30%)
+
+Revenue Attribution Logic:
+- When student reviews flashcard, track content_creator_id
+- Monthly: Calculate usage per creator
+- Payout: creator_share = total_revenue × usage_percentage × revenue_share_percentage
+
+Reason: Separates operational attribution (who uploaded) from financial attribution (who gets paid). Enables Vivitsu partnership with clear revenue tracking.
+
+---
+
+### Content Creators Table Structure
+
+Status: ✅ LOCKED  
+Approved: January 9, 2026
+
+Types:
+- individual (professors, subject experts)
+- organization (Vivitsu, coaching institutes)
+
+Fields:
+- name: Display name (e.g., "Vivitsu", "Prof. Sharma")
+- email: Contact email
+- revenue_share_percentage: Default 30% (configurable per creator)
+- type: individual OR organization
+
+Use Cases:
+- Vivitsu partnership (organization type, 30% revenue share)
+- Professor contributors (individual type, 40% revenue share)
+- Student creators (individual type, 40% revenue share - future)
+
+Phase 1-2: Manual entry (you create rows via SQL)
+Phase 3+: Self-service creator onboarding
+
+Reason: Flexible system supports multiple creator types and different revenue share models. Ready for Vivitsu partnership without code changes.
+
+---
 **END OF APPROVED_DECISIONS.md**
