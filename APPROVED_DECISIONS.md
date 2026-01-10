@@ -1003,4 +1003,63 @@ Phase 3+: Self-service creator onboarding
 Reason: Flexible system supports multiple creator types and different revenue share models. Ready for Vivitsu partnership without code changes.
 
 ---
+
+---
+
+### Spaced Repetition System - UTC Midnight Scheduling
+
+Status: ✅ LOCKED
+Approved: January 10, 2026
+
+Implementation:
+- Reviews scheduled for midnight UTC (not local time)
+- Changed from setHours() to setUTCHours() in StudyMode.jsx
+- Intervals: Hard=1 day, Medium=3 days, Easy=7 days
+- All intervals calculated from current date + interval, then set to midnight UTC
+
+Database Schema:
+- next_review: TIMESTAMP WITH TIME ZONE, NOT NULL, DEFAULT NOW()
+- interval: INTEGER, DEFAULT 1
+- ease_factor: NUMERIC, DEFAULT 2.5
+- repetitions: INTEGER, DEFAULT 0
+
+Migration History:
+- Backfilled 284 cards with NULL next_review (Jan 9, 2026)
+- Added NOT NULL constraint to next_review column
+- Added default values for all spaced repetition fields
+
+Code Location:
+- src/components/flashcards/StudyMode.jsx (line 157)
+- src/components/flashcards/FlashcardCreate.jsx (initialization)
+- src/components/professor/ProfessorTools.jsx (bulk upload)
+
+Reason: Database stores timestamps in UTC. Using setHours() with local time 
+caused timezone mismatch - cards scheduled for 12:00 AM IST appeared as 
+6:30 PM UTC (previous day), preventing them from appearing in review queue 
+until 5.5 hours later than expected. setUTCHours() ensures midnight UTC 
+scheduling, matching database timezone.
+
+---
+
+### Flashcard Creation - Spaced Repetition Initialization
+
+Status: ✅ LOCKED
+Approved: January 10, 2026
+
+Required Fields on Creation:
+- next_review: new Date().toISOString() (available immediately)
+- interval: 1 (default interval)
+- ease_factor: 2.5 (default difficulty)
+- repetitions: 0 (never reviewed)
+- creator_id: user.id (operational attribution)
+- content_creator_id: null (revenue attribution - manual cards)
+
+Files Modified:
+- src/components/flashcards/FlashcardCreate.jsx (added 6 fields to insert)
+
+Reason: Database constraint requires next_review NOT NULL. Without 
+initialization, card creation fails. All new cards must be review-ready 
+from creation.
+
+---
 **END OF APPROVED_DECISIONS.md**
