@@ -138,10 +138,10 @@ export default function StudyMode({
         easeFactor = 2.3;
       }
       
-      // Set next review to midnight (start of day) instead of exact 24 hours
+      // ✅ FIXED: Set next review to midnight UTC (not local time)
       const nextReview = new Date();
       nextReview.setDate(today.getDate() + intervalDays);
-      nextReview.setHours(0, 0, 0, 0);  // Set to midnight (12:00 AM)
+      nextReview.setUTCHours(0, 0, 0, 0);  // Changed from setHours to setUTCHours
 
       // ✅ FIX 1: Save review to reviews table
       const { error: reviewError } = await supabase

@@ -236,6 +236,8 @@ export default function FlashcardCreate() {
       const flashcardsToInsert = flashcards.map(card => ({
         user_id: user.id,
         contributed_by: user.id,
+        creator_id: user.id,              // ← NEW
+  content_creator_id: null,         // ← NEW
         target_course: customCourse || targetCourse,
         subject_id: selectedSubject?.id || null,
         topic_id: selectedTopic?.id || null,
@@ -251,8 +253,12 @@ export default function FlashcardCreate() {
         difficulty: 'medium',
         // 🆕 NEW: Each manually created card gets unique batch_id
         batch_id: crypto.randomUUID(),
-        batch_description: null
-      }));
+  batch_description: null,
+  next_review: new Date().toISOString(),  // ← NEW
+  interval: 1,                             // ← NEW
+  ease_factor: 2.5,                        // ← NEW
+  repetitions: 0                           // ← NEW
+}));
 
       const { error: insertError } = await supabase
         .from('flashcards')
