@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';  // 🆕 ADDED
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { BookOpen, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signIn } = useAuth();  // 🆕 ADDED
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
@@ -21,12 +22,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) throw error;
+      // 🆕 CHANGED: Use AuthContext signIn (includes audit logging)
+      await signIn(email, password);
       
       toast({
         title: 'Welcome back!',
@@ -51,13 +48,13 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-  <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
-    <span className="text-white font-bold text-2xl">R</span>
-  </div>
-  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-    Recall
-  </h1>
-</div>
+            <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
+              <span className="text-white font-bold text-2xl">R</span>
+            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Recall
+            </h1>
+          </div>
           <p className="text-muted-foreground">
             Remember Everything. Ace Every Exam.
           </p>

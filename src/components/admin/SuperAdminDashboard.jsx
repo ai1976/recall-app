@@ -366,37 +366,42 @@ export default function SuperAdminDashboard() {
     }
   }
 
+  // 🆕 ENHANCED: User deletion with AUDIT LOGGING
   async function deleteUser(userId) {
-    try {
-      const { data: targetUser } = await supabase
-        .from('profiles')
-        .select('email, full_name, role')
-        .eq('id', userId)
-        .single();
+  try {
+    // Step 1: Fetch user details BEFORE deletion (for audit log)
+    const { data: targetUser, error: fetchError } = await supabase
+      .from('profiles')
+      .select('email, full_name, role')
+      .eq('id', userId)
+      .single();
 
-      if (!targetUser) {
-        alert('User not found');
-        return;
-      }
+    if (fetchError || !targetUser) {
+      alert('User not found');
+      return;
+    }
 
-      if (targetUser.role === 'super_admin') {
-        alert('Cannot delete Super Admin accounts!');
-        return;
-      }
+    // Prevent super_admin deletion
+    if (targetUser.role === 'super_admin') {
+      alert('Cannot delete Super Admin accounts!');
+      return;
+    }
 
-      const { count: notesCount } = await supabase
-        .from('notes')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId);
+    // Step 2: Count user's content
+    const { count: notesCount } = await supabase
+      .from('notes')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
 
-      const { count: flashcardsCount } = await supabase
-        .from('flashcards')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId);
+    const { count: flashcardsCount } = await supabase
+      .from('flashcards')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
 
-      const totalContent = (notesCount || 0) + (flashcardsCount || 0);
+    const totalContent = (notesCount || 0) + (flashcardsCount || 0);
 
-      const confirmMessage = `⚠️ DELETE USER - CANNOT BE UNDONE
+    // Step 3: Confirmation dialog
+    const confirmMessage = `⚠️ DELETE USER - CANNOT BE UNDONE
 
 User: ${targetUser.full_name || targetUser.email}
 Email: ${targetUser.email}
@@ -413,46 +418,63 @@ This will DELETE:
 
 Are you ABSOLUTELY SURE?`;
 
-      if (!confirm(confirmMessage)) {
-        return;
-      }
+    if (!confirm(confirmMessage)) {
+      return;
+    }
 
-      const secondConfirm = prompt('Type DELETE in capital letters to confirm:');
-      if (secondConfirm !== 'DELETE') {
-        alert('Deletion cancelled - incorrect confirmation');
-        return;
-      }
+    // Step 4: Double confirmation
+    const secondConfirm = prompt('Type DELETE in capital letters to confirm:');
+    if (secondConfirm !== 'DELETE') {
+      alert('Deletion cancelled - incorrect confirmation');
+      return;
+    }
 
-      console.log('Deleting user content...');
-      await supabase.from('reviews').delete().eq('user_id', userId);
-      await supabase.from('flashcards').delete().eq('user_id', userId);
-      await supabase.from('notes').delete().eq('user_id', userId);
+    // Step 5: 🆕 LOG THE DELETION **BEFORE** DELETING (CRITICAL FIX)
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { error: logError } = await supabase
+      .from('admin_audit_log')
+      .insert({
+        action: 'delete_user',
+        admin_id: user.id,
+        target_user_id: userId, // ✅ User still exists, so foreign key works!
+        details: {
+          deleted_user_name: targetUser.full_name,
+          deleted_user_email: targetUser.email,
+          deleted_user_role: targetUser.role,
+          deleted_notes_count: notesCount || 0,
+          deleted_flashcards_count: flashcardsCount || 0,
+          total_content_deleted: totalContent,
+          auth_deletion_status: 'manual_required',
+          reason: 'Manual deletion by super_admin'
+        }
+      });
 
-      console.log('Deleting user profile...');
-      const { error: deleteProfileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
+    // Log warning if audit logging fails (but continue with deletion)
+    if (logError) {
+      console.error('⚠️ Failed to log deletion:', logError);
+      // Continue - we'll still delete, logging is secondary
+    } else {
+      console.log('✅ Deletion logged successfully BEFORE deleting user');
+    }
 
-      if (deleteProfileError) throw deleteProfileError;
+    // Step 6: Delete user content (cascade)
+    console.log('Deleting user content...');
+    await supabase.from('reviews').delete().eq('user_id', userId);
+    await supabase.from('flashcards').delete().eq('user_id', userId);
+    await supabase.from('notes').delete().eq('user_id', userId);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      await supabase
-        .from('admin_audit_log')
-        .insert({
-          action: 'delete_user',
-          admin_id: user.id,
-          target_user_id: userId,
-          details: {
-            deleted_user: targetUser.email,
-            deleted_role: targetUser.role,
-            deleted_content: totalContent,
-            auth_deletion: 'manual_required'
-          }
-        });
+    // Step 7: Delete user profile (NOW it's safe)
+    console.log('Deleting user profile...');
+    const { error: deleteProfileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
 
-      alert(`✅ USER PROFILE & CONTENT DELETED SUCCESSFULLY!
+    if (deleteProfileError) throw deleteProfileError;
+
+    // Step 8: Success message with manual auth deletion instructions
+    alert(`✅ USER PROFILE & CONTENT DELETED SUCCESSFULLY!
 
 Deleted User: ${targetUser.full_name || targetUser.email}
 Email: ${targetUser.email}
@@ -474,11 +496,13 @@ Why manual?
 Auth deletion requires service role access (not available in browser for security).
 
 This will be automated in Phase 2 with Edge Functions.`);
-      
+    
+   
+      // Step 9: Refresh dashboard data
       fetchDashboardData();
       
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error('❌ Error deleting user:', error);
       alert('❌ Failed to delete user: ' + error.message);
     }
   }
@@ -524,14 +548,12 @@ This will be automated in Phase 2 with Edge Functions.`);
     }, 100);
   }
 
-  // ✅ NEW: Click handlers for retention cards
   function handleNewUsersClick() {
     const userManagementTab = document.querySelector('[value="users"]');
     if (userManagementTab) {
       userManagementTab.click();
     }
     
-    // Filter for users created in last 7 days
     setRoleFilter('student');
     
     setTimeout(() => {
@@ -555,7 +577,6 @@ This will be automated in Phase 2 with Edge Functions.`);
       if (userList) {
         userList.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-      // TODO: Add filter for inactive users (0 activity)
       alert('Filtering for inactive users (students with 0 notes, 0 flashcards, 0 reviews). This requires additional filtering logic.');
     }, 100);
   }
@@ -573,7 +594,6 @@ This will be automated in Phase 2 with Edge Functions.`);
       if (userList) {
         userList.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-      // TODO: Add filter for users who came back after signup
       alert('Filtering for users who came back after signup (7-day retention). This requires additional filtering logic.');
     }, 100);
   }
@@ -707,7 +727,7 @@ This will be automated in Phase 2 with Edge Functions.`);
         </Card>
       </div>
 
-      {/* User Retention Cards - NOW CLICKABLE ✅ */}
+      {/* User Retention Cards */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <Clock className="h-5 w-5 text-purple-600" />
@@ -715,7 +735,6 @@ This will be automated in Phase 2 with Edge Functions.`);
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* New Users This Week - CLICKABLE */}
           <Card 
             className="cursor-pointer hover:shadow-lg transition-shadow"
             onClick={handleNewUsersClick}
@@ -737,7 +756,6 @@ This will be automated in Phase 2 with Edge Functions.`);
             </CardContent>
           </Card>
 
-          {/* Inactive Users - CLICKABLE */}
           <Card 
             className="cursor-pointer hover:shadow-lg transition-shadow"
             onClick={handleInactiveUsersClick}
@@ -759,7 +777,6 @@ This will be automated in Phase 2 with Edge Functions.`);
             </CardContent>
           </Card>
 
-          {/* 7-Day Retention - CLICKABLE */}
           <Card 
             className="cursor-pointer hover:shadow-lg transition-shadow"
             onClick={handleRetentionClick}
@@ -788,7 +805,7 @@ This will be automated in Phase 2 with Edge Functions.`);
         </div>
       </div>
 
-      {/* User Activity Report (Existing - DAU & WAU) */}
+      {/* User Activity Report */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <Activity className="h-5 w-5 text-blue-600" />
@@ -796,7 +813,6 @@ This will be automated in Phase 2 with Edge Functions.`);
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Daily Active Users Card */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Daily Active Users</CardTitle>
@@ -860,7 +876,6 @@ This will be automated in Phase 2 with Edge Functions.`);
             </CardContent>
           </Card>
 
-          {/* Weekly Active Users Card */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Weekly Active Users</CardTitle>
@@ -934,7 +949,6 @@ This will be automated in Phase 2 with Edge Functions.`);
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Notes Per Student */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Avg Notes/Student</CardTitle>
@@ -951,7 +965,6 @@ This will be automated in Phase 2 with Edge Functions.`);
             </CardContent>
           </Card>
 
-          {/* Flashcards Per Student */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Avg Cards/Student</CardTitle>
@@ -968,7 +981,6 @@ This will be automated in Phase 2 with Edge Functions.`);
             </CardContent>
           </Card>
 
-          {/* Top Note Contributor */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Top Note Contributor</CardTitle>
@@ -989,7 +1001,6 @@ This will be automated in Phase 2 with Edge Functions.`);
             </CardContent>
           </Card>
 
-          {/* Top Flashcard Contributor */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Top Card Contributor</CardTitle>
@@ -1011,7 +1022,6 @@ This will be automated in Phase 2 with Edge Functions.`);
           </Card>
         </div>
 
-        {/* Zero Contributors Alert */}
         {contentStats?.zero_contributors_count > 0 && (
           <Alert className="mt-4">
             <AlertCircle className="h-4 w-4" />
@@ -1031,7 +1041,6 @@ This will be automated in Phase 2 with Edge Functions.`);
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Total Reviews */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Total Reviews</CardTitle>
@@ -1044,7 +1053,6 @@ This will be automated in Phase 2 with Edge Functions.`);
             </CardContent>
           </Card>
 
-          {/* Reviews This Week */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Reviews This Week</CardTitle>
@@ -1057,7 +1065,6 @@ This will be automated in Phase 2 with Edge Functions.`);
             </CardContent>
           </Card>
 
-          {/* Avg Reviews Per Student */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Avg Reviews/Student</CardTitle>
@@ -1072,7 +1079,6 @@ This will be automated in Phase 2 with Edge Functions.`);
             </CardContent>
           </Card>
 
-          {/* Students with Streaks */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-1">
@@ -1089,7 +1095,6 @@ This will be automated in Phase 2 with Edge Functions.`);
           </Card>
         </div>
 
-        {/* Review Completion Rate */}
         <Card className="mt-4">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -1134,7 +1139,6 @@ This will be automated in Phase 2 with Edge Functions.`);
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Search and Filter */}
               <div className="space-y-4 mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="relative">
@@ -1175,7 +1179,6 @@ This will be automated in Phase 2 with Edge Functions.`);
                 </p>
               </div>
 
-              {/* User Table */}
               {isLoading ? (
                 <p className="text-center text-gray-500 py-8">Loading users...</p>
               ) : filteredUsers.length === 0 ? (
@@ -1391,19 +1394,16 @@ This will be automated in Phase 2 with Edge Functions.`);
                             {log.action.replace(/_/g, ' ').toUpperCase()}
                           </p>
                           
-                          {/* Admin who performed action */}
                           <p className="text-xs text-gray-600 mt-1">
                             <span className="font-semibold">By:</span> {log.admin_name}
                           </p>
                           
-                          {/* Target user (if applicable) */}
                           {log.target_user_name && (
                             <p className="text-xs text-gray-600">
                               <span className="font-semibold">Target:</span> {log.target_user_name}
                             </p>
                           )}
                           
-                          {/* Details */}
                           {log.details && (
                             <p className="text-xs text-gray-500 mt-1">
                               {log.details.reason || JSON.stringify(log.details)}
