@@ -27,6 +27,9 @@ import ReviewFlashcards from './pages/dashboard/review-flashcards'
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import ReviewSession from '@/pages/dashboard/review-session';
+import FindFriends from './pages/dashboard/find-friends';
+import FriendRequests from './pages/dashboard/friend-requests';
+import MyFriends from './pages/dashboard/my-friends';
 
 function App() {
   const [session, setSession] = useState(null)
@@ -178,6 +181,25 @@ function App() {
             path="*" 
             element={<Navigate to="/" replace />} 
           />
+
+          {/* FindFriends Routes */}
+          <Route 
+          path="/dashboard/find-friends" 
+          element={<FindFriends />} 
+          />
+
+          {/* FriendRequests Routes */}
+          <Route 
+          path="/dashboard/friend-requests" 
+          element={<FriendRequests />} 
+          />
+
+          {/* MyFriends Routes */}
+<Route 
+path="/dashboard/my-friends" 
+element={<MyFriends />} 
+/>
+
         </Routes>
         
         <Toaster />

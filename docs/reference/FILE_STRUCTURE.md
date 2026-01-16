@@ -1,5 +1,108 @@
 # RECALL APP - FILE STRUCTURE
 
+**Structure as on Jan 15, 2026**
+recall-app
+├── .env.local
+├── .gitignore
+├── APPROVED_DECISIONS.md
+├── components.json
+├── CONTEXT_FOR_CLAUDE.md
+├── DATABASE_SCHEMA.md
+├── eslint.config.js
+├── FEATURE_PRIORITY.md
+├── FILE_STRUCTURE.md
+├── index.html
+├── jsconfig.json
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── public
+│   ├── android-chrome-192x192.png
+│   ├── android-chrome-512x512.png
+│   ├── apple-touch-icon.png
+│   ├── favicon-16x16.png
+│   ├── favicon-32x32.png
+│   ├── favicon.ico
+│   ├── site.webmanifest
+│   └── vite.svg
+├── README.md
+├── recall-favicon.svg
+├── src
+│   ├── App.css
+│   ├── App.jsx
+│   ├── assets
+│   │   └── react.svg
+│   ├── components
+│   │   ├── admin
+│   │   │   ├── AdminDashboard.jsx
+│   │   │   └── SuperAdminDashboard.jsx
+│   │   ├── flashcards
+│   │   │   ├── FlashcardCreate.jsx
+│   │   │   ├── MyFlashcards.jsx
+│   │   │   └── StudyMode.jsx
+│   │   ├── Login.jsx
+│   │   ├── Navigation.jsx
+│   │   ├── notes
+│   │   │   ├── index.jsx
+│   │   │   ├── NoteDetail.jsx
+│   │   │   ├── NoteEdit.jsx
+│   │   │   └── NoteUpload.jsx
+│   │   ├── professor
+│   │   │   └── ProfessorTools.jsx
+│   │   └── ui
+│   │       ├── alert.jsx
+│   │       ├── button.jsx
+│   │       ├── card.jsx
+│   │       ├── command.jsx
+│   │       ├── dialog.jsx
+│   │       ├── dropdown-menu.jsx
+│   │       ├── input.jsx
+│   │       ├── label.jsx
+│   │       ├── popover.jsx
+│   │       ├── progress.jsx
+│   │       ├── SearchableSelect.jsx
+│   │       ├── select.jsx
+│   │       ├── switch.jsx
+│   │       ├── tabs.jsx
+│   │       ├── textarea.jsx
+│   │       ├── toast.jsx
+│   │       └── toaster.jsx
+│   ├── contexts
+│   │   └── AuthContext.jsx
+│   ├── data
+│   ├── hooks
+│   │   ├── use-toast.js
+│   │   ├── useOCR.js
+│   │   └── useRole.js
+│   ├── index.css
+│   ├── lib
+│   │   ├── supabase.js
+│   │   └── utils.js
+│   ├── main.jsx
+│   ├── pages
+│   │   ├── dashboard
+│   │   │   ├── find-friends.jsx
+│   │   │   ├── friend-requests.jsx
+│   │   │   ├── my-contributions.jsx
+│   │   │   ├── my-friends.jsx
+│   │   │   ├── my-notes.jsx
+│   │   │   ├── notes.jsx
+│   │   │   ├── progress.jsx
+│   │   │   ├── review-flashcards.jsx
+│   │   │   └── review-session.jsx
+│   │   ├── Dashboard.jsx
+│   │   ├── ForgotPassword.jsx
+│   │   ├── Home.jsx
+│   │   ├── PrivacyPolicy.jsx
+│   │   ├── ResetPassword.jsx
+│   │   ├── Signup.jsx
+│   │   └── TermsOfService.jsx
+│   ├── store
+│   └── utils
+├── tailwind.config.js
+├── vercel.json
+└── vite.config.js
+
 **Last Updated:** December 22, 2025
 **Purpose:** Quick reference for file locations to avoid path confusion
 

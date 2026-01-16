@@ -16,23 +16,27 @@ import {
   FileText,
   Upload,
   BarChart3,
-  ChevronDown
+  ChevronDown,
+  UserPlus,
+  UserCheck,
+  Clock
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
 export default function Navigation() {
   const { user, signOut } = useAuth();
-  // ✅ FIXED: Removed unused 'isProfessor' variable
   const { role, isSuperAdmin, isAdmin, isLoading } = useRole();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userName, setUserName] = useState('');
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
   // Fetch user's full name from profiles table
   useEffect(() => {
@@ -50,6 +54,29 @@ export default function Navigation() {
       }
     };
     fetchUserName();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Fetch pending friend requests count
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      if (user?.id) {
+        const { count } = await supabase
+          .from('friendships')
+          .select('*', { count: 'exact', head: true })
+          .eq('friend_id', user.id)
+          .eq('status', 'pending');
+        
+        setPendingRequestsCount(count || 0);
+      }
+    };
+    
+    fetchPendingCount();
+    
+    // Refresh count every 30 seconds
+    const interval = setInterval(fetchPendingCount, 30000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const isActive = (path) => {
@@ -70,6 +97,9 @@ export default function Navigation() {
   const isStudyActive = () => {
     return location.pathname === '/dashboard/review-flashcards' || 
            location.pathname === '/dashboard/notes' ||
+           location.pathname === '/dashboard/find-friends' ||
+           location.pathname === '/dashboard/friend-requests' ||
+           location.pathname === '/dashboard/my-friends' ||
            location.pathname === '/dashboard/progress';
   };
 
@@ -147,6 +177,31 @@ export default function Navigation() {
                           Browse Notes
                         </Link>
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/dashboard/find-friends" className="flex items-center gap-2 cursor-pointer">
+                          <UserPlus className="h-4 w-4" />
+                          Find Friends
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/dashboard/friend-requests" className="flex items-center gap-2 cursor-pointer">
+                          <Clock className="h-4 w-4" />
+                          Friend Requests
+                          {pendingRequestsCount > 0 && (
+                            <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                              {pendingRequestsCount}
+                            </span>
+                          )}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/dashboard/my-friends" className="flex items-center gap-2 cursor-pointer">
+                          <UserCheck className="h-4 w-4" />
+                          My Friends
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
                         <Link to="/dashboard/progress" className="flex items-center gap-2 cursor-pointer">
                           <BarChart3 className="h-4 w-4" />
@@ -329,6 +384,43 @@ export default function Navigation() {
                     <FileText className="h-4 w-4" />
                     Browse Notes
                   </Link>
+                  
+                  {/* Friends Subsection */}
+                  <div className="pt-1 pb-1 px-6">
+                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Friends
+                    </div>
+                  </div>
+                  <Link
+                    to="/dashboard/find-friends"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-8 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Find Friends
+                  </Link>
+                  <Link
+                    to="/dashboard/friend-requests"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-8 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                  >
+                    <Clock className="h-4 w-4" />
+                    Friend Requests
+                    {pendingRequestsCount > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                        {pendingRequestsCount}
+                      </span>
+                    )}
+                  </Link>
+                  <Link
+                    to="/dashboard/my-friends"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-8 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                  >
+                    <UserCheck className="h-4 w-4" />
+                    My Friends
+                  </Link>
+                  
                   <Link
                     to="/dashboard/progress"
                     onClick={() => setMobileMenuOpen(false)}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { FileText, Search, Filter, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,11 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 export default function BrowseNotes() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [groupedNotes, setGroupedNotes] = useState([]);
   const [allGroupedNotes, setAllGroupedNotes] = useState([]);
   
-  // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCourse, setFilterCourse] = useState('all');
   const [filterSubject, setFilterSubject] = useState('all');
@@ -34,25 +35,67 @@ export default function BrowseNotes() {
 
   const fetchNotes = async () => {
     try {
-      // Fetch all PUBLIC notes
-      const { data: notesData, error: notesError } = await supabase
+      console.log('🔵 STEP 1: Starting fetchNotes...');
+      console.log('🔵 Current user ID:', user.id);
+
+      // STEP 1: Get user's accepted friendships (bidirectional)
+      console.log('🔵 STEP 2: Fetching friendships...');
+      const { data: friendships, error: friendshipError } = await supabase
+        .from('friendships')
+        .select('user_id, friend_id')
+        .eq('status', 'accepted')
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+
+      if (friendshipError) {
+        console.error('❌ Friendship fetch error:', friendshipError);
+        throw friendshipError;
+      }
+
+      console.log('✅ Friendships fetched:', friendships);
+
+      // Extract friend IDs (the OTHER person in each friendship)
+      const friendIds = friendships?.map(f => 
+        f.user_id === user.id ? f.friend_id : f.user_id
+      ) || [];
+      
+      console.log('✅ Extracted friend IDs:', friendIds);
+
+      // STEP 2: Fetch notes with visibility logic
+      console.log('🔵 STEP 3: Building notes query...');
+      let query = supabase
         .from('notes')
         .select('*')
-        .eq('is_public', true)
         .order('created_at', { ascending: false });
 
-      if (notesError) throw notesError;
+      // Apply visibility filter
+      if (friendIds.length > 0) {
+        const visibilityFilter = `visibility.eq.public,user_id.eq.${user.id},and(visibility.eq.friends,user_id.in.(${friendIds.join(',')}))`;
+        console.log('✅ Visibility filter (WITH friends):', visibilityFilter);
+        query = query.or(visibilityFilter);
+      } else {
+        const visibilityFilter = `visibility.eq.public,user_id.eq.${user.id}`;
+        console.log('✅ Visibility filter (NO friends):', visibilityFilter);
+        query = query.or(visibilityFilter);
+      }
 
-      // Get unique user IDs
+      const { data: notesData, error: notesError } = await query;
+
+      if (notesError) {
+        console.error('❌ Notes fetch error:', notesError);
+        throw notesError;
+      }
+
+      console.log('✅ Notes fetched (count):', notesData?.length);
+      console.log('✅ Notes fetched (data):', notesData);
+
+      // Get unique user IDs from notes
       const userIds = [...new Set(notesData.map(note => note.user_id))];
 
       // Fetch user profiles
-      const { data: profilesData, error: profilesError } = await supabase
+      const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, full_name, role')
         .in('id', userIds);
-
-      if (profilesError) throw profilesError;
 
       // Fetch subjects
       const subjectIds = [...new Set(notesData.map(n => n.subject_id).filter(Boolean))];
@@ -138,17 +181,14 @@ export default function BrowseNotes() {
   const applyFilters = () => {
     let filtered = [...allGroupedNotes];
 
-    // Course filter
     if (filterCourse !== 'all') {
       filtered = filtered.filter(subject => subject.course === filterCourse);
     }
 
-    // Subject filter
     if (filterSubject !== 'all') {
       filtered = filtered.filter(subject => subject.name === filterSubject);
     }
 
-    // Author filter
     if (filterAuthor === 'professor') {
       filtered = filtered.map(subject => ({
         ...subject,
@@ -167,7 +207,6 @@ export default function BrowseNotes() {
       })).filter(subject => subject.topics.length > 0);
     }
 
-    // Search filter
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
       filtered = filtered.map(subject => ({
@@ -217,7 +256,6 @@ export default function BrowseNotes() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Browse Notes</h1>
           <p className="text-gray-600">
@@ -225,11 +263,9 @@ export default function BrowseNotes() {
           </p>
         </div>
 
-        {/* Filters & Search */}
         <Card className="mb-6">
           <CardContent className="pt-6">
             <div className="space-y-4">
-              {/* Search Bar */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -241,15 +277,12 @@ export default function BrowseNotes() {
                 />
               </div>
 
-              {/* Filters Section */}
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-600" />
                 <span className="text-sm font-medium text-gray-700">Filters</span>
               </div>
 
-              {/* Filter Dropdowns - Single Row */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {/* Course Filter */}
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">Course</label>
                   <Select value={filterCourse} onValueChange={setFilterCourse}>
@@ -267,7 +300,6 @@ export default function BrowseNotes() {
                   </Select>
                 </div>
 
-                {/* Subject Filter */}
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">Subject</label>
                   <Select value={filterSubject} onValueChange={setFilterSubject}>
@@ -285,7 +317,6 @@ export default function BrowseNotes() {
                   </Select>
                 </div>
 
-                {/* Author Filter */}
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">Author</label>
                   <Select value={filterAuthor} onValueChange={setFilterAuthor}>
@@ -301,7 +332,6 @@ export default function BrowseNotes() {
                 </div>
               </div>
 
-              {/* Results Count & Clear Button */}
               <div className="flex items-center justify-between pt-2">
                 <p className="text-sm text-gray-600">
                   {totalNotes} {totalNotes === 1 ? 'note' : 'notes'} found
@@ -321,13 +351,12 @@ export default function BrowseNotes() {
           </CardContent>
         </Card>
 
-        {/* Notes Display */}
         {groupedNotes.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {allGroupedNotes.length === 0 ? 'No public notes available' : 'No notes match your filters'}
+                {allGroupedNotes.length === 0 ? 'No notes available' : 'No notes match your filters'}
               </h3>
               <p className="text-gray-600 mb-6">
                 {allGroupedNotes.length === 0
@@ -375,7 +404,6 @@ export default function BrowseNotes() {
                             onClick={() => navigate(`/dashboard/notes/${note.id}`)}
                             className="text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all overflow-hidden group"
                           >
-                            {/* Image Preview */}
                             {note.image_url && (
                               <img
                                 src={note.image_url}
@@ -395,7 +423,6 @@ export default function BrowseNotes() {
                                 </p>
                               )}
 
-                              {/* Tags */}
                               {note.tags && note.tags.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mb-3">
                                   {note.tags.slice(0, 2).map((tag, idx) => (
@@ -414,7 +441,6 @@ export default function BrowseNotes() {
                                 </div>
                               )}
 
-                              {/* Author & Date */}
                               <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
                                 <span className="flex items-center gap-1">
                                   {note.user?.role === 'professor' && (

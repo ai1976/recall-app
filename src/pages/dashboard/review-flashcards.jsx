@@ -15,7 +15,6 @@ export default function ReviewFlashcards() {
   const [flashcardSets, setFlashcardSets] = useState([]);
   const [allSets, setAllSets] = useState([]);
   
-  // Filter states
   const [filterCourse, setFilterCourse] = useState('all');
   const [filterSubject, setFilterSubject] = useState('all');
   const [filterAuthor, setFilterAuthor] = useState('all');
@@ -38,8 +37,19 @@ export default function ReviewFlashcards() {
     try {
       if (!user) return;
 
-      // Fetch all public flashcards + user's own flashcards
-      const { data, error } = await supabase
+      // 🆕 STEP 1: Get user's accepted friendships
+      const { data: friendships } = await supabase
+        .from('friendships')
+        .select('user_id, friend_id')
+        .eq('status', 'accepted')
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+        
+      const friendIds = friendships?.map(f => 
+        f.user_id === user.id ? f.friend_id : f.user_id
+      ) || [];
+
+      // 🆕 STEP 2: Fetch flashcards with visibility logic
+      let query = supabase
         .from('flashcards')
         .select(`
           id,
@@ -58,7 +68,16 @@ export default function ReviewFlashcards() {
           topics:topic_id (id, name),
           contributors:contributed_by (id, full_name, role)
         `)
-        .or(`is_public.eq.true,user_id.eq.${user.id}`);
+        .order('created_at', { ascending: false });
+
+      // Apply visibility filter
+      if (friendIds.length > 0) {
+        query = query.or(`visibility.eq.public,user_id.eq.${user.id},and(visibility.eq.friends,user_id.in.(${friendIds.join(',')}))`);
+      } else {
+        query = query.or(`visibility.eq.public,user_id.eq.${user.id}`);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -134,7 +153,6 @@ export default function ReviewFlashcards() {
       }
     });
 
-    // Convert to array
     return Object.values(grouped).map(subject => ({
       ...subject,
       topics: Object.values(subject.topics)
@@ -144,17 +162,14 @@ export default function ReviewFlashcards() {
   const applyFilters = () => {
     let filtered = [...allSets];
 
-    // Filter by course
     if (filterCourse !== 'all') {
       filtered = filtered.filter(subject => subject.course === filterCourse);
     }
 
-    // Filter by subject
     if (filterSubject !== 'all') {
       filtered = filtered.filter(subject => subject.name === filterSubject);
     }
 
-    // Filter by author (professor/student)
     if (filterAuthor === 'professor') {
       filtered = filtered.map(subject => ({
         ...subject,
@@ -179,7 +194,6 @@ export default function ReviewFlashcards() {
       })).filter(subject => subject.topics.length > 0);
     }
 
-    // Filter by search query
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
       filtered = filtered.map(subject => ({
@@ -228,7 +242,6 @@ export default function ReviewFlashcards() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Review Flashcards
@@ -238,11 +251,9 @@ export default function ReviewFlashcards() {
           </p>
         </div>
 
-        {/* Filters & Search */}
         <Card className="mb-6">
           <CardContent className="pt-6">
             <div className="space-y-4">
-              {/* Search Bar */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -254,15 +265,12 @@ export default function ReviewFlashcards() {
                 />
               </div>
 
-              {/* Filters Section */}
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-600" />
                 <span className="text-sm font-medium text-gray-700">Filters</span>
               </div>
 
-              {/* Filter Dropdowns - Single Row */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {/* Course Filter */}
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">Course</label>
                   <Select value={filterCourse} onValueChange={setFilterCourse}>
@@ -280,7 +288,6 @@ export default function ReviewFlashcards() {
                   </Select>
                 </div>
 
-                {/* Subject Filter */}
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">Subject</label>
                   <Select value={filterSubject} onValueChange={setFilterSubject}>
@@ -298,7 +305,6 @@ export default function ReviewFlashcards() {
                   </Select>
                 </div>
 
-                {/* Author Filter */}
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">Author</label>
                   <Select value={filterAuthor} onValueChange={setFilterAuthor}>
@@ -314,7 +320,6 @@ export default function ReviewFlashcards() {
                 </div>
               </div>
 
-              {/* Results Count & Clear Button */}
               <div className="flex items-center justify-between pt-2">
                 <p className="text-sm text-gray-600">
                   {totalCards} {totalCards === 1 ? 'card' : 'cards'} available
@@ -334,7 +339,6 @@ export default function ReviewFlashcards() {
           </CardContent>
         </Card>
 
-        {/* Flashcards Display */}
         {flashcardSets.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -404,7 +408,6 @@ export default function ReviewFlashcards() {
                           <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600" />
                         </div>
                         
-                        {/* Badges */}
                         <div className="flex gap-2 flex-wrap">
                           {topic.professorCards > 0 && (
                             <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded">

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Save, ArrowLeft, Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
@@ -15,6 +17,7 @@ import { cn } from '@/lib/utils';
 export default function NoteEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -24,7 +27,8 @@ export default function NoteEdit() {
   const [contentType, setContentType] = useState('text');
   const [extractedText, setExtractedText] = useState('');
 
-  const [userCourseLevel, setUserCourseLevel] = useState(null);
+  const [targetCourse, setTargetCourse] = useState('');
+  const [availableCourses, setAvailableCourses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [topics, setTopics] = useState([]);
@@ -34,26 +38,19 @@ export default function NoteEdit() {
   const [customSubject, setCustomSubject] = useState('');
   const [showCustomTopic, setShowCustomTopic] = useState(false);
   const [customTopic, setCustomTopic] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
+  const [visibility, setVisibility] = useState('private'); // 🆕 Changed from isPublic
 
   // Combobox states
   const [subjectOpen, setSubjectOpen] = useState(false);
   const [topicOpen, setTopicOpen] = useState(false);
 
   useEffect(() => {
-    fetchUserCourseLevel();
+    fetchCourses();
     fetchNote();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  useEffect(() => {
-    if (userCourseLevel) {
-      fetchSubjects();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userCourseLevel]);
-
-  useEffect(() => {
+   useEffect(() => {
     if (selectedSubject && !showCustomSubject) {
       fetchTopics(selectedSubject);
     } else {
@@ -62,21 +59,30 @@ export default function NoteEdit() {
     }
   }, [selectedSubject, showCustomSubject]);
 
-  const fetchUserCourseLevel = async () => {
+  const fetchCourses = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile, error } = await supabase
+      const { data: notesData } = await supabase
+        .from('notes')
+        .select('target_course');
+      
+      const { data: flashcardsData } = await supabase
+        .from('flashcards')
+        .select('target_course');
+      
+      const { data: profilesData } = await supabase
         .from('profiles')
-        .select('course_level')
-        .eq('id', user.id)
-        .single();
+        .select('course_level');
 
-      if (error) throw error;
-      setUserCourseLevel(profile?.course_level);
+      const allCourses = [
+        ...(notesData?.map(n => n.target_course) || []),
+        ...(flashcardsData?.map(f => f.target_course) || []),
+        ...(profilesData?.map(p => p.course_level) || [])
+      ].filter(Boolean);
+
+      const uniqueCourses = [...new Set(allCourses)];
+      setAvailableCourses(uniqueCourses);
     } catch (error) {
-      console.error('Error fetching user course level:', error);
+      console.error('Error fetching courses:', error);
     }
   };
 
@@ -104,32 +110,62 @@ export default function NoteEdit() {
         return;
       }
 
+      // Check ownership
+      if (data.user_id !== user.id) {
+        toast({
+          title: "Access Denied",
+          description: "You can only edit your own notes",
+          variant: "destructive"
+        });
+        navigate('/dashboard/my-notes');
+        return;
+      }
+
       // Pre-fill form with note data
       setTitle(data.title || '');
       setDescription(data.description || '');
       setContentType(data.content_type || 'text');
       setExtractedText(data.extracted_text || '');
-      setIsPublic(data.is_public || false);
+      setTargetCourse(data.target_course || '');
+      setVisibility(data.visibility || 'private'); // 🆕 Load visibility
 
       // Handle tags
       if (data.tags && Array.isArray(data.tags)) {
         setTags(data.tags.join(', '));
       }
 
-      // Handle subject/topic
-      if (data.custom_subject) {
-        setShowCustomSubject(true);
-        setCustomSubject(data.custom_subject);
-      } else if (data.subject_id) {
-        setSelectedSubject(data.subject_id);
+        // 🔧 FIX: Fetch subjects first, THEN set selected subject
+if (data.target_course) {
+  const level = data.target_course.replace(/^(CA|CMA|CS)\s+/, '');
+  const subjectsData = await fetchSubjectsForCourse(level);
+  
+  console.log('✅ Subjects fetched:', subjectsData.length);
+  
+  // Wait for state update, then set selections
+  setTimeout(() => {
+    // Handle subject
+    if (data.custom_subject) {
+      setShowCustomSubject(true);
+      setCustomSubject(data.custom_subject);
+    } else if (data.subject_id) {
+      console.log('✅ Set selected subject to:', data.subject_id);
+      setSelectedSubject(data.subject_id);
+      
+      // Fetch topics (don't await inside setTimeout)
+      if (data.subject_id) {
+        fetchTopics(data.subject_id);
       }
+    }
 
-      if (data.custom_topic) {
-        setShowCustomTopic(true);
-        setCustomTopic(data.custom_topic);
-      } else if (data.topic_id) {
-        setSelectedTopic(data.topic_id);
-      }
+    // Handle topic
+    if (data.custom_topic) {
+      setShowCustomTopic(true);
+      setCustomTopic(data.custom_topic);
+    } else if (data.topic_id) {
+      setSelectedTopic(data.topic_id);
+    }
+  }, 100);
+}
 
     } catch (error) {
       console.error('Error fetching note:', error);
@@ -143,23 +179,32 @@ export default function NoteEdit() {
     }
   };
 
-  const fetchSubjects = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('subjects')
-        .select(`
-          *,
-          discipline:disciplines!inner(name, level)
-        `)
-        .eq('disciplines.level', userCourseLevel)
-        .eq('is_active', true)
-        .order('order');
+  const fetchSubjectsForCourse = async (course) => {
+  try {
+    console.log('🔍 Fetching subjects for course:', course); // Add this line
+    const { data, error } = await supabase
+      .from('subjects')
+      .select(`
+        *,
+        discipline:disciplines!inner(name, level)
+      `)
+      .eq('disciplines.level', course)  // ✅ Join with disciplines table
+      .eq('is_active', true)
+      .order('order');
 
-      if (error) throw error;
-      setSubjects(data || []);
-    } catch (error) {
-      console.error('Error fetching subjects:', error);
-    }
+    if (error) throw error;
+     console.log('🔍 Query returned subjects:', data); // Add this line
+    setSubjects(data || []);
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching subjects:', error);
+    return [];
+  }
+};
+
+  const fetchSubjects = async () => {
+    if (!targetCourse) return;
+    await fetchSubjectsForCourse(targetCourse);
   };
 
   const fetchTopics = async (subjectId) => {
@@ -178,6 +223,16 @@ export default function NoteEdit() {
     }
   };
 
+  const handleCourseChange = async (course) => {
+    setTargetCourse(course);
+    setSelectedSubject(null);
+    setSelectedTopic(null);
+    setCustomSubject('');
+    setCustomTopic('');
+    setSubjects([]);
+    setTopics([]);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -186,6 +241,15 @@ export default function NoteEdit() {
       toast({
         title: 'Title required',
         description: 'Please enter a title for your note',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!targetCourse) {
+      toast({
+        title: 'Course required',
+        description: 'Please select who this note is for',
         variant: 'destructive'
       });
       return;
@@ -210,6 +274,7 @@ export default function NoteEdit() {
       const updateData = {
         title: title.trim(),
         description: description.trim() || null,
+        target_course: targetCourse,
         subject_id: selectedSubject || null,
         topic_id: selectedTopic || null,
         custom_subject: customSubject.trim() || null,
@@ -217,7 +282,8 @@ export default function NoteEdit() {
         content_type: contentType,
         extracted_text: extractedText.trim() || null,
         tags: tagsArray.length > 0 ? tagsArray : null,
-        is_public: isPublic,
+        visibility: visibility, // 🆕 Save visibility
+        is_public: visibility === 'public', // 🆕 Backward compatibility
         updated_at: new Date().toISOString()
       };
 
@@ -233,7 +299,7 @@ export default function NoteEdit() {
         description: 'Note updated successfully'
       });
 
-      navigate(`/notes/${id}`);
+      navigate(`/dashboard/notes/${id}`);
     } catch (error) {
       console.error('Error updating note:', error);
       toast({
@@ -268,7 +334,7 @@ export default function NoteEdit() {
       <div className="mb-6">
         <Button
           variant="ghost"
-          onClick={() => navigate(`/notes/${id}`)}
+          onClick={() => navigate(`/dashboard/notes/${id}`)}
           className="mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -348,6 +414,34 @@ export default function NoteEdit() {
             <CardTitle>Subject & Topic</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Target Course */}
+            <div className="space-y-2">
+              <Label htmlFor="course">Who is this for? *</Label>
+              <Select value={targetCourse} onValueChange={handleCourseChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select target course" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CA Foundation">CA Foundation</SelectItem>
+                  <SelectItem value="CA Intermediate">CA Intermediate</SelectItem>
+                  <SelectItem value="CA Final">CA Final</SelectItem>
+                  <SelectItem value="CMA Foundation">CMA Foundation</SelectItem>
+                  <SelectItem value="CMA Intermediate">CMA Intermediate</SelectItem>
+                  <SelectItem value="CMA Final">CMA Final</SelectItem>
+                  <SelectItem value="CS Foundation">CS Foundation</SelectItem>
+                  <SelectItem value="CS Executive">CS Executive</SelectItem>
+                  <SelectItem value="CS Professional">CS Professional</SelectItem>
+                  {availableCourses
+                    .filter(c => !['CA Foundation', 'CA Intermediate', 'CA Final', 'CMA Foundation', 'CMA Intermediate', 'CMA Final', 'CS Foundation', 'CS Executive', 'CS Professional'].includes(c))
+                    .map(course => (
+                      <SelectItem key={course} value={course}>
+                        {course}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Subject Selection */}
             <div className="space-y-2">
               <Label>Subject *</Label>
@@ -359,8 +453,9 @@ export default function NoteEdit() {
                       role="combobox"
                       aria-expanded={subjectOpen}
                       className="w-full justify-between"
+                      disabled={!targetCourse}
                     >
-                      {selectedSubject ? selectedSubjectName : "Select a subject..."}
+                      {selectedSubject ? selectedSubjectName : (targetCourse ? "Select a subject..." : "Select course first")}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -519,33 +614,23 @@ export default function NoteEdit() {
               </p>
             </div>
 
-            {/* Public/Private Toggle */}
+            {/* 🆕 Visibility Dropdown (replaced Public/Private toggle) */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="public-toggle">Make this note public</Label>
-                <button
-                  type="button"
-                  id="public-toggle"
-                  role="switch"
-                  aria-checked={isPublic}
-                  onClick={() => setIsPublic(!isPublic)}
-                  className={cn(
-                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
-                    isPublic ? "bg-blue-600" : "bg-gray-300"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                      isPublic ? "translate-x-6" : "translate-x-1"
-                    )}
-                  />
-                </button>
-              </div>
+              <Label htmlFor="visibility">Who can see this note?</Label>
+              <Select value={visibility} onValueChange={setVisibility}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="private">Private (Only me)</SelectItem>
+                  <SelectItem value="friends">Friends Only</SelectItem>
+                  <SelectItem value="public">Public (Everyone)</SelectItem>
+                </SelectContent>
+              </Select>
               <p className="text-sm text-muted-foreground">
-                {isPublic 
-                  ? "✓ Other students can view this note" 
-                  : "○ Only you can see this note"}
+                {visibility === 'private' && '✓ Only you can see this note'}
+                {visibility === 'friends' && '✓ Only your accepted friends can see this note'}
+                {visibility === 'public' && '✓ Anyone can discover and view this note'}
               </p>
             </div>
             
@@ -557,7 +642,7 @@ export default function NoteEdit() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(`/notes/${id}`)}
+            onClick={() => navigate(`/dashboard/notes/${id}`)}
             className="flex-1"
           >
             Cancel

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Plus, Search, Trash2, Filter, Edit2, Save, X, Globe, Lock, Eye, EyeOff, Calendar, Package, AlertTriangle } from 'lucide-react';
+import { Brain, Plus, Search, Trash2, Filter, Edit2, Save, X, Globe, Lock, Eye, EyeOff, Calendar, Package, AlertTriangle, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -127,6 +127,7 @@ export default function MyFlashcards() {
         back_text: card.back_text?.replace(/[\u25C6\u2666◆�]/g, '').trim() || '',
         custom_subject: card.custom_subject?.replace(/[\u25C6\u2666◆�]/g, '').trim() || null,
         custom_topic: card.custom_topic?.replace(/[\u25C6\u2666◆�]/g, '').trim() || null,
+        visibility: card.visibility || 'private',
         is_public: card.is_public || false
       }));
 
@@ -281,11 +282,7 @@ export default function MyFlashcards() {
         description: "Your changes have been saved"
       });
 
-      setFlashcards(prev => prev.map(card => 
-        card.id === cardId 
-          ? { ...card, front_text: editForm.front_text.trim(), back_text: editForm.back_text.trim() }
-          : card
-      ));
+      fetchFlashcards(); // Refresh data to show new visibility
 
       cancelEdit();
     } catch (error) {
@@ -441,27 +438,27 @@ export default function MyFlashcards() {
     }
   };
 
-  const togglePublic = async (cardId, currentStatus, event) => {
+  // Handle single card visibility change with 3-tier support
+  const handleCardVisibilityChange = async (cardId, newVisibility, event) => {
     event.stopPropagation();
     
     try {
       const { error } = await supabase
         .from('flashcards')
-        .update({ is_public: !currentStatus })
+        .update({ 
+          visibility: newVisibility,
+          is_public: newVisibility === 'public'
+        })
         .eq('id', cardId);
 
       if (error) throw error;
 
       toast({
         title: "Visibility updated",
-        description: `Flashcard is now ${!currentStatus ? 'public' : 'private'}`
+        description: `Flashcard is now ${newVisibility}`
       });
 
-      setFlashcards(prev => prev.map(card => 
-        card.id === cardId 
-          ? { ...card, is_public: !currentStatus }
-          : card
-      ));
+      fetchFlashcards();
     } catch (error) {
       console.error('Error toggling visibility:', error);
       toast({
@@ -472,35 +469,40 @@ export default function MyFlashcards() {
     }
   };
 
-  const toggleGroupVisibility = async (groupCards) => {
+  // 🆕 NEW: Handle group visibility change with 3-tier support
+  const handleGroupVisibilityChange = async (group, newVisibility) => {
+    if (newVisibility === 'change-visibility') return; // Ignore placeholder
+
     try {
-      const cardIds = groupCards.map(c => c.id);
-      const allPublic = groupCards.every(c => c.is_public === true);
-      const newStatus = !allPublic;
-      
+      // Get all flashcard IDs in this group
+      const cardIds = group.cards.map(card => card.id);
+
+      // Update all cards in the group
       const { error } = await supabase
         .from('flashcards')
-        .update({ is_public: newStatus })
+        .update({
+          visibility: newVisibility,
+          is_public: newVisibility === 'public'
+        })
         .in('id', cardIds);
 
       if (error) throw error;
 
       toast({
-        title: "Visibility updated",
-        description: `${cardIds.length} flashcard${cardIds.length > 1 ? 's are' : ' is'} now ${newStatus ? 'public' : 'private'}`
+        title: "Group visibility updated!",
+        description: `All ${cardIds.length} card${cardIds.length !== 1 ? 's' : ''} set to ${newVisibility}`,
       });
 
-      setFlashcards(prev => prev.map(card => 
-        cardIds.includes(card.id)
-          ? { ...card, is_public: newStatus }
-          : card
-      ));
+      // Refresh flashcards
+      fetchFlashcards();
+      
+           
     } catch (error) {
-      console.error('Error toggling group visibility:', error);
+      console.error('Error updating group visibility:', error);
       toast({
-        title: "Update failed",
+        title: "Error",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -590,6 +592,34 @@ export default function MyFlashcards() {
     });
   };
 
+  // Helper function to get visibility badge
+  const getVisibilityBadge = (visibility) => {
+    switch(visibility) {
+      case 'public':
+        return (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-700">
+            <Globe className="h-3 w-3 mr-0.5" />
+            Public
+          </span>
+        );
+      case 'friends':
+        return (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700">
+            <Users className="h-3 w-3 mr-0.5" />
+            Friends
+          </span>
+        );
+      case 'private':
+      default:
+        return (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+            <Lock className="h-3 w-3 mr-0.5" />
+            Private
+          </span>
+        );
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -618,17 +648,7 @@ export default function MyFlashcards() {
                     ` • ${card.subjects?.name || card.custom_subject}`
                   }
                 </p>
-                {card.is_public ? (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-700">
-                    <Globe className="h-3 w-3 mr-0.5" />
-                    Public
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
-                    <Lock className="h-3 w-3 mr-0.5" />
-                    Private
-                  </span>
-                )}
+                {getVisibilityBadge(card.visibility || 'private')}
               </div>
               {(card.topics?.name || card.custom_topic) && (
                 <p className="text-xs text-gray-400">
@@ -647,15 +667,20 @@ export default function MyFlashcards() {
                 >
                   <Edit2 className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => togglePublic(card.id, card.is_public, e)}
-                  className="text-gray-600 hover:text-gray-700 hover:bg-gray-50 -mt-2"
-                  title={card.is_public ? "Make Private" : "Make Public"}
+                
+                {/* 3-Tier Visibility Dropdown for individual card */}
+                <select
+                  value={card.visibility || 'private'}
+                  onChange={(e) => handleCardVisibilityChange(card.id, e.target.value, e)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  title="Change visibility"
                 >
-                  {card.is_public ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
+                  <option value="private">🔒 Private</option>
+                  <option value="friends">👥 Friends</option>
+                  <option value="public">🌐 Public</option>
+                </select>
+                
                 <Button
                   variant="ghost"
                   size="sm"
@@ -973,9 +998,9 @@ export default function MyFlashcards() {
         ) : viewMode === 'grouped' ? (
           <div className="space-y-6">
             {Object.entries(groupedFlashcards).map(([groupKey, group]) => {
-              const allPublic = group.cards.every(c => c.is_public === true);
-              const allPrivate = group.cards.every(c => c.is_public === false);
-              const publicCount = group.cards.filter(c => c.is_public).length;
+              const allPublic = group.cards.every(c => c.visibility === 'public');
+              const allPrivate = group.cards.every(c => c.visibility === 'private');
+              const publicCount = group.cards.filter(c => c.visibility === 'public').length;
               
               return (
                 <Card key={groupKey}>
@@ -1027,24 +1052,24 @@ export default function MyFlashcards() {
                           Edit Info
                         </Button>
 
-                        <Button
-                          onClick={() => toggleGroupVisibility(group.cards)}
-                          size="sm"
-                          variant={allPublic ? "outline" : "default"}
-                          className="gap-2"
-                        >
-                          {allPublic ? (
-                            <>
-                              <Lock className="h-4 w-4" />
-                              Make All Private
-                            </>
-                          ) : (
-                            <>
-                              <Globe className="h-4 w-4" />
-                              Make All Public
-                            </>
-                          )}
-                        </Button>
+                        {/* 🆕 NEW: 3-Tier Visibility Dropdown */}
+<select
+  value={
+    group.cards.every(c => c.visibility === 'public') ? 'public' :
+    group.cards.every(c => c.visibility === 'friends') ? 'friends' :
+    group.cards.every(c => c.visibility === 'private') ? 'private' :
+    'mixed'
+  }
+  data-group-id={group.batchId}
+  onChange={(e) => handleGroupVisibilityChange(group, e.target.value)}
+  className="px-4 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+>
+  <option value="mixed" disabled>Mixed Visibility</option>
+  <option value="private">🔒 Private</option>
+  <option value="friends">👥 Friends</option>
+  <option value="public">🌐 Public</option>
+</select>
+
 
                         {/* 🆕 NEW: Delete Group button */}
                         <Button

@@ -5,11 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Brain, ArrowLeft, RotateCcw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// ✅ NOW ACCEPTS PROPS!
 export default function StudyMode({ 
-  flashcards: propFlashcards = null,  // Cards passed from ReviewSession
-  onComplete = null,                   // Optional callback when done
-  onExit = null                        // Optional exit callback
+  flashcards: propFlashcards = null,
+  onComplete = null,
+  onExit = null
 }) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -26,15 +25,14 @@ export default function StudyMode({
   });
 
   useEffect(() => {
-    // ✅ FIX: Check if flashcards were passed as props
+    // ✅ DIAGNOSTIC LOG: Proof that the new file is running
+    console.log("✅ NEW CODE LOADED: StudyMode.jsx is running the robust version");
+
     if (propFlashcards && propFlashcards.length > 0) {
-      // Use the flashcards passed from ReviewSession
       console.log('✅ Using passed flashcards:', propFlashcards.length);
       setFlashcards(propFlashcards);
       setLoading(false);
     } else {
-      // No flashcards passed, fetch all flashcards (original behavior)
-      console.log('🔍 No flashcards passed, fetching all...');
       fetchFlashcards();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -42,13 +40,23 @@ export default function StudyMode({
 
   const fetchFlashcards = async () => {
     try {
+      console.log("🔄 Starting fetchFlashcards...");
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.error("❌ No authenticated user found");
+        return;
+      }
 
       const subjectParam = searchParams.get('subject');
       const topicParam = searchParams.get('topic');
 
-      // Fetch all public flashcards + user's own flashcards
+      console.log(`📊 Parameters - Subject: ${subjectParam}, Topic: ${topicParam}`);
+
+      // ✅ SIMPLIFIED QUERY: 
+      // We trust the Database Policy (RLS) to filter 'friends' content.
+      // This single line replaces the complex manual friend fetching you had before.
+      const filterString = `is_public.eq.true,user_id.eq.${user.id},visibility.eq.friends`;
+
       let query = supabase
         .from('flashcards')
         .select(`
@@ -56,36 +64,48 @@ export default function StudyMode({
           subjects:subject_id (id, name),
           topics:topic_id (id, name)
         `)
-        .or(`is_public.eq.true,user_id.eq.${user.id}`);
+        .or(filterString);
 
       const { data, error } = await query.order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Supabase Error:", error);
+        throw error;
+      }
 
-      // Clean diamond characters and other special chars from text
+      console.log(`✅ Raw Cards Fetched: ${data?.length}`);
+
+      // Clean special characters
       let cleanedData = (data || []).map(card => ({
         ...card,
-        front_text: card.front_text?.replace(/[\u25C6\u2666◆�]/g, '').trim() || '',
-        back_text: card.back_text?.replace(/[\u25C6\u2666◆�]/g, '').trim() || ''
+        front_text: card.front_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || '',
+        back_text: card.back_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || ''
       }));
 
-      // Filter by subject if provided
+      // Filter by subject/topic locally (Robust handling for joins)
       if (subjectParam) {
-        cleanedData = cleanedData.filter(card => 
-          card.subjects?.name === subjectParam || 
-          card.custom_subject === subjectParam
-        );
+        cleanedData = cleanedData.filter(card => {
+          const dbSubject = card.subjects?.name;
+          const customSubject = card.custom_subject;
+          return dbSubject === subjectParam || customSubject === subjectParam;
+        });
       }
 
-      // Filter by topic if provided
       if (topicParam) {
-        cleanedData = cleanedData.filter(card => 
-          card.topics?.name === topicParam || 
-          card.custom_topic === topicParam
-        );
+        cleanedData = cleanedData.filter(card => {
+          const dbTopic = card.topics?.name;
+          const customTopic = card.custom_topic;
+          return dbTopic === topicParam || customTopic === topicParam;
+        });
       }
 
-      // Shuffle flashcards for study session
+      console.log(`✅ Final Filtered Cards: ${cleanedData.length}`);
+
+      if (cleanedData.length === 0) {
+        console.warn("⚠️ No cards matched the subject/topic filter.");
+      }
+
+      // Shuffle
       const shuffled = [...cleanedData].sort(() => Math.random() - 0.5);
       setFlashcards(shuffled);
     } catch (error) {
@@ -103,27 +123,21 @@ export default function StudyMode({
   const handleRating = async (quality) => {
     const currentCard = flashcards[currentIndex];
     
-    // Update session stats
     setSessionStats(prev => ({
       ...prev,
       [quality]: prev[quality] + 1
     }));
 
-    // Save review to database (for spaced repetition)
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('No user found for review');
-        return;
-      }
+      if (!user) return;
 
       const today = new Date();
-      
-      // Calculate next review date
       let intervalDays;
       let qualityScore;
       let easeFactor;
       
+      // Spaced Repetition Logic
       if (quality === 'easy') {
         intervalDays = 7;
         qualityScore = 5;
@@ -138,12 +152,10 @@ export default function StudyMode({
         easeFactor = 2.3;
       }
       
-      // ✅ FIXED: Set next review to midnight UTC (not local time)
       const nextReview = new Date();
       nextReview.setDate(today.getDate() + intervalDays);
-      nextReview.setUTCHours(0, 0, 0, 0);  // Changed from setHours to setUTCHours
+      nextReview.setUTCHours(0, 0, 0, 0);
 
-      // ✅ FIX 1: Save review to reviews table
       const { error: reviewError } = await supabase
         .from('reviews')
         .insert({
@@ -153,12 +165,8 @@ export default function StudyMode({
           created_at: new Date().toISOString()
         });
 
-      if (reviewError) {
-        console.error('Error saving review:', reviewError);
-      }
+      if (reviewError) console.error('Error saving review:', reviewError);
 
-      // ✅ FIX 2: Update flashcard's next_review in flashcards table
-      // This is the CRITICAL missing step!
       const { error: updateError } = await supabase
         .from('flashcards')
         .update({
@@ -177,7 +185,6 @@ export default function StudyMode({
           variant: "destructive"
         });
       } else {
-        // ✅ Success toast
         toast({
           title: "Card saved! ✅",
           description: `Will review again in ${intervalDays} day${intervalDays > 1 ? 's' : ''}`,
@@ -193,21 +200,15 @@ export default function StudyMode({
       });
     }
 
-    // Move to next card
     if (currentIndex < flashcards.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setShowAnswer(false);
     } else {
-      // Session complete
       toast({
         title: "Study session complete! 🎉",
         description: `You reviewed ${flashcards.length} flashcards`
       });
-      
-      // ✅ Call onComplete callback if provided (for ReviewSession)
-      if (onComplete) {
-        onComplete(sessionStats);
-      }
+      if (onComplete) onComplete(sessionStats);
     }
   };
 
@@ -215,10 +216,8 @@ export default function StudyMode({
     setCurrentIndex(0);
     setShowAnswer(false);
     setSessionStats({ easy: 0, medium: 0, hard: 0 });
-    
-    // ✅ If using passed flashcards, just reset. Otherwise, refetch.
     if (!propFlashcards) {
-      fetchFlashcards(); // Reshuffle
+      fetchFlashcards();
     }
   };
 
@@ -245,9 +244,14 @@ export default function StudyMode({
           <Brain className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">No flashcards to study</h2>
           <p className="text-gray-600 mb-6">No flashcards found for this selection</p>
-          <Button onClick={handleExit}>
-            Choose Different Subject
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button onClick={handleExit}>
+              Choose Different Subject
+            </Button>
+            <p className="text-xs text-gray-400 mt-4">
+              Debug: Params {searchParams.get('subject')} / {searchParams.get('topic')}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -259,15 +263,10 @@ export default function StudyMode({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Button
-              variant="ghost"
-              onClick={handleExit}
-              className="gap-2"
-            >
+            <Button variant="ghost" onClick={handleExit} className="gap-2">
               <ArrowLeft className="h-4 w-4" />
               Back to Selection
             </Button>
@@ -275,12 +274,7 @@ export default function StudyMode({
               <div className="text-sm text-gray-600">
                 Card {currentIndex + 1} of {flashcards.length}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={restartSession}
-                className="gap-2"
-              >
+              <Button variant="outline" size="sm" onClick={restartSession} className="gap-2">
                 <RotateCcw className="h-4 w-4" />
                 Restart
               </Button>
@@ -289,7 +283,6 @@ export default function StudyMode({
         </div>
       </header>
 
-      {/* Progress Bar */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="relative">
@@ -317,10 +310,8 @@ export default function StudyMode({
         </div>
       </div>
 
-      {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {isComplete ? (
-          // Session Complete Screen
           <div className="bg-white rounded-xl shadow-lg p-12 text-center">
             <div className="mb-6">
               <Brain className="h-20 w-20 text-purple-600 mx-auto mb-4" />
@@ -355,19 +346,13 @@ export default function StudyMode({
                 <RotateCcw className="h-4 w-4" />
                 Study Again
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleExit}
-                size="lg"
-              >
+              <Button variant="outline" onClick={handleExit} size="lg">
                 {onExit ? 'Exit Review' : 'Choose Different Topic'}
               </Button>
             </div>
           </div>
         ) : (
-          // Flashcard Display
           <div>
-            {/* Card Info */}
             {(currentCard.subjects || currentCard.custom_subject) && (
               <div className="text-center mb-4">
                 <p className="text-sm text-gray-600">
@@ -379,10 +364,8 @@ export default function StudyMode({
               </div>
             )}
 
-            {/* Flashcard */}
             <div className="bg-white rounded-xl shadow-xl p-8 md:p-12 min-h-[400px] flex flex-col justify-center items-center">
               {!showAnswer ? (
-                // Front Side (Question)
                 <div className="w-full text-center">
                   <div className="mb-6">
                     <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-full">
@@ -402,19 +385,13 @@ export default function StudyMode({
                     {currentCard.front_text}
                   </p>
 
-                  <Button
-                    onClick={() => setShowAnswer(true)}
-                    size="lg"
-                    className="gap-2 px-8"
-                  >
+                  <Button onClick={() => setShowAnswer(true)} size="lg" className="gap-2 px-8">
                     <Brain className="h-5 w-5" />
                     Show Answer
                   </Button>
                 </div>
               ) : (
-                // Back Side (Answer)
                 <div className="w-full">
-                  {/* Question (smaller) */}
                   <div className="mb-6 pb-6 border-b border-gray-200">
                     <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-full mb-3">
                       QUESTION
@@ -424,7 +401,6 @@ export default function StudyMode({
                     </p>
                   </div>
 
-                  {/* Answer */}
                   <div className="text-center mb-8">
                     <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-sm font-semibold rounded-full mb-4">
                       ANSWER
@@ -440,7 +416,7 @@ export default function StudyMode({
                     
                     {currentCard.back_text ? (
                       <p className="text-xl md:text-2xl font-semibold text-gray-900 whitespace-pre-wrap">
-                        {currentCard.back_text}
+                        {currentCard.back_text || "No written answer - refer to image"}
                       </p>
                     ) : (
                       <p className="text-lg text-gray-500 italic">
@@ -449,7 +425,6 @@ export default function StudyMode({
                     )}
                   </div>
 
-                  {/* Rating Buttons */}
                   <div className="border-t border-gray-200 pt-6">
                     <p className="text-center text-sm text-gray-600 mb-4">
                       How well did you remember this?
@@ -488,7 +463,6 @@ export default function StudyMode({
               )}
             </div>
 
-            {/* Navigation Hint */}
             <div className="text-center mt-6">
               <p className="text-sm text-gray-500">
                 {showAnswer 

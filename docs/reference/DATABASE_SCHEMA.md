@@ -91,7 +91,8 @@
 
 **Purpose:** User-uploaded study notes with OCR text extraction  
 **Created:** December 2025  
-**Columns:** 23
+**Last Updated:** January 11, 2026 (Added visibility system)  
+**Columns:** 24 (was 23, replaced is_public with visibility)
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -110,12 +111,21 @@
 | image_url | text | YES | NULL | Supabase Storage URL |
 | extracted_text | text | YES | NULL | OCR extracted text |
 | tags | text[] | YES | NULL | Array of tags (#important, #revision) |
-| is_public | boolean | NO | false | Public/Private sharing |
+| visibility | text | NO | 'private' | Three-tier visibility system ⭐ NEW |
 | is_verified | boolean | NO | false | Professor-verified content badge |
 | view_count | integer | NO | 0 | Engagement tracking |
 | upvote_count | integer | NO | 0 | Quality signal |
 | created_at | timestamp | NO | NOW() | Upload timestamp |
 | updated_at | timestamp | NO | NOW() | Last modified |
+
+**Visibility System (NEW - January 11, 2026):**
+- `visibility` column replaces old `is_public` boolean
+- Three levels:
+  - **'private'**: Only creator can see (default)
+  - **'friends'**: Creator + accepted friends can see
+  - **'public'**: Everyone can see
+- Constraint: `CHECK (visibility IN ('private', 'friends', 'public'))`
+- Index: `idx_notes_visibility` for fast filtering
 
 **Why This Structure:**
 - `target_course` separate from `user_id.course_level` (two-tier content model - allows professors to contribute to multiple courses)
@@ -123,9 +133,16 @@
 - `contributed_by` for professor attribution (different from uploader)
 - `is_verified` badge for quality content
 - `extracted_text` stored separately from image for searchability
+- **NEW:** Three-tier visibility enables friend-only sharing for small study groups
 
-**Related Tables:** profiles, disciplines, subjects, topics, comments, upvotes  
-**Key Indexes:** user_id, target_course, is_public, created_at, discipline_id, subject_id, topic_id  
+**Migration Notes (January 11, 2026):**
+- Old `is_public` boolean deprecated (kept for backwards compatibility)
+- Existing data migrated: `is_public=true` → `visibility='public'` (16 notes)
+- Existing data migrated: `is_public=false` → `visibility='private'` (1 note)
+- Migration SQL: `[SCHEMA] Add Visibility to Notes`
+
+**Related Tables:** profiles, disciplines, subjects, topics, comments, upvotes, friendships ⭐  
+**Key Indexes:** user_id, target_course, visibility ⭐, created_at, discipline_id, subject_id, topic_id  
 **RLS Policies:** 5 policies (see RLS section)
 
 ---
@@ -134,7 +151,8 @@
 
 **Purpose:** Spaced repetition flashcards with batch tracking  
 **Created:** December 2025  
-**Columns:** 23 ⭐ (was 21, added creator_id + content_creator_id)
+**Last Updated:** January 11, 2026 (Added visibility system)  
+**Columns:** 24 (was 23, replaced is_public with visibility)
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -152,12 +170,21 @@
 | topic_id | uuid | YES | NULL | Foreign key to topics |
 | batch_id | uuid | NO | uuid_generate_v4() | Groups cards from same upload |
 | batch_description | text | YES | NULL | Optional batch label |
-| creator_id | uuid | YES | NULL | Foreign key to profiles.id (who uploaded) ⭐ NEW |
-| content_creator_id | uuid | YES | NULL | Foreign key to content_creators.id (who gets paid) ⭐ NEW |
+| creator_id | uuid | YES | NULL | Foreign key to profiles.id (who uploaded) |
+| content_creator_id | uuid | YES | NULL | Foreign key to content_creators.id (who gets paid) |
 | is_verified | boolean | NO | false | Professor-verified badge |
 | difficulty | text | YES | NULL | easy/medium/hard |
-| is_public | boolean | NO | false | Public/Private sharing |
+| visibility | text | NO | 'private' | Three-tier visibility system ⭐ NEW |
 | created_at | timestamp | NO | NOW() | Creation timestamp |
+
+**Visibility System (NEW - January 11, 2026):**
+- `visibility` column replaces old `is_public` boolean
+- Three levels:
+  - **'private'**: Only creator can see (default)
+  - **'friends'**: Creator + accepted friends can see
+  - **'public'**: Everyone can see
+- Constraint: `CHECK (visibility IN ('private', 'friends', 'public'))`
+- Index: `idx_flashcards_visibility` for fast filtering
 
 **Why This Structure:**
 - `batch_id` provides permanent grouping (solves issue where toggling public/private merged batches)
@@ -165,14 +192,21 @@
 - `difficulty` helps professors tag question complexity
 - `front_image_url` and `back_image_url` support visual learning
 - `contributed_by` enables professor attribution separate from uploader
-- **NEW:** `creator_id` tracks WHO uploaded the content (operational attribution)
-- **NEW:** `content_creator_id` tracks WHO gets revenue credit (financial attribution)
+- `creator_id` tracks WHO uploaded the content (operational attribution)
+- `content_creator_id` tracks WHO gets revenue credit (financial attribution)
 - Example: Prof. Anand uploads flashcards on behalf of Vivitsu
   - creator_id = Prof. Anand (shows in UI)
   - content_creator_id = Vivitsu (gets 30% revenue share)
+- **NEW:** Three-tier visibility enables friend-only sharing for small study groups
 
-**Related Tables:** profiles, notes, reviews, disciplines, subjects, topics  
-**Key Indexes:** user_id, batch_id (critical for grouping), target_course, is_public, created_at  
+**Migration Notes (January 11, 2026):**
+- Old `is_public` boolean deprecated (kept for backwards compatibility)
+- Existing data migrated: `is_public=true` → `visibility='public'` (340 cards)
+- Existing data migrated: `is_public=false` → `visibility='private'` (227 cards)
+- Migration SQL: `[FIX] Migrate flashcard visibility from is_public`
+
+**Related Tables:** profiles, notes, reviews, disciplines, subjects, topics, friendships ⭐  
+**Key Indexes:** user_id, batch_id (critical for grouping), target_course, visibility ⭐, created_at  
 **RLS Policies:** 5 policies (see RLS section)
 
 **CRITICAL:** Always group by `batch_id`, NOT by timestamp or created_at
@@ -1435,6 +1469,48 @@ LIMIT 10;
 - **v1.0** (Jan 2, 2026) - Initial documentation created after 2-hour RLS debugging session
 
 ---
+
+## friendships
+
+**Purpose:** Store friend relationships between users with pending/accepted/rejected status
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY, DEFAULT uuid_generate_v4() | Unique friendship ID |
+| user_id | UUID | NOT NULL, REFERENCES profiles(id) ON DELETE CASCADE | User who sent friend request |
+| friend_id | UUID | NOT NULL, REFERENCES profiles(id) ON DELETE CASCADE | User who received friend request |
+| status | TEXT | NOT NULL, CHECK (status IN ('pending', 'accepted', 'rejected')) | Request status |
+| created_at | TIMESTAMP WITH TIME ZONE | DEFAULT NOW() | When request was sent |
+| updated_at | TIMESTAMP WITH TIME ZONE | DEFAULT NOW() | When status last changed |
+
+**Indexes:**
+- `idx_friendships_user_id` on user_id
+- `idx_friendships_friend_id` on friend_id
+- `idx_friendships_status` on status
+
+**Constraints:**
+- UNIQUE(user_id, friend_id) - Prevents duplicate friend requests
+
+**Relationships:**
+- `user_id` → profiles.id (CASCADE DELETE)
+- `friend_id` → profiles.id (CASCADE DELETE)
+
+**Usage:**
+```sql
+-- Send friend request
+INSERT INTO friendships (user_id, friend_id, status)
+VALUES ('user-uuid', 'friend-uuid', 'pending');
+
+-- Accept friend request
+UPDATE friendships 
+SET status = 'accepted', updated_at = NOW()
+WHERE id = 'friendship-uuid';
+
+-- Get all friends for a user
+SELECT * FROM friendships
+WHERE (user_id = 'user-uuid' OR friend_id = 'user-uuid')
+AND status = 'accepted';
+```
 
 **END OF DATABASE_SCHEMA.md**
 

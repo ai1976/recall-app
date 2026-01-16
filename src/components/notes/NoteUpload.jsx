@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, ArrowLeft, Image as ImageIcon, Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
@@ -22,19 +21,15 @@ export default function NoteUpload() {
   const [description, setDescription] = useState('');
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
-  // eslint-disable-next-line no-unused-vars
   const [contentType, setContentType] = useState('text');
-  // eslint-disable-next-line no-unused-vars
   const [extractedText, setExtractedText] = useState('');
-  // eslint-disable-next-line no-unused-vars
-  const [isExtracting, setIsExtracting] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [visibility, setVisibility] = useState('private'); // 🆕 NEW
 
-  // 🆕 NEW: Target course for two-tier model
   const [targetCourse, setTargetCourse] = useState('');
   const [showCustomCourse, setShowCustomCourse] = useState(false);
   const [customCourse, setCustomCourse] = useState('');
-  const [allCourses, setAllCourses] = useState([]); // 🔧 NEW: Store all courses (predefined + custom)
+  const [allCourses, setAllCourses] = useState([]);
 
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -45,24 +40,18 @@ export default function NoteUpload() {
   const [customSubject, setCustomSubject] = useState('');
   const [showCustomTopic, setShowCustomTopic] = useState(false);
   const [customTopic, setCustomTopic] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
 
-  // Combobox states
   const [subjectOpen, setSubjectOpen] = useState(false);
   const [topicOpen, setTopicOpen] = useState(false);
 
   useEffect(() => {
-    // Fetch ALL subjects - no filtering by user's course!
-    // This allows professors to create for any course, and students to help juniors
     fetchSubjects();
-    // 🔧 NEW: Fetch all courses (predefined + custom)
     fetchAllCourses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchSubjects = async () => {
     try {
-      // 🔧 FIXED: Get ALL subjects regardless of user's course level
       const { data, error } = await supabase
         .from('subjects')
         .select('*')
@@ -80,22 +69,18 @@ export default function NoteUpload() {
     }
   };
 
-  // 🔧 FIXED: Fetch all courses (predefined + custom from ALL tables)
   const fetchAllCourses = async () => {
     try {
-      // Fetch custom courses from notes table
       const { data: noteCourses, error: noteError } = await supabase
         .from('notes')
         .select('target_course')
         .not('target_course', 'is', null);
 
-      // Fetch custom courses from flashcards table
       const { data: flashcardCourses, error: flashError } = await supabase
         .from('flashcards')
         .select('target_course')
         .not('target_course', 'is', null);
 
-      // 🆕 NEW: Fetch custom courses from profiles table
       const { data: profileCourses, error: profileError } = await supabase
         .from('profiles')
         .select('course_level')
@@ -105,7 +90,6 @@ export default function NoteUpload() {
       if (flashError) throw flashError;
       if (profileError) throw profileError;
 
-      // Pre-defined courses
       const predefinedCourses = [
         'CA Foundation',
         'CA Intermediate',
@@ -118,29 +102,25 @@ export default function NoteUpload() {
         'CS Professional'
       ];
 
-      // Extract unique custom courses from database
       const customFromNotes = noteCourses?.map(n => n.target_course) || [];
       const customFromFlashcards = flashcardCourses?.map(f => f.target_course) || [];
-      const customFromProfiles = profileCourses?.map(p => p.course_level) || []; // 🆕 NEW
+      const customFromProfiles = profileCourses?.map(p => p.course_level) || [];
       
       const allCustomCourses = [...new Set([
         ...customFromNotes, 
         ...customFromFlashcards,
-        ...customFromProfiles // 🆕 NEW: Include courses from profiles
+        ...customFromProfiles
       ])];
 
-      // Filter out courses that are already in predefined list
       const uniqueCustomCourses = allCustomCourses.filter(
         course => !predefinedCourses.includes(course)
       );
 
-      // Merge and sort
       const mergedCourses = [...predefinedCourses, ...uniqueCustomCourses].sort();
 
       setAllCourses(mergedCourses);
     } catch (error) {
       console.error('Error fetching courses:', error);
-      // Fallback to predefined courses only
       setAllCourses([
         'CA Foundation',
         'CA Intermediate',
@@ -189,7 +169,6 @@ export default function NoteUpload() {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
     if (!validTypes.includes(selectedFile.type)) {
       toast({
@@ -200,7 +179,6 @@ export default function NoteUpload() {
       return;
     }
 
-    // Validate file size (10MB max)
     if (selectedFile.size > 10 * 1024 * 1024) {
       toast({
         title: 'File too large',
@@ -212,7 +190,6 @@ export default function NoteUpload() {
 
     setFile(selectedFile);
 
-    // Create preview for images
     if (selectedFile.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -229,16 +206,13 @@ export default function NoteUpload() {
     setLoading(true);
 
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // 🆕 VALIDATION: Check target course
       if (!targetCourse && !customCourse) {
         throw new Error('Please select or enter which course this note is for');
       }
 
-      // Validation
       if (!file) {
         throw new Error('Please select a file to upload');
       }
@@ -247,27 +221,23 @@ export default function NoteUpload() {
         throw new Error('Please select or enter a subject');
       }
 
-      // Upload file to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
-      // eslint-disable-next-line no-unused-vars
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('notes')
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('notes')
         .getPublicUrl(fileName);
 
-      // Prepare note data
       const noteData = {
         user_id: user.id,
         contributed_by: user.id,
-        target_course: customCourse || targetCourse, // 🆕 Use custom if provided
+        target_course: customCourse || targetCourse,
         title: title || file.name,
         description: description || null,
         subject_id: selectedSubject?.id || null,
@@ -278,17 +248,16 @@ export default function NoteUpload() {
         content_type: contentType,
         extracted_text: extractedText || null,
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-        is_public: isPublic,
+        visibility: visibility, // 🆕 NEW
+        is_public: visibility === 'public', // Backward compatibility
       };
 
-      // Insert note record
       const { error: insertError } = await supabase
         .from('notes')
         .insert(noteData);
 
       if (insertError) throw insertError;
 
-      // Success!
       toast({
         title: 'Success!',
         description: 'Note uploaded successfully',
@@ -330,7 +299,6 @@ export default function NoteUpload() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           
-          {/* 🆕 NEW: Course Selection Card */}
           <Card>
             <CardHeader>
               <CardTitle>Who is this note for?</CardTitle>
@@ -392,14 +360,12 @@ export default function NoteUpload() {
             </CardContent>
           </Card>
 
-          {/* Subject & Topic Card */}
           <Card>
             <CardHeader>
               <CardTitle>Subject & Topic</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               
-              {/* Subject Combobox */}
               <div className="space-y-2">
                 <Label>Subject *</Label>
                 <Popover open={subjectOpen} onOpenChange={setSubjectOpen}>
@@ -454,7 +420,6 @@ export default function NoteUpload() {
                 </Popover>
               </div>
 
-              {/* Custom Subject Input */}
               {showCustomSubject && (
                 <div className="space-y-2">
                   <Label htmlFor="custom-subject">Custom Subject</Label>
@@ -467,7 +432,6 @@ export default function NoteUpload() {
                 </div>
               )}
 
-              {/* Topic Combobox */}
               <div className="space-y-2">
                 <Label>Topic (Optional)</Label>
                 <Popover open={topicOpen} onOpenChange={setTopicOpen}>
@@ -523,7 +487,6 @@ export default function NoteUpload() {
                 </Popover>
               </div>
 
-              {/* Custom Topic Input */}
               {showCustomTopic && (
                 <div className="space-y-2">
                   <Label htmlFor="custom-topic">Custom Topic</Label>
@@ -536,7 +499,6 @@ export default function NoteUpload() {
                 </div>
               )}
 
-              {/* Tags */}
               <div className="space-y-2">
                 <Label htmlFor="tags">Tags (Optional)</Label>
                 <Input
@@ -550,24 +512,28 @@ export default function NoteUpload() {
                 </p>
               </div>
 
-              {/* Public Toggle */}
-              <div className="flex items-center justify-between space-x-2">
-                <div className="space-y-0.5">
-                  <Label htmlFor="public-toggle">Make this note public</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {isPublic ? 'Visible to all students' : 'Only you can see this note'}
-                  </p>
-                </div>
-                <Switch
-                  id="public-toggle"
-                  checked={isPublic}
-                  onCheckedChange={setIsPublic}
-                />
+              {/* 🆕 NEW: Visibility Dropdown */}
+              <div className="space-y-2">
+                <Label htmlFor="visibility">Who can see this note?</Label>
+                <Select value={visibility} onValueChange={setVisibility}>
+                  <SelectTrigger id="visibility">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="private">Private (Only me)</SelectItem>
+                    <SelectItem value="friends">Friends Only</SelectItem>
+                    <SelectItem value="public">Public (Everyone)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  {visibility === 'private' && 'Only you can see this note'}
+                  {visibility === 'friends' && 'Only your friends can see this note'}
+                  {visibility === 'public' && 'Everyone can see this note'}
+                </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* File Upload Card */}
           <Card>
             <CardHeader>
               <CardTitle>File Upload</CardTitle>
@@ -613,7 +579,6 @@ export default function NoteUpload() {
             </CardContent>
           </Card>
 
-          {/* Note Details Card */}
           <Card>
             <CardHeader>
               <CardTitle>Note Details (Optional)</CardTitle>
@@ -645,7 +610,6 @@ export default function NoteUpload() {
             </CardContent>
           </Card>
 
-          {/* Action Buttons */}
           <div className="flex gap-4">
             <Button
               type="button"

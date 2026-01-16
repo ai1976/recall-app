@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, CheckCircle, XCircle, AlertCircle, Download, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, AlertCircle, Download } from 'lucide-react';
 
 export default function ProfessorTools() {
   const { isProfessor, isAdmin, isSuperAdmin, isLoading: roleLoading } = useRole();
@@ -20,6 +20,7 @@ export default function ProfessorTools() {
   const [uploadResults, setUploadResults] = useState(null);
   const [errors, setErrors] = useState([]);
   const [batchDescription, setBatchDescription] = useState('');
+  const [bulkVisibility, setBulkVisibility] = useState('public'); // 🆕 NEW
   
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -113,8 +114,7 @@ export default function ProfessorTools() {
 
       if (topError) throw topError;
 
-      // 🆕 FIXED: Add UTF-8 BOM for proper encoding
-      let csv = '\uFEFF'; // UTF-8 BOM
+      let csv = '\uFEFF';
       csv += 'Course,Subject,Topic\n';
 
       topics?.forEach(topic => {
@@ -146,7 +146,6 @@ export default function ProfessorTools() {
   }
 
   function downloadTemplate() {
-    // 🆕 FIXED: Add UTF-8 BOM to template for proper ₹ symbol support
     const template = '\uFEFF' + `target_course,subject,topic,front,back,tags,difficulty
 CA Intermediate,Taxation,Income Tax Basics,What is the basic exemption limit for individuals below 60 years?,₹2.5 lakhs,"#ITR,#basics",easy
 CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium
@@ -189,9 +188,8 @@ IMPORTANT NOTES:
 ✓ Tags format: "#tag1,#tag2" or leave empty
 ✓ If subject/topic not in Valid Entries, create via single upload first
 ✓ For multi-line text in cells, Excel/Sheets will auto-quote them
-✓ All flashcards are created as PRIVATE by default
-✓ You can make them public later from My Flashcards page
 ✓ Special characters like ₹ are supported (save as UTF-8)
+✓ Visibility can be set on upload (private/friends/public)
 `;
 
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
@@ -217,7 +215,6 @@ IMPORTANT NOTES:
     setErrors([]);
   }
 
-  // 🆕 FIXED: Improved CSV parser with explicit UTF-8 support
   async function parseCSV(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -226,7 +223,6 @@ IMPORTANT NOTES:
         try {
           let text = event.target.result;
           
-          // Remove UTF-8 BOM if present
           if (text.charCodeAt(0) === 0xFEFF) {
             text = text.substring(1);
           }
@@ -271,7 +267,6 @@ IMPORTANT NOTES:
           for (let i = 1; i < lines.length; i++) {
             const line = lines[i];
             
-            // Skip instruction lines
             if (line.includes('====') || line.includes('REFERENCE:') || 
                 line.includes('COURSES') || line.includes('DIFFICULTY') ||
                 line.includes('SUBJECTS') || line.includes('IMPORTANT NOTES') ||
@@ -330,7 +325,6 @@ IMPORTANT NOTES:
                 flashcard.tags = [];
               }
               
-              // Preserve special characters (like ₹) instead of stripping
               flashcard.front = flashcard.front.replace(/[\r\n]+/g, ' ').trim();
               flashcard.back = flashcard.back.replace(/[\r\n]+/g, ' ').trim();
               
@@ -350,7 +344,6 @@ IMPORTANT NOTES:
         reject(new Error('Failed to read file'));
       };
       
-      // 🆕 CRITICAL: Read as UTF-8 text
       reader.readAsText(file, 'UTF-8');
     });
   }
@@ -463,11 +456,12 @@ IMPORTANT NOTES:
           topic_id: topic?.id || null,
           custom_subject: subject ? null : card.subject,
           custom_topic: (topic || !card.topic) ? null : card.topic,
-          front_text: card.front, // UTF-8 preserved
-          back_text: card.back,   // UTF-8 preserved
+          front_text: card.front,
+          back_text: card.back,
           tags: card.tags || [],
           difficulty: card.difficulty || 'medium',
-          is_public: false,
+          visibility: bulkVisibility, // 🆕 NEW
+          is_public: bulkVisibility === 'public', // Backward compatibility
           is_verified: isProfessor || isAdmin || isSuperAdmin,
           batch_id: batchId,
           batch_description: trimmedDescription
@@ -494,7 +488,8 @@ IMPORTANT NOTES:
           details: {
             count: data.length,
             filename: csvFile.name,
-            batch_description: trimmedDescription
+            batch_description: trimmedDescription,
+            visibility: bulkVisibility // 🆕 NEW
           }
         });
       } catch (auditError) {
@@ -607,7 +602,7 @@ IMPORTANT NOTES:
               <div>
                 <p className="font-medium">Upload the Completed CSV</p>
                 <p className="text-sm text-gray-600">
-                  All flashcards will be created as private (you can make them public later)
+                  Choose visibility setting before uploading
                 </p>
               </div>
             </div>
@@ -720,7 +715,7 @@ IMPORTANT NOTES:
         <CardHeader>
           <CardTitle>Upload Flashcards</CardTitle>
           <CardDescription>
-            Select your CSV file and click upload. All flashcards will be created as private by default.
+            Select your CSV file, choose visibility, and click upload
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -736,6 +731,28 @@ IMPORTANT NOTES:
             />
             <p className="text-sm text-muted-foreground">
               💡 Helps organize and identify related flashcards
+            </p>
+          </div>
+
+          {/* 🆕 NEW: Visibility Dropdown */}
+          <div className="space-y-2">
+            <Label htmlFor="bulk-visibility">
+              Who can see these flashcards?
+            </Label>
+            <Select value={bulkVisibility} onValueChange={setBulkVisibility}>
+              <SelectTrigger id="bulk-visibility">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="private">Private (Only me)</SelectItem>
+                <SelectItem value="friends">Friends Only</SelectItem>
+                <SelectItem value="public">Public (Everyone)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground">
+              {bulkVisibility === 'private' && 'Only you can see these flashcards'}
+              {bulkVisibility === 'friends' && 'Only your friends can see these flashcards'}
+              {bulkVisibility === 'public' && 'Everyone can see these flashcards'}
             </p>
           </div>
 
@@ -780,13 +797,6 @@ IMPORTANT NOTES:
               </>
             )}
           </Button>
-          
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-800">
-              <strong>📌 Privacy Notice:</strong> All flashcards will be created as <strong>private</strong> by default. 
-              You can make them public later from the My Flashcards page.
-            </p>
-          </div>
         </CardContent>
       </Card>
 
@@ -810,7 +820,7 @@ IMPORTANT NOTES:
           <CheckCircle className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
             <p className="font-medium">
-              Successfully uploaded {uploadResults.count} flashcard(s) as private!
+              Successfully uploaded {uploadResults.count} flashcard(s)!
             </p>
             {batchDescription && (
               <p className="text-sm mt-1">
@@ -818,7 +828,7 @@ IMPORTANT NOTES:
               </p>
             )}
             <p className="text-sm mt-1">
-              Go to My Flashcards to review and make them public if needed.
+              Visibility: {bulkVisibility === 'private' ? 'Private (Only me)' : bulkVisibility === 'friends' ? 'Friends Only' : 'Public (Everyone)'}
             </p>
           </AlertDescription>
         </Alert>

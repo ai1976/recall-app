@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Plus, Trash2, Image as ImageIcon, Check, ChevronsUpDown } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
@@ -21,7 +20,7 @@ export default function FlashcardCreate() {
   const [targetCourse, setTargetCourse] = useState('');
   const [showCustomCourse, setShowCustomCourse] = useState(false);
   const [customCourse, setCustomCourse] = useState('');
-  const [allCourses, setAllCourses] = useState([]); // 🔧 NEW: Store all courses (predefined + custom)
+  const [allCourses, setAllCourses] = useState([]);
 
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -32,7 +31,7 @@ export default function FlashcardCreate() {
   const [customSubject, setCustomSubject] = useState('');
   const [showCustomTopic, setShowCustomTopic] = useState(false);
   const [customTopic, setCustomTopic] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
+  const [visibility, setVisibility] = useState('private'); // 🆕 NEW
   
   const [flashcards, setFlashcards] = useState([
     { front: '', back: '', frontImage: null, backImage: null }
@@ -44,7 +43,6 @@ export default function FlashcardCreate() {
 
   useEffect(() => {
     fetchSubjects();
-    // 🔧 NEW: Fetch all courses (predefined + custom)
     fetchAllCourses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -68,22 +66,18 @@ export default function FlashcardCreate() {
     }
   };
 
-  // 🔧 FIXED: Fetch all courses (predefined + custom from ALL tables)
   const fetchAllCourses = async () => {
     try {
-      // Fetch custom courses from notes table
       const { data: noteCourses, error: noteError } = await supabase
         .from('notes')
         .select('target_course')
         .not('target_course', 'is', null);
 
-      // Fetch custom courses from flashcards table
       const { data: flashcardCourses, error: flashError } = await supabase
         .from('flashcards')
         .select('target_course')
         .not('target_course', 'is', null);
 
-      // 🆕 NEW: Fetch custom courses from profiles table
       const { data: profileCourses, error: profileError } = await supabase
         .from('profiles')
         .select('course_level')
@@ -93,7 +87,6 @@ export default function FlashcardCreate() {
       if (flashError) throw flashError;
       if (profileError) throw profileError;
 
-      // Pre-defined courses
       const predefinedCourses = [
         'CA Foundation',
         'CA Intermediate',
@@ -106,29 +99,25 @@ export default function FlashcardCreate() {
         'CS Professional'
       ];
 
-      // Extract unique custom courses from database
       const customFromNotes = noteCourses?.map(n => n.target_course) || [];
       const customFromFlashcards = flashcardCourses?.map(f => f.target_course) || [];
-      const customFromProfiles = profileCourses?.map(p => p.course_level) || []; // 🆕 NEW
+      const customFromProfiles = profileCourses?.map(p => p.course_level) || [];
       
       const allCustomCourses = [...new Set([
         ...customFromNotes, 
         ...customFromFlashcards,
-        ...customFromProfiles // 🆕 NEW: Include courses from profiles
+        ...customFromProfiles
       ])];
 
-      // Filter out courses that are already in predefined list
       const uniqueCustomCourses = allCustomCourses.filter(
         course => !predefinedCourses.includes(course)
       );
 
-      // Merge and sort
       const mergedCourses = [...predefinedCourses, ...uniqueCustomCourses].sort();
 
       setAllCourses(mergedCourses);
     } catch (error) {
       console.error('Error fetching courses:', error);
-      // Fallback to predefined courses only
       setAllCourses([
         'CA Foundation',
         'CA Intermediate',
@@ -236,8 +225,8 @@ export default function FlashcardCreate() {
       const flashcardsToInsert = flashcards.map(card => ({
         user_id: user.id,
         contributed_by: user.id,
-        creator_id: user.id,              // ← NEW
-  content_creator_id: null,         // ← NEW
+        creator_id: user.id,
+        content_creator_id: null,
         target_course: customCourse || targetCourse,
         subject_id: selectedSubject?.id || null,
         topic_id: selectedTopic?.id || null,
@@ -248,17 +237,17 @@ export default function FlashcardCreate() {
         front_image_url: card.frontImage || null,
         back_image_url: card.backImage || null,
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-        is_public: isPublic,
+        visibility: visibility, // 🆕 NEW
+        is_public: visibility === 'public', // Backward compatibility
         is_verified: false,
         difficulty: 'medium',
-        // 🆕 NEW: Each manually created card gets unique batch_id
         batch_id: crypto.randomUUID(),
-  batch_description: null,
-  next_review: new Date().toISOString(),  // ← NEW
-  interval: 1,                             // ← NEW
-  ease_factor: 2.5,                        // ← NEW
-  repetitions: 0                           // ← NEW
-}));
+        batch_description: null,
+        next_review: new Date().toISOString(),
+        interval: 1,
+        ease_factor: 2.5,
+        repetitions: 0
+      }));
 
       const { error: insertError } = await supabase
         .from('flashcards')
@@ -520,18 +509,24 @@ export default function FlashcardCreate() {
                 </p>
               </div>
 
-              <div className="flex items-center justify-between space-x-2">
-                <div className="space-y-0.5">
-                  <Label htmlFor="public-toggle">Make these flashcards public</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {isPublic ? 'Visible to all students' : 'Only you can see these flashcards'}
-                  </p>
-                </div>
-                <Switch
-                  id="public-toggle"
-                  checked={isPublic}
-                  onCheckedChange={setIsPublic}
-                />
+              {/* 🆕 NEW: Visibility Dropdown */}
+              <div className="space-y-2">
+                <Label htmlFor="visibility">Who can see these flashcards?</Label>
+                <Select value={visibility} onValueChange={setVisibility}>
+                  <SelectTrigger id="visibility">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="private">Private (Only me)</SelectItem>
+                    <SelectItem value="friends">Friends Only</SelectItem>
+                    <SelectItem value="public">Public (Everyone)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  {visibility === 'private' && 'Only you can see these flashcards'}
+                  {visibility === 'friends' && 'Only your friends can see these flashcards'}
+                  {visibility === 'public' && 'Everyone can see these flashcards'}
+                </p>
               </div>
             </CardContent>
           </Card>
