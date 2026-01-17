@@ -54,13 +54,16 @@ export default function FindFriends() {
   const sendFriendRequest = async (friendId) => {
     setLoading(true);
     try {
+      // ✅ FIX: Use upsert instead of insert. 
+      // This handles cases where a 'rejected' row might already exist.
       const { error } = await supabase
         .from('friendships')
-        .insert({
+        .upsert({
           user_id: user.id,
           friend_id: friendId,
-          status: 'pending'
-        });
+          status: 'pending',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id, friend_id' }); // Assumes you have a unique constraint or composite key
 
       if (error) throw error;
 
@@ -145,6 +148,9 @@ export default function FindFriends() {
           filteredUsers.map((person) => {
             const friendStatus = getFriendshipStatus(person.id);
             
+            // ✅ FIX: Allow adding friend if status is NULL or 'rejected'
+            const canAddFriend = !friendStatus || friendStatus.status === 'rejected';
+
             return (
               <Card key={person.id}>
                 <CardHeader>
@@ -176,7 +182,7 @@ export default function FindFriends() {
 
                     {/* Action Button */}
                     <div>
-                      {!friendStatus && (
+                      {canAddFriend && (
                         <Button
                           onClick={() => sendFriendRequest(person.id)}
                           disabled={loading}

@@ -88,22 +88,20 @@ export default function FriendRequests() {
     }
   };
 
+  // ✅ FIX: Changed from Soft Delete (Update) to Hard Delete
   const handleReject = async (friendshipId) => {
     setLoading(true);
     try {
       const { error } = await supabase
         .from('friendships')
-        .update({ 
-          status: 'rejected',
-          updated_at: new Date().toISOString()
-        })
+        .delete() // <--- THIS IS THE FIX (Deletes the row completely)
         .eq('id', friendshipId);
 
       if (error) throw error;
 
       toast({
         title: "Friend request rejected",
-        description: "Request has been declined.",
+        description: "Request has been removed.",
       });
 
       // Refresh list
