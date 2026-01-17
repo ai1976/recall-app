@@ -19,7 +19,6 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Check if we have a valid session with reset token
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -34,7 +33,6 @@ export default function ResetPassword() {
     setLoading(true);
     setError('');
 
-    // Validation
     if (password.length < 8) {
       setError('Password must be at least 8 characters long');
       setLoading(false);
@@ -56,7 +54,6 @@ export default function ResetPassword() {
 
       setSuccess(true);
       
-      // Redirect to login after 2 seconds
       setTimeout(() => {
         navigate('/login');
       }, 2000);

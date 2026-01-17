@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';  // 🆕 ADDED
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signIn } = useAuth();  // 🆕 ADDED
+  const { signIn } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
@@ -22,7 +22,6 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // 🆕 CHANGED: Use AuthContext signIn (includes audit logging)
       await signIn(email, password);
       
       toast({

@@ -1,23 +1,23 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '@/lib/supabase'
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function Signup() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [courseLevel, setCourseLevel] = useState('')
-  const [customCourse, setCustomCourse] = useState('')
-  const [allCourses, setAllCourses] = useState([])
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { signUp } = useAuth()
-  const navigate = useNavigate()
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [courseLevel, setCourseLevel] = useState('');
+  const [customCourse, setCustomCourse] = useState('');
+  const [allCourses, setAllCourses] = useState([]);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { signUp } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchAllCourses()
-  }, [])
+    fetchAllCourses();
+  }, []);
 
   const fetchAllCourses = async () => {
     try {
@@ -86,32 +86,31 @@ export default function Signup() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError('');
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters')
-      return
+      setError('Password must be at least 6 characters');
+      return;
     }
 
     if (!courseLevel) {
-      setError('Please select your course')
-      return
+      setError('Please select your course');
+      return;
     }
 
     if (courseLevel === 'Other' && !customCourse.trim()) {
-      setError('Please specify your course')
-      return
+      setError('Please specify your course');
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
-      const finalCourseLevel = courseLevel === 'Other' ? customCourse : courseLevel
+      const finalCourseLevel = courseLevel === 'Other' ? customCourse : courseLevel;
       
-      await signUp(email, password, fullName, finalCourseLevel)
+      await signUp(email, password, fullName, finalCourseLevel);
       
-      // 🔧 UPDATED: Better success message with email delay warning
       alert(
         '🎉 Account Created Successfully!\n\n' +
         '📧 Verification Email Sent\n\n' +
@@ -119,15 +118,15 @@ export default function Signup() {
         '⏰ Please allow 5-10 minutes for the email to arrive.\n\n' +
         '💡 Tip: Check your spam/junk folder if you don\'t see it.\n\n' +
         'You can now go to the login page.'
-      )
+      );
       
-      navigate('/login')
+      navigate('/login');
     } catch (err) {
-      setError(err.message || 'Failed to create account')
+      setError(err.message || 'Failed to create account');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -303,5 +302,5 @@ export default function Signup() {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,16 +1,26 @@
 # RECALL APP - FILE STRUCTURE
-
-**Structure as on Jan 15, 2026**
+**Structure as on 17 Jan 2026**
 recall-app
 ├── .env.local
 ├── .gitignore
-├── APPROVED_DECISIONS.md
 ├── components.json
-├── CONTEXT_FOR_CLAUDE.md
-├── DATABASE_SCHEMA.md
+├── docs
+│   ├── active
+│   │   ├── context.md
+│   │   ├── git-guide.md
+│   │   └── now.md
+│   ├── archive
+│   │   ├── APPROVED_DECISIONS.md
+│   │   ├── CONTEXT_FOR_CLAUDE.md
+│   │   └── FEATURE_PRIORITY.md
+│   ├── reference
+│   │   ├── DATABASE_SCHEMA.md
+│   │   └── FILE_STRUCTURE.md
+│   └── tracking
+│       ├── bugs.md
+│       ├── changelog.md
+│       └── ideas.md
 ├── eslint.config.js
-├── FEATURE_PRIORITY.md
-├── FILE_STRUCTURE.md
 ├── index.html
 ├── jsconfig.json
 ├── package-lock.json
@@ -40,8 +50,8 @@ recall-app
 │   │   │   ├── FlashcardCreate.jsx
 │   │   │   ├── MyFlashcards.jsx
 │   │   │   └── StudyMode.jsx
-│   │   ├── Login.jsx
-│   │   ├── Navigation.jsx
+│   │   ├── layout
+│   │   │   └── Navigation.jsx
 │   │   ├── notes
 │   │   │   ├── index.jsx
 │   │   │   ├── NoteDetail.jsx
@@ -80,138 +90,51 @@ recall-app
 │   │   └── utils.js
 │   ├── main.jsx
 │   ├── pages
+│   │   ├── auth
+│   │   │   ├── ForgotPassword.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── ResetPassword.jsx
+│   │   │   └── Signup.jsx
 │   │   ├── dashboard
-│   │   │   ├── find-friends.jsx
-│   │   │   ├── friend-requests.jsx
-│   │   │   ├── my-contributions.jsx
-│   │   │   ├── my-friends.jsx
-│   │   │   ├── my-notes.jsx
-│   │   │   ├── notes.jsx
-│   │   │   ├── progress.jsx
-│   │   │   ├── review-flashcards.jsx
-│   │   │   └── review-session.jsx
+│   │   │   ├── Content
+│   │   │   │   ├── BrowseNotes.jsx
+│   │   │   │   ├── MyContributions.jsx
+│   │   │   │   └── MyNotes.jsx
+│   │   │   ├── Friends
+│   │   │   │   ├── FindFriends.jsx
+│   │   │   │   ├── FriendRequests.jsx
+│   │   │   │   └── MyFriends.jsx
+│   │   │   └── Study
+│   │   │       ├── Progress.jsx
+│   │   │       ├── ReviewFlashcards.jsx
+│   │   │       └── ReviewSession.jsx
 │   │   ├── Dashboard.jsx
-│   │   ├── ForgotPassword.jsx
 │   │   ├── Home.jsx
 │   │   ├── PrivacyPolicy.jsx
-│   │   ├── ResetPassword.jsx
-│   │   ├── Signup.jsx
 │   │   └── TermsOfService.jsx
 │   ├── store
 │   └── utils
 ├── tailwind.config.js
 ├── vercel.json
 └── vite.config.js
-
-**Last Updated:** December 22, 2025
-**Purpose:** Quick reference for file locations to avoid path confusion
-
----
-
-## 📁 ROOT LEVEL
-```
-recall-app/
-├── node_modules/
-├── public/
-│   └── vite.svg
-├── src/
-├── .gitignore
-├── package.json
-├── vite.config.js
-├── index.html
-├── README.md
-├── CONTEXT_FOR_CLAUDE.md
-├── APPROVED_DECISIONS.md
-├── SESSION_SUMMARY.md
-└── FILE_STRUCTURE.md (this file)
-```
-
----
-
-## 📁 SRC FOLDER STRUCTURE
-```
-src/
-├── assets/
-├── components/
-│   ├── admin/
-│   │   ├── AdminDashboard.jsx
-│   │   └── SuperAdminDashboard.jsx
-│   ├── flashcards/
-│   │   ├── FlashcardCreate.jsx ⭐ (EDITED: Dec 22)
-│   │   ├── MyFlashcards.jsx
-│   │   └── StudyMode.jsx ⭐ (EDITED: Jan 3 - now accepts flashcards prop)
-│   ├── notes/
-│   │   ├── index.jsx
-│   │   ├── NoteDetails.jsx
-│   │   ├── NoteEdit.jsx
-│   │   └── NoteUpload.jsx ⭐ (EDITED: Dec 22)
-│   ├── professor/
-│   │   └── ProfessorTools.jsx
-│   ├── ui/ (shadcn components)
-│   │   ├── button.jsx
-│   │   ├── card.jsx
-│   │   ├── input.jsx
-│   │   ├── label.jsx
-│   │   ├── select.jsx
-│   │   ├── switch.jsx
-│   │   ├── textarea.jsx
-│   │   ├── command.jsx
-│   │   ├── popover.jsx
-│   │   ├── toast.jsx
-│   │   └── ... (other UI components)
-│   ├── Login.jsx
-│   └── Navigation.jsx
-├── contexts/
-│   └── AuthContext.jsx
-├── data/
-├── hooks/
-│   └── use-toast.js
-├── lib/
-│   ├── supabase.js
-│   └── utils.js
-├─├── pages/
-│   ├── Home.jsx
-│   ├── Dashboard.jsx ⭐ (EDITED: Jan 3 - button navigation)
-│   ├── Login.jsx
-│   ├── Signup.jsx
-│   ├── ForgotPassword.jsx
-│   ├── ResetPassword.jsx
-│   ├── TermsOfService.jsx
-│   ├── PrivacyPolicy.jsx
-│   └── dashboard/
-│       ├── my-contributions.jsx
-│       ├── my-notes.jsx
-│       ├── notes.jsx (Browse Notes)
-│       ├── progress.jsx
-│       ├── review-flashcards.jsx
-│       ├── review-session.jsx ⭐ (NEW: Jan 3 - dedicated review route)
-│       └── Review.jsx
-├── store/
-├── utils/
-├── App.jsx
-├── main.jsx
-└── index.css
-```
-
 ---
 
 ## 🎯 KEY FILE LOCATIONS
 
 ### **Authentication:**
 - `src/contexts/AuthContext.jsx` - Auth state management
-- `src/components/Login.jsx` - Login component
-- `src/pages/Login.jsx` - Login page
-- `src/pages/Signup.jsx` - Signup page
+- `src/components/pages/auth/Login.jsx` - Login page
+- `src/components/pages/auth/Signup.jsx` - Signup page
 
 ### **Navigation:**
-- `src/components/Navigation.jsx` - Main navigation bar
+- `src/components/layout/Navigation.jsx` - Main navigation bar
 
 ### **Dashboard:**
 - `src/pages/Dashboard.jsx` - Main dashboard (student-first design)
-- `src/pages/dashboard/my-contributions.jsx` - User's stats
-- `src/pages/dashboard/my-notes.jsx` - User's personal notes
-- `src/pages/dashboard/notes.jsx` - Browse public notes
-- `src/pages/dashboard/progress.jsx` - Analytics page
+- `src/pages/dashboard/Content/MyContributions.jsx` - User's stats
+- `src/pages/dashboard/Content/MyNotes.jsx` - User's personal notes
+- `src/pages/dashboard/Content/BrowseNotes.jsx` - Browse public notes
+- `src/pages/dashboard/Study/Progress.jsx` - Analytics page
 
 ### **Notes:**
 - `src/components/notes/NoteUpload.jsx` - Upload note page ⭐
@@ -244,14 +167,8 @@ src/
   - `src/components/notes/NoteUpload.jsx`
   - `src/components/flashcards/FlashcardCreate.jsx`
 
-### **Common Confusion Points:**
-- ⚠️ Some components are in `src/components/`
-- ⚠️ Some pages are in `src/pages/`
-- ⚠️ Dashboard pages are in `src/pages/dashboard/`
-- ⚠️ There are TWO Login.jsx files (component vs page)
-
 ### **File Naming Convention:**
-- Pages (routes): PascalCase or kebab-case (e.g., `Dashboard.jsx`, `my-notes.jsx`)
+- Pages (routes): PascalCase (e.g., `Dashboard.jsx`, `MyNotes.jsx`)
 - Components: PascalCase (e.g., `Navigation.jsx`, `NoteUpload.jsx`)
 - Utilities: camelCase (e.g., `supabase.js`, `use-toast.js`)
 
