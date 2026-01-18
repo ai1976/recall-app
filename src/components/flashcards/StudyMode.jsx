@@ -154,7 +154,7 @@ export default function StudyMode({
       
       const nextReview = new Date();
       nextReview.setDate(today.getDate() + intervalDays);
-      nextReview.setUTCHours(0, 0, 0, 0);
+      nextReview.setHours(0, 0, 0, 0);
 
       const { error: reviewError } = await supabase
         .from('reviews')
