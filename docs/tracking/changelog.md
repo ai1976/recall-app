@@ -2,6 +2,43 @@
 
 ## Phase 3: Social Features & Friends-Only Content (January 15, 2026) ✅
 
+## January 18, 2026
+## Bug Fix ✅
+"Fix: Spaced repetition timezone bug - use local midnight instead of UTC"
+
+## Modular project documentation restructuring ✅
+- Detached Google Drive from Project Documents
+- Created these four files from the past documents
+  - docs/active/context.md (how app works)
+  - docs/active/now.md (current task)
+  - docs/tracking/changelog.md (if needed for history)
+  - docs/tracking/ideas.md (if planning new features)
+
+## January 17, 2026
+### Refactor: Organize project structure for scalability ✅
+- Batch 1 - Dashboard Pages:
+- Created subfolders: Friends/, Content/, Study/
+- Moved and renamed files to PascalCase
+- FindFriends, FriendRequests, MyFriends -> Friends/
+- MyNotes, BrowseNotes, MyContributions -> Content/
+- ReviewFlashcards, ReviewSession, Progress -> Study/
+
+Batch 2 - Layout Components:
+- Created src/components/layout/
+- Moved Navigation.jsx to layout folder
+
+Batch 3 - Auth Pages:
+- Created src/pages/auth/
+- Consolidated all auth pages: Login, Signup, ForgotPassword, ResetPassword
+- Moved Login.jsx from components to pages/auth
+
+Code Updates:
+- Standardized all imports to use @/ alias (absolute paths)
+- Updated App.jsx with organized import sections
+- Fixed relative imports in all moved files
+
+
+## January 15, 2026
 ### Features Added
 - ✅ Friendships system (pending/accepted/rejected)
 - ✅ Friend request pages (Find Friends, Friend Requests, My Friends)
@@ -45,6 +82,169 @@
 - Added proper error handling and toast notifications
 
 ---
+
+# CHANGELOG - Completed Features
+
+**Project:** Recall  
+**Started:** December 2024
+
+---
+
+## Phase 2: Audit & Attribution (January 2026) ✅
+
+### January 11, 2026
+- ✅ Audit logging system (Phase 1 implementation)
+- ✅ User deletion logging (logs BEFORE deletion)
+- ✅ Admin/super_admin login tracking
+- ✅ Role change logging
+
+### January 10, 2026
+- ✅ Spaced repetition system completely fixed
+- ✅ FlashcardCreate.jsx: Added 6 initialization fields
+- ✅ StudyMode.jsx: Fixed UTC midnight scheduling (setUTCHours)
+- ✅ Database: 284 cards backfilled with next_review values
+- ✅ Added NOT NULL constraint to next_review column
+
+### January 9, 2026
+- ✅ Added `creator_id` to flashcards (user attribution)
+- ✅ Added `content_creator_id` to flashcards (revenue attribution)
+- ✅ Created `content_creators` table for Vivitsu partnership
+- ✅ Backfilled creator_id for existing flashcards
+
+---
+
+## Phase 1: MVP Complete (December 2025 - January 2026) ✅
+
+### January 3, 2026
+- ✅ Created dedicated `/dashboard/review-session` route
+- ✅ Review session fetches ONLY due cards (next_review <= NOW)
+- ✅ StudyMode accepts flashcards prop (flexible usage)
+- ✅ Fixed midnight scheduling (changed setHours → setUTCHours)
+
+### January 2, 2026
+- ✅ Delete entire group functionality (cascade delete)
+- ✅ Edit group info dialog (course/subject/topic/description)
+- ✅ UTF-8 CSV encoding for special characters (₹ symbol)
+- ✅ Native HTML select elements (replaced shadcn Select for stability)
+- ✅ Spaced repetition verified working (Hard/Medium/Easy intervals)
+
+### January 1, 2026
+- ✅ 22 CA Inter students enrolled as pilot batch
+
+### December 28, 2025
+- ✅ Dynamic custom course support
+- ✅ Signup shows custom courses in "Other Courses" group
+- ✅ All dropdowns fetch custom courses from database (notes + flashcards + profiles)
+
+### December 27, 2025
+- ✅ Deployed to Vercel production
+- ✅ Live URL: https://recall-app-omega.vercel.app
+- ✅ All VS Code errors fixed (52 → 20 CSS warnings)
+- ✅ Fixed runtime error in progress.jsx (reviewed_at → created_at)
+- ✅ Removed duplicate AuthContext.jsx from lib/ folder
+
+### December 26, 2025
+- ✅ Terms of Service page (14 sections, Razorpay compliant)
+- ✅ Privacy Policy page (14 sections, GDPR/India IT Act)
+- ✅ Batch tracking system (batch_id + batch_description)
+- ✅ Split 52 old cards into logical batches
+- ✅ Merge functionality for batches
+
+### December 25, 2025
+- ✅ Filter standardization across all 4 pages
+- ✅ Added Course filter to Review Flashcards
+- ✅ Added Course filter to Browse Notes
+- ✅ Inline edit for flashcards
+- ✅ Delete functionality for notes and flashcards
+- ✅ Clear All Filters button
+- ✅ Result count display
+
+### December 21, 2025
+- ✅ Fixed Navigation to show user's full name
+- ✅ Fixed Browse Notes attribution (professor badges)
+- ✅ Created My Notes page (separate from Browse Notes)
+- ✅ User attribution using two-query approach
+
+### December 20, 2025
+- ✅ Dashboard redesigned (student-first approach)
+- ✅ Three dashboard states: New user / Has reviews / All caught up
+- ✅ Student-focused stats (Cards Reviewed, Streak, Accuracy)
+- ✅ Professor content discovery section
+
+### December 19, 2025
+- ✅ Dual-mode navigation (Study/Create dropdowns)
+- ✅ My Progress page with real-time analytics
+- ✅ My Contributions page with real stats
+- ✅ Study streak calculation algorithm
+- ✅ Accuracy percentage calculation (Easy+Medium/Total)
+
+---
+
+## Core Features Implemented ✅
+
+### Authentication & Roles
+- ✅ Email/password authentication via Supabase
+- ✅ Four-tier role system (super_admin/admin/professor/student)
+- ✅ Role-based session timeouts
+- ✅ Role-based permissions matrix
+
+### Notes System
+- ✅ Photo/PDF upload with compression
+- ✅ Target course selection (two-tier content model)
+- ✅ Three-tier visibility (private/friends/public)
+- ✅ Search and filter (Course, Subject, Topic, Visibility, Date)
+- ✅ Delete with cascade warning
+
+### Flashcards System
+- ✅ Manual flashcard creation
+- ✅ Bulk CSV upload (ProfessorTools.jsx)
+- ✅ Batch tracking (batch_id groups uploads)
+- ✅ Three-tier visibility
+- ✅ Inline edit
+- ✅ Delete functionality
+- ✅ Difficulty tagging (easy/medium/hard)
+
+### Spaced Repetition
+- ✅ SuperMemo-2 algorithm implementation
+- ✅ Hard = 1 day, Medium = 3 days, Easy = 7 days
+- ✅ UTC midnight scheduling
+- ✅ Review history tracking (reviews table)
+- ✅ Dedicated review session route
+
+### Social Features
+- ✅ Friendships table with status tracking
+- ✅ Friend request flow (send/accept/reject)
+- ✅ Friends-only content visibility
+- ✅ RLS policies for security
+
+### Admin Features
+- ✅ Super Admin Dashboard (user management, role assignment)
+- ✅ Admin Dashboard (content moderation)
+- ✅ Audit logging (deletions, logins, role changes)
+- ✅ Search and filter users
+
+### UI/UX
+- ✅ Mobile-first responsive design
+- ✅ TailwindCSS + shadcn/ui components
+- ✅ Toast notifications
+- ✅ Loading states
+- ✅ Error handling
+
+---
+
+## Database Migrations Applied ✅
+
+1. `001_add_batch_tracking.sql` - Added batch_id, batch_description
+2. `002_split_52_cards_SIMPLE.sql` - Split old cards into batches
+3. Added creator_id column to flashcards
+4. Added content_creator_id column to flashcards
+5. Created friendships table with indexes
+6. Added visibility column to notes (replaced is_public)
+7. Added visibility column to flashcards (replaced is_public)
+8. Added NOT NULL constraint to next_review
+9. Enabled RLS on flashcards table
+10. Enabled RLS on friendships table
+11. Created 4 RLS policies for friends visibility
 
 ## Previous Phases
 
