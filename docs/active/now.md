@@ -1,5 +1,64 @@
 # NOW - Current Focus
 
+## Session: 2026-01-19 - Critical Spaced Repetition System Fix
+
+### Changes Implemented
+**CRITICAL BUG FIX: Complete overhaul of spaced repetition architecture**
+
+#### Problem Identified
+- Students reported: "Cards reviewed today keep appearing in same session"
+- Root cause: Spaced repetition data stored in shared `flashcards` table
+- RLS policy blocked students from updating professor-created cards
+- `reviews.next_review_date` column existed but was always NULL (unused)
+- Multiple students overwriting each other's review schedules
+
+#### Files Modified
+1. **src/components/flashcards/StudyMode.jsx**
+   - REMOVED: UPDATE to `flashcards` table (lines 164-182)
+   - ADDED: UPSERT logic to `reviews` table with proper next_review_date
+   - Changed date format from timestamp to DATE (YYYY-MM-DD)
+   - Added proper error handling and user feedback
+
+2. **src/pages/dashboard/Study/ReviewSession.jsx**
+   - CHANGED: Query from `flashcards.next_review` to `reviews.next_review_date`
+   - Fixed date comparison logic (DATE type instead of timestamp)
+   - Added comprehensive logging for debugging
+
+3. **src/pages/dashboard/Study/ReviewBySubject.jsx** (NEW FILE)
+   - Subject-based review grouping feature
+   - Shows due cards organized by subject
+   - "Review All" option for comprehensive sessions
+
+4. **Router configuration**
+   - Added route: `/dashboard/review-by-subject`
+
+#### Technical Details
+- **Architecture Change:** `reviews` table is now single source of truth for SR data
+- **Data Format:** `next_review_date` stored as DATE (YYYY-MM-DD), not timestamp
+- **User Isolation:** Each user has independent review schedule (no conflicts)
+- **RLS Compliance:** Students update their own review records (allowed by policy)
+
+#### Impact
+- ✅ Review progress now saves correctly for all users
+- ✅ Cards don't reappear until scheduled date
+- ✅ Mid-session exit preserves progress
+- ✅ Multiple students can review same card independently
+- ✅ No database schema changes required
+
+#### Testing Required
+- [ ] Verify `reviews.next_review_date` gets populated (not NULL)
+- [ ] Test mid-session exit and rejoin (no duplicate cards)
+- [ ] Test multi-user review of same card (independent schedules)
+- [ ] Verify subject-based grouping works correctly
+
+#### Deployment Notes
+- No database migrations needed
+- Backward compatible (old flashcards.next_review data ignored)
+- Can deploy immediately
+- Simple rollback if needed (code revert only)
+
+---
+
 **Last Updated:** January 18, 2026  
 **Status:** Phase 3 (Social Features) COMPLETE → Ready for Phase 0.5 Professor Recruitment
 

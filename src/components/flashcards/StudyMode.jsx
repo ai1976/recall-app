@@ -25,8 +25,7 @@ export default function StudyMode({
   });
 
   useEffect(() => {
-    // ✅ DIAGNOSTIC LOG: Proof that the new file is running
-    console.log("✅ NEW CODE LOADED: StudyMode.jsx is running the robust version");
+    console.log("✅ FIXED VERSION: StudyMode.jsx with reviews table integration");
 
     if (propFlashcards && propFlashcards.length > 0) {
       console.log('✅ Using passed flashcards:', propFlashcards.length);
@@ -52,9 +51,7 @@ export default function StudyMode({
 
       console.log(`📊 Parameters - Subject: ${subjectParam}, Topic: ${topicParam}`);
 
-      // ✅ SIMPLIFIED QUERY: 
-      // We trust the Database Policy (RLS) to filter 'friends' content.
-      // This single line replaces the complex manual friend fetching you had before.
+      // ✅ Query with proper visibility filter
       const filterString = `is_public.eq.true,user_id.eq.${user.id},visibility.eq.friends`;
 
       let query = supabase
@@ -78,11 +75,11 @@ export default function StudyMode({
       // Clean special characters
       let cleanedData = (data || []).map(card => ({
         ...card,
-        front_text: card.front_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || '',
-        back_text: card.back_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || ''
+        front_text: card.front_text?.replace(/[\u25C6\u2666◆�]/g, '').trim() || '',
+        back_text: card.back_text?.replace(/[\u25C6\u2666◆�]/g, '').trim() || ''
       }));
 
-      // Filter by subject/topic locally (Robust handling for joins)
+      // Filter by subject/topic
       if (subjectParam) {
         cleanedData = cleanedData.filter(card => {
           const dbSubject = card.subjects?.name;
@@ -130,85 +127,132 @@ export default function StudyMode({
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.error('❌ No user found');
+        return;
+      }
 
-      const today = new Date();
+      // ✅ Calculate interval and quality score
       let intervalDays;
       let qualityScore;
-      let easeFactor;
+      let easinessFactor;
       
-      // Spaced Repetition Logic
       if (quality === 'easy') {
         intervalDays = 7;
         qualityScore = 5;
-        easeFactor = 2.6;
+        easinessFactor = 2.6;
       } else if (quality === 'medium') {
         intervalDays = 3;
         qualityScore = 3;
-        easeFactor = 2.5;
-      } else {
+        easinessFactor = 2.5;
+      } else { // hard
         intervalDays = 1;
         qualityScore = 1;
-        easeFactor = 2.3;
+        easinessFactor = 2.3;
       }
       
-      const nextReview = new Date();
-      nextReview.setDate(today.getDate() + intervalDays);
-      nextReview.setHours(0, 0, 0, 0);
+      // ✅ Calculate next_review_date as DATE string (YYYY-MM-DD)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Local midnight
+      
+      const nextReviewDate = new Date(today);
+      nextReviewDate.setDate(today.getDate() + intervalDays);
+      
+      // ✅ Format as YYYY-MM-DD (DATE type, not timestamp)
+      const dateString = nextReviewDate.toISOString().split('T')[0];
 
-      const { error: reviewError } = await supabase
+      console.log(`📅 Next review date: ${dateString} (${intervalDays} days from now)`);
+
+      // ✅ Check if review already exists for this card
+      const { data: existingReview, error: selectError } = await supabase
         .from('reviews')
-        .insert({
-          user_id: user.id,
-          flashcard_id: currentCard.id,
-          quality: qualityScore,
-          created_at: new Date().toISOString()
-        });
+        .select('id, repetition')
+        .eq('user_id', user.id)
+        .eq('flashcard_id', currentCard.id)
+        .maybeSingle();
 
-      if (reviewError) console.error('Error saving review:', reviewError);
-
-      const { error: updateError } = await supabase
-        .from('flashcards')
-        .update({
-          next_review: nextReview.toISOString(),
-          interval: intervalDays,
-          ease_factor: easeFactor,
-          repetitions: (currentCard.repetitions || 0) + 1
-        })
-        .eq('id', currentCard.id);
-
-      if (updateError) {
-        console.error('Error updating flashcard:', updateError);
-        toast({
-          title: "Warning",
-          description: "Review saved, but scheduling may not work correctly",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Card saved! ✅",
-          description: `Will review again in ${intervalDays} day${intervalDays > 1 ? 's' : ''}`,
-        });
+      if (selectError) {
+        console.error('❌ Error checking existing review:', selectError);
+        throw selectError;
       }
 
-    } catch (error) {
-      console.error('Error saving review:', error);
+      if (existingReview) {
+        // ✅ UPDATE existing review
+        console.log(`🔄 Updating existing review (ID: ${existingReview.id})`);
+        
+        const { error: updateError } = await supabase
+          .from('reviews')
+          .update({
+            quality: qualityScore,
+            interval: intervalDays,
+            repetition: (existingReview.repetition || 0) + 1,
+            easiness: easinessFactor,
+            next_review_date: dateString,
+            last_reviewed_at: new Date().toISOString()
+          })
+          .eq('id', existingReview.id);
+
+        if (updateError) {
+          console.error('❌ Error updating review:', updateError);
+          throw updateError;
+        }
+
+        console.log('✅ Review updated successfully');
+      } else {
+        // ✅ INSERT new review
+        console.log(`➕ Creating new review for card ${currentCard.id}`);
+        
+        const { error: insertError } = await supabase
+          .from('reviews')
+          .insert({
+            user_id: user.id,
+            flashcard_id: currentCard.id,
+            quality: qualityScore,
+            interval: intervalDays,
+            repetition: 1,
+            easiness: easinessFactor,
+            next_review_date: dateString,
+            last_reviewed_at: new Date().toISOString()
+          });
+
+        if (insertError) {
+          console.error('❌ Error inserting review:', insertError);
+          throw insertError;
+        }
+
+        console.log('✅ New review created successfully');
+      }
+
+      // ✅ Success feedback
       toast({
-        title: "Error saving review",
-        description: error.message,
+        title: "Progress saved! ✅",
+        description: `Next review in ${intervalDays} day${intervalDays > 1 ? 's' : ''}`,
+      });
+
+    } catch (error) {
+      console.error('❌ Error in handleRating:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save progress. Please try again.",
         variant: "destructive"
       });
+      return; // Don't advance to next card if save failed
     }
 
+    // ✅ Only advance if save succeeded
     if (currentIndex < flashcards.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setShowAnswer(false);
     } else {
-      toast({
-        title: "Study session complete! 🎉",
-        description: `You reviewed ${flashcards.length} flashcards`
-      });
-      if (onComplete) onComplete(sessionStats);
+      // Session complete
+      if (onComplete) {
+        onComplete(sessionStats);
+      } else {
+        toast({
+          title: "Study session complete! 🎉",
+          description: `You reviewed ${flashcards.length} flashcards`,
+        });
+      }
     }
   };
 
@@ -416,7 +460,7 @@ export default function StudyMode({
                     
                     {currentCard.back_text ? (
                       <p className="text-xl md:text-2xl font-semibold text-gray-900 whitespace-pre-wrap">
-                        {currentCard.back_text || "No written answer - refer to image"}
+                        {currentCard.back_text}
                       </p>
                     ) : (
                       <p className="text-lg text-gray-500 italic">

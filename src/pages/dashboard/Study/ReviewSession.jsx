@@ -28,23 +28,44 @@ export default function ReviewSession() {
         return;
       }
 
-      // Step 1: Get all flashcard IDs this user has reviewed
-      const { data: reviews, error: reviewsError } = await supabase
+      console.log('✅ FIXED VERSION: Querying reviews.next_review_date');
+
+      // ✅ Get today's date as YYYY-MM-DD string
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Local midnight
+      const todayString = today.toISOString().split('T')[0];
+
+      console.log(`📅 Fetching cards due on or before: ${todayString}`);
+
+      // ✅ Step 1: Get reviews that are due today or earlier
+      const { data: dueReviews, error: reviewsError } = await supabase
         .from('reviews')
-        .select('flashcard_id')
-        .eq('user_id', user.id);
+        .select('flashcard_id, next_review_date, interval')
+        .eq('user_id', user.id)
+        .lte('next_review_date', todayString)
+        .order('next_review_date', { ascending: true });
 
-      if (reviewsError) throw reviewsError;
+      if (reviewsError) {
+        console.error('❌ Error fetching reviews:', reviewsError);
+        throw reviewsError;
+      }
 
-      const reviewedCardIds = reviews?.map(r => r.flashcard_id) || [];
+      console.log(`✅ Found ${dueReviews?.length || 0} due reviews`);
 
-      if (reviewedCardIds.length === 0) {
-        // User hasn't reviewed any cards yet
+      if (!dueReviews || dueReviews.length === 0) {
+        toast({
+          title: "All Caught Up! 🎉",
+          description: "No cards are due for review right now.",
+        });
         setLoading(false);
         return;
       }
 
-      // Step 2: Get flashcards that are due for review RIGHT NOW
+      const dueCardIds = dueReviews.map(r => r.flashcard_id);
+
+      console.log(`📚 Loading ${dueCardIds.length} flashcard(s)`);
+
+      // ✅ Step 2: Get the actual flashcard content
       const { data: cards, error: cardsError } = await supabase
         .from('flashcards')
         .select(`
@@ -62,25 +83,23 @@ export default function ReviewSession() {
           back_image_url,
           difficulty,
           is_verified,
-          next_review,
-          interval,
-          ease_factor,
-          repetitions,
           subjects:subject_id (id, name),
           topics:topic_id (id, name),
           contributors:contributed_by (id, full_name, role)
         `)
-        .in('id', reviewedCardIds)
-        .lte('next_review', new Date().toISOString())
-        .order('next_review', { ascending: true });
+        .in('id', dueCardIds);
 
-      if (cardsError) throw cardsError;
+      if (cardsError) {
+        console.error('❌ Error fetching flashcards:', cardsError);
+        throw cardsError;
+      }
 
       if (!cards || cards.length === 0) {
-        // No cards due right now
+        console.warn('⚠️ Reviews exist but flashcards not found');
         toast({
-          title: "All Caught Up! 🎉",
-          description: "No cards are due for review right now.",
+          title: "Error",
+          description: "Could not load flashcard data. Please try again.",
+          variant: "destructive"
         });
         setLoading(false);
         return;
@@ -95,11 +114,13 @@ export default function ReviewSession() {
         custom_topic: card.custom_topic?.replace(/[\u25C6\u2666◆�]/g, '').trim() || null
       }));
 
+      console.log(`✅ Successfully loaded ${cleanedCards.length} flashcards for review`);
+
       setDueCards(cleanedCards);
       setShowStudyMode(true); // Automatically start study mode
 
     } catch (error) {
-      console.error('Error fetching due cards:', error);
+      console.error('❌ Error in fetchDueCards:', error);
       toast({
         title: "Error",
         description: "Failed to load review session. Please try again.",

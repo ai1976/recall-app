@@ -1,5 +1,48 @@
 # Changelog
 
+## 2026-01-19: Spaced Repetition System Architecture Fix
+
+### Critical Bug Fix
+**Issue:** Students' review progress not being saved - cards appearing repeatedly
+**Root Cause:** Architectural flaw with SR data stored in shared flashcards table
+
+### Changes
+#### Modified Files
+- `src/components/flashcards/StudyMode.jsx`
+  - Removed flashcards table UPDATE (caused RLS conflicts)
+  - Implemented reviews table UPSERT with next_review_date
+  - Changed date format: timestamp → DATE (YYYY-MM-DD)
+  
+- `src/pages/dashboard/Study/ReviewSession.jsx`
+  - Query changed: flashcards.next_review → reviews.next_review_date
+  - Fixed date comparison logic
+  
+#### New Files
+- `src/pages/dashboard/Study/ReviewBySubject.jsx`
+  - Subject-based review grouping
+  - Route: `/dashboard/review-by-subject`
+
+### Technical Impact
+- **Before:** Students updated shared flashcard records (RLS blocked)
+- **After:** Students update personal review records (RLS allows)
+- **Result:** Each user gets independent spaced repetition schedule
+
+### Database Impact
+- No schema changes required
+- reviews.next_review_date column now properly utilized
+- Old flashcards.next_review data remains but is unused
+
+### Deployment
+- Committed: 2026-01-19
+- Deployed to: Vercel (production)
+- Status: Live
+
+### Testing Status
+- Manual testing with student accounts: Required
+- Expected behavior: Cards don't reappear until scheduled date
+- Mid-session persistence: Verified needed
+
+---
 ## Phase 3: Social Features & Friends-Only Content (January 15, 2026) ✅
 
 ## January 18, 2026

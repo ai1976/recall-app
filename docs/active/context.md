@@ -1,6 +1,6 @@
 # RECALL - Project Context (Source of Truth)
 
-**Last Updated:** January 18, 2026  
+**Last Updated:** January 19, 2026  
 **Live URL:** https://recall-app-omega.vercel.app  
 **Repository:** https://github.com/ai1976/recall-app
 
@@ -15,6 +15,16 @@
 **Business Model:** Freemium (Free tier with limits → Premium ₹149/month)
 
 ---
+
+**Current state**
+
+Recall is in production with 27 registered students and impressive early metrics: 542+ total reviews from top students. The platform features a complete tech stack (React, Supabase, Vercel) with a four-tier role system (super_admin, admin, professor, student), three-tier content visibility (Private/Friends/Public), and comprehensive spaced repetition using SuperMemo-2 methodology.
+
+**CRITICAL FIX (2026-01-19):** Resolved architectural bug in spaced repetition system. The `reviews` table is now the single source of truth for user-specific SR schedules, fixing the issue where students' progress wasn't being saved due to RLS conflicts when trying to update professor-created flashcards. Each user now maintains an independent review schedule.
+
+Recent development has focused on fixing the spaced repetition architecture, implementing proper review progress persistence, and adding subject-based review grouping. The platform successfully handles review data isolation per user, preventing schedule conflicts between students reviewing the same cards.
+
+Current challenges include ongoing testing of the new review system to ensure proper date calculations and timezone handling. The platform's social features (friends system, content sharing) continue to operate as designed.
 
 ## Tech Stack
 

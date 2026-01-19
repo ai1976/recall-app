@@ -33,6 +33,7 @@ import MyContributions from '@/pages/dashboard/Content/MyContributions'
 import ReviewFlashcards from '@/pages/dashboard/Study/ReviewFlashcards'
 import ReviewSession from '@/pages/dashboard/Study/ReviewSession'
 import MyProgress from '@/pages/dashboard/Study/Progress'
+import ReviewBySubject from '@/pages/dashboard/Study/ReviewBySubject';
 
 // Note Components
 import NoteUpload from '@/components/notes/NoteUpload'
@@ -153,6 +154,10 @@ function App() {
           <Route
             path="/dashboard/study"
             element={session ? <StudyMode /> : <Navigate to="/login" replace />}
+          />
+          <Route 
+          path="/dashboard/review-by-subject" 
+          element={<ReviewBySubject />} 
           />
           
           {/* Progress & Contributions Routes */}
