@@ -93,7 +93,6 @@ export default function Dashboard() {
   };
 
   const fetchReviewStats = async (userId) => {
-    // 1. Fetch Review History
     const { data: reviews } = await supabase
       .from('reviews')
       .select('created_at, quality, flashcard_id, next_review_date')
@@ -101,7 +100,6 @@ export default function Dashboard() {
 
     const reviewList = reviews || [];
 
-    // 2. Calculate Streak & Weekly Stats
     if (reviewList.length > 0) {
       const sortedReviews = [...reviewList].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       
@@ -121,7 +119,6 @@ export default function Dashboard() {
       setCardsMastered(unique.size);
     }
 
-    // 3. ✅ ARCHITECTURE FIX: ONLY Count Scheduled Reviews (Ignore New Cards)
     const todayStr = new Date().toISOString().split('T')[0];
     const scheduledDueCount = reviewList.filter(r => r.next_review_date <= todayStr).length;
 
@@ -178,6 +175,7 @@ export default function Dashboard() {
         </div>
 
         <div className="space-y-4 sm:space-y-6">
+          {/* New User Onboarding */}
           {isNewUser && (
             <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
               <CardHeader>
@@ -247,7 +245,7 @@ export default function Dashboard() {
             </Card>
           )}
 
-          {/* Stats Grid - Same as before */}
+          {/* Stats Grid */}
           <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -291,7 +289,7 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Quick Actions & Contributions (Same as before) */}
+          {/* Quick Actions */}
           {!isNewUser && (
             <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
               <Card className="hover:bg-accent cursor-pointer transition" onClick={() => navigate('/dashboard/notes/new')}>
@@ -315,6 +313,65 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
+          )}
+
+          {/* My Contributions - RESTORED */}
+          {!isNewUser && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+                  My Contributions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4">
+                  Track your personal study library
+                </p>
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                  
+                  <div 
+                    className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
+                    onClick={() => navigate('/dashboard/my-notes')}
+                  >
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                      <div>
+                        <p className="font-medium text-xs sm:text-sm">My Notes</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">{notesCount} uploaded</p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="text-primary pointer-events-none text-xs sm:text-sm"
+                    >
+                      View →
+                    </Button>
+                  </div>
+
+                  <div 
+                    className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
+                    onClick={() => navigate('/dashboard/flashcards')}
+                  >
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                      <div>
+                        <p className="font-medium text-xs sm:text-sm">My Flashcards</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">{flashcardsCount} created</p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="text-primary pointer-events-none text-xs sm:text-sm"
+                    >
+                      View →
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       </div>
