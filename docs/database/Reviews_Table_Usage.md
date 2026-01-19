@@ -137,3 +137,77 @@ WHERE auth.uid() = user_id
 - New system uses `reviews.next_review_date` exclusively
 
 ---
+
+## Query Patterns for Dashboard Metrics
+
+### Reviews Due Count (Correct Implementation)
+
+**Purpose:** Show user how many cards need review TODAY
+
+**Query:**
+```sql
+SELECT COUNT(DISTINCT flashcard_id)
+FROM reviews
+WHERE user_id = current_user_id
+  AND next_review_date <= CURRENT_DATE;
+```
+
+**JavaScript:**
+```javascript
+const today = new Date().toISOString().split('T')[0];
+
+const { count } = await supabase
+  .from('reviews')
+  .select('flashcard_id', { count: 'exact', head: true })
+  .eq('user_id', user.id)
+  .lte('next_review_date', today);
+```
+
+---
+
+### New Cards Available (Optional Future Feature)
+
+**Purpose:** Show cards user has never studied
+
+**Query:**
+```sql
+-- Cards accessible to user that are NOT in their reviews table
+SELECT COUNT(*)
+FROM flashcards f
+WHERE (f.visibility = 'public' OR f.user_id = current_user_id)
+  AND NOT EXISTS (
+    SELECT 1 FROM reviews r
+    WHERE r.flashcard_id = f.id
+      AND r.user_id = current_user_id
+  );
+```
+
+**Important:** This should be displayed separately from "Reviews Due" with a label like:
+- "New Cards Available: 45"
+- "Learn New Content"
+- "Unstudied Cards: 45"
+
+Do NOT add this to "Reviews Due" count.
+
+---
+
+## Design Philosophy: Review vs. Learning
+
+### Review Mode (Spaced Repetition)
+- **Purpose:** Reinforce previously learned material at optimal intervals
+- **Cards:** Only cards with `next_review_date <= today`
+- **Cognitive Load:** Lower (recognition, recall of familiar content)
+- **Session Type:** "Review Session"
+
+### Learning Mode (New Material)
+- **Purpose:** Initial exposure to brand new content
+- **Cards:** Cards NOT in user's `reviews` table
+- **Cognitive Load:** Higher (first-time processing, encoding)
+- **Session Type:** "Learn New Cards" (separate feature)
+
+### Why Separate?
+1. **Motivation:** Accurate counts prevent overwhelm
+2. **Effectiveness:** Different learning strategies for review vs. new material
+3. **Scheduling:** New cards should be introduced gradually
+4. **User Experience:** Clear expectations ("20 reviews today" vs "200 new + reviews")
+---
