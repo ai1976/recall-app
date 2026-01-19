@@ -33,7 +33,7 @@ export default function ReviewSession() {
         return;
       }
 
-      console.log('🔄 Fetching scheduled + new cards...');
+      console.log('🔄 Fetching ONLY scheduled reviews...');
 
       const todayStr = new Date().toISOString().split('T')[0];
 
@@ -46,67 +46,47 @@ export default function ReviewSession() {
 
       if (reviewsError) throw reviewsError;
       
-      // 2. Get All Tracked IDs (to identify new cards)
-      const { data: allReviews } = await supabase
-        .from('reviews')
-        .select('flashcard_id')
-        .eq('user_id', user.id);
-        
       const scheduledIds = dueReviews?.map(r => r.flashcard_id) || [];
-      const trackedIds = allReviews?.map(r => r.flashcard_id) || [];
 
-      // 3. Fetch Visible Flashcards (Using RLS + Friendship logic)
-      // Get accepted friends first
-      const { data: friendships } = await supabase
-        .from('friendships')
-        .select('user_id, friend_id')
-        .eq('status', 'accepted')
-        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
-        
-      const friendIds = friendships?.map(f => f.user_id === user.id ? f.friend_id : f.user_id) || [];
-      
-      let query = supabase.from('flashcards').select(`
-          id,
-          user_id,
-          front_text,
-          back_text,
-          subjects:subject_id (id, name),
-          custom_subject,
-          visibility
-        `);
-
-      if (friendIds.length > 0) {
-        query = query.or(`visibility.eq.public,user_id.eq.${user.id},and(visibility.eq.friends,user_id.in.(${friendIds.join(',')}))`);
-      } else {
-        query = query.or(`visibility.eq.public,user_id.eq.${user.id}`);
-      }
-
-      const { data: allVisibleCards, error: cardsError } = await query;
-      if (cardsError) throw cardsError;
-
-      // 4. Filter for New Cards (Visible - Tracked)
-      const newCards = (allVisibleCards || []).filter(c => !trackedIds.includes(c.id));
-      
-      // 5. Get Content for Scheduled Cards
-      const scheduledCards = (allVisibleCards || []).filter(c => scheduledIds.includes(c.id));
-
-      // 6. Combine
-      const totalSession = [...scheduledCards, ...newCards];
-
-      console.log(`✅ Found: ${scheduledCards.length} Scheduled + ${newCards.length} New = ${totalSession.length} Total`);
-
-      if (totalSession.length === 0) {
+      if (scheduledIds.length === 0) {
         setLoading(false);
         setDueCards([]);
         return;
       }
 
+      // 2. Get Content for Scheduled Cards ONLY
+      const { data: cards, error: cardsError } = await supabase
+        .from('flashcards')
+        .select(`
+          id,
+          user_id,
+          contributed_by,
+          target_course,
+          subject_id,
+          custom_subject,
+          topic_id,
+          custom_topic,
+          front_text,
+          front_image_url,
+          back_text,
+          back_image_url,
+          difficulty,
+          is_verified,
+          subjects:subject_id (id, name),
+          topics:topic_id (id, name)
+        `)
+        .in('id', scheduledIds);
+
+      if (cardsError) throw cardsError;
+
       // Clean text
-      const cleanedCards = totalSession.map(card => ({
+      const cleanedCards = (cards || []).map(card => ({
         ...card,
         front_text: card.front_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || '',
         back_text: card.back_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || ''
       }));
+
+      console.log(`✅ Found: ${cleanedCards.length} Scheduled Reviews`);
 
       setDueCards(cleanedCards);
       groupCardsBySubject(cleanedCards);
@@ -127,6 +107,8 @@ export default function ReviewSession() {
     const groups = {};
     
     cards.forEach(card => {
+      // Grouping by Subject > Topic hierarchy can be added later if needed,
+      // but for "Reviews", simple Subject grouping is usually best.
       const subjectName = card.subjects?.name || card.custom_subject || 'General';
       
       if (!groups[subjectName]) {
@@ -156,7 +138,6 @@ export default function ReviewSession() {
   };
 
   const handleExitStudy = () => {
-    // Just go back to the list instead of dashboard
     setActiveSessionCards(null);
     setLoading(true);
     fetchDueCards();
@@ -178,7 +159,6 @@ export default function ReviewSession() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <Button
@@ -229,10 +209,10 @@ export default function ReviewSession() {
                 <Clock className="h-8 w-8 text-green-600" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">All Caught Up! 🎉</h2>
-              <p className="text-gray-600 mb-6">No cards are due right now.</p>
+              <p className="text-gray-600 mb-6">No scheduled reviews due right now.</p>
               <div className="space-y-3">
                 <Button onClick={() => navigate('/dashboard')}>Return to Dashboard</Button>
-                <Button variant="outline" onClick={() => navigate('/dashboard/review-flashcards')}>Practice Anyway</Button>
+                <Button variant="outline" onClick={() => navigate('/dashboard/review-flashcards')}>Study New Cards</Button>
               </div>
             </CardContent>
           </Card>
@@ -249,7 +229,7 @@ export default function ReviewSession() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Today's Reviews</h1>
             <p className="text-gray-600">
-              You have {dueCards.length} total cards due for review
+              You have {dueCards.length} scheduled cards due
             </p>
           </div>
           <Button variant="outline" onClick={() => navigate('/dashboard')}>
