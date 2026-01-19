@@ -26,6 +26,10 @@ Recent development has focused on fixing the spaced repetition architecture, imp
 
 Current challenges include ongoing testing of the new review system to ensure proper date calculations and timezone handling. The platform's social features (friends system, content sharing) continue to operate as designed.
 
+**CRITICAL FIX (2026-01-19):** Resolved architectural bug in spaced repetition system. The `reviews` table is now the single source of truth for user-specific SR schedules, fixing the issue where students' progress wasn't being saved due to RLS conflicts when trying to update professor-created flashcards. Each user now maintains an independent review schedule.
+
+**POST-DEPLOYMENT REFINEMENT (2026-01-19):** After initial deployment, refined review count logic to separate spaced repetition (scheduled reviews) from new learning (unstudied cards). Dashboard "Reviews Due" now shows only cards with scheduled review dates, aligning with SR best practices and preventing user overwhelm from inflated counts. "My Contributions" dashboard section restored after accidental removal during refactor.
+
 ## Tech Stack
 
 | Layer | Technology | Notes |
@@ -236,6 +240,10 @@ recall-app
 │   │   ├── APPROVED_DECISIONS.md
 │   │   ├── CONTEXT_FOR_CLAUDE.md
 │   │   └── FEATURE_PRIORITY.md
+│   ├── database
+│   │   └── Reviews_Table_Usage.md
+│   ├── design
+│   │   └── SPACED_REPETITION_PHILOSOPHY.md
 │   ├── reference
 │   │   ├── DATABASE_SCHEMA.md
 │   │   └── FILE_STRUCTURE.md
@@ -329,6 +337,7 @@ recall-app
 │   │   │   │   └── MyFriends.jsx
 │   │   │   └── Study
 │   │   │       ├── Progress.jsx
+│   │   │       ├── ReviewBySubject.jsx
 │   │   │       ├── ReviewFlashcards.jsx
 │   │   │       └── ReviewSession.jsx
 │   │   ├── Dashboard.jsx

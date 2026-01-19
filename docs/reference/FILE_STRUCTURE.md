@@ -13,6 +13,10 @@ recall-app
 │   │   ├── APPROVED_DECISIONS.md
 │   │   ├── CONTEXT_FOR_CLAUDE.md
 │   │   └── FEATURE_PRIORITY.md
+│   ├── database
+│   │   └── Reviews_Table_Usage.md
+│   ├── design
+│   │   └── SPACED_REPETITION_PHILOSOPHY.md
 │   ├── reference
 │   │   ├── DATABASE_SCHEMA.md
 │   │   └── FILE_STRUCTURE.md
@@ -106,6 +110,7 @@ recall-app
 │   │   │   │   └── MyFriends.jsx
 │   │   │   └── Study
 │   │   │       ├── Progress.jsx
+│   │   │       ├── ReviewBySubject.jsx
 │   │   │       ├── ReviewFlashcards.jsx
 │   │   │       └── ReviewSession.jsx
 │   │   ├── Dashboard.jsx
@@ -117,6 +122,7 @@ recall-app
 ├── tailwind.config.js
 ├── vercel.json
 └── vite.config.js
+
 ---
 
 ## 🎯 KEY FILE LOCATIONS

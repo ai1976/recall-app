@@ -45,17 +45,57 @@
 - ✅ Multiple students can review same card independently
 - ✅ No database schema changes required
 
-#### Testing Required
-- [ ] Verify `reviews.next_review_date` gets populated (not NULL)
-- [ ] Test mid-session exit and rejoin (no duplicate cards)
-- [ ] Test multi-user review of same card (independent schedules)
-- [ ] Verify subject-based grouping works correctly
-
 #### Deployment Notes
 - No database migrations needed
 - Backward compatible (old flashcards.next_review data ignored)
 - Can deploy immediately
 - Simple rollback if needed (code revert only)
+
+### Post-Deployment Fixes (Same Day)
+
+#### Fix 1: Separate Spaced Repetition from New Learning
+**Problem:** Dashboard showed inflated "Reviews Due" count by including never-studied cards
+**Impact:** Users felt overwhelmed by large numbers that weren't actually due for review
+
+**Strategic Change:**
+- "Reviews Due" now strictly counts cards with `next_review_date <= today`
+- "New Cards" (never studied) are excluded from daily review count
+- Aligns with spaced repetition best practices (separate new learning from reviews)
+
+**Code Changes:**
+- `Dashboard.jsx`: Removed logic that fetched and counted new cards in "Reviews Due"
+- `ReviewSession.jsx`: Removed logic that added new cards to review sessions
+- Result: Review count now reflects only scheduled reviews, not new content
+
+**Rationale:**
+- Spaced repetition systems should distinguish between:
+  - **Review Mode:** Cards you've studied before that are due for reinforcement
+  - **Learning Mode:** Brand new cards you've never seen
+- Mixing these creates confusion and reduces effectiveness
+
+---
+
+#### Fix 2: Restore Missing UI Section in Dashboard
+**Problem:** "My Contributions" card accidentally removed during refactor
+**Impact:** Users couldn't see their upload counts (notes, flashcards)
+
+**Code Changes:**
+- `Dashboard.jsx`: Restored "My Contributions" card
+- Fixed ESLint warnings for unused `notesCount` and `flashcardsCount` variables
+
+**Files Modified:**
+- `src/pages/dashboard/Dashboard.jsx` (both fixes)
+- `src/pages/dashboard/Study/ReviewSession.jsx` (Fix 1 only)
+
+---
+
+### Testing Status (Updated)
+- [x] Basic review save functionality verified
+- [x] Mid-session persistence working
+- [x] Review count accuracy confirmed (excludes new cards)
+- [x] Dashboard UI completeness verified
+- [ ] Multi-user testing pending
+- [ ] Subject-based grouping testing pending
 
 ---
 
