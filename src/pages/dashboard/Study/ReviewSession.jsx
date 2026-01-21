@@ -33,16 +33,23 @@ export default function ReviewSession() {
         return;
       }
 
-      console.log('🔄 Fetching ONLY scheduled reviews...');
+      console.log('🔄 Fetching ONLY scheduled reviews (Local Date)...');
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      // ✅ FIX: Strict Local Date for Querying
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const todayString = `${year}-${month}-${day}`;
+
+      console.log(`📅 Today is: ${todayString}`);
 
       // 1. Get Scheduled Reviews (Due Today or earlier)
       const { data: dueReviews, error: reviewsError } = await supabase
         .from('reviews')
         .select('flashcard_id')
         .eq('user_id', user.id)
-        .lte('next_review_date', todayStr);
+        .lte('next_review_date', todayString);
 
       if (reviewsError) throw reviewsError;
       
@@ -107,8 +114,6 @@ export default function ReviewSession() {
     const groups = {};
     
     cards.forEach(card => {
-      // Grouping by Subject > Topic hierarchy can be added later if needed,
-      // but for "Reviews", simple Subject grouping is usually best.
       const subjectName = card.subjects?.name || card.custom_subject || 'General';
       
       if (!groups[subjectName]) {
@@ -159,6 +164,7 @@ export default function ReviewSession() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <Button

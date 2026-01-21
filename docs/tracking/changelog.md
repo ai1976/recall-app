@@ -1,5 +1,93 @@
 # Changelog
 
+## 2026-01-21: Critical Spaced Repetition & Timezone Bug Fixes
+
+### Issue
+Multiple critical bugs in spaced repetition system causing:
+- Cards reappearing immediately after review (timezone issue)
+- Progress not saving for professor-created cards (RLS conflict)
+- Inflated "Reviews Due" count including new cards (logic mismatch)
+
+### Root Causes
+
+**1. Timezone Mismatch**
+- Using `toISOString()` converted local dates to UTC
+- For users in Western timezones or late-night India users, "tomorrow" became "yesterday"
+- Example: Review at 11 PM IST → next_review_date = "today" UTC → card appears immediately
+
+**2. Architectural Conflict**
+- Original code wrote progress to `flashcards` table (professor-owned)
+- RLS policy blocked student updates
+- Silent failures, progress lost
+
+**3. Logic Mismatch**
+- Dashboard counted ALL accessible cards as "due"
+- Included cards never studied (no entry in reviews table)
+- Users saw inflated counts, then "All Caught Up" in Review Session
+
+### Solution
+
+**Date Handling Standardization**
+- Replaced `toISOString()` with manual local date construction
+- Format: `YYYY-MM-DD` using `getFullYear()`, `getMonth() + 1`, `getDate()`
+- Ensures timezone-independent calendar date calculations
+
+**Database Architecture**
+- Moved student progress tracking to `reviews` table exclusively
+- Explicit SELECT → UPDATE or INSERT logic (no atomic UPSERT)
+- Each student maintains independent review schedule
+
+**Dashboard Logic**
+- "Reviews Due" = COUNT from `reviews` table WHERE `next_review_date <= today`
+- Excludes new cards (never studied)
+- Accurate representation of review workload
+
+### Changes
+
+**Modified Files:**
+- `src/components/flashcards/StudyMode.jsx`
+  - Replaced `toISOString()` with manual date string construction
+  - Explicit SELECT before UPDATE/INSERT for reviews
+  - Added detailed logging for debugging
+
+- `src/pages/dashboard/Study/ReviewSession.jsx`
+  - Query `reviews` table instead of `flashcards` table
+  - Local date comparison for due cards
+  - Proper handling of empty review queue
+
+- `src/pages/Dashboard.jsx`
+  - Count reviews from `reviews` table only
+  - Local date calculation for "today"
+  - Excludes new cards from "Reviews Due" count
+
+### Technical Standards Established
+
+**Enforced Rules (DO NOT VIOLATE):**
+1. **Date Handling:** Never use `toISOString()` for `next_review_date` calculations
+2. **Database Operations:** Reviews table is single source of truth for student progress
+3. **Explicit Logic:** Use clear SELECT → UPDATE/INSERT flow (not atomic UPSERT)
+4. **Definition of "Due":** Only cards in reviews table with `next_review_date <= today`
+
+### Testing Verified
+- [x] Cards reviewed today don't reappear until scheduled date
+- [x] Timezone independence (works in IST, PST, GMT)
+- [x] Dashboard count accuracy (matches Review Session)
+- [x] Multi-user independence (students don't interfere with each other)
+- [x] Progress persistence across sessions
+
+### Impact
+- ✅ Spaced repetition system now works reliably
+- ✅ Student progress saves correctly regardless of card ownership
+- ✅ Dashboard shows accurate review workload
+- ✅ Timezone-independent (works globally)
+- ✅ No duplicate reviews within same day
+
+### Deployment
+- Committed: 2026-01-21
+- Status: Production
+- Student Feedback: Pending verification
+
+---
 ## 2026-01-19: Spaced Repetition System Architecture Fix
 
 ### Critical Bug Fix

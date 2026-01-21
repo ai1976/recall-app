@@ -1,6 +1,6 @@
 # RECALL - Project Context (Source of Truth)
 
-**Last Updated:** January 19, 2026  
+**Last Updated:** January 21, 2026  
 **Live URL:** https://recall-app-omega.vercel.app  
 **Repository:** https://github.com/ai1976/recall-app
 
@@ -15,7 +15,55 @@
 **Business Model:** Freemium (Free tier with limits → Premium ₹149/month)
 
 ---
+---
 
+## Spaced Repetition & Timezone Standards
+
+### Critical Bug Fix (2026-01-21)
+
+#### Root Causes Identified
+1. **Timezone Mismatch:** Using `toISOString()` (UTC) caused "Next Review Date" to be calculated as "Yesterday" for users in Western timezones (or late night in India), causing cards to reappear immediately.
+2. **Architectural Conflict:** Progress was originally writing to `flashcards` table (Professor-owned), causing RLS failures.
+3. **Logic Mismatch:** Dashboard counted "New Cards" as "Due", creating "All Caught Up" false positives when entering Review Session.
+
+#### Enforced Technical Rules
+
+**Date Handling (CRITICAL - NEVER VIOLATE):**
+- ❌ **NEVER** use `date.toISOString()` for calculating `next_review_date`
+- ✅ **ALWAYS** construct Local Date strings manually (YYYY-MM-DD) using `getFullYear()`, `getMonth()`, `getDate()`
+- **Reason:** Ensures "Tomorrow" means the user's calendar tomorrow, regardless of Server UTC time
+
+**Example (Correct Implementation):**
+```javascript// ✅ CORRECT: Local date calculation
+const today = new Date();
+const nextDate = new Date(today);
+nextDate.setDate(today.getDate() + intervalDays);const nextReviewDate = ${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')};
+// Result: "2026-01-24" (local calendar date)// ❌ WRONG: UTC conversion
+const wrong = nextDate.toISOString().split('T')[0];
+// Problem: May return "2026-01-23" if local time is after 6:30 PM IST
+
+**Database Operations (StudyMode.jsx):**
+- **Source of Truth:** Student progress stored EXCLUSIVELY in `reviews` table
+- **Explicit Logic:** Use explicit `SELECT → IF exists UPDATE → ELSE INSERT` flow
+- **Reason:** Do not use single-command atomic UPSERTs to ensure code readability and stability
+
+**Dashboard & Review Logic:**
+- **Definition of "Due":** A card is due ONLY if it exists in `reviews` table AND `next_review_date <= Today` (Local)
+- **Separation:** "New Cards" (never studied) are excluded from Dashboard count
+- **Access:** New cards accessible via Library (ReviewFlashcards.jsx), not Review Session
+
+#### Files Modified
+- `src/components/flashcards/StudyMode.jsx` - Fixed date math + explicit DB logic
+- `src/pages/dashboard/Study/ReviewSession.jsx` - Query reviews table + local date comparison
+- `src/pages/Dashboard.jsx` - Count reviews table + local date comparison
+
+#### Impact
+- ✅ Cards no longer reappear immediately after review
+- ✅ Timezone-independent behavior (works globally)
+- ✅ Accurate "Reviews Due" count on Dashboard
+- ✅ Student progress saves reliably regardless of card ownership
+
+---
 **Current state**
 
 Recall is in production with 27 registered students and impressive early metrics: 542+ total reviews from top students. The platform features a complete tech stack (React, Supabase, Vercel) with a four-tier role system (super_admin, admin, professor, student), three-tier content visibility (Private/Friends/Public), and comprehensive spaced repetition using SuperMemo-2 methodology.

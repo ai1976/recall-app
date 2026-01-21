@@ -1,5 +1,66 @@
 # NOW - Current Focus
 
+## Session: 2026-01-21 - Critical Spaced Repetition & Timezone Fixes
+
+### Changes Implemented
+**CRITICAL BUG FIX: Spaced repetition infinite loop and timezone issues**
+
+#### Problems Identified
+1. **Timezone Bug:** Using `toISOString()` caused cards to reappear immediately
+   - UTC conversion made "tomorrow" become "yesterday" for certain timezones
+   - Students in Western timezones or late-night India sessions affected
+   
+2. **Architectural Issue:** Progress writing to wrong table
+   - Attempted updates to professor-owned `flashcards` table
+   - RLS policies blocked student updates (silent failures)
+   
+3. **Logic Issue:** Dashboard counting wrong cards
+   - Included new (unstudied) cards in "Reviews Due" count
+   - Created false "All Caught Up" messages
+
+#### Solution Implemented
+
+**Date Handling Standardization:**
+- Replaced ALL `toISOString()` usage with manual local date construction
+- Format: `YYYY-MM-DD` built from `getFullYear()`, `getMonth() + 1`, `getDate()`
+- Ensures calendar dates are timezone-independent
+
+**Database Architecture:**
+- `reviews` table is now exclusive source of truth for student progress
+- Explicit SELECT → UPDATE or INSERT logic
+- Clear, readable code (no atomic UPSERT confusion)
+
+**Dashboard Logic:**
+- "Reviews Due" = cards in `reviews` table with `next_review_date <= today` (local)
+- New cards excluded from count
+- Accurate representation of actual review workload
+
+#### Technical Standards Established
+
+**ENFORCED RULES (Never Violate):**
+1. Date Handling: Never use `toISOString()` for next_review_date
+2. Database: Reviews table is single source of truth
+3. Logic: Explicit SELECT before UPDATE/INSERT
+4. Definition: "Due" = in reviews table + scheduled for today or earlier
+
+#### Files Modified
+- `src/components/flashcards/StudyMode.jsx` (date math + DB logic)
+- `src/pages/dashboard/Study/ReviewSession.jsx` (query + date comparison)
+- `src/pages/Dashboard.jsx` (count logic + date comparison)
+
+#### Testing Required
+- [ ] Verify cards don't reappear same day
+- [ ] Test timezone independence (IST, PST, GMT)
+- [ ] Confirm dashboard count matches review session
+- [ ] Check multi-user independence
+- [ ] Verify progress persists across sessions
+
+#### Documentation Updated
+- context.md: Added "Spaced Repetition & Timezone Standards" section
+- changelog.md: Added detailed entry for this fix
+- now.md: This session summary
+
+---
 ## Session: 2026-01-19 - Critical Spaced Repetition System Fix
 
 ### Changes Implemented

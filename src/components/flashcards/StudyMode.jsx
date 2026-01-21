@@ -25,7 +25,7 @@ export default function StudyMode({
   });
 
   useEffect(() => {
-    console.log("✅ FIXED VERSION: StudyMode.jsx with reviews table integration");
+    console.log("✅ STABLE VERSION: StudyMode.jsx with Explicit DB Logic");
 
     if (propFlashcards && propFlashcards.length > 0) {
       console.log('✅ Using passed flashcards:', propFlashcards.length);
@@ -51,7 +51,6 @@ export default function StudyMode({
 
       console.log(`📊 Parameters - Subject: ${subjectParam}, Topic: ${topicParam}`);
 
-      // ✅ Query with proper visibility filter
       const filterString = `is_public.eq.true,user_id.eq.${user.id},visibility.eq.friends`;
 
       let query = supabase
@@ -75,8 +74,8 @@ export default function StudyMode({
       // Clean special characters
       let cleanedData = (data || []).map(card => ({
         ...card,
-        front_text: card.front_text?.replace(/[\u25C6\u2666◆�]/g, '').trim() || '',
-        back_text: card.back_text?.replace(/[\u25C6\u2666◆�]/g, '').trim() || ''
+        front_text: card.front_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || '',
+        back_text: card.back_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || ''
       }));
 
       // Filter by subject/topic
@@ -94,12 +93,6 @@ export default function StudyMode({
           const customTopic = card.custom_topic;
           return dbTopic === topicParam || customTopic === topicParam;
         });
-      }
-
-      console.log(`✅ Final Filtered Cards: ${cleanedData.length}`);
-
-      if (cleanedData.length === 0) {
-        console.warn("⚠️ No cards matched the subject/topic filter.");
       }
 
       // Shuffle
@@ -132,7 +125,7 @@ export default function StudyMode({
         return;
       }
 
-      // ✅ Calculate interval and quality score
+      // 1. Calculate Interval
       let intervalDays;
       let qualityScore;
       let easinessFactor;
@@ -151,19 +144,21 @@ export default function StudyMode({
         easinessFactor = 2.3;
       }
       
-      // ✅ Calculate next_review_date as DATE string (YYYY-MM-DD)
+      // 2. ✅ FIX: Strict Local Date Calculation (Replacing UTC logic)
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Local midnight
+      const nextDate = new Date(today);
+      nextDate.setDate(today.getDate() + intervalDays);
       
-      const nextReviewDate = new Date(today);
-      nextReviewDate.setDate(today.getDate() + intervalDays);
-      
-      // ✅ Format as YYYY-MM-DD (DATE type, not timestamp)
-      const dateString = nextReviewDate.toISOString().split('T')[0];
+      // Manually construct YYYY-MM-DD using Local Time
+      // This prevents the "Yesterday in UTC" bug which causes loops
+      const year = nextDate.getFullYear();
+      const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+      const day = String(nextDate.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
 
-      console.log(`📅 Next review date: ${dateString} (${intervalDays} days from now)`);
+      console.log(`📅 Scheduling Card ${currentCard.id} for: ${dateString} (Local)`);
 
-      // ✅ Check if review already exists for this card
+      // 3. Explicitly Check for existing review (Stability over Optimization)
       const { data: existingReview, error: selectError } = await supabase
         .from('reviews')
         .select('id, repetition')
@@ -171,13 +166,10 @@ export default function StudyMode({
         .eq('flashcard_id', currentCard.id)
         .maybeSingle();
 
-      if (selectError) {
-        console.error('❌ Error checking existing review:', selectError);
-        throw selectError;
-      }
+      if (selectError) throw selectError;
 
       if (existingReview) {
-        // ✅ UPDATE existing review
+        // UPDATE existing review
         console.log(`🔄 Updating existing review (ID: ${existingReview.id})`);
         
         const { error: updateError } = await supabase
@@ -192,14 +184,11 @@ export default function StudyMode({
           })
           .eq('id', existingReview.id);
 
-        if (updateError) {
-          console.error('❌ Error updating review:', updateError);
-          throw updateError;
-        }
-
+        if (updateError) throw updateError;
         console.log('✅ Review updated successfully');
+
       } else {
-        // ✅ INSERT new review
+        // INSERT new review
         console.log(`➕ Creating new review for card ${currentCard.id}`);
         
         const { error: insertError } = await supabase
@@ -215,36 +204,31 @@ export default function StudyMode({
             last_reviewed_at: new Date().toISOString()
           });
 
-        if (insertError) {
-          console.error('❌ Error inserting review:', insertError);
-          throw insertError;
-        }
-
+        if (insertError) throw insertError;
         console.log('✅ New review created successfully');
       }
 
-      // ✅ Success feedback
+      // Success feedback
       toast({
         title: "Progress saved! ✅",
         description: `Next review in ${intervalDays} day${intervalDays > 1 ? 's' : ''}`,
       });
 
     } catch (error) {
-      console.error('❌ Error in handleRating:', error);
+      console.error('❌ Error saving review:', error);
       toast({
         title: "Error",
-        description: "Failed to save progress. Please try again.",
+        description: "Failed to save progress.",
         variant: "destructive"
       });
-      return; // Don't advance to next card if save failed
+      return; // Don't advance if failed
     }
 
-    // ✅ Only advance if save succeeded
+    // 4. Advance to Next Card
     if (currentIndex < flashcards.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setShowAnswer(false);
     } else {
-      // Session complete
       if (onComplete) {
         onComplete(sessionStats);
       } else {
@@ -252,6 +236,7 @@ export default function StudyMode({
           title: "Study session complete! 🎉",
           description: `You reviewed ${flashcards.length} flashcards`,
         });
+        if(onExit) onExit();
       }
     }
   };
@@ -292,9 +277,6 @@ export default function StudyMode({
             <Button onClick={handleExit}>
               Choose Different Subject
             </Button>
-            <p className="text-xs text-gray-400 mt-4">
-              Debug: Params {searchParams.get('subject')} / {searchParams.get('topic')}
-            </p>
           </div>
         </div>
       </div>

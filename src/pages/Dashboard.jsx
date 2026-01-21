@@ -119,8 +119,15 @@ export default function Dashboard() {
       setCardsMastered(unique.size);
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const scheduledDueCount = reviewList.filter(r => r.next_review_date <= todayStr).length;
+    // ✅ FIX: Strict Local Date for Counting (Due Today or Earlier)
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayString = `${year}-${month}-${day}`;
+
+    // Filter list locally
+    const scheduledDueCount = reviewList.filter(r => r.next_review_date <= todayString).length;
 
     setReviewsDue(scheduledDueCount);
   };
@@ -315,7 +322,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* My Contributions - RESTORED */}
+          {/* My Contributions */}
           {!isNewUser && (
             <Card>
               <CardHeader>
