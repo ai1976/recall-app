@@ -1,6 +1,6 @@
 # RECALL - Project Context (Source of Truth)
 
-**Last Updated:** January 21, 2026  
+**Last Updated:** January 24, 2026  
 **Live URL:** https://recall-app-omega.vercel.app  
 **Repository:** https://github.com/ai1976/recall-app
 
@@ -66,17 +66,13 @@ const wrong = nextDate.toISOString().split('T')[0];
 ---
 **Current state**
 
+**Current state**
+
 Recall is in production with 27 registered students and impressive early metrics: 542+ total reviews from top students. The platform features a complete tech stack (React, Supabase, Vercel) with a four-tier role system (super_admin, admin, professor, student), three-tier content visibility (Private/Friends/Public), and comprehensive spaced repetition using SuperMemo-2 methodology.
 
-**CRITICAL FIX (2026-01-19):** Resolved architectural bug in spaced repetition system. The `reviews` table is now the single source of truth for user-specific SR schedules, fixing the issue where students' progress wasn't being saved due to RLS conflicts when trying to update professor-created flashcards. Each user now maintains an independent review schedule.
+**DASHBOARD REDESIGN (2026-01-24):** Implemented Phase 1C with anonymous class statistics. New `AnonymousStats` component shows "You vs Class" comparison using Tailwind progress bars, class milestones (students studied today, 7-day streaks), with privacy-first design (min 5 users for averages, course-level filtering). SQL function `get_anonymous_class_stats()` uses SECURITY DEFINER to aggregate across users while respecting privacy. Quick Actions expanded to 4 buttons for better UX.
 
 Recent development has focused on fixing the spaced repetition architecture, implementing proper review progress persistence, and adding subject-based review grouping. The platform successfully handles review data isolation per user, preventing schedule conflicts between students reviewing the same cards.
-
-Current challenges include ongoing testing of the new review system to ensure proper date calculations and timezone handling. The platform's social features (friends system, content sharing) continue to operate as designed.
-
-**CRITICAL FIX (2026-01-19):** Resolved architectural bug in spaced repetition system. The `reviews` table is now the single source of truth for user-specific SR schedules, fixing the issue where students' progress wasn't being saved due to RLS conflicts when trying to update professor-created flashcards. Each user now maintains an independent review schedule.
-
-**POST-DEPLOYMENT REFINEMENT (2026-01-19):** After initial deployment, refined review count logic to separate spaced repetition (scheduled reviews) from new learning (unstudied cards). Dashboard "Reviews Due" now shows only cards with scheduled review dates, aligning with SR best practices and preventing user overwhelm from inflated counts. "My Contributions" dashboard section restored after accidental removal during refactor.
 
 ## Tech Stack
 
@@ -325,6 +321,8 @@ recall-app
 │   │   ├── admin
 │   │   │   ├── AdminDashboard.jsx
 │   │   │   └── SuperAdminDashboard.jsx
+│   │   ├── dashboard
+│   │   │   └── AnonymousStats.jsx
 │   │   ├── flashcards
 │   │   │   ├── FlashcardCreate.jsx
 │   │   │   ├── MyFlashcards.jsx
@@ -375,6 +373,7 @@ recall-app
 │   │   │   ├── ResetPassword.jsx
 │   │   │   └── Signup.jsx
 │   │   ├── dashboard
+│   │   │   ├── AnonymousStats.jsx
 │   │   │   ├── Content
 │   │   │   │   ├── BrowseNotes.jsx
 │   │   │   │   ├── MyContributions.jsx
@@ -397,6 +396,7 @@ recall-app
 ├── tailwind.config.js
 ├── vercel.json
 └── vite.config.js
+
 ---
 
 ## Critical Rules & Patterns

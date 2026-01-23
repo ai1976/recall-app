@@ -1511,7 +1511,38 @@ SELECT * FROM friendships
 WHERE (user_id = 'user-uuid' OR friend_id = 'user-uuid')
 AND status = 'accepted';
 ```
+---
 
+## SQL Functions
+
+### get_anonymous_class_stats(p_course_level TEXT)
+**Purpose:** Returns anonymous aggregate statistics for dashboard comparison
+**Security:** DEFINER (bypasses RLS to aggregate across users)
+**Added:** 2026-01-24 (Phase 1C Dashboard Redesign)
+
+**Parameters:**
+| Name | Type | Description |
+|------|------|-------------|
+| p_course_level | TEXT | Filter by course (e.g., 'CA Intermediate') |
+
+**Returns:**
+| Column | Type | Description |
+|--------|------|-------------|
+| avg_reviews_this_week | NUMERIC | Class average reviews (rolling 7 days) |
+| total_active_students | INTEGER | Count of students who reviewed this week |
+| students_with_7day_streak | INTEGER | Count with perfect 7-day streak |
+| students_studied_today | INTEGER | Count who studied today |
+| min_users_met | BOOLEAN | TRUE if >= 5 active users (privacy threshold) |
+
+**Usage:**
+```sql
+SELECT * FROM get_anonymous_class_stats('CA Intermediate');
+```
+
+**Privacy Notes:**
+- Returns aggregates only, never individual user data
+- Frontend hides comparison when min_users_met = FALSE
+- Uses Asia/Kolkata timezone for day boundaries
 **END OF DATABASE_SCHEMA.md**
 
 *This document saved you 2+ hours of debugging. Keep it updated!* 🎯

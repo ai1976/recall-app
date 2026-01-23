@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026-01-24: Dashboard Redesign with Anonymous Class Stats (Phase 1C)
+
+### Added
+- **NEW Component:** `src/components/dashboard/AnonymousStats.jsx`
+  - "You vs Class" comparison with Tailwind progress bars (no chart libraries)
+  - Class Milestones: Students studied today, 7-day streak count
+  - Privacy-first: Hides comparison if < 5 active users
+  - Zero data state: Motivating text for users with no reviews
+
+- **NEW SQL Function:** `get_anonymous_class_stats(p_course_level TEXT)`
+  - SECURITY DEFINER (bypasses RLS for aggregation)
+  - Returns: avg_reviews_this_week, total_active_students, students_with_7day_streak, students_studied_today, min_users_met
+  - Filters by course_level (CA Inter vs CA Inter only)
+  - Uses rolling 7-day window (today - 6 days)
+  - Timezone: Asia/Kolkata for accurate day boundaries
+
+### Changed
+- **REFACTORED:** `src/pages/Dashboard.jsx`
+  - Removed unused `courseLevel` state variable
+  - Quick Actions: 3 buttons → 4 buttons (added "Browse Flashcards")
+  - Grid layout: `grid-cols-2 lg:grid-cols-4`
+  - Integrated AnonymousStats component
+
+### Quick Actions (Updated)
+| Button | Route |
+|--------|-------|
+| Browse Notes | `/dashboard/notes` |
+| Browse Flashcards | `/dashboard/review-flashcards` |
+| Create Flashcard | `/dashboard/flashcards/new` |
+| Upload Note | `/dashboard/notes/new` |
+
+### Privacy Safeguards Implemented
+- Minimum 5 active users required to show class average
+- No individual names shown in milestones
+- Course-level filtering prevents cross-course comparison
+- SQL function returns aggregates only, never individual data
+
 ## 2026-01-21: Critical Spaced Repetition & Timezone Bug Fixes
 
 ### Issue
