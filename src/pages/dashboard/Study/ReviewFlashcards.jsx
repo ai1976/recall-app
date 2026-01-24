@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Brain, Play, ChevronRight, User, Users, Filter, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import UpvoteButton from '@/components/ui/UpvoteButton';
 
 export default function ReviewFlashcards() {
   const navigate = useNavigate();
@@ -37,126 +38,114 @@ export default function ReviewFlashcards() {
     try {
       if (!user) return;
 
-      // 🆕 STEP 1: Get user's accepted friendships
+      // STEP 1: Get user's accepted friendships
       const { data: friendships } = await supabase
         .from('friendships')
         .select('user_id, friend_id')
         .eq('status', 'accepted')
-        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
         
       const friendIds = friendships?.map(f => 
         f.user_id === user.id ? f.friend_id : f.user_id
       ) || [];
 
-      // 🆕 STEP 2: Fetch flashcards with visibility logic
-      let query = supabase
-        .from('flashcards')
+      // STEP 2: Fetch flashcard_decks with visibility logic
+      let deckQuery = supabase
+        .from('flashcard_decks')
         .select(`
           id,
           user_id,
-          contributed_by,
-          target_course,
           subject_id,
           custom_subject,
           topic_id,
           custom_topic,
-          difficulty,
-          is_verified,
-          front_text,
-          back_text,
+          target_course,
+          visibility,
+          card_count,
+          upvote_count,
+          created_at,
           subjects:subject_id (id, name),
-          topics:topic_id (id, name),
-          contributors:contributed_by (id, full_name, role)
+          topics:topic_id (id, name)
         `)
+        .gt('card_count', 0)
         .order('created_at', { ascending: false });
 
-      // Apply visibility filter
+      // Apply visibility filter for decks
       if (friendIds.length > 0) {
-        query = query.or(`visibility.eq.public,user_id.eq.${user.id},and(visibility.eq.friends,user_id.in.(${friendIds.join(',')}))`);
+        deckQuery = deckQuery.or(`visibility.eq.public,user_id.eq.${user.id},and(visibility.eq.friends,user_id.in.(${friendIds.join(',')}))`);
       } else {
-        query = query.or(`visibility.eq.public,user_id.eq.${user.id}`);
+        deckQuery = deckQuery.or(`visibility.eq.public,user_id.eq.${user.id}`);
       }
 
-      const { data, error } = await query;
+      const { data: decksData, error: decksError } = await deckQuery;
 
-      if (error) throw error;
+      if (decksError) throw decksError;
 
-      // Clean diamond characters from text
-      const cleanedData = (data || []).map(card => ({
-        ...card,
-        front_text: card.front_text?.replace(/[\u25C6\u2666◆�]/g, '').trim() || '',
-        back_text: card.back_text?.replace(/[\u25C6\u2666◆�]/g, '').trim() || '',
-        custom_subject: card.custom_subject?.replace(/[\u25C6\u2666◆�]/g, '').trim() || null,
-        custom_topic: card.custom_topic?.replace(/[\u25C6\u2666◆�]/g, '').trim() || null
+      // STEP 3: Get user profiles for deck owners
+      const ownerIds = [...new Set(decksData?.map(d => d.user_id) || [])];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .in('id', ownerIds);
+
+      // STEP 4: Merge deck data with profiles
+      const decksWithDetails = (decksData || []).map(deck => ({
+        ...deck,
+        owner: profilesData?.find(p => p.id === deck.user_id),
+        subjectName: deck.subjects?.name || deck.custom_subject || 'Other',
+        topicName: deck.topics?.name || deck.custom_topic || 'General'
       }));
 
       // Extract unique courses and subjects
-      const courses = [...new Set(cleanedData.map(card => card.target_course).filter(Boolean))];
-      const subjects = [...new Set(cleanedData.map(card => 
-        card.subjects?.name || card.custom_subject
-      ).filter(Boolean))];
+      const courses = [...new Set(decksWithDetails.map(d => d.target_course).filter(Boolean))];
+      const subjects = [...new Set(decksWithDetails.map(d => d.subjectName).filter(Boolean))];
 
       setAvailableCourses(courses);
       setAvailableSubjects(subjects);
 
-      // Group by subject
-      const grouped = groupFlashcards(cleanedData);
+      // Group decks by subject
+      const grouped = groupDecksBySubject(decksWithDetails);
       setAllSets(grouped);
       setFlashcardSets(grouped);
     } catch (error) {
-      console.error('Error fetching flashcards:', error);
+      console.error('Error fetching flashcard decks:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const groupFlashcards = (data) => {
+  const groupDecksBySubject = (decks) => {
     const grouped = {};
     
-    data.forEach(card => {
-      const subjectName = card.subjects?.name || card.custom_subject || 'Other';
-      const topicName = card.topics?.name || card.custom_topic || 'General';
-      const isProfessor = card.contributors?.role === 'professor';
-      const isOwn = card.user_id === user.id;
+    decks.forEach(deck => {
+      const subjectName = deck.subjectName;
+      const isProfessor = deck.owner?.role === 'professor';
+      const isOwn = deck.user_id === user.id;
       
       if (!grouped[subjectName]) {
         grouped[subjectName] = {
           name: subjectName,
-          course: card.target_course,
-          topics: {},
+          course: deck.target_course,
+          decks: [],
           totalCards: 0,
           professorCards: 0,
           ownCards: 0
         };
       }
       
-      if (!grouped[subjectName].topics[topicName]) {
-        grouped[subjectName].topics[topicName] = {
-          name: topicName,
-          cards: [],
-          professorCards: 0,
-          ownCards: 0
-        };
-      }
-      
-      grouped[subjectName].topics[topicName].cards.push(card);
-      grouped[subjectName].totalCards++;
+      grouped[subjectName].decks.push(deck);
+      grouped[subjectName].totalCards += deck.card_count || 0;
       
       if (isProfessor) {
-        grouped[subjectName].professorCards++;
-        grouped[subjectName].topics[topicName].professorCards++;
+        grouped[subjectName].professorCards += deck.card_count || 0;
       }
       
       if (isOwn) {
-        grouped[subjectName].ownCards++;
-        grouped[subjectName].topics[topicName].ownCards++;
+        grouped[subjectName].ownCards += deck.card_count || 0;
       }
     });
 
-    return Object.values(grouped).map(subject => ({
-      ...subject,
-      topics: Object.values(subject.topics)
-    }));
+    return Object.values(grouped);
   };
 
   const applyFilters = () => {
@@ -173,52 +162,34 @@ export default function ReviewFlashcards() {
     if (filterAuthor === 'professor') {
       filtered = filtered.map(subject => ({
         ...subject,
-        topics: subject.topics.map(topic => ({
-          ...topic,
-          cards: topic.cards.filter(card => card.contributors?.role === 'professor')
-        })).filter(topic => topic.cards.length > 0),
-        totalCards: subject.topics.reduce((sum, topic) => 
-          sum + topic.cards.filter(card => card.contributors?.role === 'professor').length, 0
-        )
-      })).filter(subject => subject.topics.length > 0);
+        decks: subject.decks.filter(deck => deck.owner?.role === 'professor'),
+        totalCards: subject.decks
+          .filter(deck => deck.owner?.role === 'professor')
+          .reduce((sum, deck) => sum + (deck.card_count || 0), 0)
+      })).filter(subject => subject.decks.length > 0);
     } else if (filterAuthor === 'student') {
       filtered = filtered.map(subject => ({
         ...subject,
-        topics: subject.topics.map(topic => ({
-          ...topic,
-          cards: topic.cards.filter(card => card.contributors?.role !== 'professor')
-        })).filter(topic => topic.cards.length > 0),
-        totalCards: subject.topics.reduce((sum, topic) => 
-          sum + topic.cards.filter(card => card.contributors?.role !== 'professor').length, 0
-        )
-      })).filter(subject => subject.topics.length > 0);
+        decks: subject.decks.filter(deck => deck.owner?.role !== 'professor'),
+        totalCards: subject.decks
+          .filter(deck => deck.owner?.role !== 'professor')
+          .reduce((sum, deck) => sum + (deck.card_count || 0), 0)
+      })).filter(subject => subject.decks.length > 0);
     }
 
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
       filtered = filtered.map(subject => ({
         ...subject,
-        topics: subject.topics.map(topic => ({
-          ...topic,
-          cards: topic.cards.filter(card =>
-            card.front_text?.toLowerCase().includes(query) ||
-            card.back_text?.toLowerCase().includes(query) ||
-            card.contributors?.full_name?.toLowerCase().includes(query)
-          )
-        })).filter(topic => topic.cards.length > 0)
-      })).filter(subject => subject.topics.length > 0);
+        decks: subject.decks.filter(deck =>
+          deck.subjectName?.toLowerCase().includes(query) ||
+          deck.topicName?.toLowerCase().includes(query) ||
+          deck.owner?.full_name?.toLowerCase().includes(query)
+        )
+      })).filter(subject => subject.decks.length > 0);
     }
 
     setFlashcardSets(filtered);
-  };
-
-  const startStudySession = (subjectName, topicName = null) => {
-    const params = new URLSearchParams();
-    params.set('subject', subjectName);
-    if (topicName && topicName !== 'General') {
-      params.set('topic', topicName);
-    }
-    navigate(`/dashboard/study?${params.toString()}`);
   };
 
   const clearAllFilters = () => {
@@ -226,6 +197,15 @@ export default function ReviewFlashcards() {
     setFilterCourse('all');
     setFilterSubject('all');
     setFilterAuthor('all');
+  };
+
+  const startStudySession = (subjectName, topicName = null) => {
+    const params = new URLSearchParams();
+    params.set('subject', subjectName);
+    if (topicName) {
+      params.set('topic', topicName);
+    }
+    navigate(`/dashboard/study?${params.toString()}`);
   };
 
   if (loading) {
@@ -258,7 +238,7 @@ export default function ReviewFlashcards() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Search flashcards by question, answer, or author..."
+                  placeholder="Search flashcards by subject, topic, or author..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -390,39 +370,59 @@ export default function ReviewFlashcards() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {subject.topics.map((topic, topicIdx) => (
-                      <button
-                        key={topicIdx}
-                        onClick={() => startStudySession(subject.name, topic.name)}
+                    {subject.decks.map((deck) => (
+                      <div
+                        key={deck.id}
                         className="text-left p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
                       >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900 group-hover:text-blue-700">
-                              {topic.name}
-                            </h4>
-                            <p className="text-sm text-gray-600 mt-1">
-                              {topic.cards.length} cards
-                            </p>
+                        {/* Clickable Study Area */}
+                        <button
+                          onClick={() => startStudySession(subject.name, deck.topicName)}
+                          className="w-full text-left"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900 group-hover:text-blue-700">
+                                {deck.topicName}
+                              </h4>
+                              <p className="text-sm text-gray-600 mt-1">
+                                {deck.card_count} cards
+                                {deck.owner && (
+                                  <span className="text-gray-400"> • by {deck.owner.full_name}</span>
+                                )}
+                              </p>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 flex-shrink-0" />
                           </div>
-                          <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600" />
-                        </div>
+                        </button>
                         
-                        <div className="flex gap-2 flex-wrap">
-                          {topic.professorCards > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded">
-                              <Users className="h-3 w-3" />
-                              {topic.professorCards} verified
-                            </span>
-                          )}
-                          {topic.ownCards > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-                              <User className="h-3 w-3" />
-                              {topic.ownCards} yours
-                            </span>
-                          )}
+                        {/* Footer with badges and upvote */}
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                          <div className="flex gap-2 flex-wrap">
+                            {deck.owner?.role === 'professor' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded">
+                                <Users className="h-3 w-3" />
+                                Verified
+                              </span>
+                            )}
+                            {deck.user_id === user.id && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                                <User className="h-3 w-3" />
+                                Yours
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Upvote Button for Deck */}
+                          <UpvoteButton
+                            contentType="flashcard_deck"
+                            targetId={deck.id}
+                            initialCount={deck.upvote_count || 0}
+                            ownerId={deck.user_id}
+                            size="sm"
+                          />
                         </div>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 </CardContent>

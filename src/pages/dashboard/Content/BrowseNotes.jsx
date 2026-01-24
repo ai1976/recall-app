@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import UpvoteButton from '@/components/ui/UpvoteButton';
 
 export default function BrowseNotes() {
   const navigate = useNavigate();
@@ -60,11 +61,11 @@ export default function BrowseNotes() {
       
       console.log('✅ Extracted friend IDs:', friendIds);
 
-      // STEP 2: Fetch notes with visibility logic
+      // STEP 2: Fetch notes with visibility logic (including upvote_count)
       console.log('🔵 STEP 3: Building notes query...');
       let query = supabase
         .from('notes')
-        .select('*')
+        .select('*, upvote_count')
         .order('created_at', { ascending: false });
 
       // Apply visibility filter
@@ -195,7 +196,10 @@ export default function BrowseNotes() {
         topics: subject.topics.map(topic => ({
           ...topic,
           notes: topic.notes.filter(note => note.user?.role === 'professor')
-        })).filter(topic => topic.notes.length > 0)
+        })).filter(topic => topic.notes.length > 0),
+        totalNotes: subject.topics.reduce((sum, topic) => 
+          sum + topic.notes.filter(note => note.user?.role === 'professor').length, 0
+        )
       })).filter(subject => subject.topics.length > 0);
     } else if (filterAuthor === 'student') {
       filtered = filtered.map(subject => ({
@@ -203,7 +207,10 @@ export default function BrowseNotes() {
         topics: subject.topics.map(topic => ({
           ...topic,
           notes: topic.notes.filter(note => note.user?.role !== 'professor')
-        })).filter(topic => topic.notes.length > 0)
+        })).filter(topic => topic.notes.length > 0),
+        totalNotes: subject.topics.reduce((sum, topic) => 
+          sum + topic.notes.filter(note => note.user?.role !== 'professor').length, 0
+        )
       })).filter(subject => subject.topics.length > 0);
     }
 
@@ -234,17 +241,20 @@ export default function BrowseNotes() {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -255,14 +265,16 @@ export default function BrowseNotes() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Browse Notes</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Browse Notes
+          </h1>
           <p className="text-gray-600">
-            Explore notes from professors and classmates
+            Explore notes shared by professors and students
           </p>
         </div>
 
+        {/* Filters Card */}
         <Card className="mb-6">
           <CardContent className="pt-6">
             <div className="space-y-4">
@@ -399,29 +411,41 @@ export default function BrowseNotes() {
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {topic.notes.map((note) => (
-                          <button
+                          <div
                             key={note.id}
-                            onClick={() => navigate(`/dashboard/notes/${note.id}`)}
                             className="text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all overflow-hidden group"
                           >
+                            {/* Clickable Image Area */}
                             {note.image_url && (
-                              <img
-                                src={note.image_url}
-                                alt={note.title}
-                                className="w-full h-40 object-cover"
-                              />
+                              <button
+                                onClick={() => navigate(`/dashboard/notes/${note.id}`)}
+                                className="w-full"
+                              >
+                                <img
+                                  src={note.image_url}
+                                  alt={note.title}
+                                  className="w-full h-40 object-cover"
+                                />
+                              </button>
                             )}
                             
+                            {/* Card Content */}
                             <div className="p-4">
-                              <h4 className="font-medium text-gray-900 group-hover:text-blue-700 mb-2 line-clamp-2">
-                                {note.title || 'Untitled Note'}
-                              </h4>
-                              
-                              {note.description && (
-                                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                                  {note.description}
-                                </p>
-                              )}
+                              {/* Clickable Title/Description */}
+                              <button
+                                onClick={() => navigate(`/dashboard/notes/${note.id}`)}
+                                className="text-left w-full"
+                              >
+                                <h4 className="font-medium text-gray-900 group-hover:text-blue-700 mb-2 line-clamp-2">
+                                  {note.title || 'Untitled Note'}
+                                </h4>
+                                
+                                {note.description && (
+                                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                                    {note.description}
+                                  </p>
+                                )}
+                              </button>
 
                               {note.tags && note.tags.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mb-3">
@@ -441,6 +465,7 @@ export default function BrowseNotes() {
                                 </div>
                               )}
 
+                              {/* Footer with Author, Date, and Upvote */}
                               <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
                                 <span className="flex items-center gap-1">
                                   {note.user?.role === 'professor' && (
@@ -448,10 +473,22 @@ export default function BrowseNotes() {
                                   )}
                                   {note.user?.full_name || 'Unknown'}
                                 </span>
-                                <span>{formatDate(note.created_at)}</span>
+                                
+                                <div className="flex items-center gap-2">
+                                  <span>{formatDate(note.created_at)}</span>
+                                  
+                                  {/* Upvote Button */}
+                                  <UpvoteButton
+                                    contentType="note"
+                                    targetId={note.id}
+                                    initialCount={note.upvote_count || 0}
+                                    ownerId={note.user_id}
+                                    size="sm"
+                                  />
+                                </div>
                               </div>
                             </div>
-                          </button>
+                          </div>
                         ))}
                       </div>
                     </div>
