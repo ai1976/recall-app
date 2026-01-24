@@ -1543,6 +1543,59 @@ SELECT * FROM get_anonymous_class_stats('CA Intermediate');
 - Returns aggregates only, never individual user data
 - Frontend hides comparison when min_users_met = FALSE
 - Uses Asia/Kolkata timezone for day boundaries
+
+---
+
+## flashcard_decks (Added 2026-01-24)
+
+Groups flashcards into logical decks by user/subject/topic. Enables upvoting at deck level.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | |
+| user_id | UUID | FK → profiles.id, NOT NULL | Deck owner |
+| subject_id | UUID | FK → subjects.id, nullable | |
+| custom_subject | TEXT | nullable | For custom subjects |
+| topic_id | UUID | FK → topics.id, nullable | |
+| custom_topic | TEXT | nullable | For custom topics |
+| target_course | TEXT | | Course context |
+| visibility | TEXT | CHECK (private/friends/public) | |
+| name | TEXT | nullable | Optional custom deck name |
+| description | TEXT | nullable | |
+| card_count | INTEGER | DEFAULT 0 | Auto-updated by trigger |
+| upvote_count | INTEGER | DEFAULT 0 | Auto-updated by trigger |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | |
+
+**Unique Constraint:** `(user_id, subject_id, topic_id, custom_subject, custom_topic)` NULLS NOT DISTINCT
+
+**Indexes:**
+- `idx_flashcard_decks_user` (user_id)
+- `idx_flashcard_decks_subject` (subject_id)
+- `idx_flashcard_decks_topic` (topic_id)
+- `idx_flashcard_decks_visibility` (visibility)
+
+---
+
+## upvotes (Modified 2026-01-24 - Polymorphic)
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PK | |
+| user_id | UUID | FK → profiles.id, NOT NULL | Who upvoted |
+| content_type | TEXT | CHECK ('note', 'flashcard_deck') | Type of content |
+| target_id | UUID | NOT NULL | notes.id or flashcard_decks.id |
+| note_id | UUID | nullable, DEPRECATED | Legacy column |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | |
+
+**Unique Constraint:** `(user_id, content_type, target_id)`
+
+**Indexes:**
+- `idx_upvotes_content_type` (content_type)
+- `idx_upvotes_target` (target_id)
+- `idx_upvotes_content_target` (content_type, target_id)
+- `idx_upvotes_user` (user_id)
+
 **END OF DATABASE_SCHEMA.md**
 
 *This document saved you 2+ hours of debugging. Keep it updated!* 🎯

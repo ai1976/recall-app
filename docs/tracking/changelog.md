@@ -1,5 +1,40 @@
 # Changelog
 
+---
+
+## 2026-01-24: Phase 1D - Upvote System
+
+### Database
+- **NEW TABLE:** `flashcard_decks` - Solidifies flashcard groups as first-class entities
+- **MODIFIED:** `upvotes` table now polymorphic (content_type + target_id)
+- **MODIFIED:** `flashcards` table has new `deck_id` column
+- **NEW TRIGGERS:** Auto-update `upvote_count` on notes and decks
+- **NEW TRIGGERS:** Auto-update `card_count` on decks
+- **NEW FUNCTIONS:** `toggle_upvote()`, `get_upvote_details()`, `has_user_upvoted()`
+- **NEW RLS:** Comprehensive policies for flashcard_decks and upvotes
+
+### Frontend
+- **NEW:** `UpvoteButton.jsx` - Reusable upvote component with toggle behavior
+- **MODIFIED:** `BrowseNotes.jsx` - Added upvote buttons to note cards
+- **MODIFIED:** `ReviewFlashcards.jsx` - Now queries flashcard_decks, added upvote buttons
+- **MODIFIED:** `MyContributions.jsx` - Added Community Feedback section:
+  - Impact message ("Your content helped X students!")
+  - Upvoter names summary
+  - Top Performing Notes/Decks with expandable upvoter lists
+- **MODIFIED:** `NoteDetail.jsx` - Added upvote button in header, author badge
+
+### Migration
+- Existing flashcards grouped into decks via backfill script
+- Existing upvotes migrated to polymorphic structure (content_type='note')
+
+### Files Changed
+```
+src/components/ui/UpvoteButton.jsx (NEW)
+src/pages/dashboard/Content/BrowseNotes.jsx
+src/pages/dashboard/Content/MyContributions.jsx
+src/pages/dashboard/Study/ReviewFlashcards.jsx
+src/components/notes/NoteDetail.jsx
+```
 ## 2026-01-24: Dashboard Redesign with Anonymous Class Stats (Phase 1C)
 
 ### Added

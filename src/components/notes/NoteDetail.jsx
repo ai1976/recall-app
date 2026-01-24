@@ -2,16 +2,20 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText, File, Calendar, Tag, Plus, Brain, Trash2, Edit } from 'lucide-react';
+import { ArrowLeft, FileText, File, Calendar, Tag, Plus, Brain, Trash2, Edit, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import UpvoteButton from '@/components/ui/UpvoteButton';
 
 export default function NoteDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [note, setNote] = useState(null);
   const [flashcards, setFlashcards] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [authorProfile, setAuthorProfile] = useState(null);
 
   useEffect(() => {
     fetchNote();
@@ -33,6 +37,17 @@ export default function NoteDetail() {
 
       if (error) throw error;
       setNote(data);
+
+      // Fetch author profile
+      if (data?.user_id) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, full_name, role')
+          .eq('id', data.user_id)
+          .single();
+        
+        setAuthorProfile(profileData);
+      }
 
       // Fetch linked flashcards
       const { data: flashcardsData, error: flashcardsError } = await supabase
@@ -102,6 +117,7 @@ export default function NoteDetail() {
   }
 
   const isPDF = note.image_url?.toLowerCase().endsWith('.pdf');
+  const isOwner = user?.id === note.user_id;
 
   // Get display names for subject and topic
   const displaySubject = note.custom_subject || note.subject?.name || 'No subject';
@@ -121,22 +137,35 @@ export default function NoteDetail() {
               <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => navigate(`/notes/edit/${note.id}`)}
-                className="gap-2"
-              >
-                <Edit className="h-4 w-4" />
-                Edit Note
-              </Button>
-              <Button
-                onClick={() => navigate(`/dashboard/flashcards/new?noteId=${note.id}`)}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Create Flashcards
-              </Button>
+            <div className="flex items-center gap-3">
+              {/* Upvote Button in Header */}
+              <UpvoteButton
+                contentType="note"
+                targetId={note.id}
+                initialCount={note.upvote_count || 0}
+                ownerId={note.user_id}
+                size="md"
+              />
+              
+              {isOwner && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/notes/edit/${note.id}`)}
+                    className="gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit Note
+                  </Button>
+                  <Button
+                    onClick={() => navigate(`/dashboard/flashcards/new?noteId=${note.id}`)}
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create Flashcards
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -148,7 +177,24 @@ export default function NoteDetail() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
           {/* Note Header */}
           <div className="p-6 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">{note.title}</h1>
+            <div className="flex items-start justify-between mb-4">
+              <h1 className="text-2xl font-bold text-gray-900">{note.title}</h1>
+              
+              {/* Author Badge */}
+              {authorProfile && (
+                <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full">
+                  {authorProfile.role === 'professor' && (
+                    <Users className="h-4 w-4 text-purple-600" />
+                  )}
+                  <span>{authorProfile.full_name}</span>
+                  {authorProfile.role === 'professor' && (
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                      Professor
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
             
             {/* Description */}
             {note.description && (
@@ -246,14 +292,16 @@ export default function NoteDetail() {
                   <p className="text-sm text-gray-600">{flashcards.length} flashcard{flashcards.length !== 1 ? 's' : ''} created from this note</p>
                 </div>
               </div>
-              <Button
-                onClick={() => navigate(`/dashboard/flashcards/new?noteId=${note.id}`)}
-                size="sm"
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add More
-              </Button>
+              {isOwner && (
+                <Button
+                  onClick={() => navigate(`/dashboard/flashcards/new?noteId=${note.id}`)}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add More
+                </Button>
+              )}
             </div>
           </div>
 
@@ -262,13 +310,15 @@ export default function NoteDetail() {
               <div className="text-center py-8">
                 <Brain className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-600 mb-4">No flashcards created yet</p>
-                <Button
-                  onClick={() => navigate(`/dashboard/flashcards/new?noteId=${note.id}`)}
-                  className="gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create Your First Flashcard
-                </Button>
+                {isOwner && (
+                  <Button
+                    onClick={() => navigate(`/dashboard/flashcards/new?noteId=${note.id}`)}
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create Your First Flashcard
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -281,14 +331,16 @@ export default function NoteDetail() {
                     <div className="p-4 bg-white border-b border-gray-100">
                       <div className="flex items-start justify-between mb-2">
                         <p className="text-xs font-semibold text-gray-500 uppercase">Front (Question)</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteFlashcard(card.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 -mt-2 -mr-2"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {isOwner && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteFlashcard(card.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 -mt-2 -mr-2"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                       {card.front_image_url && (
                         <img

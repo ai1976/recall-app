@@ -17,6 +17,94 @@
 ---
 ---
 
+## Phase 1D: Upvote System (2026-01-24)
+
+### New Database Tables
+
+#### flashcard_decks
+```
+flashcard_decks
+├── id (UUID, PK)
+├── user_id (UUID, FK → profiles.id)
+├── subject_id (UUID, FK → subjects.id, nullable)
+├── custom_subject (TEXT, nullable)
+├── topic_id (UUID, FK → topics.id, nullable)
+├── custom_topic (TEXT, nullable)
+├── target_course (TEXT)
+├── visibility (TEXT: private/friends/public)
+├── name (TEXT, optional custom name)
+├── description (TEXT)
+├── card_count (INTEGER, auto-updated by trigger)
+├── upvote_count (INTEGER, auto-updated by trigger)
+├── created_at (TIMESTAMP)
+└── updated_at (TIMESTAMP)
+```
+
+### Modified Tables
+
+#### upvotes (Polymorphic Design)
+```
+upvotes
+├── id (UUID, PK)
+├── user_id (UUID, FK → profiles.id) -- WHO upvoted
+├── content_type (TEXT: 'note' | 'flashcard_deck') -- NEW
+├── target_id (UUID) -- NEW: points to notes.id or flashcard_decks.id
+├── note_id (UUID, nullable, deprecated - kept for migration)
+└── created_at (TIMESTAMP)
+└── UNIQUE(user_id, content_type, target_id)
+```
+
+#### flashcards (Added Column)
+- `deck_id` (UUID, FK → flashcard_decks.id) - Links cards to their deck
+
+### Database Functions
+- `toggle_upvote(p_content_type, p_target_id)` - Toggle upvote with validation
+- `get_upvote_details(p_content_type, p_target_id)` - Get upvoter names for creators
+- `has_user_upvoted(p_content_type, p_target_id)` - Check if user upvoted
+- `update_upvote_counts()` - Trigger function for auto-updating counts
+- `update_deck_card_count()` - Trigger function for deck card counts
+
+### RLS Policies
+
+#### flashcard_decks
+- SELECT: Own, public, friends (with friendship check), admin
+- INSERT/UPDATE/DELETE: Own or admin
+
+#### upvotes
+- SELECT: All authenticated users (for counting)
+- INSERT: Only on content user can view AND not own content
+- DELETE: Own upvotes only
+
+### Frontend Components
+
+#### New: UpvoteButton.jsx (`src/components/ui/UpvoteButton.jsx`)
+- Reusable toggle button for notes and flashcard_decks
+- Optimistic UI updates
+- Prevents self-upvoting
+- Size variants: sm, md, lg
+
+#### Modified Files
+- `BrowseNotes.jsx` - Upvote button on note cards
+- `ReviewFlashcards.jsx` - Upvote button on deck cards (queries flashcard_decks)
+- `MyContributions.jsx` - Community Feedback section with upvoter names
+- `NoteDetail.jsx` - Upvote button in header
+
+### Upvote Rules
+1. One upvote per user per content (enforced by UNIQUE constraint)
+2. Cannot upvote own content (enforced by RLS + frontend)
+3. Can only upvote content you can view (visibility rules apply)
+4. Toggle behavior: click again to remove upvote
+5. Creators see WHO upvoted; students see counts only
+----
+**Current state**
+
+Recall is in production with 27 registered students and impressive early metrics: 542+ total reviews from top students. The platform features a complete tech stack (React, Supabase, Vercel) with a four-tier role system (super_admin, admin, professor, student), three-tier content visibility (Private/Friends/Public), and comprehensive spaced repetition using SuperMemo-2 methodology.
+
+**DASHBOARD REDESIGN (2026-01-24):** Implemented Phase 1C with anonymous class statistics. New `AnonymousStats` component shows "You vs Class" comparison using Tailwind progress bars, class milestones (students studied today, 7-day streaks), with privacy-first design (min 5 users for averages, course-level filtering). SQL function `get_anonymous_class_stats()` uses SECURITY DEFINER to aggregate across users while respecting privacy. Quick Actions expanded to 4 buttons for better UX.
+
+Recent development has focused on fixing the spaced repetition architecture, implementing proper review progress persistence, and adding subject-based review grouping. The platform successfully handles review data isolation per user, preventing schedule conflicts between students reviewing the same cards.
+
+
 ## Spaced Repetition & Timezone Standards
 
 ### Critical Bug Fix (2026-01-21)
