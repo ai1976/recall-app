@@ -16,7 +16,9 @@ recall-app
 │   ├── database
 │   │   └── Reviews_Table_Usage.md
 │   ├── design
-│   │   └── SPACED_REPETITION_PHILOSOPHY.md
+│   │   ├── ACHIEVEMENT_BADGES.md
+│   │   ├── SPACED_REPETITION_PHILOSOPHY.md
+│   │   └── UPVOTE_SYSTEM.md
 │   ├── reference
 │   │   ├── DATABASE_SCHEMA.md
 │   │   └── FILE_STRUCTURE.md
@@ -50,6 +52,12 @@ recall-app
 │   │   ├── admin
 │   │   │   ├── AdminDashboard.jsx
 │   │   │   └── SuperAdminDashboard.jsx
+│   │   ├── badges
+│   │   │   ├── BadgeCard.jsx
+│   │   │   ├── BadgeIcon.jsx
+│   │   │   └── BadgeToast.jsx
+│   │   ├── dashboard
+│   │   │   └── AnonymousStats.jsx
 │   │   ├── flashcards
 │   │   │   ├── FlashcardCreate.jsx
 │   │   │   ├── MyFlashcards.jsx
@@ -80,12 +88,14 @@ recall-app
 │   │       ├── tabs.jsx
 │   │       ├── textarea.jsx
 │   │       ├── toast.jsx
-│   │       └── toaster.jsx
+│   │       ├── toaster.jsx
+│   │       └── UpvoteButton.jsx
 │   ├── contexts
 │   │   └── AuthContext.jsx
 │   ├── data
 │   ├── hooks
 │   │   ├── use-toast.js
+│   │   ├── useBadges.js
 │   │   ├── useOCR.js
 │   │   └── useRole.js
 │   ├── index.css
@@ -108,6 +118,8 @@ recall-app
 │   │   │   │   ├── FindFriends.jsx
 │   │   │   │   ├── FriendRequests.jsx
 │   │   │   │   └── MyFriends.jsx
+│   │   │   ├── Profile
+│   │   │   │   └── MyAchievements.jsx
 │   │   │   └── Study
 │   │   │       ├── Progress.jsx
 │   │   │       ├── ReviewBySubject.jsx
@@ -122,6 +134,7 @@ recall-app
 ├── tailwind.config.js
 ├── vercel.json
 └── vite.config.js
+
 
 ---
 

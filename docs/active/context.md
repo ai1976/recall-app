@@ -1,6 +1,6 @@
 # RECALL - Project Context (Source of Truth)
 
-**Last Updated:** January 24, 2026  
+**Last Updated:** January 26, 2026  
 **Live URL:** https://recall-app-omega.vercel.app  
 **Repository:** https://github.com/ai1976/recall-app
 
@@ -15,6 +15,93 @@
 **Business Model:** Freemium (Free tier with limits → Premium ₹149/month)
 
 ---
+---
+
+## Phase 1E: Achievement Badges System (2026-01-26)
+
+### New Database Tables
+
+#### badge_definitions
+```
+badge_definitions
+├── id (UUID, PK)
+├── key (TEXT, UNIQUE) -- 'digitalizer', 'memory_architect', etc.
+├── name (TEXT)
+├── description (TEXT)
+├── icon_key (TEXT) -- Maps to Lucide icon in frontend
+├── category (TEXT) -- 'content', 'study', 'social'
+├── threshold (INTEGER)
+├── is_active (BOOLEAN, DEFAULT true)
+├── order_num (INTEGER)
+└── created_at (TIMESTAMP)
+```
+
+#### user_badges
+```
+user_badges
+├── id (UUID, PK)
+├── user_id (UUID, FK → profiles.id)
+├── badge_id (UUID, FK → badge_definitions.id)
+├── earned_at (TIMESTAMP)
+├── notified (BOOLEAN, DEFAULT false)
+├── is_public (BOOLEAN, DEFAULT true) -- Per-badge privacy
+└── UNIQUE(user_id, badge_id)
+```
+
+#### user_activity_log
+```
+user_activity_log
+├── id (UUID, PK)
+├── user_id (UUID, FK → profiles.id)
+├── activity_type (TEXT) -- 'review', 'flashcard_create', 'note_upload'
+├── activity_date (DATE)
+├── activity_hour (INTEGER) -- 0-23, IST timezone
+├── created_at (TIMESTAMP)
+└── UNIQUE(user_id, activity_type, activity_date)
+```
+
+### Badge Definitions (Initial Set)
+
+| Key | Name | Icon | Category | Threshold | Trigger |
+|-----|------|------|----------|-----------|---------|
+| digitalizer | Digitalizer | upload | content | 1 | notes INSERT |
+| memory_architect | Memory Architect | brain | content | 10 | flashcards INSERT |
+| streak_master | Streak Master | flame | study | 3 | reviews INSERT (streak) |
+| night_owl | Night Owl | moon | study | 1 | reviews INSERT (11PM-4AM IST) |
+| rising_star | Rising Star | star | social | 5 | upvotes INSERT |
+
+### Database Functions
+- `award_badge(p_user_id, p_badge_key)` - Awards badge if not already earned
+- `log_review_activity(p_user_id, p_review_timestamp)` - Logs activity with IST conversion
+- `get_user_streak(p_user_id)` - Calculates consecutive study days
+- `is_night_owl_hour(p_hour)` - Returns true if hour is 23 or 0-4
+- `get_user_badges(p_user_id)` - Returns all badges with is_public flag
+- `get_public_user_badges(p_user_id)` - Returns only public badges
+- `get_unnotified_badges(p_user_id)` - Returns unnotified badges, marks as notified
+
+### Database Triggers
+- `trg_badge_note_upload` - On notes INSERT → checks digitalizer
+- `trg_badge_flashcard_create` - On flashcards INSERT → checks memory_architect
+- `trg_badge_review` - On reviews INSERT → logs activity, checks streak_master & night_owl
+- `trg_badge_upvote` - On upvotes INSERT → checks rising_star
+
+### Privacy System
+- **Per-badge privacy:** Each badge has `is_public` toggle (default: true)
+- Users control visibility of individual badges
+- FindFriends only shows badges where `is_public = true`
+- No global toggle - granular control per badge
+
+### Frontend Components
+- `src/components/badges/BadgeIcon.jsx` - Maps icon_key to Lucide icons
+- `src/components/badges/BadgeCard.jsx` - Badge display with privacy toggle
+- `src/components/badges/BadgeToast.jsx` - Toast notification for new badges
+- `src/hooks/useBadges.js` - Badge data fetching hook
+- `src/pages/dashboard/Profile/MyAchievements.jsx` - Achievements page
+
+### Navigation Updates
+- Added "My Achievements" link under Study dropdown
+- Badge toast notifications on Dashboard when new badge earned
+
 ---
 
 ## Phase 1D: Upvote System (2026-01-24)
@@ -375,7 +462,9 @@ recall-app
 │   ├── database
 │   │   └── Reviews_Table_Usage.md
 │   ├── design
-│   │   └── SPACED_REPETITION_PHILOSOPHY.md
+│   │   ├── ACHIEVEMENT_BADGES.md
+│   │   ├── SPACED_REPETITION_PHILOSOPHY.md
+│   │   └── UPVOTE_SYSTEM.md
 │   ├── reference
 │   │   ├── DATABASE_SCHEMA.md
 │   │   └── FILE_STRUCTURE.md
@@ -409,6 +498,10 @@ recall-app
 │   │   ├── admin
 │   │   │   ├── AdminDashboard.jsx
 │   │   │   └── SuperAdminDashboard.jsx
+│   │   ├── badges
+│   │   │   ├── BadgeCard.jsx
+│   │   │   ├── BadgeIcon.jsx
+│   │   │   └── BadgeToast.jsx
 │   │   ├── dashboard
 │   │   │   └── AnonymousStats.jsx
 │   │   ├── flashcards
@@ -441,12 +534,14 @@ recall-app
 │   │       ├── tabs.jsx
 │   │       ├── textarea.jsx
 │   │       ├── toast.jsx
-│   │       └── toaster.jsx
+│   │       ├── toaster.jsx
+│   │       └── UpvoteButton.jsx
 │   ├── contexts
 │   │   └── AuthContext.jsx
 │   ├── data
 │   ├── hooks
 │   │   ├── use-toast.js
+│   │   ├── useBadges.js
 │   │   ├── useOCR.js
 │   │   └── useRole.js
 │   ├── index.css
@@ -461,7 +556,6 @@ recall-app
 │   │   │   ├── ResetPassword.jsx
 │   │   │   └── Signup.jsx
 │   │   ├── dashboard
-│   │   │   ├── AnonymousStats.jsx
 │   │   │   ├── Content
 │   │   │   │   ├── BrowseNotes.jsx
 │   │   │   │   ├── MyContributions.jsx
@@ -470,6 +564,8 @@ recall-app
 │   │   │   │   ├── FindFriends.jsx
 │   │   │   │   ├── FriendRequests.jsx
 │   │   │   │   └── MyFriends.jsx
+│   │   │   ├── Profile
+│   │   │   │   └── MyAchievements.jsx
 │   │   │   └── Study
 │   │   │       ├── Progress.jsx
 │   │   │       ├── ReviewBySubject.jsx

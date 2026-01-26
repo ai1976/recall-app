@@ -1596,6 +1596,79 @@ Groups flashcards into logical decks by user/subject/topic. Enables upvoting at 
 - `idx_upvotes_content_target` (content_type, target_id)
 - `idx_upvotes_user` (user_id)
 
+---
+
+## Achievement Badges Tables (Phase 1E)
+
+### badge_definitions
+Static reference table for all achievement badges.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | UUID | NO | uuid_generate_v4() | Primary key |
+| key | TEXT | NO | - | Unique identifier (e.g., 'digitalizer') |
+| name | TEXT | NO | - | Display name |
+| description | TEXT | NO | - | Badge description |
+| icon_key | TEXT | NO | - | Maps to Lucide icon |
+| category | TEXT | NO | - | 'content', 'study', 'social' |
+| threshold | INTEGER | NO | 1 | Target number to earn |
+| is_active | BOOLEAN | YES | true | Whether badge is active |
+| order_num | INTEGER | YES | 0 | Display order |
+| created_at | TIMESTAMP | YES | now() | Created timestamp |
+
+### user_badges
+Tracks which badges each user has earned.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | UUID | NO | uuid_generate_v4() | Primary key |
+| user_id | UUID | NO | - | FK → profiles.id |
+| badge_id | UUID | NO | - | FK → badge_definitions.id |
+| earned_at | TIMESTAMP | YES | now() | When badge was earned |
+| notified | BOOLEAN | YES | false | Has user seen toast? |
+| is_public | BOOLEAN | YES | true | Visible to others? |
+
+**Constraints:** UNIQUE(user_id, badge_id)
+
+### user_activity_log
+Logs daily activity for streak and time-based badge calculations.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | UUID | NO | uuid_generate_v4() | Primary key |
+| user_id | UUID | NO | - | FK → profiles.id |
+| activity_type | TEXT | NO | - | 'review', 'flashcard_create', 'note_upload' |
+| activity_date | DATE | NO | - | Local date (IST) |
+| activity_hour | INTEGER | YES | - | Hour 0-23 (IST) for Night Owl |
+| created_at | TIMESTAMP | YES | now() | Created timestamp |
+
+**Constraints:** UNIQUE(user_id, activity_type, activity_date)
+
+---
+
+## Badge-Related Functions
+
+| Function | Parameters | Returns | Description |
+|----------|------------|---------|-------------|
+| award_badge | p_user_id, p_badge_key | BOOLEAN | Awards badge, returns true if new |
+| log_review_activity | p_user_id, p_review_timestamp | VOID | Logs activity with IST conversion |
+| get_user_streak | p_user_id | INTEGER | Consecutive study days |
+| is_night_owl_hour | p_hour | BOOLEAN | True if 23 or 0-4 |
+| get_user_badges | p_user_id | TABLE | All badges with is_public |
+| get_public_user_badges | p_user_id | TABLE | Only public badges |
+| get_unnotified_badges | p_user_id | TABLE | Unnotified badges, marks notified |
+
+---
+
+## Badge-Related Triggers
+
+| Trigger | Table | Event | Function |
+|---------|-------|-------|----------|
+| trg_badge_note_upload | notes | AFTER INSERT | Checks digitalizer |
+| trg_badge_flashcard_create | flashcards | AFTER INSERT | Checks memory_architect |
+| trg_badge_review | reviews | AFTER INSERT | Logs activity, checks streak_master & night_owl |
+| trg_badge_upvote | upvotes | AFTER INSERT | Checks rising_star |
+
 **END OF DATABASE_SCHEMA.md**
 
 *This document saved you 2+ hours of debugging. Keep it updated!* 🎯

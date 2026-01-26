@@ -19,7 +19,8 @@ import {
   ChevronDown,
   UserPlus,
   UserCheck,
-  Clock
+  Clock,
+  Trophy
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import {
@@ -79,7 +80,7 @@ export default function Navigation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const isActive = (path) => {
+    const isActive = (path) => {
     return location.pathname === path;
   };
 
@@ -100,7 +101,8 @@ export default function Navigation() {
            location.pathname === '/dashboard/find-friends' ||
            location.pathname === '/dashboard/friend-requests' ||
            location.pathname === '/dashboard/my-friends' ||
-           location.pathname === '/dashboard/progress';
+           location.pathname === '/dashboard/progress' ||
+           location.pathname === '/dashboard/achievements';
   };
 
   // Check if any Create submenu item is active
@@ -206,6 +208,12 @@ export default function Navigation() {
                         <Link to="/dashboard/progress" className="flex items-center gap-2 cursor-pointer">
                           <BarChart3 className="h-4 w-4" />
                           My Progress
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/dashboard/achievements" className="flex items-center gap-2 cursor-pointer">
+                          <Trophy className="h-4 w-4" />
+                          My Achievements                          
                         </Link>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -428,6 +436,14 @@ export default function Navigation() {
                   >
                     <BarChart3 className="h-4 w-4" />
                     My Progress
+                  </Link>
+                  <Link
+                    to="/dashboard/achievements"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-6 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                  >
+                    <Trophy className="h-4 w-4" />
+                    My Achievements                    
                   </Link>
 
                   {/* Creator Mode Section */}

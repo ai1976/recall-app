@@ -1,6 +1,49 @@
 # Changelog
 
 ---
+## 2026-01-26: Achievement Badges System (Phase 1E)
+
+### Added
+- **Badge System Core**
+  - 3 new tables: `badge_definitions`, `user_badges`, `user_activity_log`
+  - 5 badge types: Digitalizer, Memory Architect, Streak Master, Night Owl, Rising Star
+  - Auto-award via database triggers on INSERT events
+  - IST timezone handling for Night Owl badge (11PM-4AM)
+
+- **Frontend Components**
+  - `BadgeIcon.jsx` - Icon mapping component
+  - `BadgeCard.jsx` - Badge display with privacy toggle
+  - `BadgeToast.jsx` - Unlock notification
+  - `useBadges.js` - Data fetching hook
+  - `MyAchievements.jsx` - Full achievements page
+
+- **Privacy Features**
+  - Per-badge `is_public` toggle (default: true)
+  - Users control visibility of each badge individually
+  - FindFriends respects badge privacy settings
+
+- **Navigation**
+  - "My Achievements" link in Study dropdown
+  - Toast notifications on Dashboard for new badges
+
+### Changed
+- Renamed "The Grinder" badge to "Streak Master"
+- Updated `FindFriends.jsx` to display user badges
+
+### Removed
+- Yellow badge count indicator from navigation (confusing UX)
+- Global `badges_public` column from profiles (replaced with per-badge)
+
+### Database Migrations
+- `badges_tables_and_seed.sql` - Tables + seed data
+- `badges_rls_policies.sql` - Row Level Security
+- `badges_core_functions.sql` - 6 SQL functions
+- `badges_triggers.sql` - 4 triggers
+- `badges_backfill_existing_users.sql` - Backfilled 14 badges
+- `badges_per_badge_privacy.sql` - Added is_public column
+- `rename_grinder_badge.sql` - Renamed badge
+
+---
 
 ## 2026-01-24: Phase 1D - Upvote System
 

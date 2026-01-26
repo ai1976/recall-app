@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, UserPlus, Users, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import BadgeIcon from '@/components/badges/BadgeIcon';
 
 export default function FindFriends() {
   const { user } = useAuth();
@@ -15,11 +16,12 @@ export default function FindFriends() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [friendships, setFriendships] = useState([]);
+  const [userBadges, setUserBadges] = useState({});
 
-  // Fetch all users on mount
   useEffect(() => {
     fetchUsers();
     fetchFriendships();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const fetchUsers = async () => {
@@ -27,13 +29,55 @@ export default function FindFriends() {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, email, course_level, role')
-        .neq('id', user.id) // Exclude current user
+        .neq('id', user.id)
         .order('full_name');
 
       if (error) throw error;
       setUsers(data || []);
+      
+      // Fetch public badges for all users
+      fetchUserBadges((data || []).map(u => u.id));
     } catch (error) {
       console.error('Error fetching users:', error);
+    }
+  };
+
+  const fetchUserBadges = async (userIds) => {
+    if (!userIds || userIds.length === 0) return;
+    
+    try {
+      // Fetch only PUBLIC badges (is_public = true)
+      const { data, error } = await supabase
+        .from('user_badges')
+        .select(`
+          user_id,
+          badge_id,
+          is_public,
+          badge_definitions (
+            key,
+            name,
+            icon_key
+          )
+        `)
+        .in('user_id', userIds)
+        .eq('is_public', true);  // Only fetch public badges
+      
+      if (error) throw error;
+      
+      // Group badges by user_id
+      const badgesByUser = {};
+      (data || []).forEach(item => {
+        if (!badgesByUser[item.user_id]) {
+          badgesByUser[item.user_id] = [];
+        }
+        if (item.badge_definitions) {
+          badgesByUser[item.user_id].push(item.badge_definitions);
+        }
+      });
+      
+      setUserBadges(badgesByUser);
+    } catch (error) {
+      console.error('Error fetching user badges:', error);
     }
   };
 
@@ -54,8 +98,6 @@ export default function FindFriends() {
   const sendFriendRequest = async (friendId) => {
     setLoading(true);
     try {
-      // ✅ FIX: Use upsert instead of insert. 
-      // This handles cases where a 'rejected' row might already exist.
       const { error } = await supabase
         .from('friendships')
         .upsert({
@@ -63,7 +105,7 @@ export default function FindFriends() {
           friend_id: friendId,
           status: 'pending',
           updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id, friend_id' }); // Assumes you have a unique constraint or composite key
+        }, { onConflict: 'user_id, friend_id' });
 
       if (error) throw error;
 
@@ -72,7 +114,6 @@ export default function FindFriends() {
         description: "Your friend request has been sent.",
       });
 
-      // Refresh friendships
       fetchFriendships();
     } catch (error) {
       console.error('Error sending friend request:', error);
@@ -86,7 +127,6 @@ export default function FindFriends() {
     }
   };
 
-  // Get friendship status for a user
   const getFriendshipStatus = (userId) => {
     const friendship = friendships.find(
       f => (f.user_id === user.id && f.friend_id === userId) ||
@@ -95,15 +135,12 @@ export default function FindFriends() {
     
     if (!friendship) return null;
     
-    // If current user sent the request
     if (friendship.user_id === user.id) {
       return { status: friendship.status, type: 'sent' };
     }
-    // If current user received the request
     return { status: friendship.status, type: 'received' };
   };
 
-  // Filter users by search term
   const filteredUsers = users.filter(u => 
     u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -147,9 +184,8 @@ export default function FindFriends() {
         ) : (
           filteredUsers.map((person) => {
             const friendStatus = getFriendshipStatus(person.id);
-            
-            // ✅ FIX: Allow adding friend if status is NULL or 'rejected'
             const canAddFriend = !friendStatus || friendStatus.status === 'rejected';
+            const personBadges = userBadges[person.id] || [];
 
             return (
               <Card key={person.id}>
@@ -163,12 +199,31 @@ export default function FindFriends() {
                       
                       {/* Info */}
                       <div>
-                        <CardTitle className="text-lg">
-                          {person.full_name || 'Unknown'}
+                        <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
+                          <span>{person.full_name || 'Unknown'}</span>
                           {person.role === 'professor' && (
-                            <span className="ml-2 text-sm font-normal text-blue-600">
+                            <span className="text-sm font-normal text-blue-600">
                               👨‍🏫 Professor
                             </span>
+                          )}
+                          {/* Badges */}
+                          {personBadges.length > 0 && (
+                            <div className="flex items-center gap-1 ml-1">
+                              {personBadges.slice(0, 4).map((badge) => (
+                                <BadgeIcon
+                                  key={badge.key}
+                                  iconKey={badge.icon_key}
+                                  size="xs"
+                                  unlocked={true}
+                                  showBackground={true}
+                                />
+                              ))}
+                              {personBadges.length > 4 && (
+                                <span className="text-xs text-gray-500 ml-1">
+                                  +{personBadges.length - 4}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </CardTitle>
                         <CardDescription>

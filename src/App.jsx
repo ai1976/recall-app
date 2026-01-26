@@ -33,6 +33,7 @@ import MyContributions from '@/pages/dashboard/Content/MyContributions'
 import ReviewFlashcards from '@/pages/dashboard/Study/ReviewFlashcards'
 import ReviewSession from '@/pages/dashboard/Study/ReviewSession'
 import MyProgress from '@/pages/dashboard/Study/Progress'
+import MyAchievements from '@/pages/dashboard/Profile/MyAchievements';
 import ReviewBySubject from '@/pages/dashboard/Study/ReviewBySubject';
 
 // Note Components
@@ -168,6 +169,10 @@ function App() {
           <Route
             path="/dashboard/my-contributions"
             element={session ? <MyContributions /> : <Navigate to="/login" replace />}
+          />
+          <Route 
+          path="/dashboard/achievements" 
+          element={<MyAchievements />} 
           />
           
           {/* Friends Routes */}

@@ -4,6 +4,9 @@ import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import AnonymousStats from '@/components/dashboard/AnonymousStats';
+import { useBadges } from '@/hooks/useBadges';
+import { useToast } from '@/hooks/use-toast';
+import BadgeToast from '@/components/badges/BadgeToast';
 import { 
   BookOpen, 
   CreditCard, 
@@ -47,6 +50,23 @@ export default function Dashboard() {
   // User state flags
   const [isNewUser, setIsNewUser] = useState(false);
   const [hasUserActivity, setHasUserActivity] = useState(false);
+
+  // Badge notifications
+  const { unnotifiedBadges, clearUnnotifiedBadges } = useBadges();
+  const { toast } = useToast();
+
+  // Show toast for newly earned badges
+  useEffect(() => {
+    if (unnotifiedBadges && unnotifiedBadges.length > 0) {
+      unnotifiedBadges.forEach((badge) => {
+        toast({
+          description: <BadgeToast badge={badge} />,
+          duration: 5000,
+        });
+      });
+      clearUnnotifiedBadges();
+    }
+  }, [unnotifiedBadges, clearUnnotifiedBadges, toast]);
 
   useEffect(() => {
     fetchDashboardData();
