@@ -202,12 +202,7 @@ if (data.target_course) {
   }
 };
 
-  const fetchSubjects = async () => {
-    if (!targetCourse) return;
-    await fetchSubjectsForCourse(targetCourse);
-  };
-
-  const fetchTopics = async (subjectId) => {
+    const fetchTopics = async (subjectId) => {
     try {
       const { data, error } = await supabase
         .from('topics')
