@@ -1,11 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import PageContainer from '@/components/layout/PageContainer';
 
 export default function TermsOfService() {
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+   <PageContainer width="narrow">
         {/* Back to Home */}
         <Link 
           to="/" 
@@ -478,7 +478,6 @@ export default function TermsOfService() {
             Back to Home
           </Link>
         </div>
-      </div>
-    </div>
+     </PageContainer>
   );
 }

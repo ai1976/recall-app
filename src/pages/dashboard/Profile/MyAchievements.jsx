@@ -6,6 +6,7 @@ import BadgeCard from '@/components/badges/BadgeCard';
 import BadgeIcon from '@/components/badges/BadgeIcon';
 import { Trophy, Flame, BookOpen, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import PageContainer from '@/components/layout/PageContainer';
 
 export default function MyAchievements() {
   const { user } = useAuth();
@@ -172,132 +173,128 @@ export default function MyAchievements() {
 
   if (loading || statsLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
+      <PageContainer width="full">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   const totalAvailable = allBadgeDefinitions.length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
-            <Trophy className="h-6 w-6 text-yellow-600" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Achievements</h1>
-            <p className="text-gray-600 mt-1">
-              {totalEarned} of {totalAvailable} badges earned
-            </p>
-          </div>
+    <PageContainer width="full">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
+          <Trophy className="h-6 w-6 text-yellow-600" />
         </div>
-
-        {/* Privacy Info */}
-        <div className="mb-6 p-3 rounded-lg text-sm bg-blue-50 text-blue-700">
-          <p>
-            🎛️ Toggle visibility for each badge. {publicBadgeCount} of {totalEarned} badges are visible to others in Find Friends.
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">My Achievements</h1>
+          <p className="text-gray-600 mt-1">
+            {totalEarned} of {totalAvailable} badges earned
           </p>
         </div>
+      </div>
 
-        {/* Progress Summary */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Overall Progress</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {Math.round((totalEarned / totalAvailable) * 100)}%
-              </p>
-            </div>
-            <div className="flex -space-x-2">
-              {badges.slice(0, 5).map((badge, idx) => (
-                <div 
-                  key={badge.badge_key}
-                  className="border-2 border-white rounded-full"
-                  style={{ zIndex: 5 - idx }}
-                >
-                  <BadgeIcon 
-                    iconKey={badge.icon_key} 
-                    size="lg" 
-                    unlocked={true}
-                  />
-                </div>
-              ))}
-            </div>
+      {/* Privacy Info */}
+      <div className="mb-6 p-3 rounded-lg text-sm bg-blue-50 text-blue-700">
+        <p>
+          🎛️ Toggle visibility for each badge. {publicBadgeCount} of {totalEarned} badges are visible to others in Find Friends.
+        </p>
+      </div>
+
+      {/* Progress Summary */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-600">Overall Progress</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {Math.round((totalEarned / totalAvailable) * 100)}%
+            </p>
           </div>
-          
-          <div className="mt-4 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full transition-all"
-              style={{ width: `${(totalEarned / totalAvailable) * 100}%` }}
-            />
+          <div className="flex -space-x-2">
+            {badges.slice(0, 5).map((badge, idx) => (
+              <div 
+                key={badge.badge_key}
+                className="border-2 border-white rounded-full"
+                style={{ zIndex: 5 - idx }}
+              >
+                <BadgeIcon 
+                  iconKey={badge.icon_key} 
+                  size="lg" 
+                  unlocked={true}
+                />
+              </div>
+            ))}
           </div>
         </div>
-
-        {/* Badges by Category */}
-        {Object.entries(groupedBadges).map(([category, categoryBadges]) => {
-          const info = categoryInfo[category] || { 
-            name: category, 
-            icon: Trophy, 
-            color: 'text-gray-600' 
-          };
-          const IconComponent = info.icon;
-
-          return (
-            <div key={category} className="mb-8">
-              <div className="flex items-center gap-2 mb-4">
-                <IconComponent className={`h-5 w-5 ${info.color}`} />
-                <h2 className="text-lg font-semibold text-gray-900">{info.name}</h2>
-                <span className="text-sm text-gray-500">
-                  ({categoryBadges.filter(b => earnedBadgesMap[b.key]).length}/{categoryBadges.length})
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {categoryBadges.map(badge => {
-                  const earned = earnedBadgesMap[badge.key];
-                  const currentProgress = progress[badge.key] || 0;
-                  const isPublic = badgePrivacy[badge.key] ?? true;
-
-                  return (
-                    <BadgeCard
-                      key={badge.key}
-                      badge={badge}
-                      unlocked={!!earned}
-                      earnedAt={earned?.earned_at}
-                      showProgress={!earned}
-                      currentProgress={currentProgress}
-                      isPublic={isPublic}
-                      showPrivacyToggle={!!earned}
-                      onPrivacyToggle={(newValue) => handlePrivacyToggle(badge.key, newValue)}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Empty state */}
-        {totalEarned === 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center mt-8">
-            <Trophy className="h-12 w-12 text-blue-400 mx-auto mb-3" />
-            <p className="text-blue-800 font-medium mb-1">
-              Start earning badges!
-            </p>
-            <p className="text-sm text-blue-700">
-              Upload notes, create flashcards, and study regularly to unlock achievements.
-            </p>
-          </div>
-        )}
+        
+        <div className="mt-4 h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full transition-all"
+            style={{ width: `${(totalEarned / totalAvailable) * 100}%` }}
+          />
+        </div>
       </div>
-    </div>
+
+      {/* Badges by Category */}
+      {Object.entries(groupedBadges).map(([category, categoryBadges]) => {
+        const info = categoryInfo[category] || { 
+          name: category, 
+          icon: Trophy, 
+          color: 'text-gray-600' 
+        };
+        const IconComponent = info.icon;
+
+        return (
+          <div key={category} className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <IconComponent className={`h-5 w-5 ${info.color}`} />
+              <h2 className="text-lg font-semibold text-gray-900">{info.name}</h2>
+              <span className="text-sm text-gray-500">
+                ({categoryBadges.filter(b => earnedBadgesMap[b.key]).length}/{categoryBadges.length})
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {categoryBadges.map(badge => {
+                const earned = earnedBadgesMap[badge.key];
+                const currentProgress = progress[badge.key] || 0;
+                const isPublic = badgePrivacy[badge.key] ?? true;
+
+                return (
+                  <BadgeCard
+                    key={badge.key}
+                    badge={badge}
+                    unlocked={!!earned}
+                    earnedAt={earned?.earned_at}
+                    showProgress={!earned}
+                    currentProgress={currentProgress}
+                    isPublic={isPublic}
+                    showPrivacyToggle={!!earned}
+                    onPrivacyToggle={(newValue) => handlePrivacyToggle(badge.key, newValue)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Empty state */}
+      {totalEarned === 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center mt-8">
+          <Trophy className="h-12 w-12 text-blue-400 mx-auto mb-3" />
+          <p className="text-blue-800 font-medium mb-1">
+            Start earning badges!
+          </p>
+          <p className="text-sm text-blue-700">
+            Upload notes, create flashcards, and study regularly to unlock achievements.
+          </p>
+        </div>
+      )}
+    </PageContainer>
   );
 }

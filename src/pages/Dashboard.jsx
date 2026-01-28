@@ -7,6 +7,7 @@ import AnonymousStats from '@/components/dashboard/AnonymousStats';
 import { useBadges } from '@/hooks/useBadges';
 import { useToast } from '@/hooks/use-toast';
 import BadgeToast from '@/components/badges/BadgeToast';
+import PageContainer from '@/components/layout/PageContainer';
 import { 
   BookOpen, 
   CreditCard, 
@@ -265,8 +266,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <PageContainer width="full">
         
         {/* Header Section */}
         <div className="mb-6 sm:mb-8">
@@ -568,7 +568,6 @@ export default function Dashboard() {
           )}
 
         </div>
-      </div>
-    </div>
+      </PageContainer>
   );
 }

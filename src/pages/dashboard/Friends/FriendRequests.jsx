@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserPlus, UserCheck, UserX, Clock, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import PageContainer from '@/components/layout/PageContainer';
 
 export default function FriendRequests() {
   const { user } = useAuth();
@@ -119,7 +120,7 @@ export default function FriendRequests() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <PageContainer width="full">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Friend Requests</h1>
         <p className="text-gray-600">
@@ -199,6 +200,6 @@ export default function FriendRequests() {
           ))
         )}
       </div>
-    </div>
+   </PageContainer>
   );
 }

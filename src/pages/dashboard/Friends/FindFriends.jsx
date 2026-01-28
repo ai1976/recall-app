@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Search, UserPlus, Users, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import BadgeIcon from '@/components/badges/BadgeIcon';
+import PageContainer from '@/components/layout/PageContainer';
 
 export default function FindFriends() {
   const { user } = useAuth();
@@ -147,7 +148,7 @@ export default function FindFriends() {
   );
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <PageContainer width="full">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Find Friends</h1>
         <p className="text-gray-600">
@@ -276,6 +277,6 @@ export default function FindFriends() {
           })
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }
