@@ -3,6 +3,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Calendar, TrendingUp, Target, Award } from 'lucide-react';
 
+// ============================================================
+// HELPER: Format date as YYYY-MM-DD in user's LOCAL timezone
+// Using 'en-CA' locale gives us ISO format (YYYY-MM-DD) which
+// allows correct string comparison for dates.
+// ============================================================
+const formatLocalDate = (date) => {
+  return new Date(date).toLocaleDateString('en-CA');
+};
+
 export default function MyProgress() {
   const { user } = useAuth();
   const [stats, setStats] = useState({
@@ -70,7 +79,9 @@ export default function MyProgress() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Calculate study streak function
+  // ============================================================
+  // Calculate study streak using user's LOCAL timezone
+  // ============================================================
   const calculateStudyStreak = async (userId) => {
     try {
       // ✅ FIXED: Use 'created_at' instead of 'reviewed_at'
@@ -82,18 +93,18 @@ export default function MyProgress() {
       
       if (error || !reviews || reviews.length === 0) return 0;
 
-      // Get unique dates (extract just the date part)
-      const dates = reviews.map(r => {
-        const date = new Date(r.created_at);
-        return date.toISOString().split('T')[0];
-      });
-      
+      // ✅ FIXED: Get unique dates in user's LOCAL timezone (not UTC)
+      const dates = reviews.map(r => formatLocalDate(r.created_at));
       const uniqueDates = [...new Set(dates)];
       
-      // Check if reviewed today or yesterday
-      const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      // ✅ FIXED: Get today and yesterday in user's LOCAL timezone
+      const today = formatLocalDate(new Date());
       
+      const yesterdayDate = new Date();
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+      const yesterday = formatLocalDate(yesterdayDate);
+      
+      // Check if reviewed today or yesterday
       if (uniqueDates[0] !== today && uniqueDates[0] !== yesterday) {
         return 0; // Streak broken
       }
@@ -102,13 +113,17 @@ export default function MyProgress() {
       let streak = 0;
       let currentDate = new Date();
       
-      for (let i = 0; i < uniqueDates.length; i++) {
-        const checkDate = new Date(currentDate);
-        checkDate.setDate(checkDate.getDate() - i);
-        const checkDateStr = checkDate.toISOString().split('T')[0];
+      // If most recent study was yesterday, start checking from yesterday
+      if (uniqueDates[0] === yesterday) {
+        currentDate.setDate(currentDate.getDate() - 1);
+      }
+      
+      for (let i = 0; i < 365; i++) { // Max 1 year streak
+        const checkDateStr = formatLocalDate(currentDate);
         
         if (uniqueDates.includes(checkDateStr)) {
           streak++;
+          currentDate.setDate(currentDate.getDate() - 1);
         } else {
           break;
         }

@@ -204,18 +204,48 @@ Recent development has focused on fixing the spaced repetition architecture, imp
 #### Enforced Technical Rules
 
 **Date Handling (CRITICAL - NEVER VIOLATE):**
-- ❌ **NEVER** use `date.toISOString()` for calculating `next_review_date`
-- ✅ **ALWAYS** construct Local Date strings manually (YYYY-MM-DD) using `getFullYear()`, `getMonth()`, `getDate()`
-- **Reason:** Ensures "Tomorrow" means the user's calendar tomorrow, regardless of Server UTC time
+**Date Handling (CRITICAL - NEVER VIOLATE):**
+- ❌ **NEVER** use `date.toISOString()` for user-facing date comparisons
+- ❌ **NEVER** hardcode a specific timezone (e.g., `Asia/Kolkata`)
+- ✅ **ALWAYS** use `toLocaleDateString('en-CA')` WITHOUT timezone parameter
+- **Reason:** This uses the user's browser/device timezone automatically, works globally for all users
 
 **Example (Correct Implementation):**
-```javascript// ✅ CORRECT: Local date calculation
-const today = new Date();
-const nextDate = new Date(today);
-nextDate.setDate(today.getDate() + intervalDays);const nextReviewDate = ${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')};
-// Result: "2026-01-24" (local calendar date)// ❌ WRONG: UTC conversion
-const wrong = nextDate.toISOString().split('T')[0];
-// Problem: May return "2026-01-23" if local time is after 6:30 PM IST
+```javascript
+// ============================================================
+// HELPER: Format date as YYYY-MM-DD in user's LOCAL timezone
+// Using 'en-CA' locale gives us ISO format (YYYY-MM-DD) which
+// allows correct string comparison for dates.
+// ============================================================
+const formatLocalDate = (date) => {
+  return new Date(date).toLocaleDateString('en-CA');
+};
+
+// ✅ CORRECT: Get today in user's local timezone
+const today = formatLocalDate(new Date());  // e.g., "2026-01-30"
+
+// ✅ CORRECT: Get yesterday in user's local timezone
+const yesterdayDate = new Date();
+yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+const yesterday = formatLocalDate(yesterdayDate);
+
+// ✅ CORRECT: Convert database timestamp to user's local date
+const reviewDate = formatLocalDate(review.created_at);
+
+// ❌ WRONG: UTC conversion
+const wrong = new Date().toISOString().split('T')[0];
+// Problem: May return different date than user's calendar date
+
+// ❌ WRONG: Hardcoded timezone
+const alsoWrong = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+// Problem: Only works for users in India
+
+Why 'en-CA' locale?
+
+Canadian English formats dates as YYYY-MM-DD (ISO format)
+This format allows correct string comparison ("2026-01-30" > "2026-01-29")
+Works for sorting and database queries
+NOT about Canada - just about the date format!
 
 **Database Operations (StudyMode.jsx):**
 - **Source of Truth:** Student progress stored EXCLUSIVELY in `reviews` table
@@ -237,6 +267,39 @@ const wrong = nextDate.toISOString().split('T')[0];
 - ✅ Timezone-independent behavior (works globally)
 - ✅ Accurate "Reviews Due" count on Dashboard
 - ✅ Student progress saves reliably regardless of card ownership
+
+## User Timezone Storage (2026-01-30)
+
+### Overview
+User's IANA timezone is stored in `profiles.timezone` and auto-synced from browser on every login.
+
+### Database Changes
+- **New Column:** `profiles.timezone` (TEXT, default 'Asia/Kolkata')
+- **Updated Functions:**
+  - `log_review_activity()` - Uses stored timezone for local date/hour
+  - `check_night_owl_badge()` - Checks 11 PM - 4 AM in user's local time
+  - `get_user_streak()` - Calculates streak based on user's local days
+  - `get_anonymous_class_stats()` - Uses per-user timezone for "studied today"
+
+### Frontend Changes
+- **AuthContext.jsx:** New `updateUserTimezone()` helper
+  - Runs on session init, `SIGNED_IN` event, and manual sign in
+  - Detects browser timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone`
+  - Only updates if timezone changed (optimization)
+  - Sets timezone on new user signup
+
+### How It Works
+
+User logs in → Browser timezone detected → Compared with profiles.timezone
+→ If different, UPDATE profiles SET timezone = 'America/New_York'
+→ All DB functions now use this for local time calculations
+
+
+### Benefits
+- Night Owl badge works correctly for users worldwide
+- Streak calculations respect user's local midnight
+- "Studied today" is accurate regardless of server timezone
+- Timezone auto-updates if user travels
 
 ---
 **Current state**

@@ -74,6 +74,8 @@
 | institution | text | YES | NULL | In-house vs External |
 | status | text | NO | 'active' | active/suspended |
 | created_at | timestamp | NO | NOW() | Account creation timestamp |
+| timezone | text | YES | 'Asia/Kolkata' | IANA timezone identifier (e.g., 'Asia/Kolkata', 'America/New_York'). Auto-detected from browser. |
+
 
 **Why This Structure:**
 - `role` column enables 4-tier permission system (critical for security)
@@ -868,6 +870,9 @@ CREATE INDEX idx_profiles_email ON profiles(email);
 CREATE INDEX idx_profiles_role ON profiles(role);
 CREATE INDEX idx_profiles_created_at ON profiles(created_at);
 CREATE INDEX idx_profiles_course_level ON profiles(course_level);
+CREATE INDEX idx_profiles_timezone ON profiles(timezone);  -- ✅ NEW (2026-01-30) 
+**Key Indexes:** email (unique), role, created_at, course_level, timezone
+
 ```
 
 #### notes Table
@@ -1515,10 +1520,17 @@ AND status = 'accepted';
 
 ## SQL Functions
 
+## SQL Functions
+
+
 ### get_anonymous_class_stats(p_course_level TEXT)
 **Purpose:** Returns anonymous aggregate statistics for dashboard comparison
 **Security:** DEFINER (bypasses RLS to aggregate across users)
 **Added:** 2026-01-24 (Phase 1C Dashboard Redesign)
+**Updated:** 2026-01-30
+**Changes:**
+- `students_studied_today` now uses each user's stored timezone
+- More accurate for classes with students in different timezones
 
 **Parameters:**
 | Name | Type | Description |
@@ -1537,12 +1549,25 @@ AND status = 'accepted';
 **Usage:**
 ```sql
 SELECT * FROM get_anonymous_class_stats('CA Intermediate');
-```
 
-**Privacy Notes:**
-- Returns aggregates only, never individual user data
-- Frontend hides comparison when min_users_met = FALSE
-- Uses Asia/Kolkata timezone for day boundaries
+Privacy Notes:
+
+Returns aggregates only, never individual user data
+Frontend hides comparison when min_users_met = FALSE
+Note: Day boundaries are calculated server-side using UTC. For accurate user-facing stats, frontend should use toLocaleDateString('en-CA') for local timezone handling.
+
+### get_user_streak(p_user_id UUID)
+**Purpose:** Calculate consecutive study days in user's local timezone
+**Security:** DEFINER
+**Updated:** 2026-01-30 (Now uses stored user timezone)
+
+**Returns:** INTEGER (number of consecutive days)
+
+**Logic:**
+1. Gets user's timezone from profiles
+2. Calculates today/yesterday in user's local timezone
+3. Gets all review dates converted to user's local timezone
+4. Counts consecutive days starting from today or yesterday
 
 ---
 
@@ -1639,8 +1664,10 @@ Logs daily activity for streak and time-based badge calculations.
 | user_id | UUID | NO | - | FK → profiles.id |
 | activity_type | TEXT | NO | - | 'review', 'flashcard_create', 'note_upload' |
 | activity_date | DATE | NO | - | Local date (IST) |
-| activity_hour | INTEGER | YES | - | Hour 0-23 (IST) for Night Owl |
+| activity_hour | INTEGER | YES | - | Hour 0-23 (UTC, used for Night Owl approximation)
 | created_at | TIMESTAMP | YES | now() | Created timestamp |
+| activity_hour | INTEGER | YES | - | Hour 0-23 in user's LOCAL timezone (from profiles.timezone) |
+
 
 **Constraints:** UNIQUE(user_id, activity_type, activity_date)
 
@@ -1669,6 +1696,26 @@ Logs daily activity for streak and time-based badge calculations.
 | trg_badge_review | reviews | AFTER INSERT | Logs activity, checks streak_master & night_owl |
 | trg_badge_upvote | upvotes | AFTER INSERT | Checks rising_star |
 
+### log_review_activity(p_user_id UUID, p_review_timestamp TIMESTAMPTZ)
+**Purpose:** Logs review activity with timezone-aware local date/hour
+**Security:** DEFINER
+**Updated:** 2026-01-30 (Now uses stored user timezone)
+
+**Changes:**
+- Fetches user's timezone from `profiles.timezone`
+- Converts UTC timestamp to user's local timezone
+- Extracts local date and hour for accurate activity logging
+
+### check_night_owl_badge()
+**Purpose:** Trigger function to award Night Owl badge for late-night reviews
+**Security:** DEFINER
+**Updated:** 2026-01-30 (Now uses stored user timezone)
+
+**Logic:**
+- Gets user's stored timezone from profiles
+- Converts review timestamp to user's local time
+- Checks if hour is 23 (11 PM) or 0-4 (midnight to 4 AM)
+- Awards 'night_owl' badge if true
 **END OF DATABASE_SCHEMA.md**
 
 *This document saved you 2+ hours of debugging. Keep it updated!* 🎯

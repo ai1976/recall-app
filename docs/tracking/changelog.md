@@ -1,6 +1,50 @@
 # Changelog
 
 ---
+## 2026-01-30: User Timezone Storage
+
+### Added
+- **Database:** `profiles.timezone` column (TEXT, default 'Asia/Kolkata')
+- **Database:** Index `idx_profiles_timezone`
+- **Frontend:** `updateUserTimezone()` helper in AuthContext.jsx
+
+### Changed
+- **`log_review_activity()`** - Now uses stored user timezone
+- **`check_night_owl_badge()`** - Checks 11 PM - 4 AM in user's local time
+- **`get_user_streak()`** - Calculates streak in user's local timezone
+- **`get_anonymous_class_stats()`** - Uses per-user timezone for "studied today"
+- **AuthContext.jsx** - Auto-syncs browser timezone on login/signup
+
+### Impact
+- Night Owl badge now works correctly for international users
+- Streak calculations respect user's local midnight
+- "Studied today" is accurate regardless of user location
+- Timezone auto-updates when user travels
+
+### Migration
+- Run `[SCHEMA] Add User Timezone Support` in Supabase SQL Editor
+- Existing users get default 'Asia/Kolkata' until they log in again
+
+---
+
+## 2026-01-30: Universal Timezone Fix
+
+### Changed
+- **FIXED:** All date calculations now use user's LOCAL timezone instead of hardcoded `Asia/Kolkata`
+- **Files Updated:**
+  - `Dashboard.jsx` - Streak calculation, due cards count
+  - `Progress.jsx` - Streak calculation
+  - `ReviewBySubject.jsx` - Due cards filtering
+- **Pattern:** Use `toLocaleDateString('en-CA')` without timezone parameter
+- **Impact:** App now works correctly for students in any country/timezone
+
+### Documentation Updated
+- `docs/active/context.md` - Updated Spaced Repetition & Timezone Standards
+- `docs/design/ACHIEVEMENT_BADGES.md` - Updated timezone handling section
+- `docs/reference/DATABASE_SCHEMA.md` - Updated SQL function notes
+
+---
+
 ## 2026-01-26: Achievement Badges System (Phase 1E)
 
 ### Added
@@ -92,7 +136,7 @@ src/components/notes/NoteDetail.jsx
   - Returns: avg_reviews_this_week, total_active_students, students_with_7day_streak, students_studied_today, min_users_met
   - Filters by course_level (CA Inter vs CA Inter only)
   - Uses rolling 7-day window (today - 6 days)
-  - Timezone: Asia/Kolkata for accurate day boundaries
+  - Timezone: Uses user's local timezone for accurate day boundaries
 
 ### Changed
 - **REFACTORED:** `src/pages/Dashboard.jsx`

@@ -7,6 +7,15 @@ import { Clock, ArrowLeft, BookOpen, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
+// ============================================================
+// HELPER: Format date as YYYY-MM-DD in user's LOCAL timezone
+// Using 'en-CA' locale gives us ISO format (YYYY-MM-DD) which
+// allows correct string comparison for dates.
+// ============================================================
+const formatLocalDate = (date) => {
+  return new Date(date).toLocaleDateString('en-CA');
+};
+
 export default function ReviewBySubject() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -29,10 +38,8 @@ export default function ReviewBySubject() {
 
       console.log('✅ Fetching due cards grouped by subject');
 
-      // Get today's date as YYYY-MM-DD
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayString = today.toISOString().split('T')[0];
+      // ✅ FIXED: Get today's date in user's LOCAL timezone (not UTC)
+      const todayString = formatLocalDate(new Date());
 
       // Get due reviews
       const { data: dueReviews, error: reviewsError } = await supabase

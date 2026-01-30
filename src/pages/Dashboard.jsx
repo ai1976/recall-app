@@ -21,6 +21,15 @@ import {
   Play
 } from 'lucide-react';
 
+// ============================================================
+// HELPER: Format date as YYYY-MM-DD in user's LOCAL timezone
+// Using 'en-CA' locale gives us ISO format (YYYY-MM-DD) which
+// allows correct string comparison for dates.
+// ============================================================
+const formatLocalDate = (date) => {
+  return new Date(date).toLocaleDateString('en-CA');
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -165,12 +174,8 @@ export default function Dashboard() {
       const uniqueCards = new Set(reviewList.map(r => r.flashcard_id));
       setCardsMastered(uniqueCards.size);
 
-      // Reviews due (next_review_date <= today)
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      const todayString = `${year}-${month}-${day}`;
+      // Reviews due (next_review_date <= today) - using user's LOCAL timezone
+      const todayString = formatLocalDate(new Date());
 
       const dueCount = reviewList.filter(r => r.next_review_date && r.next_review_date <= todayString).length;
       setReviewsDue(dueCount);
@@ -218,20 +223,23 @@ export default function Dashboard() {
     }
   };
 
+  // ============================================================
+  // Calculate study streak using user's LOCAL timezone
+  // ============================================================
   const calculateStreak = (reviews) => {
     if (!reviews || reviews.length === 0) return 0;
     
-    // Get unique study dates in IST
+    // Get unique study dates in user's LOCAL timezone
     const studyDates = [...new Set(
-      reviews.map(r => {
-        const date = new Date(r.created_at);
-        // Convert to IST for accurate day boundaries
-        return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-      })
+      reviews.map(r => formatLocalDate(r.created_at))
     )].sort().reverse();
 
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    // Get today and yesterday in user's LOCAL timezone
+    const today = formatLocalDate(new Date());
+    
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterday = formatLocalDate(yesterdayDate);
 
     // Streak must start from today or yesterday
     if (studyDates[0] !== today && studyDates[0] !== yesterday) return 0;
@@ -241,11 +249,11 @@ export default function Dashboard() {
     
     // If most recent study was yesterday, start checking from yesterday
     if (studyDates[0] === yesterday) {
-      checkDate = new Date(Date.now() - 86400000);
+      checkDate.setDate(checkDate.getDate() - 1);
     }
 
     for (let i = 0; i < 365; i++) { // Max 1 year streak
-      const dateStr = checkDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      const dateStr = formatLocalDate(checkDate);
       if (studyDates.includes(dateStr)) {
         streak++;
         checkDate.setDate(checkDate.getDate() - 1);

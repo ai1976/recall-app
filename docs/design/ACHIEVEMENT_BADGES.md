@@ -167,54 +167,150 @@ Students should have **granular control** over which achievements are visible to
 ## 5. Timezone Handling
 
 ### Problem
-Night Owl badge needs to detect reviews between 11 PM and 4 AM in **user's local time** (IST for Indian students).
+Night Owl badge needs to detect reviews between 11 PM and 4 AM in **user's local time**.
 
-### Solution
-```sql
--- In trigger: Convert UTC to IST
-v_ist_timestamp := NEW.created_at AT TIME ZONE 'Asia/Kolkata';
-v_activity_hour := EXTRACT(HOUR FROM v_ist_timestamp)::INTEGER;
+### Frontend Solution (JavaScript)
+```javascript
+// Helper function for local date formatting
+const formatLocalDate = (date) => {
+  return new Date(date).toLocaleDateString('en-CA');
+};
 
--- Check Night Owl hours (23, 0, 1, 2, 3, 4)
-IF v_activity_hour >= 23 OR v_activity_hour <= 4 THEN
+// Get current hour in user's local timezone
+const localHour = new Date().getHours();
+
+// Check Night Owl hours (23, 0, 1, 2, 3, 4)
+const isNightOwlHour = localHour >= 23 || localHour <= 4;
+
+Backend Solution (Database)
+For database triggers, the user's timezone is not directly available.
+
+Soved it by Storing user timezone in profiles (Recommended for future)
+
+-- Add to profiles table
+ALTER TABLE profiles ADD COLUMN timezone TEXT DEFAULT 'UTC';
+
+-- In trigger: Use user's stored timezone
+v_user_tz := (SELECT timezone FROM profiles WHERE id = NEW.user_id);
+v_local_timestamp := NEW.created_at AT TIME ZONE v_user_tz;
+v_activity_hour := EXTRACT(HOUR FROM v_local_timestamp)::INTEGER;
+---
+Why Local Timezone Matters
+User base is expanding globally (not just India)
+A review at 11 PM should count as "Night Owl" regardless of where user lives
+Hardcoding Asia/Kolkata would give wrong results for international students
+Future Enhancement
+Store timezone in profiles table (auto-detected on signup or first login), then use that for all server-side time calculations.
+
+## 5. Timezone Handling
+
+### Solution: Stored User Timezone (Implemented 2026-01-30)
+
+User's IANA timezone is stored in `profiles.timezone` and auto-synced from browser.
+
+### How It Works
+
+**Frontend (AuthContext.jsx):**
+```javascript
+const updateUserTimezone = async (userId) => {
+  const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // Update profiles.timezone if different
+};
+Backend (check_night_owl_badge trigger):
+
+-- Get user's stored timezone
+SELECT timezone INTO v_user_tz FROM profiles WHERE id = NEW.user_id;
+
+-- Convert review timestamp to user's local time
+v_local_hour := EXTRACT(HOUR FROM (NEW.created_at AT TIME ZONE v_user_tz));
+
+-- Check Night Owl hours (11 PM - 4 AM local)
+IF v_local_hour >= 23 OR v_local_hour <= 4 THEN
     PERFORM award_badge(NEW.user_id, 'night_owl');
 END IF;
-```
 
-### Why IST Only?
-- Current user base is 100% Indian students
-- Simplifies implementation
-- Can extend to user-specific timezones in future if needed
+When Timezone Updates
+On app load (session restore)
+On login (SIGNED_IN event)
+On signup (initial profile creation)
+Edge Cases
+Scenario	Behavior
+New user	Timezone set from browser on signup
+Existing user, first login after update	Gets default 'Asia/Kolkata', updated on login
+User travels	Timezone updates on next login from new location
+Browser blocks timezone	Falls back to 'Asia/Kolkata'
 
 ---
+
+## Summary
+
+| File | Changes |
+|------|---------|
+| **context.md** | Add "User Timezone Storage" section |
+| **DATABASE_SCHEMA.md** | Add `timezone` column to profiles, update function docs |
+| **changelog.md** | Add 2026-01-30 entry for timezone storage |
+| **ACHIEVEMENT_BADGES.md** | Update "Timezone Handling" section with implemented solutio
 
 ## 6. Streak Calculation
 
 ### Definition
 Consecutive days where user completed at least one review.
 
-### Algorithm
-```
-1. Get today's date in IST
-2. Check if user has activity for today
-3. If yes, increment streak and check yesterday
-4. Repeat until a day with no activity is found
-5. Return streak count
-```
+### Algorithm (Frontend - JavaScript)
+```javascript
+const formatLocalDate = (date) => {
+  return new Date(date).toLocaleDateString('en-CA');
+};
 
-### Edge Cases
-| Scenario | Behavior |
-|----------|----------|
-| No reviews ever | Streak = 0 |
-| Reviewed today only | Streak = 1 |
-| Reviewed yesterday but not today | Streak = 0 (broken) |
-| Gap of 1+ days in past | Streak starts from most recent consecutive block |
+const calculateStreak = (reviews) => {
+  if (!reviews || reviews.length === 0) return 0;
+  
+  // Get unique study dates in user's LOCAL timezone
+  const studyDates = [...new Set(
+    reviews.map(r => formatLocalDate(r.created_at))
+  )].sort().reverse();
 
-### Data Source
-Streaks are calculated from `user_activity_log` table, NOT raw `reviews` table. This ensures:
-- Fast queries (one row per day per user)
-- Accurate day boundaries (uses IST date)
-- Efficient storage
+  // Get today and yesterday in user's LOCAL timezone
+  const today = formatLocalDate(new Date());
+  
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterday = formatLocalDate(yesterdayDate);
+
+  // Streak must start from today or yesterday
+  if (studyDates[0] !== today && studyDates[0] !== yesterday) return 0;
+
+  let streak = 0;
+  let checkDate = new Date();
+  
+  // If most recent study was yesterday, start checking from yesterday
+  if (studyDates[0] === yesterday) {
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  for (let i = 0; i < 365; i++) {
+    const dateStr = formatLocalDate(checkDate);
+    if (studyDates.includes(dateStr)) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+};
+
+Edge Cases
+Scenario	Behavior
+No reviews ever	Streak = 0
+Reviewed today only	Streak = 1
+Reviewed yesterday but not today	Streak still counts (not broken yet)
+Gap of 1+ days in past	Streak starts from most recent consecutive block
+Data Source
+Streaks are calculated from user_activity_log table or raw reviews table, using the user's LOCAL timezone for accurate day boundaries.
+
+
 
 ---
 

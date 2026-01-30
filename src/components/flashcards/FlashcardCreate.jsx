@@ -31,7 +31,7 @@ export default function FlashcardCreate() {
   const [customSubject, setCustomSubject] = useState('');
   const [showCustomTopic, setShowCustomTopic] = useState(false);
   const [customTopic, setCustomTopic] = useState('');
-  const [visibility, setVisibility] = useState('private'); // 🆕 NEW
+  const [visibility, setVisibility] = useState('private');
   
   const [flashcards, setFlashcards] = useState([
     { front: '', back: '', frontImage: null, backImage: null }
@@ -222,12 +222,37 @@ export default function FlashcardCreate() {
         }
       }
 
+      const finalTargetCourse = customCourse || targetCourse;
+
+      // ✅ FIX: Create a deck FIRST, then assign deck_id to flashcards
+      const { data: deckData, error: deckError } = await supabase
+        .from('flashcard_decks')
+        .insert({
+          user_id: user.id,
+          subject_id: selectedSubject?.id || null,
+          custom_subject: customSubject || null,
+          topic_id: selectedTopic?.id || null,
+          custom_topic: customTopic || null,
+          target_course: finalTargetCourse,
+          visibility: visibility,
+          card_count: flashcards.length,
+          upvote_count: 0
+        })
+        .select('id')
+        .single();
+
+      if (deckError) throw deckError;
+
+      const deckId = deckData.id;
+
+      // ✅ FIX: Now create flashcards WITH deck_id
       const flashcardsToInsert = flashcards.map(card => ({
         user_id: user.id,
         contributed_by: user.id,
         creator_id: user.id,
         content_creator_id: null,
-        target_course: customCourse || targetCourse,
+        deck_id: deckId, // ✅ CRITICAL: Assign deck_id
+        target_course: finalTargetCourse,
         subject_id: selectedSubject?.id || null,
         topic_id: selectedTopic?.id || null,
         custom_subject: customSubject || null,
@@ -237,8 +262,8 @@ export default function FlashcardCreate() {
         front_image_url: card.frontImage || null,
         back_image_url: card.backImage || null,
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-        visibility: visibility, // 🆕 NEW
-        is_public: visibility === 'public', // Backward compatibility
+        visibility: visibility,
+        is_public: visibility === 'public',
         is_verified: false,
         difficulty: 'medium',
         batch_id: crypto.randomUUID(),
@@ -509,7 +534,6 @@ export default function FlashcardCreate() {
                 </p>
               </div>
 
-              {/* 🆕 NEW: Visibility Dropdown */}
               <div className="space-y-2">
                 <Label htmlFor="visibility">Who can see these flashcards?</Label>
                 <Select value={visibility} onValueChange={setVisibility}>
