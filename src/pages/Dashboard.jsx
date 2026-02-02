@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import AnonymousStats from '@/components/dashboard/AnonymousStats';
+import ActivityFeed from '@/components/dashboard/ActivityFeed';
 import { useBadges } from '@/hooks/useBadges';
 import { useToast } from '@/hooks/use-toast';
 import BadgeToast from '@/components/badges/BadgeToast';
@@ -448,6 +449,11 @@ export default function Dashboard() {
               showComparison={classStats.minUsersMet}
               hasUserActivity={hasUserActivity}
             />
+          )}
+
+          {/* ===== RECENT ACTIVITY FEED ===== */}
+          {!isNewUser && (
+            <ActivityFeed limit={5} />
           )}
 
           {/* ===== QUICK ACTIONS ===== */}

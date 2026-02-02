@@ -1,28 +1,36 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-01-26
-**Current Phase:** Phase 1E Complete - Achievement Badges System
+# NOW - Current Development Status
+
+**Last Updated:** 2026-02-02
+**Current Phase:** Phase 1B Complete - Notifications & Navigation Redesign
 
 ---
 
 ## Just Completed ✅
 
-### Achievement Badges System (Phase 1E)
+### Notifications & Navigation Redesign (Phase 1B)
+- [x] Database functions for notifications (get, mark read, delete)
+- [x] Database function for activity feed (recent notes/decks)
+- [x] useNotifications hook with Supabase Realtime subscription
+- [x] useFriendRequestCount hook with Realtime subscription
+- [x] useActivityFeed hook for dashboard content feed
+- [x] Modular Navigation components (6 files replacing 1)
+- [x] Desktop: Friends dropdown with inline Accept/Decline
+- [x] Desktop: Activity dropdown with auto mark-as-read
+- [x] Desktop: Profile dropdown with user info + links
+- [x] Mobile: Sheet-based hamburger menu
+- [x] Mobile: Friends + Bell icons with badges
+- [x] Dashboard: ActivityFeed component showing recent content
+- [x] Sheet UI component for mobile navigation
+
+### Previous: Achievement Badges System (Phase 1E)
 - [x] Database schema: badge_definitions, user_badges, user_activity_log
 - [x] 5 badge types: Digitalizer, Memory Architect, Streak Master, Night Owl, Rising Star
 - [x] Auto-award triggers on notes, flashcards, reviews, upvotes
-- [x] IST timezone handling for Night Owl (11PM-4AM)
-- [x] Streak calculation from user_activity_log
-- [x] Backfilled existing users (14 badges awarded)
 - [x] MyAchievements page with progress tracking
-- [x] Per-badge privacy toggle (is_public column)
-- [x] Badge display in FindFriends (respects privacy)
+- [x] Per-badge privacy toggle
 - [x] Toast notifications for new badge unlocks
-- [x] Navigation link under Study dropdown
-
-### Bug Fixes
-- [x] Renamed "The Grinder" → "Streak Master" (inappropriate name)
-- [x] Removed yellow badge count from navigation (confusing UX)
 
 ---
 
@@ -42,9 +50,9 @@
 
 | Decision | Status | Notes |
 |----------|--------|-------|
-| Badges public by default | ✅ Approved | Per-badge toggle, not global |
-| Night Owl hours | ✅ Implemented | 11 PM - 4 AM IST |
-| Badge count in nav | ❌ Removed | Was confusing, not like friend requests |
+| Instant mark-as-read | ✅ Approved | Notifications marked read immediately on dropdown open |
+| Modular navigation | ✅ Implemented | 6 component files for maintainability |
+| Mobile Sheet (not menu) | ✅ Implemented | Smooth UX with slide-in animation |
 
 ---
 
@@ -56,8 +64,8 @@ None currently.
 
 ## Session Notes
 
-### 2026-01-26 Session
-- Implemented complete Achievement Badges System
-- Changed from global privacy toggle to per-badge privacy
-- All triggers tested and working
-- Backfill awarded 14 badges to existing users
+### 2026-02-02 Session
+- Rebuilt Navigation into modular components
+- Added realtime hooks for notifications and friend requests
+- Integrated ActivityFeed into Dashboard
+- Fixed ESLint warnings (unused imports)

@@ -1,6 +1,28 @@
 # Changelog
 
 ---
+## [2026-02-02] Phase 1B - Notifications & Navigation Redesign
+
+### Added
+- `useNotifications` hook with Supabase Realtime subscription
+- `useFriendRequestCount` hook with Realtime subscription  
+- `useActivityFeed` hook for dashboard content feed
+- `ActivityFeed` component for Dashboard
+- `Sheet` UI component (Radix Dialog-based)
+- Modular navigation: NavDesktop, NavMobile, FriendsDropdown, ActivityDropdown, ProfileDropdown
+
+### Changed
+- Navigation.jsx refactored from 566 lines to 55 lines (orchestrator pattern)
+- Dashboard.jsx now includes ActivityFeed section
+
+### Technical
+- Friends icon shows red badge with pending count
+- Bell icon shows red badge with unread notification count
+- Notifications auto-marked as read when dropdown opens
+- Mobile navigation uses Sheet with auto-close on navigate
+
+---
+
 ## 2026-02-02: FlashcardCreate Duplicate Deck Fix
 
 ### Fixed

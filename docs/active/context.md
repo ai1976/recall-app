@@ -103,6 +103,54 @@ user_activity_log
 - Badge toast notifications on Dashboard when new badge earned
 
 ---
+## Phase 1B: Notifications & Navigation Redesign (2026-02-02)
+
+### New Database Functions
+- `get_unread_notification_count(p_user_id)` → Returns integer count
+- `get_recent_notifications(p_user_id, p_limit)` → Returns notifications array
+- `mark_notifications_read(p_user_id)` → Marks all as read, returns count
+- `mark_single_notification_read(p_notification_id)` → Marks one as read
+- `delete_notification(p_notification_id)` → Deletes notification
+- `get_recent_activity_feed(p_user_id, p_course_level, p_limit)` → Returns recent notes/decks
+
+### New Frontend Hooks
+- `src/hooks/useNotifications.js` - Realtime notifications with Supabase subscription
+- `src/hooks/useFriendRequestCount.js` - Realtime pending friend request count
+- `src/hooks/useActivityFeed.js` - Recent content feed for dashboard
+
+### Navigation Redesign
+Modular component structure replacing monolithic Navigation.jsx:
+src/components/layout/
+├── Navigation.jsx (orchestrator - 55 lines)
+├── NavDesktop.jsx (desktop layout with dropdowns)
+├── NavMobile.jsx (mobile hamburger + Sheet)
+├── FriendsDropdown.jsx (friends icon + pending requests)
+├── ActivityDropdown.jsx (bell icon + notifications)
+└── ProfileDropdown.jsx (avatar dropdown with profile links)
+
+#### Desktop Layout
+`[RECALL Logo] [Dashboard] [Study▾] [Create▾] [Super Admin*] ...spacer... [Friends 👥] [Bell 🔔] [Avatar ▼]`
+
+#### Mobile Layout
+`[RECALL Logo] ...spacer... [Friends 👥] [Bell 🔔] [Hamburger ☰]`
+
+### New UI Component
+- `src/components/ui/sheet.jsx` - Radix Dialog-based Sheet for mobile navigation
+
+### Dashboard Activity Feed
+- `src/components/dashboard/ActivityFeed.jsx` - Shows recent notes/decks from past 7 days
+- Displays content type icon (FileText for notes, CreditCard for decks)
+- Shows creator with "Prof." prefix for professors
+- Relative time formatting (2 hours ago, Yesterday, 3 days ago)
+- View/Study buttons linking to content
+
+### Key Features
+- **Realtime badges:** Red dot with count on Friends/Bell icons
+- **Auto mark-as-read:** Notifications marked read when dropdown opens
+- **Accept/Decline inline:** Friend requests manageable from dropdown
+- **Mobile Sheet:** Smooth slide-in navigation with auto-close on navigate
+
+
 
 ## Phase 1D: Upvote System (2026-01-24)
 
