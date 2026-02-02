@@ -224,39 +224,102 @@ export default function FlashcardCreate() {
 
       const finalTargetCourse = customCourse || targetCourse;
 
-      // ✅ FIX: Create a deck FIRST, then assign deck_id to flashcards
-      const { data: deckData, error: deckError } = await supabase
+      // ✅ FIX: Check if deck already exists, reuse if found, create if not
+      const subjectId = selectedSubject?.id || null;
+      const topicId = selectedTopic?.id || null;
+      const customSubjectValue = customSubject || null;
+      const customTopicValue = customTopic || null;
+
+      // Build query to find existing deck
+      let existingDeckQuery = supabase
         .from('flashcard_decks')
-        .insert({
-          user_id: user.id,
-          subject_id: selectedSubject?.id || null,
-          custom_subject: customSubject || null,
-          topic_id: selectedTopic?.id || null,
-          custom_topic: customTopic || null,
-          target_course: finalTargetCourse,
-          visibility: visibility,
-          card_count: flashcards.length,
-          upvote_count: 0
-        })
-        .select('id')
-        .single();
+        .select('id, card_count')
+        .eq('user_id', user.id);
 
-      if (deckError) throw deckError;
+      // Handle NULL comparisons correctly (Supabase uses .is() for NULL)
+      if (subjectId) {
+        existingDeckQuery = existingDeckQuery.eq('subject_id', subjectId);
+      } else {
+        existingDeckQuery = existingDeckQuery.is('subject_id', null);
+      }
 
-      const deckId = deckData.id;
+      if (topicId) {
+        existingDeckQuery = existingDeckQuery.eq('topic_id', topicId);
+      } else {
+        existingDeckQuery = existingDeckQuery.is('topic_id', null);
+      }
 
-      // ✅ FIX: Now create flashcards WITH deck_id
+      if (customSubjectValue) {
+        existingDeckQuery = existingDeckQuery.eq('custom_subject', customSubjectValue);
+      } else {
+        existingDeckQuery = existingDeckQuery.is('custom_subject', null);
+      }
+
+      if (customTopicValue) {
+        existingDeckQuery = existingDeckQuery.eq('custom_topic', customTopicValue);
+      } else {
+        existingDeckQuery = existingDeckQuery.is('custom_topic', null);
+      }
+
+      const { data: existingDeck, error: findError } = await existingDeckQuery.maybeSingle();
+
+      if (findError) {
+        console.error('Error checking for existing deck:', findError);
+        // Continue to create new deck if lookup fails
+      }
+
+      let deckId;
+
+      if (existingDeck) {
+        // ✅ REUSE existing deck and update card_count
+        deckId = existingDeck.id;
+        console.log('♻️ Reusing existing deck:', deckId);
+
+        // Update card_count
+        await supabase
+          .from('flashcard_decks')
+          .update({ 
+            card_count: existingDeck.card_count + flashcards.length,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', deckId);
+
+      } else {
+        // ✅ CREATE new deck
+        const { data: newDeck, error: deckError } = await supabase
+          .from('flashcard_decks')
+          .insert({
+            user_id: user.id,
+            subject_id: subjectId,
+            custom_subject: customSubjectValue,
+            topic_id: topicId,
+            custom_topic: customTopicValue,
+            target_course: finalTargetCourse,
+            visibility: visibility,
+            card_count: flashcards.length,
+            upvote_count: 0
+          })
+          .select('id')
+          .single();
+
+        if (deckError) throw deckError;
+
+        deckId = newDeck.id;
+        console.log('🆕 Created new deck:', deckId);
+      }
+
+      // ✅ Create flashcards WITH deck_id
       const flashcardsToInsert = flashcards.map(card => ({
         user_id: user.id,
         contributed_by: user.id,
         creator_id: user.id,
         content_creator_id: null,
-        deck_id: deckId, // ✅ CRITICAL: Assign deck_id
+        deck_id: deckId,
         target_course: finalTargetCourse,
-        subject_id: selectedSubject?.id || null,
-        topic_id: selectedTopic?.id || null,
-        custom_subject: customSubject || null,
-        custom_topic: customTopic || null,
+        subject_id: subjectId,
+        topic_id: topicId,
+        custom_subject: customSubjectValue,
+        custom_topic: customTopicValue,
         front_text: card.front,
         back_text: card.back,
         front_image_url: card.frontImage || null,

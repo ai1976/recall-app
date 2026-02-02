@@ -1,6 +1,20 @@
 # Changelog
 
 ---
+## 2026-02-02: FlashcardCreate Duplicate Deck Fix
+
+### Fixed
+- **FlashcardCreate duplicate deck constraint error**
+  - Creating 2nd+ flashcard for same subject/topic caused unique constraint violation
+  - Now checks for existing deck before creating (SELECT before INSERT)
+  - Reuses existing deck_id when match found
+  - Uses `.is()` for NULL comparisons and `.maybeSingle()` for safe queries
+
+### Files Changed
+- `src/components/flashcards/FlashcardCreate.jsx`
+
+---
+
 ## 2026-01-30: User Timezone Storage
 
 ### Added
