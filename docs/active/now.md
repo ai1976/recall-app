@@ -69,3 +69,5 @@ None currently.
 - Added realtime hooks for notifications and friend requests
 - Integrated ActivityFeed into Dashboard
 - Fixed ESLint warnings (unused imports)
+- Centered desktop nav links (Logo left, Nav center, Icons right)
+

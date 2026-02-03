@@ -49,10 +49,9 @@ export default function NavDesktop({
 
   return (
     <>
-      {/* Left side: Logo + Nav Links */}
-      <div className="hidden md:flex md:items-center md:space-x-1">
-        {/* Logo */}
-        <Link to="/dashboard" className="flex items-center gap-2 mr-4">
+      {/* Left: Logo */}
+      <div className="hidden md:flex md:items-center">
+        <Link to="/dashboard" className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
             <span className="text-white font-bold text-lg">R</span>
           </div>
@@ -60,7 +59,10 @@ export default function NavDesktop({
             RECALL
           </span>
         </Link>
+      </div>
 
+      {/* Center: Nav Links */}
+      <div className="hidden md:flex md:items-center md:space-x-1">
         {!isLoading && (
           <>
             {/* Dashboard */}
@@ -95,7 +97,7 @@ export default function NavDesktop({
                   <ChevronDown className="h-3 w-3" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuContent align="center" className="w-48">
                 <DropdownMenuItem asChild>
                   <Link to="/dashboard/review-flashcards" className="flex items-center gap-2 cursor-pointer">
                     <CreditCard className="h-4 w-4" />
@@ -128,7 +130,7 @@ export default function NavDesktop({
                   <ChevronDown className="h-3 w-3" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuContent align="center" className="w-48">
                 <DropdownMenuItem asChild>
                   <Link to="/dashboard/notes/new" className="flex items-center gap-2 cursor-pointer">
                     <FileText className="h-4 w-4" />
@@ -172,7 +174,7 @@ export default function NavDesktop({
         )}
       </div>
 
-      {/* Right side: Icons + Profile */}
+      {/* Right: Icons + Profile */}
       <div className="hidden md:flex md:items-center md:space-x-2">
         {/* Friends Icon with Dropdown */}
         <FriendsDropdown pendingCount={pendingCount} />

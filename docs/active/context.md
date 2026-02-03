@@ -129,7 +129,8 @@ src/components/layout/
 └── ProfileDropdown.jsx (avatar dropdown with profile links)
 
 #### Desktop Layout
-`[RECALL Logo] [Dashboard] [Study▾] [Create▾] [Super Admin*] ...spacer... [Friends 👥] [Bell 🔔] [Avatar ▼]`
+`[RECALL Logo] ...spacer... [Dashboard] [Study▾] [Create▾] [Super Admin*] ...spacer... [Friends 👥] [Bell 🔔] [Avatar ▼]`
+
 
 #### Mobile Layout
 `[RECALL Logo] ...spacer... [Friends 👥] [Bell 🔔] [Hamburger ☰]`

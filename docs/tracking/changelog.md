@@ -1,6 +1,14 @@
 # Changelog
 
 ---
+## [2026-02-02] UI Fix - Desktop Navigation Centering
+
+### Changed
+- Desktop nav links now centered between Logo (left) and Icons (right)
+- Dropdown menus aligned to center for better positioning
+
+---
+
 ## [Feb 3, 2026] - UX Bug Fixes
 
 ### Fixed
