@@ -1,6 +1,27 @@
 # Changelog
 
 ---
+## [Feb 3, 2026] - UX Bug Fixes
+
+### Fixed
+- **NoteEdit.jsx**: Added image/PDF replacement feature
+  - File picker to select new image/PDF
+  - Preview of new file before saving
+  - Automatic deletion of old file from Supabase storage
+  - File validation (type and size limits)
+  
+- **MyFlashcards.jsx**: Fixed cursor jumping to beginning during inline editing
+  - Extracted FlashcardCard to separate component file
+  - Implemented isolated edit state pattern
+  - Used useCallback for stable handler references
+
+### Added
+- **FlashcardCard.jsx**: New standalone component for flashcard display/editing
+  - Moved from inline definition to prevent re-mounting on parent re-render
+  - Props-based architecture for better performance
+
+---
+
 ## [2026-02-02] Phase 1B - Notifications & Navigation Redesign
 
 ### Added

@@ -561,6 +561,19 @@ recall-app
 ├── .env.local
 ├── .gitignore
 ├── components.json
+├── dist
+│   ├── android-chrome-192x192.png
+│   ├── android-chrome-512x512.png
+│   ├── apple-touch-icon.png
+│   ├── assets
+│   │   ├── index-DHW_aIga.css
+│   │   └── index-FtNB4Wrq.js
+│   ├── favicon-16x16.png
+│   ├── favicon-32x32.png
+│   ├── favicon.ico
+│   ├── index.html
+│   ├── site.webmanifest
+│   └── vite.svg
 ├── docs
 │   ├── active
 │   │   ├── context.md
@@ -614,13 +627,21 @@ recall-app
 │   │   │   ├── BadgeIcon.jsx
 │   │   │   └── BadgeToast.jsx
 │   │   ├── dashboard
+│   │   │   ├── ActivityFeed.jsx
 │   │   │   └── AnonymousStats.jsx
 │   │   ├── flashcards
+│   │   │   ├── FlashcardCard.jsx
 │   │   │   ├── FlashcardCreate.jsx
 │   │   │   ├── MyFlashcards.jsx
 │   │   │   └── StudyMode.jsx
 │   │   ├── layout
-│   │   │   └── Navigation.jsx
+│   │   │   ├── ActivityDropdown.jsx
+│   │   │   ├── FriendsDropdown.jsx
+│   │   │   ├── NavDesktop.jsx
+│   │   │   ├── Navigation.jsx
+│   │   │   ├── NavMobile.jsx
+│   │   │   ├── PageContainer.jsx
+│   │   │   └── ProfileDropdown.jsx
 │   │   ├── notes
 │   │   │   ├── index.jsx
 │   │   │   ├── NoteDetail.jsx
@@ -641,6 +662,7 @@ recall-app
 │   │       ├── progress.jsx
 │   │       ├── SearchableSelect.jsx
 │   │       ├── select.jsx
+│   │       ├── sheet.jsx
 │   │       ├── switch.jsx
 │   │       ├── tabs.jsx
 │   │       ├── textarea.jsx
@@ -652,7 +674,10 @@ recall-app
 │   ├── data
 │   ├── hooks
 │   │   ├── use-toast.js
+│   │   ├── useActivityFeed.js
 │   │   ├── useBadges.js
+│   │   ├── useFriendRequestCount.js
+│   │   ├── useNotifications.js
 │   │   ├── useOCR.js
 │   │   └── useRole.js
 │   ├── index.css
@@ -691,6 +716,7 @@ recall-app
 ├── tailwind.config.js
 ├── vercel.json
 └── vite.config.js
+
 
 ---
 

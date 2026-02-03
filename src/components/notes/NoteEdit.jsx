@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Save, ArrowLeft, Check, ChevronsUpDown, Plus } from 'lucide-react';
+import { Save, ArrowLeft, Check, ChevronsUpDown, Plus, Upload, X, FileText } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -38,11 +38,17 @@ export default function NoteEdit() {
   const [customSubject, setCustomSubject] = useState('');
   const [showCustomTopic, setShowCustomTopic] = useState(false);
   const [customTopic, setCustomTopic] = useState('');
-  const [visibility, setVisibility] = useState('private'); // 🆕 Changed from isPublic
+  const [visibility, setVisibility] = useState('private');
 
   // Combobox states
   const [subjectOpen, setSubjectOpen] = useState(false);
   const [topicOpen, setTopicOpen] = useState(false);
+
+  // Image replacement states
+  const [currentImageUrl, setCurrentImageUrl] = useState('');
+  const [newFile, setNewFile] = useState(null);
+  const [newFilePreview, setNewFilePreview] = useState(null);
+  const [isReplacingImage, setIsReplacingImage] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -64,11 +70,11 @@ export default function NoteEdit() {
       const { data: notesData } = await supabase
         .from('notes')
         .select('target_course');
-      
+
       const { data: flashcardsData } = await supabase
         .from('flashcards')
         .select('target_course');
-      
+
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('course_level');
@@ -127,45 +133,41 @@ export default function NoteEdit() {
       setContentType(data.content_type || 'text');
       setExtractedText(data.extracted_text || '');
       setTargetCourse(data.target_course || '');
-      setVisibility(data.visibility || 'private'); // 🆕 Load visibility
+      setVisibility(data.visibility || 'private');
+      setCurrentImageUrl(data.image_url || '');
 
       // Handle tags
       if (data.tags && Array.isArray(data.tags)) {
         setTags(data.tags.join(', '));
       }
 
-        // 🔧 FIX: Fetch subjects first, THEN set selected subject
-if (data.target_course) {
-  const level = data.target_course.replace(/^(CA|CMA|CS)\s+/, '');
-  const subjectsData = await fetchSubjectsForCourse(level);
-  
-  console.log('✅ Subjects fetched:', subjectsData.length);
-  
-  // Wait for state update, then set selections
-  setTimeout(() => {
-    // Handle subject
-    if (data.custom_subject) {
-      setShowCustomSubject(true);
-      setCustomSubject(data.custom_subject);
-    } else if (data.subject_id) {
-      console.log('✅ Set selected subject to:', data.subject_id);
-      setSelectedSubject(data.subject_id);
-      
-      // Fetch topics (don't await inside setTimeout)
-      if (data.subject_id) {
-        fetchTopics(data.subject_id);
-      }
-    }
+      if (data.target_course) {
+        const level = data.target_course.replace(/^(CA|CMA|CS)\s+/, '');
+        const subjectsData = await fetchSubjectsForCourse(level);
 
-    // Handle topic
-    if (data.custom_topic) {
-      setShowCustomTopic(true);
-      setCustomTopic(data.custom_topic);
-    } else if (data.topic_id) {
-      setSelectedTopic(data.topic_id);
-    }
-  }, 100);
-}
+        console.log('Subjects fetched:', subjectsData.length);
+
+        setTimeout(() => {
+          if (data.custom_subject) {
+            setShowCustomSubject(true);
+            setCustomSubject(data.custom_subject);
+          } else if (data.subject_id) {
+            console.log('Set selected subject to:', data.subject_id);
+            setSelectedSubject(data.subject_id);
+
+            if (data.subject_id) {
+              fetchTopics(data.subject_id);
+            }
+          }
+
+          if (data.custom_topic) {
+            setShowCustomTopic(true);
+            setCustomTopic(data.custom_topic);
+          } else if (data.topic_id) {
+            setSelectedTopic(data.topic_id);
+          }
+        }, 100);
+      }
 
     } catch (error) {
       console.error('Error fetching note:', error);
@@ -180,29 +182,29 @@ if (data.target_course) {
   };
 
   const fetchSubjectsForCourse = async (course) => {
-  try {
-    console.log('🔍 Fetching subjects for course:', course); // Add this line
-    const { data, error } = await supabase
-      .from('subjects')
-      .select(`
-        *,
-        discipline:disciplines!inner(name, level)
-      `)
-      .eq('disciplines.level', course)  // ✅ Join with disciplines table
-      .eq('is_active', true)
-      .order('order');
+    try {
+      console.log('Fetching subjects for course:', course);
+      const { data, error } = await supabase
+        .from('subjects')
+        .select(`
+          *,
+          discipline:disciplines!inner(name, level)
+        `)
+        .eq('disciplines.level', course)
+        .eq('is_active', true)
+        .order('order');
 
-    if (error) throw error;
-     console.log('🔍 Query returned subjects:', data); // Add this line
-    setSubjects(data || []);
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching subjects:', error);
-    return [];
-  }
-};
+      if (error) throw error;
+      console.log('Query returned subjects:', data);
+      setSubjects(data || []);
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      return [];
+    }
+  };
 
-    const fetchTopics = async (subjectId) => {
+  const fetchTopics = async (subjectId) => {
     try {
       const { data, error } = await supabase
         .from('topics')
@@ -228,10 +230,61 @@ if (data.target_course) {
     setTopics([]);
   };
 
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (!validTypes.includes(selectedFile.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload a JPG, PNG, or PDF file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'File size must be less than 10MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setNewFile(selectedFile);
+
+    if (selectedFile.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewFilePreview(reader.result);
+      };
+      reader.readAsDataURL(selectedFile);
+    } else {
+      setNewFilePreview(null);
+    }
+  };
+
+  const cancelImageReplacement = () => {
+    setNewFile(null);
+    setNewFilePreview(null);
+    setIsReplacingImage(false);
+  };
+
+  const extractFilePathFromUrl = (url) => {
+    if (!url) return null;
+    try {
+      const match = url.match(/\/notes\/(.+)$/);
+      return match ? match[1] : null;
+    } catch {
+      return null;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
     if (!title.trim()) {
       toast({
         title: 'Title required',
@@ -262,10 +315,40 @@ if (data.target_course) {
     setSaving(true);
 
     try {
-      // Parse tags
+      let newImageUrl = currentImageUrl;
+
+      if (newFile) {
+        const fileExt = newFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+                const { error: uploadError } = await supabase.storage
+          .from('notes')
+          .upload(fileName, newFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('notes')
+          .getPublicUrl(fileName);
+
+        newImageUrl = urlData.publicUrl;
+
+        if (currentImageUrl) {
+          const oldFilePath = extractFilePathFromUrl(currentImageUrl);
+          if (oldFilePath) {
+            const { error: deleteError } = await supabase.storage
+              .from('notes')
+              .remove([oldFilePath]);
+
+            if (deleteError) {
+              console.warn('Failed to delete old file:', deleteError);
+            }
+          }
+        }
+      }
+
       const tagsArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
 
-      // Update note record
       const updateData = {
         title: title.trim(),
         description: description.trim() || null,
@@ -277,8 +360,9 @@ if (data.target_course) {
         content_type: contentType,
         extracted_text: extractedText.trim() || null,
         tags: tagsArray.length > 0 ? tagsArray : null,
-        visibility: visibility, // 🆕 Save visibility
-        is_public: visibility === 'public', // 🆕 Backward compatibility
+        visibility: visibility,
+        is_public: visibility === 'public',
+        image_url: newImageUrl,
         updated_at: new Date().toISOString()
       };
 
@@ -291,7 +375,7 @@ if (data.target_course) {
 
       toast({
         title: 'Success',
-        description: 'Note updated successfully'
+        description: newFile ? 'Note and image updated successfully' : 'Note updated successfully'
       });
 
       navigate(`/dashboard/notes/${id}`);
@@ -307,9 +391,11 @@ if (data.target_course) {
     }
   };
 
-  // Get selected subject name for display
   const selectedSubjectName = subjects.find(s => s.id === selectedSubject)?.name || '';
   const selectedTopicName = topics.find(t => t.id === selectedTopic)?.name || '';
+
+  const isPdf = currentImageUrl?.toLowerCase().endsWith('.pdf');
+  const newFileIsPdf = newFile?.type === 'application/pdf';
 
   if (loading) {
     return (
@@ -342,6 +428,147 @@ if (data.target_course) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Image/File Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Note Image/PDF</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!isReplacingImage && currentImageUrl && (
+              <div className="space-y-3">
+                <Label>Current File</Label>
+                <div className="relative border rounded-lg overflow-hidden bg-gray-50">
+                  {isPdf ? (
+                    <div className="flex items-center justify-center p-8 bg-gray-100">
+                      <div className="text-center">
+                        <FileText className="h-16 w-16 text-red-500 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">PDF Document</p>
+                        <a
+                          href={currentImageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          View PDF
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={currentImageUrl}
+                      alt="Current note"
+                      className="w-full max-h-64 object-contain"
+                    />
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsReplacingImage(true)}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Replace Image/PDF
+                </Button>
+              </div>
+            )}
+
+            {!isReplacingImage && !currentImageUrl && (
+              <div className="space-y-3">
+                <Label>No file attached</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsReplacingImage(true)}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Add Image/PDF
+                </Button>
+              </div>
+            )}
+
+            {isReplacingImage && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Select New File</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={cancelImageReplacement}
+                    className="gap-1 text-gray-500"
+                  >
+                    <X className="h-4 w-4" />
+                    Cancel
+                  </Button>
+                </div>
+
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+                  <label
+                    htmlFor="file-replace"
+                    className="cursor-pointer flex flex-col items-center justify-center"
+                  >
+                    {newFilePreview ? (
+                      <div className="space-y-3 w-full">
+                        <img
+                          src={newFilePreview}
+                          alt="New file preview"
+                          className="max-h-48 mx-auto object-contain rounded"
+                        />
+                        <p className="text-sm text-center text-gray-600">
+                          {newFile?.name}
+                        </p>
+                      </div>
+                    ) : newFile && newFileIsPdf ? (
+                      <div className="text-center">
+                        <FileText className="h-16 w-16 text-red-500 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">{newFile.name}</p>
+                        <p className="text-xs text-gray-400 mt-1">PDF Document</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <Upload className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                        <p className="text-sm font-medium text-gray-700">
+                          Click to upload or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          JPG, PNG, or PDF (max 10MB)
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      id="file-replace"
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg,application/pdf"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {currentImageUrl && (
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-2">Current file (will be replaced):</p>
+                    {isPdf ? (
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-red-500" />
+                        <span className="text-sm text-gray-600">PDF Document</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={currentImageUrl}
+                        alt="Current"
+                        className="max-h-24 object-contain rounded"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Note Details */}
         <Card>
           <CardHeader>
@@ -369,7 +596,6 @@ if (data.target_course) {
               />
             </div>
 
-            {/* Content Type */}
             <div className="space-y-2">
               <Label>Content Type</Label>
               <div className="flex gap-2">
@@ -387,7 +613,6 @@ if (data.target_course) {
               </div>
             </div>
 
-            {/* Extracted Text */}
             {extractedText && (
               <div className="space-y-2">
                 <Label htmlFor="extracted-text">Extracted Text</Label>
@@ -409,7 +634,6 @@ if (data.target_course) {
             <CardTitle>Subject & Topic</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Target Course */}
             <div className="space-y-2">
               <Label htmlFor="course">Who is this for? *</Label>
               <Select value={targetCourse} onValueChange={handleCourseChange}>
@@ -437,7 +661,6 @@ if (data.target_course) {
               </Select>
             </div>
 
-            {/* Subject Selection */}
             <div className="space-y-2">
               <Label>Subject *</Label>
               {!showCustomSubject ? (
@@ -515,7 +738,6 @@ if (data.target_course) {
               )}
             </div>
 
-            {/* Topic Selection */}
             <div className="space-y-2">
               <Label>Topic (Optional)</Label>
               {!showCustomTopic ? (
@@ -595,7 +817,6 @@ if (data.target_course) {
               )}
             </div>
 
-            {/* Tags */}
             <div className="space-y-2">
               <Label htmlFor="tags">Tags (Optional)</Label>
               <Input
@@ -609,7 +830,6 @@ if (data.target_course) {
               </p>
             </div>
 
-            {/* 🆕 Visibility Dropdown (replaced Public/Private toggle) */}
             <div className="space-y-2">
               <Label htmlFor="visibility">Who can see this note?</Label>
               <Select value={visibility} onValueChange={setVisibility}>
@@ -623,16 +843,15 @@ if (data.target_course) {
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
-                {visibility === 'private' && '✓ Only you can see this note'}
-                {visibility === 'friends' && '✓ Only your accepted friends can see this note'}
-                {visibility === 'public' && '✓ Anyone can discover and view this note'}
+                {visibility === 'private' && 'Only you can see this note'}
+                {visibility === 'friends' && 'Only your accepted friends can see this note'}
+                {visibility === 'public' && 'Anyone can discover and view this note'}
               </p>
             </div>
-            
+
           </CardContent>
         </Card>
 
-        {/* Submit */}
         <div className="flex gap-4">
           <Button
             type="button"
