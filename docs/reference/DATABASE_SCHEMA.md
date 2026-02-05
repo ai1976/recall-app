@@ -26,7 +26,7 @@
 
 ### Quick Stats
 - **Total Tables:** 16 ⭐ (was 14, added 2 new tables)
-- **Custom Functions:** 1
+- **Custom Functions:** 3 ⭐ (was 1, added 2 author filtering functions)
 - **RLS Policies:** 24
 - **Indexes:** 53+ ⭐ (was 50+, added 3 indexes)
 - **Triggers:** 0 (currently)
@@ -850,6 +850,119 @@ SELECT * FROM get_user_activity_stats();
 - Consistent calculation across admin views
 - Easy to update if metrics change
 
+### 4.2 get_filtered_authors_for_notes()
+
+**Purpose:** Return authors with PUBLIC notes matching filter criteria (server-side author filtering)  
+**Created:** February 5, 2026  
+**Return Type:** TABLE (id UUID, full_name TEXT, role TEXT)
+
+**Function Definition:**
+```sql
+CREATE OR REPLACE FUNCTION get_filtered_authors_for_notes(
+  p_course TEXT DEFAULT NULL,
+  p_subject_id UUID DEFAULT NULL,
+  p_role TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+  id UUID,
+  full_name TEXT,
+  role TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT DISTINCT
+    p.id,
+    p.full_name,
+    p.role
+  FROM profiles p
+  INNER JOIN notes n ON n.user_id = p.id
+  WHERE 
+    n.visibility = 'public'
+    AND (p_course IS NULL OR n.target_course = p_course)
+    AND (p_subject_id IS NULL OR n.subject_id = p_subject_id)
+    AND (p_role IS NULL OR p.role = p_role)
+  ORDER BY p.full_name;
+END;
+$$;
+
+Parameters:
+
+p_course (TEXT, optional) - Filter by target_course
+p_subject_id (UUID, optional) - Filter by subject_id
+p_role (TEXT, optional) - Filter by role ('professor' or 'student')
+Returns:
+
+id - Author's profile UUID
+full_name - Author's display name
+role - Author's role (professor/student)
+Used By:
+
+BrowseNotes.jsx - Dynamic Author dropdown filtering
+Why This Function:
+
+Server-side filtering prevents client from fetching all authors
+Only returns authors with PUBLIC content (visibility enforcement)
+Enables dependent filter behavior (Author list updates when Course/Subject/Role changes)
+
+4.3 get_filtered_authors_for_flashcards()
+Purpose: Return authors with PUBLIC flashcard decks matching filter criteria
+Created: February 5, 2026
+Return Type: TABLE (id UUID, full_name TEXT, role TEXT)
+
+Function Definition:
+
+CREATE OR REPLACE FUNCTION get_filtered_authors_for_flashcards(
+  p_course TEXT DEFAULT NULL,
+  p_subject_id UUID DEFAULT NULL,
+  p_role TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+  id UUID,
+  full_name TEXT,
+  role TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT DISTINCT
+    p.id,
+    p.full_name,
+    p.role
+  FROM profiles p
+  INNER JOIN flashcard_decks fd ON fd.user_id = p.id
+  WHERE 
+    fd.visibility = 'public'
+    AND fd.card_count > 0
+    AND (p_course IS NULL OR fd.target_course = p_course)
+    AND (p_subject_id IS NULL OR fd.subject_id = p_subject_id)
+    AND (p_role IS NULL OR p.role = p_role)
+  ORDER BY p.full_name;
+END;
+$$;
+
+Parameters:
+
+p_course (TEXT, optional) - Filter by target_course
+p_subject_id (UUID, optional) - Filter by subject_id
+p_role (TEXT, optional) - Filter by role ('professor' or 'student')
+Returns:
+
+id - Author's profile UUID
+full_name - Author's display name
+role - Author's role (professor/student)
+Used By:
+
+ReviewFlashcards.jsx - Dynamic Author dropdown filtering
+Why This Function:
+
+Server-side filtering for performance and security
+Only returns authors with PUBLIC decks containing cards
+Enables dependent filter behavior (Author list updates when filters change)
 ---
 
 ## 5. INDEXES

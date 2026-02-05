@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,12 @@ export default function ReviewFlashcards() {
   const [loading, setLoading] = useState(true);
   const [flashcardSets, setFlashcardSets] = useState([]);
   const [allSets, setAllSets] = useState([]);
-  const [allDecksFlat, setAllDecksFlat] = useState([]); // Store flat decks for topic filtering
+  const [allDecksFlat, setAllDecksFlat] = useState([]);
   
   const [filterCourse, setFilterCourse] = useState('all');
   const [filterSubject, setFilterSubject] = useState('all');
   const [filterTopic, setFilterTopic] = useState('all');
+  const [filterRole, setFilterRole] = useState('all');
   const [filterAuthor, setFilterAuthor] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -27,6 +28,11 @@ export default function ReviewFlashcards() {
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [availableTopics, setAvailableTopics] = useState([]);
   const [allTopicsFromDecks, setAllTopicsFromDecks] = useState([]);
+  const [availableAuthors, setAvailableAuthors] = useState([]);
+  const [loadingAuthors, setLoadingAuthors] = useState(false);
+
+  // Store subject name to ID mapping for RPC calls
+  const [subjectNameToId, setSubjectNameToId] = useState({});
 
   useEffect(() => {
     fetchFlashcardSets();
@@ -36,7 +42,7 @@ export default function ReviewFlashcards() {
   useEffect(() => {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterCourse, filterSubject, filterTopic, filterAuthor, searchQuery, allSets, allDecksFlat]);
+  }, [filterCourse, filterSubject, filterTopic, filterRole, filterAuthor, searchQuery, allSets, allDecksFlat]);
 
   // Dependent topic filtering when subject changes
   useEffect(() => {
@@ -56,6 +62,48 @@ export default function ReviewFlashcards() {
       }
     }
   }, [filterSubject, allDecksFlat, allTopicsFromDecks, filterTopic]);
+
+  // Fetch filtered authors from server when filters change
+  const fetchFilteredAuthors = useCallback(async () => {
+    setLoadingAuthors(true);
+    try {
+      // Get subject_id from subject name
+      let subjectId = null;
+      if (filterSubject !== 'all' && subjectNameToId[filterSubject]) {
+        subjectId = subjectNameToId[filterSubject];
+      }
+
+      const { data, error } = await supabase.rpc('get_filtered_authors_for_flashcards', {
+        p_course: filterCourse === 'all' ? null : filterCourse,
+        p_subject_id: subjectId,
+        p_role: filterRole === 'all' ? null : filterRole
+      });
+
+      if (error) {
+        console.error('Error fetching filtered authors:', error);
+        setAvailableAuthors([]);
+      } else {
+        setAvailableAuthors(data || []);
+        // Reset author filter if current selection is no longer valid
+        if (filterAuthor !== 'all') {
+          const authorStillValid = data?.some(a => a.id === filterAuthor);
+          if (!authorStillValid) {
+            setFilterAuthor('all');
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error in fetchFilteredAuthors:', err);
+      setAvailableAuthors([]);
+    } finally {
+      setLoadingAuthors(false);
+    }
+  }, [filterCourse, filterSubject, filterRole, subjectNameToId, filterAuthor]);
+
+  // Fetch authors when relevant filters change
+  useEffect(() => {
+    fetchFilteredAuthors();
+  }, [fetchFilteredAuthors]);
 
   const fetchFlashcardSets = async () => {
     try {
@@ -110,6 +158,15 @@ export default function ReviewFlashcards() {
         .from('profiles')
         .select('id, full_name, role')
         .in('id', ownerIds);
+
+      // Build subject name to ID mapping
+      const nameToIdMap = {};
+      decksData?.forEach(deck => {
+        if (deck.subjects?.name && deck.subjects?.id) {
+          nameToIdMap[deck.subjects.name] = deck.subjects.id;
+        }
+      });
+      setSubjectNameToId(nameToIdMap);
 
       // STEP 4: Merge deck data with profiles
       const decksWithDetails = (decksData || []).map(deck => ({
@@ -199,7 +256,8 @@ export default function ReviewFlashcards() {
       })).filter(subject => subject.decks.length > 0);
     }
 
-    if (filterAuthor === 'professor') {
+    // Role filter - filter by author role
+    if (filterRole === 'professor') {
       filtered = filtered.map(subject => ({
         ...subject,
         decks: subject.decks.filter(deck => deck.owner?.role === 'professor'),
@@ -207,12 +265,23 @@ export default function ReviewFlashcards() {
           .filter(deck => deck.owner?.role === 'professor')
           .reduce((sum, deck) => sum + (deck.card_count || 0), 0)
       })).filter(subject => subject.decks.length > 0);
-    } else if (filterAuthor === 'student') {
+    } else if (filterRole === 'student') {
       filtered = filtered.map(subject => ({
         ...subject,
         decks: subject.decks.filter(deck => deck.owner?.role !== 'professor'),
         totalCards: subject.decks
           .filter(deck => deck.owner?.role !== 'professor')
+          .reduce((sum, deck) => sum + (deck.card_count || 0), 0)
+      })).filter(subject => subject.decks.length > 0);
+    }
+
+    // Author filter - filter by specific author ID
+    if (filterAuthor !== 'all') {
+      filtered = filtered.map(subject => ({
+        ...subject,
+        decks: subject.decks.filter(deck => deck.user_id === filterAuthor),
+        totalCards: subject.decks
+          .filter(deck => deck.user_id === filterAuthor)
           .reduce((sum, deck) => sum + (deck.card_count || 0), 0)
       })).filter(subject => subject.decks.length > 0);
     }
@@ -237,11 +306,18 @@ export default function ReviewFlashcards() {
     setFilterCourse('all');
     setFilterSubject('all');
     setFilterTopic('all');
+    setFilterRole('all');
     setFilterAuthor('all');
   };
 
   const handleSubjectChange = (value) => {
     setFilterSubject(value);
+  };
+
+  const handleRoleChange = (value) => {
+    setFilterRole(value);
+    // Reset author when role changes since available authors will change
+    setFilterAuthor('all');
   };
 
   const startStudySession = (subjectName, topicName = null) => {
@@ -262,7 +338,7 @@ export default function ReviewFlashcards() {
   }
 
   const totalCards = flashcardSets.reduce((sum, subject) => sum + subject.totalCards, 0);
-  const hasActiveFilters = searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || filterTopic !== 'all' || filterAuthor !== 'all';
+  const hasActiveFilters = searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || filterTopic !== 'all' || filterRole !== 'all' || filterAuthor !== 'all';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -295,7 +371,7 @@ export default function ReviewFlashcards() {
                 <span className="text-sm font-medium text-gray-700">Filters</span>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">Course</label>
                   <Select value={filterCourse} onValueChange={setFilterCourse}>
@@ -348,15 +424,32 @@ export default function ReviewFlashcards() {
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-600 mb-2 block">Author</label>
-                  <Select value={filterAuthor} onValueChange={setFilterAuthor}>
+                  <label className="text-sm text-gray-600 mb-2 block">Role</label>
+                  <Select value={filterRole} onValueChange={handleRoleChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder="All Authors" />
+                      <SelectValue placeholder="All Roles" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Roles</SelectItem>
+                      <SelectItem value="professor">Professor</SelectItem>
+                      <SelectItem value="student">Student</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-600 mb-2 block">Author</label>
+                  <Select value={filterAuthor} onValueChange={setFilterAuthor} disabled={loadingAuthors}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={loadingAuthors ? "Loading..." : "All Authors"} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Authors</SelectItem>
-                      <SelectItem value="professor">Professors Only</SelectItem>
-                      <SelectItem value="student">Students Only</SelectItem>
+                      {availableAuthors.map(author => (
+                        <SelectItem key={author.id} value={author.id}>
+                          {author.full_name} {author.role === 'professor' ? '(Prof)' : ''}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,18 +15,24 @@ export default function BrowseNotes() {
   const [loading, setLoading] = useState(true);
   const [groupedNotes, setGroupedNotes] = useState([]);
   const [allGroupedNotes, setAllGroupedNotes] = useState([]);
-  const [allNotesFlat, setAllNotesFlat] = useState([]); // Store flat notes for topic filtering
+  const [allNotesFlat, setAllNotesFlat] = useState([]);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCourse, setFilterCourse] = useState('all');
   const [filterSubject, setFilterSubject] = useState('all');
   const [filterTopic, setFilterTopic] = useState('all');
+  const [filterRole, setFilterRole] = useState('all');
   const [filterAuthor, setFilterAuthor] = useState('all');
   
   const [availableCourses, setAvailableCourses] = useState([]);
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [availableTopics, setAvailableTopics] = useState([]);
   const [allTopicsFromNotes, setAllTopicsFromNotes] = useState([]);
+  const [availableAuthors, setAvailableAuthors] = useState([]);
+  const [loadingAuthors, setLoadingAuthors] = useState(false);
+
+  // Store subject name to ID mapping for RPC calls
+  const [subjectNameToId, setSubjectNameToId] = useState({});
 
   useEffect(() => {
     fetchNotes();
@@ -36,7 +42,7 @@ export default function BrowseNotes() {
   useEffect(() => {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, filterCourse, filterSubject, filterTopic, filterAuthor, allGroupedNotes, allNotesFlat]);
+  }, [searchQuery, filterCourse, filterSubject, filterTopic, filterRole, filterAuthor, allGroupedNotes, allNotesFlat]);
 
   // Dependent topic filtering when subject changes
   useEffect(() => {
@@ -60,13 +66,51 @@ export default function BrowseNotes() {
     }
   }, [filterSubject, allNotesFlat, allTopicsFromNotes, filterTopic]);
 
+  // Fetch filtered authors from server when filters change
+  const fetchFilteredAuthors = useCallback(async () => {
+    setLoadingAuthors(true);
+    try {
+      // Get subject_id from subject name
+      let subjectId = null;
+      if (filterSubject !== 'all' && subjectNameToId[filterSubject]) {
+        subjectId = subjectNameToId[filterSubject];
+      }
+
+      const { data, error } = await supabase.rpc('get_filtered_authors_for_notes', {
+        p_course: filterCourse === 'all' ? null : filterCourse,
+        p_subject_id: subjectId,
+        p_role: filterRole === 'all' ? null : filterRole
+      });
+
+      if (error) {
+        console.error('Error fetching filtered authors:', error);
+        setAvailableAuthors([]);
+      } else {
+        setAvailableAuthors(data || []);
+        // Reset author filter if current selection is no longer valid
+        if (filterAuthor !== 'all') {
+          const authorStillValid = data?.some(a => a.id === filterAuthor);
+          if (!authorStillValid) {
+            setFilterAuthor('all');
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error in fetchFilteredAuthors:', err);
+      setAvailableAuthors([]);
+    } finally {
+      setLoadingAuthors(false);
+    }
+  }, [filterCourse, filterSubject, filterRole, subjectNameToId, filterAuthor]);
+
+  // Fetch authors when relevant filters change
+  useEffect(() => {
+    fetchFilteredAuthors();
+  }, [fetchFilteredAuthors]);
+
   const fetchNotes = async () => {
     try {
-      console.log('🔵 STEP 1: Starting fetchNotes...');
-      console.log('🔵 Current user ID:', user.id);
-
       // STEP 1: Get user's accepted friendships (bidirectional)
-      console.log('🔵 STEP 2: Fetching friendships...');
       const { data: friendships, error: friendshipError } = await supabase
         .from('friendships')
         .select('user_id, friend_id')
@@ -74,21 +118,15 @@ export default function BrowseNotes() {
         .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
 
       if (friendshipError) {
-        console.error('❌ Friendship fetch error:', friendshipError);
         throw friendshipError;
       }
-
-      console.log('✅ Friendships fetched:', friendships);
 
       // Extract friend IDs (the OTHER person in each friendship)
       const friendIds = friendships?.map(f => 
         f.user_id === user.id ? f.friend_id : f.user_id
       ) || [];
-      
-      console.log('✅ Extracted friend IDs:', friendIds);
 
       // STEP 2: Fetch notes with visibility logic (including upvote_count)
-      console.log('🔵 STEP 3: Building notes query...');
       let query = supabase
         .from('notes')
         .select('*, upvote_count')
@@ -97,23 +135,17 @@ export default function BrowseNotes() {
       // Apply visibility filter
       if (friendIds.length > 0) {
         const visibilityFilter = `visibility.eq.public,user_id.eq.${user.id},and(visibility.eq.friends,user_id.in.(${friendIds.join(',')}))`;
-        console.log('✅ Visibility filter (WITH friends):', visibilityFilter);
         query = query.or(visibilityFilter);
       } else {
         const visibilityFilter = `visibility.eq.public,user_id.eq.${user.id}`;
-        console.log('✅ Visibility filter (NO friends):', visibilityFilter);
         query = query.or(visibilityFilter);
       }
 
       const { data: notesData, error: notesError } = await query;
 
       if (notesError) {
-        console.error('❌ Notes fetch error:', notesError);
         throw notesError;
       }
-
-      console.log('✅ Notes fetched (count):', notesData?.length);
-      console.log('✅ Notes fetched (data):', notesData);
 
       // Get unique user IDs from notes
       const userIds = [...new Set(notesData.map(note => note.user_id))];
@@ -130,6 +162,13 @@ export default function BrowseNotes() {
         .from('subjects')
         .select('id, name')
         .in('id', subjectIds);
+
+      // Build subject name to ID mapping
+      const nameToIdMap = {};
+      subjectsData?.forEach(s => {
+        nameToIdMap[s.name] = s.id;
+      });
+      setSubjectNameToId(nameToIdMap);
 
       // Fetch topics
       const topicIds = [...new Set(notesData.map(n => n.topic_id).filter(Boolean))];
@@ -233,7 +272,8 @@ export default function BrowseNotes() {
       })).filter(subject => subject.topics.length > 0);
     }
 
-    if (filterAuthor === 'professor') {
+    // Role filter - filter by author role
+    if (filterRole === 'professor') {
       filtered = filtered.map(subject => ({
         ...subject,
         topics: subject.topics.map(topic => ({
@@ -244,7 +284,7 @@ export default function BrowseNotes() {
           sum + topic.notes.filter(note => note.user?.role === 'professor').length, 0
         )
       })).filter(subject => subject.topics.length > 0);
-    } else if (filterAuthor === 'student') {
+    } else if (filterRole === 'student') {
       filtered = filtered.map(subject => ({
         ...subject,
         topics: subject.topics.map(topic => ({
@@ -253,6 +293,20 @@ export default function BrowseNotes() {
         })).filter(topic => topic.notes.length > 0),
         totalNotes: subject.topics.reduce((sum, topic) => 
           sum + topic.notes.filter(note => note.user?.role !== 'professor').length, 0
+        )
+      })).filter(subject => subject.topics.length > 0);
+    }
+
+    // Author filter - filter by specific author ID
+    if (filterAuthor !== 'all') {
+      filtered = filtered.map(subject => ({
+        ...subject,
+        topics: subject.topics.map(topic => ({
+          ...topic,
+          notes: topic.notes.filter(note => note.user_id === filterAuthor)
+        })).filter(topic => topic.notes.length > 0),
+        totalNotes: subject.topics.reduce((sum, topic) => 
+          sum + topic.notes.filter(note => note.user_id === filterAuthor).length, 0
         )
       })).filter(subject => subject.topics.length > 0);
     }
@@ -281,11 +335,18 @@ export default function BrowseNotes() {
     setFilterCourse('all');
     setFilterSubject('all');
     setFilterTopic('all');
+    setFilterRole('all');
     setFilterAuthor('all');
   };
 
   const handleSubjectChange = (value) => {
     setFilterSubject(value);
+  };
+
+  const handleRoleChange = (value) => {
+    setFilterRole(value);
+    // Reset author when role changes since available authors will change
+    setFilterAuthor('all');
   };
 
   const formatDate = (dateString) => {
@@ -308,7 +369,7 @@ export default function BrowseNotes() {
   }
 
   const totalNotes = groupedNotes.reduce((sum, subject) => sum + subject.totalNotes, 0);
-  const hasActiveFilters = searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || filterTopic !== 'all' || filterAuthor !== 'all';
+  const hasActiveFilters = searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || filterTopic !== 'all' || filterRole !== 'all' || filterAuthor !== 'all';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -342,7 +403,7 @@ export default function BrowseNotes() {
                 <span className="text-sm font-medium text-gray-700">Filters</span>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">Course</label>
                   <Select value={filterCourse} onValueChange={setFilterCourse}>
@@ -395,15 +456,32 @@ export default function BrowseNotes() {
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-600 mb-2 block">Author</label>
-                  <Select value={filterAuthor} onValueChange={setFilterAuthor}>
+                  <label className="text-sm text-gray-600 mb-2 block">Role</label>
+                  <Select value={filterRole} onValueChange={handleRoleChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder="All Authors" />
+                      <SelectValue placeholder="All Roles" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Roles</SelectItem>
+                      <SelectItem value="professor">Professor</SelectItem>
+                      <SelectItem value="student">Student</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-600 mb-2 block">Author</label>
+                  <Select value={filterAuthor} onValueChange={setFilterAuthor} disabled={loadingAuthors}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={loadingAuthors ? "Loading..." : "All Authors"} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Authors</SelectItem>
-                      <SelectItem value="professor">Professors Only</SelectItem>
-                      <SelectItem value="student">Students Only</SelectItem>
+                      {availableAuthors.map(author => (
+                        <SelectItem key={author.id} value={author.id}>
+                          {author.full_name} {author.role === 'professor' ? '(Prof)' : ''}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

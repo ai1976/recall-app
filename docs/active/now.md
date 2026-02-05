@@ -1,15 +1,22 @@
 # NOW - Current Development Status
 
-# NOW - Current Development Status
-
-**Last Updated:** 2026-02-02
-**Current Phase:** Phase 1B Complete - Notifications & Navigation Redesign
+**Last Updated:** 2026-02-05
+**Current Phase:** Phase 1B Complete - Author Search with Server-Side Filtering
 
 ---
 
 ## Just Completed ✅
 
-### Notifications & Navigation Redesign (Phase 1B)
+### Author Search with Server-Side Filtering (Feb 5, 2026)
+- [x] Created `get_filtered_authors_for_notes()` RPC function
+- [x] Created `get_filtered_authors_for_flashcards()` RPC function
+- [x] Split Author filter into Role + Author dropdowns
+- [x] Implemented dependent Author filtering (updates based on Course/Subject/Role)
+- [x] Updated BrowseNotes.jsx with 5-column filter grid
+- [x] Updated ReviewFlashcards.jsx with 5-column filter grid
+- [x] Server-side visibility enforcement (only PUBLIC content authors shown)
+
+### Previous: Notifications & Navigation Redesign (Phase 1B)
 - [x] Database functions for notifications (get, mark read, delete)
 - [x] Database function for activity feed (recent notes/decks)
 - [x] useNotifications hook with Supabase Realtime subscription
@@ -23,14 +30,6 @@
 - [x] Mobile: Friends + Bell icons with badges
 - [x] Dashboard: ActivityFeed component showing recent content
 - [x] Sheet UI component for mobile navigation
-
-### Previous: Achievement Badges System (Phase 1E)
-- [x] Database schema: badge_definitions, user_badges, user_activity_log
-- [x] 5 badge types: Digitalizer, Memory Architect, Streak Master, Night Owl, Rising Star
-- [x] Auto-award triggers on notes, flashcards, reviews, upvotes
-- [x] MyAchievements page with progress tracking
-- [x] Per-badge privacy toggle
-- [x] Toast notifications for new badge unlocks
 
 ---
 
@@ -50,6 +49,8 @@
 
 | Decision | Status | Notes |
 |----------|--------|-------|
+| Server-side author filtering | ✅ Implemented | RPC functions for performance & security |
+| Split Author into Role + Author | ✅ Implemented | Better UX for filtering |
 | Instant mark-as-read | ✅ Approved | Notifications marked read immediately on dropdown open |
 | Modular navigation | ✅ Implemented | 6 component files for maintainability |
 | Mobile Sheet (not menu) | ✅ Implemented | Smooth UX with slide-in animation |
@@ -64,10 +65,16 @@ None currently.
 
 ## Session Notes
 
+### 2026-02-05 Session
+- Implemented Author Search with server-side filtering per QA Bot requirements
+- Created 2 new Supabase RPC functions
+- Split Author filter into Role + Author for better granularity
+- Author dropdown now dynamically updates based on other filter selections
+- Only authors with PUBLIC content shown (visibility enforcement)
+
 ### 2026-02-02 Session
 - Rebuilt Navigation into modular components
 - Added realtime hooks for notifications and friend requests
 - Integrated ActivityFeed into Dashboard
 - Fixed ESLint warnings (unused imports)
 - Centered desktop nav links (Logo left, Nav center, Icons right)
-

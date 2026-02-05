@@ -1,6 +1,38 @@
 # Changelog
 
 ---
+## [2026-02-05] Author Search with Server-Side Filtering
+
+### Added
+- **Database RPC Functions** for server-side author filtering:
+  - `get_filtered_authors_for_notes(p_course, p_subject_id, p_role)` - Returns authors with public notes
+  - `get_filtered_authors_for_flashcards(p_course, p_subject_id, p_role)` - Returns authors with public flashcard decks
+  
+- **Split Author Filter into Role + Author:**
+  - Role dropdown: All Roles / Professor / Student
+  - Author dropdown: Dynamically populated from server based on filters
+  
+- **Dependent Author Filtering:**
+  - Author dropdown updates when Course, Subject, or Role changes
+  - Only shows authors who have PUBLIC content matching current filters
+  - Loading state while fetching authors from server
+
+### Changed
+- `BrowseNotes.jsx` - 5-column filter grid (Course, Subject, Topic, Role, Author)
+- `ReviewFlashcards.jsx` - 5-column filter grid (Course, Subject, Topic, Role, Author)
+
+### Technical Details
+- Uses `supabase.rpc()` for server-side author queries
+- Subject name-to-ID mapping for RPC calls (subjects stored by name in UI)
+- Author filter auto-resets when parent filter makes current selection invalid
+- Added `useCallback` for memoized fetch function
+
+### Files Changed
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+- Database: 2 new RPC functions
+
+---
 ## [2026-02-05] Back Button & Dependent Dropdown Filters
 
 ### Fixed
