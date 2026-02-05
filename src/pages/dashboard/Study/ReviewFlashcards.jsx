@@ -15,14 +15,18 @@ export default function ReviewFlashcards() {
   const [loading, setLoading] = useState(true);
   const [flashcardSets, setFlashcardSets] = useState([]);
   const [allSets, setAllSets] = useState([]);
+  const [allDecksFlat, setAllDecksFlat] = useState([]); // Store flat decks for topic filtering
   
   const [filterCourse, setFilterCourse] = useState('all');
   const [filterSubject, setFilterSubject] = useState('all');
+  const [filterTopic, setFilterTopic] = useState('all');
   const [filterAuthor, setFilterAuthor] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   
   const [availableCourses, setAvailableCourses] = useState([]);
   const [availableSubjects, setAvailableSubjects] = useState([]);
+  const [availableTopics, setAvailableTopics] = useState([]);
+  const [allTopicsFromDecks, setAllTopicsFromDecks] = useState([]);
 
   useEffect(() => {
     fetchFlashcardSets();
@@ -32,7 +36,26 @@ export default function ReviewFlashcards() {
   useEffect(() => {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterCourse, filterSubject, filterAuthor, searchQuery, allSets]);
+  }, [filterCourse, filterSubject, filterTopic, filterAuthor, searchQuery, allSets, allDecksFlat]);
+
+  // Dependent topic filtering when subject changes
+  useEffect(() => {
+    if (filterSubject === 'all') {
+      setAvailableTopics(allTopicsFromDecks);
+    } else {
+      const filteredTopics = allDecksFlat
+        .filter(deck => deck.subjectName === filterSubject)
+        .map(deck => deck.topicName)
+        .filter(Boolean);
+
+      const uniqueTopics = [...new Set(filteredTopics)];
+      setAvailableTopics(uniqueTopics);
+
+      if (filterTopic !== 'all' && !uniqueTopics.includes(filterTopic)) {
+        setFilterTopic('all');
+      }
+    }
+  }, [filterSubject, allDecksFlat, allTopicsFromDecks, filterTopic]);
 
   const fetchFlashcardSets = async () => {
     try {
@@ -96,12 +119,18 @@ export default function ReviewFlashcards() {
         topicName: deck.topics?.name || deck.custom_topic || 'General'
       }));
 
-      // Extract unique courses and subjects
+      // Store flat decks for topic filtering
+      setAllDecksFlat(decksWithDetails);
+
+      // Extract unique courses, subjects, and topics
       const courses = [...new Set(decksWithDetails.map(d => d.target_course).filter(Boolean))];
       const subjects = [...new Set(decksWithDetails.map(d => d.subjectName).filter(Boolean))];
+      const topics = [...new Set(decksWithDetails.map(d => d.topicName).filter(Boolean))];
 
       setAvailableCourses(courses);
       setAvailableSubjects(subjects);
+      setAvailableTopics(topics);
+      setAllTopicsFromDecks(topics);
 
       // Group decks by subject
       const grouped = groupDecksBySubject(decksWithDetails);
@@ -159,6 +188,17 @@ export default function ReviewFlashcards() {
       filtered = filtered.filter(subject => subject.name === filterSubject);
     }
 
+    // Topic filter - filter decks within subjects
+    if (filterTopic !== 'all') {
+      filtered = filtered.map(subject => ({
+        ...subject,
+        decks: subject.decks.filter(deck => deck.topicName === filterTopic),
+        totalCards: subject.decks
+          .filter(deck => deck.topicName === filterTopic)
+          .reduce((sum, deck) => sum + (deck.card_count || 0), 0)
+      })).filter(subject => subject.decks.length > 0);
+    }
+
     if (filterAuthor === 'professor') {
       filtered = filtered.map(subject => ({
         ...subject,
@@ -196,7 +236,12 @@ export default function ReviewFlashcards() {
     setSearchQuery('');
     setFilterCourse('all');
     setFilterSubject('all');
+    setFilterTopic('all');
     setFilterAuthor('all');
+  };
+
+  const handleSubjectChange = (value) => {
+    setFilterSubject(value);
   };
 
   const startStudySession = (subjectName, topicName = null) => {
@@ -217,7 +262,7 @@ export default function ReviewFlashcards() {
   }
 
   const totalCards = flashcardSets.reduce((sum, subject) => sum + subject.totalCards, 0);
-  const hasActiveFilters = searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || filterAuthor !== 'all';
+  const hasActiveFilters = searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || filterTopic !== 'all' || filterAuthor !== 'all';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -250,7 +295,7 @@ export default function ReviewFlashcards() {
                 <span className="text-sm font-medium text-gray-700">Filters</span>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">Course</label>
                   <Select value={filterCourse} onValueChange={setFilterCourse}>
@@ -270,7 +315,7 @@ export default function ReviewFlashcards() {
 
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">Subject</label>
-                  <Select value={filterSubject} onValueChange={setFilterSubject}>
+                  <Select value={filterSubject} onValueChange={handleSubjectChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Subjects" />
                     </SelectTrigger>
@@ -279,6 +324,23 @@ export default function ReviewFlashcards() {
                       {availableSubjects.map(subject => (
                         <SelectItem key={subject} value={subject}>
                           {subject}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-600 mb-2 block">Topic</label>
+                  <Select value={filterTopic} onValueChange={setFilterTopic}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Topics" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Topics</SelectItem>
+                      {availableTopics.map(topic => (
+                        <SelectItem key={topic} value={topic}>
+                          {topic}
                         </SelectItem>
                       ))}
                     </SelectContent>

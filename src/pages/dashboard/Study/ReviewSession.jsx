@@ -206,9 +206,20 @@ export default function ReviewSession() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-6">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+                    <Button
+            variant="ghost"
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/dashboard');
+              }
+            }}
+            className="mb-6"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back
           </Button>
+
           <Card>
             <CardContent className="py-12 text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">

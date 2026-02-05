@@ -29,6 +29,9 @@ export default function MyFlashcards() {
   const [availableCourses, setAvailableCourses] = useState([]);
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [availableTopics, setAvailableTopics] = useState([]);
+  
+  // Store all topics for reference (needed for dependent filtering)
+  const [allTopicsFromFlashcards, setAllTopicsFromFlashcards] = useState([]);
 
   // Edit state - ISOLATED to prevent cursor jumping
   const [editingCardId, setEditingCardId] = useState(null);
@@ -122,6 +125,7 @@ export default function MyFlashcards() {
       setAvailableCourses(courses);
       setAvailableSubjects(subjects);
       setAvailableTopics(topics);
+      setAllTopicsFromFlashcards(topics); // Store all topics for reference
     } catch (error) {
       console.error('Error fetching flashcards:', error);
       toast({
@@ -193,6 +197,28 @@ export default function MyFlashcards() {
   useEffect(() => {
     applyFilters();
   }, [applyFilters]);
+
+  // Dependent topic filtering when subject changes
+  useEffect(() => {
+    if (filterSubject === 'all') {
+      setAvailableTopics(allTopicsFromFlashcards);
+    } else {
+      const filteredTopics = flashcards
+        .filter(card => {
+          const cardSubject = card.subjects?.name || card.custom_subject;
+          return cardSubject === filterSubject;
+        })
+        .map(card => card.topics?.name || card.custom_topic)
+        .filter(Boolean);
+
+      const uniqueTopics = [...new Set(filteredTopics)];
+      setAvailableTopics(uniqueTopics);
+
+      if (filterTopic !== 'all' && !uniqueTopics.includes(filterTopic)) {
+        setFilterTopic('all');
+      }
+    }
+  }, [filterSubject, flashcards, allTopicsFromFlashcards, filterTopic]);
 
   const getGroupedFlashcards = () => {
     const grouped = {};
@@ -569,6 +595,11 @@ export default function MyFlashcards() {
     setFilterDate('all');
   };
 
+  // Handler for subject change
+  const handleSubjectChange = (value) => {
+    setFilterSubject(value);
+  };
+
   const formatDateTime = (dateString) => {
     return new Date(dateString).toLocaleString('en-IN', {
       year: 'numeric',
@@ -686,7 +717,7 @@ export default function MyFlashcards() {
                 {availableSubjects.length > 0 && (
                   <div>
                     <label className="text-sm text-gray-600 mb-2 block">Subject</label>
-                    <Select value={filterSubject} onValueChange={setFilterSubject}>
+                    <Select value={filterSubject} onValueChange={handleSubjectChange}>
                       <SelectTrigger>
                         <SelectValue placeholder="All Subjects" />
                       </SelectTrigger>

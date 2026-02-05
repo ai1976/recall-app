@@ -1,6 +1,29 @@
 # Changelog
 
 ---
+## [2026-02-05] Back Button & Dependent Dropdown Filters
+
+### Fixed
+- **Back Button Navigation** - All pages now use `navigate(-1)` with fallback to dashboard
+  - `NoteDetail.jsx` - Back button returns to actual previous page
+  - `ReviewBySubject.jsx` - Both back buttons (empty state + main view)
+  - `ReviewSession.jsx` - Back button in empty state
+
+### Added
+- **Dependent Dropdown Filters** - Topic dropdown now filters based on selected Subject
+  - `MyNotes.jsx` - Topic shows only topics from selected subject
+  - `MyFlashcards.jsx` - Topic shows only topics from selected subject
+  - `BrowseNotes.jsx` - Added Topic filter with dependent behavior
+  - `ReviewFlashcards.jsx` - Added Topic filter with dependent behavior
+
+### Technical Details
+- New state: `allTopicsFromNotes`, `allTopicsFromFlashcards`, `allTopicsFromDecks`
+- New state: `allNotesFlat`, `allDecksFlat` for efficient filtering
+- useEffect hook resets topic to "All Topics" when subject changes and current topic not in new list
+- Filter grid changed from 3 columns to 4 columns on BrowseNotes and ReviewFlashcards
+
+### Files Changed
+
 ## [2026-02-02] UI Fix - Desktop Navigation Centering
 
 ### Changed

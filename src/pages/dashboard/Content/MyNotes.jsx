@@ -29,6 +29,9 @@ export default function MyNotes() {
   const [availableCourses, setAvailableCourses] = useState([]);
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [availableTopics, setAvailableTopics] = useState([]);
+  
+  // Store all topics for reference (needed for dependent filtering)
+  const [allTopicsFromNotes, setAllTopicsFromNotes] = useState([]);
 
   useEffect(() => {
     fetchMyNotes();
@@ -39,6 +42,31 @@ export default function MyNotes() {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, filterCourse, filterSubject, filterTopic, filterDate, filterVisibility, notes]);
+
+  // Dependent topic filtering when subject changes
+  useEffect(() => {
+    if (filterSubject === 'all') {
+      // Show all topics when "All Subjects" is selected
+      setAvailableTopics(allTopicsFromNotes);
+    } else {
+      // Filter topics to only show those belonging to the selected subject
+      const filteredTopics = notes
+        .filter(note => {
+          const noteSubject = note.subjects?.name || note.custom_subject;
+          return noteSubject === filterSubject;
+        })
+        .map(note => note.topics?.name || note.custom_topic)
+        .filter(Boolean);
+
+      const uniqueTopics = [...new Set(filteredTopics)];
+      setAvailableTopics(uniqueTopics);
+
+      // Reset topic filter if current selection is not in filtered list
+      if (filterTopic !== 'all' && !uniqueTopics.includes(filterTopic)) {
+        setFilterTopic('all');
+      }
+    }
+  }, [filterSubject, notes, allTopicsFromNotes, filterTopic]);
 
   const fetchMyNotes = async () => {
     try {
@@ -69,6 +97,7 @@ export default function MyNotes() {
       setAvailableCourses(courses);
       setAvailableSubjects(subjects);
       setAvailableTopics(topics);
+      setAllTopicsFromNotes(topics); // Store all topics for reference
     } catch (error) {
       console.error('Error fetching notes:', error);
       toast({
@@ -186,6 +215,11 @@ export default function MyNotes() {
     setFilterVisibility('all');
   };
 
+  // Handler for subject change
+  const handleSubjectChange = (value) => {
+    setFilterSubject(value);
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-IN', { 
       year: 'numeric', 
@@ -270,7 +304,7 @@ export default function MyNotes() {
                 {availableSubjects.length > 0 && (
                   <div>
                     <label className="text-sm text-gray-600 mb-2 block">Subject</label>
-                    <Select value={filterSubject} onValueChange={setFilterSubject}>
+                    <Select value={filterSubject} onValueChange={handleSubjectChange}>
                       <SelectTrigger>
                         <SelectValue placeholder="All Subjects" />
                       </SelectTrigger>

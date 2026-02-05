@@ -15,14 +15,18 @@ export default function BrowseNotes() {
   const [loading, setLoading] = useState(true);
   const [groupedNotes, setGroupedNotes] = useState([]);
   const [allGroupedNotes, setAllGroupedNotes] = useState([]);
+  const [allNotesFlat, setAllNotesFlat] = useState([]); // Store flat notes for topic filtering
   
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCourse, setFilterCourse] = useState('all');
   const [filterSubject, setFilterSubject] = useState('all');
+  const [filterTopic, setFilterTopic] = useState('all');
   const [filterAuthor, setFilterAuthor] = useState('all');
   
   const [availableCourses, setAvailableCourses] = useState([]);
   const [availableSubjects, setAvailableSubjects] = useState([]);
+  const [availableTopics, setAvailableTopics] = useState([]);
+  const [allTopicsFromNotes, setAllTopicsFromNotes] = useState([]);
 
   useEffect(() => {
     fetchNotes();
@@ -32,7 +36,29 @@ export default function BrowseNotes() {
   useEffect(() => {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, filterCourse, filterSubject, filterAuthor, allGroupedNotes]);
+  }, [searchQuery, filterCourse, filterSubject, filterTopic, filterAuthor, allGroupedNotes, allNotesFlat]);
+
+  // Dependent topic filtering when subject changes
+  useEffect(() => {
+    if (filterSubject === 'all') {
+      setAvailableTopics(allTopicsFromNotes);
+    } else {
+      const filteredTopics = allNotesFlat
+        .filter(note => {
+          const noteSubject = note.subject?.name || 'Other';
+          return noteSubject === filterSubject;
+        })
+        .map(note => note.topic?.name)
+        .filter(Boolean);
+
+      const uniqueTopics = [...new Set(filteredTopics)];
+      setAvailableTopics(uniqueTopics);
+
+      if (filterTopic !== 'all' && !uniqueTopics.includes(filterTopic)) {
+        setFilterTopic('all');
+      }
+    }
+  }, [filterSubject, allNotesFlat, allTopicsFromNotes, filterTopic]);
 
   const fetchNotes = async () => {
     try {
@@ -122,12 +148,18 @@ export default function BrowseNotes() {
                { name: note.custom_topic || 'General' }
       }));
 
+      // Store flat notes for topic filtering
+      setAllNotesFlat(notesWithDetails);
+
       // Extract unique values
       const courses = [...new Set(notesWithDetails.map(n => n.target_course).filter(Boolean))];
       const subjects = [...new Set(notesWithDetails.map(n => n.subject?.name).filter(Boolean))];
+      const topics = [...new Set(notesWithDetails.map(n => n.topic?.name).filter(Boolean))];
 
       setAvailableCourses(courses);
       setAvailableSubjects(subjects);
+      setAvailableTopics(topics);
+      setAllTopicsFromNotes(topics);
 
       // Group notes
       const grouped = groupNotesBySubject(notesWithDetails);
@@ -190,6 +222,17 @@ export default function BrowseNotes() {
       filtered = filtered.filter(subject => subject.name === filterSubject);
     }
 
+    // Topic filter - filter within subjects
+    if (filterTopic !== 'all') {
+      filtered = filtered.map(subject => ({
+        ...subject,
+        topics: subject.topics.filter(topic => topic.name === filterTopic),
+        totalNotes: subject.topics
+          .filter(topic => topic.name === filterTopic)
+          .reduce((sum, topic) => sum + topic.notes.length, 0)
+      })).filter(subject => subject.topics.length > 0);
+    }
+
     if (filterAuthor === 'professor') {
       filtered = filtered.map(subject => ({
         ...subject,
@@ -237,7 +280,12 @@ export default function BrowseNotes() {
     setSearchQuery('');
     setFilterCourse('all');
     setFilterSubject('all');
+    setFilterTopic('all');
     setFilterAuthor('all');
+  };
+
+  const handleSubjectChange = (value) => {
+    setFilterSubject(value);
   };
 
   const formatDate = (dateString) => {
@@ -260,7 +308,7 @@ export default function BrowseNotes() {
   }
 
   const totalNotes = groupedNotes.reduce((sum, subject) => sum + subject.totalNotes, 0);
-  const hasActiveFilters = searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || filterAuthor !== 'all';
+  const hasActiveFilters = searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || filterTopic !== 'all' || filterAuthor !== 'all';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -294,7 +342,7 @@ export default function BrowseNotes() {
                 <span className="text-sm font-medium text-gray-700">Filters</span>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">Course</label>
                   <Select value={filterCourse} onValueChange={setFilterCourse}>
@@ -314,7 +362,7 @@ export default function BrowseNotes() {
 
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">Subject</label>
-                  <Select value={filterSubject} onValueChange={setFilterSubject}>
+                  <Select value={filterSubject} onValueChange={handleSubjectChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Subjects" />
                     </SelectTrigger>
@@ -323,6 +371,23 @@ export default function BrowseNotes() {
                       {availableSubjects.map(subject => (
                         <SelectItem key={subject} value={subject}>
                           {subject}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-600 mb-2 block">Topic</label>
+                  <Select value={filterTopic} onValueChange={setFilterTopic}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Topics" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Topics</SelectItem>
+                      {availableTopics.map(topic => (
+                        <SelectItem key={topic} value={topic}>
+                          {topic}
                         </SelectItem>
                       ))}
                     </SelectContent>

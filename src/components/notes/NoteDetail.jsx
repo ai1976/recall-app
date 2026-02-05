@@ -129,14 +129,21 @@ export default function NoteDetail() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Button
+                        <Button
               variant="ghost"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => {
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  navigate('/dashboard');
+                }
+              }}
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
+
             <div className="flex items-center gap-3">
               {/* Upvote Button in Header */}
               <UpvoteButton
