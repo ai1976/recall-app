@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { FileText, Search, Filter, Users } from 'lucide-react';
+import { FileText, Search, Filter, Users, ChevronDown, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +33,16 @@ export default function BrowseNotes() {
 
   // Store subject name to ID mapping for RPC calls
   const [subjectNameToId, setSubjectNameToId] = useState({});
+
+  // Collapsed groups state for collapsible sections
+  const [collapsedGroups, setCollapsedGroups] = useState({});
+
+  const toggleGroupCollapse = (groupKey) => {
+    setCollapsedGroups(prev => ({
+      ...prev,
+      [groupKey]: !prev[groupKey]
+    }));
+  };
 
   useEffect(() => {
     fetchNotes();
@@ -531,114 +541,157 @@ export default function BrowseNotes() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {groupedNotes.map((subject, idx) => (
-              <Card key={idx}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-xl">{subject.name}</CardTitle>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {subject.course && <span className="font-medium">{subject.course}</span>}
-                        {subject.course && ' • '}
-                        {subject.totalNotes} {subject.totalNotes === 1 ? 'note' : 'notes'}
-                        {subject.professorNotes > 0 && ` • ${subject.professorNotes} from professors`}
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {subject.topics.map((topic, topicIdx) => (
-                    <div key={topicIdx} className="mb-6 last:mb-0">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                        {topic.name}
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {topic.notes.map((note) => (
-                          <div
-                            key={note.id}
-                            className="text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all overflow-hidden group"
-                          >
-                            {/* Clickable Image Area */}
-                            {note.image_url && (
-                              <button
-                                onClick={() => navigate(`/dashboard/notes/${note.id}`)}
-                                className="w-full"
-                              >
-                                <img
-                                  src={note.image_url}
-                                  alt={note.title}
-                                  className="w-full h-40 object-cover"
-                                />
-                              </button>
-                            )}
-                            
-                            {/* Card Content */}
-                            <div className="p-4">
-                              {/* Clickable Title/Description */}
-                              <button
-                                onClick={() => navigate(`/dashboard/notes/${note.id}`)}
-                                className="text-left w-full"
-                              >
-                                <h4 className="font-medium text-gray-900 group-hover:text-blue-700 mb-2 line-clamp-2">
-                                  {note.title || 'Untitled Note'}
-                                </h4>
-                                
-                                {note.description && (
-                                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                                    {note.description}
-                                  </p>
-                                )}
-                              </button>
+            {groupedNotes.map((subject, idx) => {
+              const subjectKey = `subject-${idx}-${subject.name}`;
+              const isSubjectCollapsed = collapsedGroups[subjectKey];
 
-                              {note.tags && note.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mb-3">
-                                  {note.tags.slice(0, 2).map((tag, idx) => (
-                                    <span 
-                                      key={idx}
-                                      className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                                  {note.tags.length > 2 && (
-                                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                                      +{note.tags.length - 2}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-
-                              {/* Footer with Author, Date, and Upvote */}
-                              <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
-                                <span className="flex items-center gap-1">
-                                  {note.user?.role === 'professor' && (
-                                    <Users className="h-3 w-3 text-purple-600" />
-                                  )}
-                                  {note.user?.full_name || 'Unknown'}
-                                </span>
-                                
-                                <div className="flex items-center gap-2">
-                                  <span>{formatDate(note.created_at)}</span>
-                                  
-                                  {/* Upvote Button */}
-                                  <UpvoteButton
-                                    contentType="note"
-                                    targetId={note.id}
-                                    initialCount={note.upvote_count || 0}
-                                    ownerId={note.user_id}
-                                    size="sm"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+              return (
+                <Card key={idx}>
+                  {/* Collapsible Subject Header */}
+                  <CardHeader
+                    className="cursor-pointer select-none bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors"
+                    onClick={() => toggleGroupCollapse(subjectKey)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {isSubjectCollapsed ? (
+                          <ChevronRight className="h-5 w-5 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-500" />
+                        )}
+                        <div>
+                          <CardTitle className="text-xl">{subject.name}</CardTitle>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {subject.course && <span className="font-medium">{subject.course}</span>}
+                            {subject.course && ' \u2022 '}
+                            {subject.totalNotes} {subject.totalNotes === 1 ? 'note' : 'notes'}
+                            {subject.professorNotes > 0 && ` \u2022 ${subject.professorNotes} from professors`}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            ))}
+                  </CardHeader>
+
+                  {/* Collapsible Subject Content */}
+                  {!isSubjectCollapsed && (
+                    <CardContent className="pt-4">
+                      {subject.topics.map((topic, topicIdx) => {
+                        const topicKey = `${subjectKey}-topic-${topicIdx}-${topic.name}`;
+                        const isTopicCollapsed = collapsedGroups[topicKey];
+
+                        return (
+                          <div key={topicIdx} className="mb-6 last:mb-0">
+                            {/* Collapsible Topic Header */}
+                            <div
+                              className="flex items-center gap-2 mb-3 cursor-pointer select-none group/topic"
+                              onClick={() => toggleGroupCollapse(topicKey)}
+                            >
+                              {isTopicCollapsed ? (
+                                <ChevronRight className="h-4 w-4 text-gray-400" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 text-gray-400" />
+                              )}
+                              <h3 className="text-lg font-semibold text-gray-700 group-hover/topic:text-gray-900">
+                                {topic.name}
+                              </h3>
+                              <span className="text-sm text-gray-500">
+                                ({topic.notes.length} note{topic.notes.length !== 1 ? 's' : ''})
+                              </span>
+                            </div>
+
+                            {/* Collapsible Topic Notes */}
+                            {!isTopicCollapsed && (
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {topic.notes.map((note) => (
+                                  <div
+                                    key={note.id}
+                                    className="text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all overflow-hidden group"
+                                  >
+                                    {/* Clickable Image Area */}
+                                    {note.image_url && (
+                                      <button
+                                        onClick={() => navigate(`/dashboard/notes/${note.id}`)}
+                                        className="w-full"
+                                      >
+                                        <img
+                                          src={note.image_url}
+                                          alt={note.title}
+                                          className="w-full h-40 object-cover"
+                                        />
+                                      </button>
+                                    )}
+
+                                    {/* Card Content */}
+                                    <div className="p-4">
+                                      {/* Clickable Title/Description */}
+                                      <button
+                                        onClick={() => navigate(`/dashboard/notes/${note.id}`)}
+                                        className="text-left w-full"
+                                      >
+                                        <h4 className="font-medium text-gray-900 group-hover:text-blue-700 mb-2 line-clamp-2">
+                                          {note.title || 'Untitled Note'}
+                                        </h4>
+
+                                        {note.description && (
+                                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                                            {note.description}
+                                          </p>
+                                        )}
+                                      </button>
+
+                                      {note.tags && note.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mb-3">
+                                          {note.tags.slice(0, 2).map((tag, tagIdx) => (
+                                            <span
+                                              key={tagIdx}
+                                              className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded"
+                                            >
+                                              {tag}
+                                            </span>
+                                          ))}
+                                          {note.tags.length > 2 && (
+                                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                                              +{note.tags.length - 2}
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {/* Footer with Author, Date, and Upvote */}
+                                      <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
+                                        <span className="flex items-center gap-1">
+                                          {note.user?.role === 'professor' && (
+                                            <Users className="h-3 w-3 text-purple-600" />
+                                          )}
+                                          {note.user?.full_name || 'Unknown'}
+                                        </span>
+
+                                        <div className="flex items-center gap-2">
+                                          <span>{formatDate(note.created_at)}</span>
+
+                                          {/* Upvote Button */}
+                                          <UpvoteButton
+                                            contentType="note"
+                                            targetId={note.id}
+                                            initialCount={note.upvote_count || 0}
+                                            ownerId={note.user_id}
+                                            size="sm"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>

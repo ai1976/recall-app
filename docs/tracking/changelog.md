@@ -1,6 +1,38 @@
 # Changelog
 
 ---
+## [2026-02-06] Grid/Grouped View Toggle & Collapsible Sections
+
+### Added
+- **MyNotes.jsx - Grid/Grouped View Toggle:**
+  - `[Grid] [Grouped]` toggle buttons in header area (matches MyFlashcards pattern)
+  - Grouped View organizes notes by Subject → Topic hierarchy
+  - Notes without subject/topic fall into "Uncategorized" section (sorted last)
+  - View preference persisted in localStorage (`myNotes_viewMode` key)
+  - Extracted `renderNoteCard` helper for shared card rendering in both views
+  - `useMemo` for efficient grouped notes computation
+
+- **BrowseNotes.jsx - Collapsible Sections:**
+  - Subject headers now collapsible with ChevronDown/ChevronRight icons
+  - Topic sub-headers now collapsible with note count display
+  - Gradient background on subject headers (blue-to-indigo)
+  - `collapsedGroups` state tracks open/closed sections independently
+
+### Changed
+- `MyNotes.jsx` - Added `useMemo`, `ChevronDown`, `ChevronRight` imports
+- `BrowseNotes.jsx` - Added `ChevronDown`, `ChevronRight` imports, collapsible state
+
+### Technical Details
+- No database changes required (uses existing `subject_id`/`topic_id` joins)
+- No new files created (only modified 2 existing files)
+- Grouped view sorts alphabetically with "Uncategorized" always last
+- Both subject and topic levels independently collapsible
+
+### Files Changed
+- `src/pages/dashboard/Content/MyNotes.jsx`
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+
+---
 ## [2026-02-05] Author Search with Server-Side Filtering
 
 ### Added

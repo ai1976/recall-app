@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { FileText, Search, Lock, Globe, Trash2, Filter, Plus } from 'lucide-react';
+import { FileText, Search, Lock, Globe, Trash2, Filter, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+
+const VIEW_MODE_KEY = 'myNotes_viewMode';
 
 export default function MyNotes() {
   const navigate = useNavigate();
@@ -32,6 +34,27 @@ export default function MyNotes() {
   
   // Store all topics for reference (needed for dependent filtering)
   const [allTopicsFromNotes, setAllTopicsFromNotes] = useState([]);
+
+  // View mode state - persist in localStorage
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      return localStorage.getItem(VIEW_MODE_KEY) || 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+
+  // Collapsed groups state for grouped view
+  const [collapsedGroups, setCollapsedGroups] = useState({});
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem(VIEW_MODE_KEY, mode);
+    } catch {
+      // localStorage unavailable
+    }
+  };
 
   useEffect(() => {
     fetchMyNotes();
@@ -228,6 +251,134 @@ export default function MyNotes() {
     });
   };
 
+  // Build grouped notes: Subject → Topic → notes[]
+  const groupedNotes = useMemo(() => {
+    const groups = {};
+
+    filteredNotes.forEach(note => {
+      const subject = note.subjects?.name || note.custom_subject || 'Uncategorized';
+      const topic = note.topics?.name || note.custom_topic || 'Uncategorized';
+
+      if (!groups[subject]) {
+        groups[subject] = {};
+      }
+      if (!groups[subject][topic]) {
+        groups[subject][topic] = [];
+      }
+      groups[subject][topic].push(note);
+    });
+
+    // Sort subjects: "Uncategorized" goes last
+    const sortedSubjects = Object.keys(groups).sort((a, b) => {
+      if (a === 'Uncategorized') return 1;
+      if (b === 'Uncategorized') return -1;
+      return a.localeCompare(b);
+    });
+
+    const sorted = {};
+    sortedSubjects.forEach(subject => {
+      const topicKeys = Object.keys(groups[subject]).sort((a, b) => {
+        if (a === 'Uncategorized') return 1;
+        if (b === 'Uncategorized') return -1;
+        return a.localeCompare(b);
+      });
+      sorted[subject] = {};
+      topicKeys.forEach(topic => {
+        sorted[subject][topic] = groups[subject][topic];
+      });
+    });
+
+    return sorted;
+  }, [filteredNotes]);
+
+  const toggleGroupCollapse = (groupKey) => {
+    setCollapsedGroups(prev => ({
+      ...prev,
+      [groupKey]: !prev[groupKey]
+    }));
+  };
+
+  // Render a single note card (shared between grid and grouped views)
+  const renderNoteCard = (note) => (
+    <Card 
+      key={note.id} 
+      className="cursor-pointer hover:shadow-lg transition group"
+      onClick={() => navigate(`/dashboard/notes/${note.id}`)}
+    >
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <CardTitle className="text-lg line-clamp-2 flex-1 pr-2">
+            {note.title || 'Untitled Note'}
+          </CardTitle>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {note.is_public ? (
+              <Globe className="h-4 w-4 text-green-600" title="Public" />
+            ) : (
+              <Lock className="h-4 w-4 text-gray-400" title="Private" />
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => handleDelete(note.id, e)}
+              className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-700 hover:bg-red-50 -mr-2"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {note.image_url && (
+          <img 
+            src={note.image_url} 
+            alt={note.title}
+            className="w-full h-48 object-cover rounded mb-4"
+          />
+        )}
+
+        {note.description && (
+          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+            {note.description}
+          </p>
+        )}
+
+        <div className="space-y-2">
+          <div className="text-xs text-gray-500">
+            {note.target_course && <span className="font-medium">{note.target_course}</span>}
+            {(note.subjects?.name || note.custom_subject) && (
+              <span> &bull; {note.subjects?.name || note.custom_subject}</span>
+            )}
+            {(note.topics?.name || note.custom_topic) && (
+              <span> &bull; {note.topics?.name || note.custom_topic}</span>
+            )}
+          </div>
+
+          {note.tags && note.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {note.tags.slice(0, 3).map((tag, idx) => (
+                <span 
+                  key={idx}
+                  className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded"
+                >
+                  {tag}
+                </span>
+              ))}
+              {note.tags.length > 3 && (
+                <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                  +{note.tags.length - 3}
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="text-xs text-gray-500 pt-2 border-t">
+            {formatDate(note.created_at)}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -235,6 +386,9 @@ export default function MyNotes() {
       </div>
     );
   }
+
+  const hasActiveFilters = searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || 
+    filterTopic !== 'all' || filterDate !== 'all' || filterVisibility !== 'all';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -251,10 +405,31 @@ export default function MyNotes() {
               {notes.length} total notes (public and private)
             </p>
           </div>
-          <Button onClick={() => navigate('/dashboard/notes/new')} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Upload Note
-          </Button>
+          <div className="flex gap-3">
+            {/* View Mode Toggle */}
+            <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleViewModeChange('grid')}
+                className="rounded-none"
+              >
+                Grid
+              </Button>
+              <Button
+                variant={viewMode === 'grouped' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleViewModeChange('grouped')}
+                className="rounded-none"
+              >
+                Grouped
+              </Button>
+            </div>
+            <Button onClick={() => navigate('/dashboard/notes/new')} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Upload Note
+            </Button>
+          </div>
         </div>
 
         {/* Filters & Search */}
@@ -377,8 +552,7 @@ export default function MyNotes() {
                 <p className="text-sm text-gray-600">
                   Showing {filteredNotes.length} of {notes.length} notes
                 </p>
-                {(searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || 
-                  filterTopic !== 'all' || filterDate !== 'all' || filterVisibility !== 'all') && (
+                {hasActiveFilters && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -418,95 +592,85 @@ export default function MyNotes() {
               )}
             </CardContent>
           </Card>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredNotes.map((note) => (
-              <Card 
-                key={note.id} 
-                className="cursor-pointer hover:shadow-lg transition group"
-                onClick={() => navigate(`/dashboard/notes/${note.id}`)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg line-clamp-2 flex-1 pr-2">
-                      {note.title || 'Untitled Note'}
-                    </CardTitle>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {/* Public/Private Badge */}
-                      {note.is_public ? (
-                        <Globe className="h-4 w-4 text-green-600" title="Public" />
-                      ) : (
-                        <Lock className="h-4 w-4 text-gray-400" title="Private" />
-                      )}
-                      {/* Delete Button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => handleDelete(note.id, e)}
-                        className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-700 hover:bg-red-50 -mr-2"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {/* Preview Image */}
-                  {note.image_url && (
-                    <img 
-                      src={note.image_url} 
-                      alt={note.title}
-                      className="w-full h-48 object-cover rounded mb-4"
-                    />
-                  )}
+        ) : viewMode === 'grouped' ? (
+          /* ==================== GROUPED VIEW ==================== */
+          <div className="space-y-6">
+            {Object.entries(groupedNotes).map(([subject, topics]) => {
+              const subjectKey = `subject-${subject}`;
+              const isSubjectCollapsed = collapsedGroups[subjectKey];
+              const subjectNoteCount = Object.values(topics).reduce((sum, arr) => sum + arr.length, 0);
+              const topicCount = Object.keys(topics).length;
 
-                  {/* Description */}
-                  {note.description && (
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                      {note.description}
-                    </p>
-                  )}
-
-                  {/* Metadata */}
-                  <div className="space-y-2">
-                    {/* Course/Subject/Topic */}
-                    <div className="text-xs text-gray-500">
-                      {note.target_course && <span className="font-medium">{note.target_course}</span>}
-                      {(note.subjects?.name || note.custom_subject) && (
-                        <span> • {note.subjects?.name || note.custom_subject}</span>
-                      )}
-                      {(note.topics?.name || note.custom_topic) && (
-                        <span> • {note.topics?.name || note.custom_topic}</span>
-                      )}
-                    </div>
-
-                    {/* Tags */}
-                    {note.tags && note.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {note.tags.slice(0, 3).map((tag, idx) => (
-                          <span 
-                            key={idx}
-                            className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                        {note.tags.length > 3 && (
-                          <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                            +{note.tags.length - 3}
-                          </span>
+              return (
+                <Card key={subjectKey}>
+                  {/* Subject Header */}
+                  <CardHeader
+                    className="cursor-pointer select-none bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors"
+                    onClick={() => toggleGroupCollapse(subjectKey)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {isSubjectCollapsed ? (
+                          <ChevronRight className="h-5 w-5 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-500" />
                         )}
+                        <div>
+                          <CardTitle className="text-lg">{subject}</CardTitle>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {topicCount} topic{topicCount !== 1 ? 's' : ''} &bull; {subjectNoteCount} note{subjectNoteCount !== 1 ? 's' : ''}
+                          </p>
+                        </div>
                       </div>
-                    )}
-
-                    {/* Date */}
-                    <div className="text-xs text-gray-500 pt-2 border-t">
-                      {formatDate(note.created_at)}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardHeader>
+
+                  {/* Topics & Notes (collapsible) */}
+                  {!isSubjectCollapsed && (
+                    <CardContent className="pt-4 space-y-6">
+                      {Object.entries(topics).map(([topic, topicNotes]) => {
+                        const topicKey = `${subjectKey}-topic-${topic}`;
+                        const isTopicCollapsed = collapsedGroups[topicKey];
+
+                        return (
+                          <div key={topicKey}>
+                            {/* Topic Sub-header */}
+                            <div
+                              className="flex items-center gap-2 mb-4 cursor-pointer select-none group/topic"
+                              onClick={() => toggleGroupCollapse(topicKey)}
+                            >
+                              {isTopicCollapsed ? (
+                                <ChevronRight className="h-4 w-4 text-gray-400" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 text-gray-400" />
+                              )}
+                              <h3 className="text-md font-semibold text-gray-700 group-hover/topic:text-gray-900">
+                                {topic}
+                              </h3>
+                              <span className="text-sm text-gray-500">
+                                ({topicNotes.length} note{topicNotes.length !== 1 ? 's' : ''})
+                              </span>
+                            </div>
+
+                            {/* Note Cards Grid */}
+                            {!isTopicCollapsed && (
+                              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                {topicNotes.map(note => renderNoteCard(note))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          /* ==================== GRID VIEW ==================== */
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredNotes.map(note => renderNoteCard(note))}
           </div>
         )}
       </div>

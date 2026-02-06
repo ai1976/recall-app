@@ -1,13 +1,23 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-02-05
-**Current Phase:** Phase 1B Complete - Author Search with Server-Side Filtering
+**Last Updated:** 2026-02-06
+**Current Phase:** Phase 1B Complete - Grid/Grouped View Toggle & Collapsible Sections
 
 ---
 
 ## Just Completed ✅
 
-### Author Search with Server-Side Filtering (Feb 5, 2026)
+### Grid/Grouped View Toggle & Collapsible Sections (Feb 6, 2026)
+- [x] Added Grid/Grouped view toggle to MyNotes.jsx (matching MyFlashcards pattern)
+- [x] Implemented Grouped View with Subject → Topic hierarchy
+- [x] Notes without subject/topic go into "Uncategorized" section (sorted last)
+- [x] View preference persisted in localStorage (`myNotes_viewMode`)
+- [x] Collapsible subject and topic sections with chevron icons (both views)
+- [x] Added collapsible sections to BrowseNotes.jsx (subject + topic levels)
+- [x] Gradient header styling on subject groups (blue-to-indigo)
+- [x] Note/topic counts displayed on group headers
+
+### Previous: Author Search with Server-Side Filtering (Feb 5, 2026)
 - [x] Created `get_filtered_authors_for_notes()` RPC function
 - [x] Created `get_filtered_authors_for_flashcards()` RPC function
 - [x] Split Author filter into Role + Author dropdowns
@@ -49,6 +59,8 @@
 
 | Decision | Status | Notes |
 |----------|--------|-------|
+| Grid/Grouped toggle on MyNotes | ✅ Implemented | localStorage persistence, matches MyFlashcards pattern |
+| Collapsible groups on BrowseNotes | ✅ Implemented | Subject + Topic levels, chevron icons |
 | Server-side author filtering | ✅ Implemented | RPC functions for performance & security |
 | Split Author into Role + Author | ✅ Implemented | Better UX for filtering |
 | Instant mark-as-read | ✅ Approved | Notifications marked read immediately on dropdown open |
@@ -64,6 +76,14 @@ None currently.
 ---
 
 ## Session Notes
+
+### 2026-02-06 Session
+- Added Grid/Grouped view toggle to MyNotes.jsx with localStorage persistence
+- Implemented Subject → Topic hierarchy grouping with "Uncategorized" fallback
+- Extracted `renderNoteCard` helper for shared card rendering in both views
+- Added collapsible chevrons to BrowseNotes.jsx (subject + topic levels)
+- No database changes required (uses existing subject/topic joins)
+- No new files created (only modified MyNotes.jsx and BrowseNotes.jsx)
 
 ### 2026-02-05 Session
 - Implemented Author Search with server-side filtering per QA Bot requirements
