@@ -120,81 +120,29 @@ export default function BrowseNotes() {
 
   const fetchNotes = async () => {
     try {
-      // STEP 1: Get user's accepted friendships (bidirectional)
-      const { data: friendships, error: friendshipError } = await supabase
-        .from('friendships')
-        .select('user_id, friend_id')
-        .eq('status', 'accepted')
-        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+      // Single server-side RPC handles all visibility logic
+      // (own + public + friends + group-shared) in one query
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_browsable_notes');
 
-      if (friendshipError) {
-        throw friendshipError;
-      }
+      if (rpcError) throw rpcError;
 
-      // Extract friend IDs (the OTHER person in each friendship)
-      const friendIds = friendships?.map(f => 
-        f.user_id === user.id ? f.friend_id : f.user_id
-      ) || [];
-
-      // STEP 2: Fetch notes with visibility logic (including upvote_count)
-      let query = supabase
-        .from('notes')
-        .select('*, upvote_count')
-        .order('created_at', { ascending: false });
-
-      // Apply visibility filter
-      if (friendIds.length > 0) {
-        const visibilityFilter = `visibility.eq.public,user_id.eq.${user.id},and(visibility.eq.friends,user_id.in.(${friendIds.join(',')}))`;
-        query = query.or(visibilityFilter);
-      } else {
-        const visibilityFilter = `visibility.eq.public,user_id.eq.${user.id}`;
-        query = query.or(visibilityFilter);
-      }
-
-      const { data: notesData, error: notesError } = await query;
-
-      if (notesError) {
-        throw notesError;
-      }
-
-      // Get unique user IDs from notes
-      const userIds = [...new Set(notesData.map(note => note.user_id))];
-
-      // Fetch user profiles
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, full_name, role')
-        .in('id', userIds);
-
-      // Fetch subjects
-      const subjectIds = [...new Set(notesData.map(n => n.subject_id).filter(Boolean))];
-      const { data: subjectsData } = await supabase
-        .from('subjects')
-        .select('id, name')
-        .in('id', subjectIds);
+      const allNotesData = rpcData || [];
 
       // Build subject name to ID mapping
       const nameToIdMap = {};
-      subjectsData?.forEach(s => {
-        nameToIdMap[s.name] = s.id;
+      allNotesData.forEach(n => {
+        if (n.subject_name && n.subject_id) {
+          nameToIdMap[n.subject_name] = n.subject_id;
+        }
       });
       setSubjectNameToId(nameToIdMap);
 
-      // Fetch topics
-      const topicIds = [...new Set(notesData.map(n => n.topic_id).filter(Boolean))];
-      const { data: topicsData } = await supabase
-        .from('topics')
-        .select('id, name')
-        .in('id', topicIds);
-
-      // Merge data
-      const notesWithDetails = notesData.map(note => ({
+      // Map RPC result to the shape the rest of the component expects
+      const notesWithDetails = allNotesData.map(note => ({
         ...note,
-        user: profilesData.find(p => p.id === note.user_id),
-        subject: subjectsData?.find(s => s.id === note.subject_id) || 
-                 { name: note.custom_subject || 'Other' },
-        topic: topicsData?.find(t => t.id === note.topic_id) || 
-               { name: note.custom_topic || 'General' }
+        user: { full_name: note.author_name, role: note.author_role },
+        subject: { name: note.subject_name },
+        topic: { name: note.topic_name }
       }));
 
       // Store flat notes for topic filtering

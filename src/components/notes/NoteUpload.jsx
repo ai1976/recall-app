@@ -24,7 +24,9 @@ export default function NoteUpload() {
   const [contentType, setContentType] = useState('text');
   const [extractedText, setExtractedText] = useState('');
   const [loading, setLoading] = useState(false);
-  const [visibility, setVisibility] = useState('private'); // 🆕 NEW
+  const [visibility, setVisibility] = useState('private');
+  const [userGroups, setUserGroups] = useState([]);
+  const [selectedGroupIds, setSelectedGroupIds] = useState([]);
 
   const [targetCourse, setTargetCourse] = useState('');
   const [showCustomCourse, setShowCustomCourse] = useState(false);
@@ -47,8 +49,27 @@ export default function NoteUpload() {
   useEffect(() => {
     fetchSubjects();
     fetchAllCourses();
+    fetchUserGroups();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const fetchUserGroups = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_user_groups');
+      if (error) throw error;
+      setUserGroups(data || []);
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+    }
+  };
+
+  const toggleGroupSelection = (groupId) => {
+    setSelectedGroupIds(prev =>
+      prev.includes(groupId)
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    );
+  };
 
   const fetchSubjects = async () => {
     try {
@@ -234,6 +255,9 @@ export default function NoteUpload() {
         .from('notes')
         .getPublicUrl(fileName);
 
+      // For study_groups visibility, store as 'private' in DB (access via group shares)
+      const dbVisibility = visibility === 'study_groups' ? 'private' : visibility;
+
       const noteData = {
         user_id: user.id,
         contributed_by: user.id,
@@ -248,19 +272,33 @@ export default function NoteUpload() {
         content_type: contentType,
         extracted_text: extractedText || null,
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-        visibility: visibility, // 🆕 NEW
-        is_public: visibility === 'public', // Backward compatibility
+        visibility: dbVisibility,
+        is_public: visibility === 'public',
       };
 
-      const { error: insertError } = await supabase
+      const { data: insertedNote, error: insertError } = await supabase
         .from('notes')
-        .insert(noteData);
+        .insert(noteData)
+        .select('id')
+        .single();
 
       if (insertError) throw insertError;
 
+      // Share with selected study groups
+      if (visibility === 'study_groups' && selectedGroupIds.length > 0 && insertedNote) {
+        const { error: shareError } = await supabase.rpc('share_content_with_groups', {
+          p_content_type: 'note',
+          p_content_id: insertedNote.id,
+          p_group_ids: selectedGroupIds,
+        });
+        if (shareError) console.error('Error sharing with groups:', shareError);
+      }
+
       toast({
         title: 'Success!',
-        description: 'Note uploaded successfully',
+        description: visibility === 'study_groups'
+          ? `Note uploaded and shared with ${selectedGroupIds.length} group(s)`
+          : 'Note uploaded successfully',
       });
 
       navigate('/dashboard');
@@ -512,25 +550,69 @@ export default function NoteUpload() {
                 </p>
               </div>
 
-              {/* 🆕 NEW: Visibility Dropdown */}
+              {/* Visibility Dropdown */}
               <div className="space-y-2">
                 <Label htmlFor="visibility">Who can see this note?</Label>
-                <Select value={visibility} onValueChange={setVisibility}>
+                <Select value={visibility} onValueChange={(val) => {
+                  setVisibility(val);
+                  if (val !== 'study_groups') setSelectedGroupIds([]);
+                }}>
                   <SelectTrigger id="visibility">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="private">Private (Only me)</SelectItem>
+                    <SelectItem value="study_groups">Study Groups</SelectItem>
                     <SelectItem value="friends">Friends Only</SelectItem>
                     <SelectItem value="public">Public (Everyone)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
                   {visibility === 'private' && 'Only you can see this note'}
+                  {visibility === 'study_groups' && 'Share with selected study groups'}
                   {visibility === 'friends' && 'Only your friends can see this note'}
                   {visibility === 'public' && 'Everyone can see this note'}
                 </p>
               </div>
+
+              {/* Study Group Selection */}
+              {visibility === 'study_groups' && (
+                <div className="space-y-2">
+                  <Label>Select Groups</Label>
+                  {userGroups.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      You are not in any study groups.{' '}
+                      <button
+                        type="button"
+                        className="text-blue-600 hover:underline"
+                        onClick={() => navigate('/dashboard/groups/new')}
+                      >
+                        Create one
+                      </button>
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-2">
+                      {userGroups.map((group) => (
+                        <label
+                          key={group.id}
+                          className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedGroupIds.includes(group.id)}
+                            onChange={() => toggleGroupSelection(group.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{group.name}</p>
+                            <p className="text-xs text-gray-500">{group.member_count} members</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

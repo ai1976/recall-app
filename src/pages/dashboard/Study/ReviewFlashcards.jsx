@@ -119,71 +119,29 @@ export default function ReviewFlashcards() {
     try {
       if (!user) return;
 
-      // STEP 1: Get user's accepted friendships
-      const { data: friendships } = await supabase
-        .from('friendships')
-        .select('user_id, friend_id')
-        .eq('status', 'accepted')
-        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
-        
-      const friendIds = friendships?.map(f => 
-        f.user_id === user.id ? f.friend_id : f.user_id
-      ) || [];
+      // Single server-side RPC handles all visibility logic
+      // (own + public + friends + group-shared) in one query
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_browsable_decks');
 
-      // STEP 2: Fetch flashcard_decks with visibility logic
-      let deckQuery = supabase
-        .from('flashcard_decks')
-        .select(`
-          id,
-          user_id,
-          subject_id,
-          custom_subject,
-          topic_id,
-          custom_topic,
-          target_course,
-          visibility,
-          card_count,
-          upvote_count,
-          created_at,
-          subjects:subject_id (id, name),
-          topics:topic_id (id, name)
-        `)
-        .gt('card_count', 0)
-        .order('created_at', { ascending: false });
+      if (rpcError) throw rpcError;
 
-      // Apply visibility filter for decks
-      if (friendIds.length > 0) {
-        deckQuery = deckQuery.or(`visibility.eq.public,user_id.eq.${user.id},and(visibility.eq.friends,user_id.in.(${friendIds.join(',')}))`);
-      } else {
-        deckQuery = deckQuery.or(`visibility.eq.public,user_id.eq.${user.id}`);
-      }
-
-      const { data: decksData, error: decksError } = await deckQuery;
-
-      if (decksError) throw decksError;
-
-      // STEP 3: Get user profiles for deck owners
-      const ownerIds = [...new Set(decksData?.map(d => d.user_id) || [])];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, full_name, role')
-        .in('id', ownerIds);
+      const allDecksData = rpcData || [];
 
       // Build subject name to ID mapping
       const nameToIdMap = {};
-      decksData?.forEach(deck => {
-        if (deck.subjects?.name && deck.subjects?.id) {
-          nameToIdMap[deck.subjects.name] = deck.subjects.id;
+      allDecksData.forEach(deck => {
+        if (deck.subject_name && deck.subject_id) {
+          nameToIdMap[deck.subject_name] = deck.subject_id;
         }
       });
       setSubjectNameToId(nameToIdMap);
 
-      // STEP 4: Merge deck data with profiles
-      const decksWithDetails = (decksData || []).map(deck => ({
+      // Map RPC result to the shape the rest of the component expects
+      const decksWithDetails = allDecksData.map(deck => ({
         ...deck,
-        owner: profilesData?.find(p => p.id === deck.user_id),
-        subjectName: deck.subjects?.name || deck.custom_subject || 'Other',
-        topicName: deck.topics?.name || deck.custom_topic || 'General'
+        owner: { full_name: deck.author_name, role: deck.author_role },
+        subjectName: deck.subject_name,
+        topicName: deck.topic_name
       }));
 
       // Store flat decks for topic filtering

@@ -24,6 +24,11 @@ import FindFriends from '@/pages/dashboard/Friends/FindFriends'
 import FriendRequests from '@/pages/dashboard/Friends/FriendRequests'
 import MyFriends from '@/pages/dashboard/Friends/MyFriends'
 
+// Dashboard - Groups Pages
+import MyGroups from '@/pages/dashboard/Groups/MyGroups'
+import GroupDetail from '@/pages/dashboard/Groups/GroupDetail'
+import CreateGroup from '@/pages/dashboard/Groups/CreateGroup'
+
 // Dashboard - Content Pages
 import MyNotes from '@/pages/dashboard/Content/MyNotes'
 import BrowseNotes from '@/pages/dashboard/Content/BrowseNotes'
@@ -180,10 +185,24 @@ function App() {
             element={session ? <AuthorProfile /> : <Navigate to="/login" replace />}
           />
           
+          {/* Groups Routes */}
+          <Route
+            path="/dashboard/groups"
+            element={session ? <MyGroups /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/dashboard/groups/new"
+            element={session ? <CreateGroup /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/dashboard/groups/:groupId"
+            element={session ? <GroupDetail /> : <Navigate to="/login" replace />}
+          />
+
           {/* Friends Routes */}
-          <Route 
-            path="/dashboard/find-friends" 
-            element={session ? <FindFriends /> : <Navigate to="/login" replace />} 
+          <Route
+            path="/dashboard/find-friends"
+            element={session ? <FindFriends /> : <Navigate to="/login" replace />}
           />
           <Route 
             path="/dashboard/friend-requests" 

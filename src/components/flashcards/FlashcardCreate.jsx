@@ -32,7 +32,9 @@ export default function FlashcardCreate() {
   const [showCustomTopic, setShowCustomTopic] = useState(false);
   const [customTopic, setCustomTopic] = useState('');
   const [visibility, setVisibility] = useState('private');
-  
+  const [userGroups, setUserGroups] = useState([]);
+  const [selectedGroupIds, setSelectedGroupIds] = useState([]);
+
   const [flashcards, setFlashcards] = useState([
     { front: '', back: '', frontImage: null, backImage: null }
   ]);
@@ -44,8 +46,27 @@ export default function FlashcardCreate() {
   useEffect(() => {
     fetchSubjects();
     fetchAllCourses();
+    fetchUserGroups();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const fetchUserGroups = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_user_groups');
+      if (error) throw error;
+      setUserGroups(data || []);
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+    }
+  };
+
+  const toggleGroupSelection = (groupId) => {
+    setSelectedGroupIds(prev =>
+      prev.includes(groupId)
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    );
+  };
 
   const fetchSubjects = async () => {
     try {
@@ -285,6 +306,9 @@ export default function FlashcardCreate() {
           .eq('id', deckId);
 
       } else {
+        // For study_groups visibility, store as 'private' in DB
+        const dbVisibility = visibility === 'study_groups' ? 'private' : visibility;
+
         // ✅ CREATE new deck
         const { data: newDeck, error: deckError } = await supabase
           .from('flashcard_decks')
@@ -295,7 +319,7 @@ export default function FlashcardCreate() {
             topic_id: topicId,
             custom_topic: customTopicValue,
             target_course: finalTargetCourse,
-            visibility: visibility,
+            visibility: dbVisibility,
             card_count: flashcards.length,
             upvote_count: 0
           })
@@ -307,6 +331,9 @@ export default function FlashcardCreate() {
         deckId = newDeck.id;
         console.log('🆕 Created new deck:', deckId);
       }
+
+      // For study_groups visibility, store as 'private' in individual cards too
+      const cardVisibility = visibility === 'study_groups' ? 'private' : visibility;
 
       // ✅ Create flashcards WITH deck_id
       const flashcardsToInsert = flashcards.map(card => ({
@@ -325,7 +352,7 @@ export default function FlashcardCreate() {
         front_image_url: card.frontImage || null,
         back_image_url: card.backImage || null,
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-        visibility: visibility,
+        visibility: cardVisibility,
         is_public: visibility === 'public',
         is_verified: false,
         difficulty: 'medium',
@@ -343,9 +370,21 @@ export default function FlashcardCreate() {
 
       if (insertError) throw insertError;
 
+      // Share deck with selected study groups
+      if (visibility === 'study_groups' && selectedGroupIds.length > 0 && deckId) {
+        const { error: shareError } = await supabase.rpc('share_content_with_groups', {
+          p_content_type: 'flashcard_deck',
+          p_content_id: deckId,
+          p_group_ids: selectedGroupIds,
+        });
+        if (shareError) console.error('Error sharing with groups:', shareError);
+      }
+
       toast({
         title: 'Success!',
-        description: `${flashcards.length} flashcard(s) created successfully`,
+        description: visibility === 'study_groups'
+          ? `${flashcards.length} flashcard(s) created and shared with ${selectedGroupIds.length} group(s)`
+          : `${flashcards.length} flashcard(s) created successfully`,
       });
 
       navigate('/dashboard');
@@ -599,22 +638,66 @@ export default function FlashcardCreate() {
 
               <div className="space-y-2">
                 <Label htmlFor="visibility">Who can see these flashcards?</Label>
-                <Select value={visibility} onValueChange={setVisibility}>
+                <Select value={visibility} onValueChange={(val) => {
+                  setVisibility(val);
+                  if (val !== 'study_groups') setSelectedGroupIds([]);
+                }}>
                   <SelectTrigger id="visibility">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="private">Private (Only me)</SelectItem>
+                    <SelectItem value="study_groups">Study Groups</SelectItem>
                     <SelectItem value="friends">Friends Only</SelectItem>
                     <SelectItem value="public">Public (Everyone)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
                   {visibility === 'private' && 'Only you can see these flashcards'}
+                  {visibility === 'study_groups' && 'Share with selected study groups'}
                   {visibility === 'friends' && 'Only your friends can see these flashcards'}
                   {visibility === 'public' && 'Everyone can see these flashcards'}
                 </p>
               </div>
+
+              {/* Study Group Selection */}
+              {visibility === 'study_groups' && (
+                <div className="space-y-2">
+                  <Label>Select Groups</Label>
+                  {userGroups.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      You are not in any study groups.{' '}
+                      <button
+                        type="button"
+                        className="text-blue-600 hover:underline"
+                        onClick={() => navigate('/dashboard/groups/new')}
+                      >
+                        Create one
+                      </button>
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-2">
+                      {userGroups.map((group) => (
+                        <label
+                          key={group.id}
+                          className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedGroupIds.includes(group.id)}
+                            onChange={() => toggleGroupSelection(group.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{group.name}</p>
+                            <p className="text-xs text-gray-500">{group.member_count} members</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
