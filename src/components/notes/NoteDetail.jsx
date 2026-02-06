@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText, File, Calendar, Tag, Plus, Brain, Trash2, Edit, Users } from 'lucide-react';
@@ -189,7 +189,10 @@ export default function NoteDetail() {
               
               {/* Author Badge */}
               {authorProfile && (
-                <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full">
+                <Link
+                  to={`/dashboard/profile/${authorProfile.id}`}
+                  className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                >
                   {authorProfile.role === 'professor' && (
                     <Users className="h-4 w-4 text-purple-600" />
                   )}
@@ -199,7 +202,7 @@ export default function NoteDetail() {
                       Professor
                     </span>
                   )}
-                </div>
+                </Link>
               )}
             </div>
             

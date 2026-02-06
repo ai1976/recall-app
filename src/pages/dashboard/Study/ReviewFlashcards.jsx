@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -570,14 +570,25 @@ export default function ReviewFlashcards() {
                                   </h4>
                                   <p className="text-sm text-gray-600 mt-1">
                                     {deck.card_count} cards
-                                    {deck.owner && (
-                                      <span className="text-gray-400"> • by {deck.owner.full_name}</span>
-                                    )}
                                   </p>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 flex-shrink-0" />
                               </div>
                             </button>
+
+                            {/* Author name (clickable) */}
+                            {deck.owner && (
+                              <p className="text-xs text-gray-400 mt-1">
+                                by{' '}
+                                <Link
+                                  to={`/dashboard/profile/${deck.user_id}`}
+                                  className="hover:text-blue-600 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {deck.owner.full_name}
+                                </Link>
+                              </p>
+                            )}
 
                             {/* Footer with badges and upvote */}
                             <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">

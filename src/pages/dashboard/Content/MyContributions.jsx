@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BarChart3, FileText, CreditCard, ThumbsUp, TrendingUp, Users, Heart, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -334,9 +334,10 @@ export default function MyContributions() {
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {stats.upvotersList.map((upvoter) => (
-                      <span 
+                      <Link
                         key={upvoter.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-green-200 rounded-full text-sm"
+                        to={`/dashboard/profile/${upvoter.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-green-200 rounded-full text-sm hover:border-blue-300 hover:bg-blue-50 transition-colors"
                       >
                         <User className="h-3.5 w-3.5 text-gray-500" />
                         <span className="text-gray-700">{upvoter.name}</span>
@@ -345,7 +346,7 @@ export default function MyContributions() {
                             Prof
                           </span>
                         )}
-                      </span>
+                      </Link>
                     ))}
                   </div>
                 </div>
@@ -422,14 +423,15 @@ export default function MyContributions() {
                               <p className="text-xs text-gray-500 mb-2 font-medium">Upvoted by:</p>
                               <div className="flex flex-wrap gap-1.5">
                                 {note.upvoters.map((upvoter, upvoterIdx) => (
-                                  <span 
+                                  <Link
                                     key={`${upvoter.id}-${upvoterIdx}`}
-                                    className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-blue-200 rounded text-xs"
+                                    to={`/dashboard/profile/${upvoter.id}`}
+                                    className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-blue-200 rounded text-xs hover:border-blue-400 hover:bg-blue-50 transition-colors"
                                   >
                                     <User className="h-3 w-3 text-gray-400" />
                                     <span className="font-medium">{upvoter.name}</span>
                                     <span className="text-gray-400">• {formatDate(upvoter.upvotedAt)}</span>
-                                  </span>
+                                  </Link>
                                 ))}
                               </div>
                             </div>
@@ -491,14 +493,15 @@ export default function MyContributions() {
                               <p className="text-xs text-gray-500 mb-2 font-medium">Upvoted by:</p>
                               <div className="flex flex-wrap gap-1.5">
                                 {deck.upvoters.map((upvoter, upvoterIdx) => (
-                                  <span 
+                                  <Link
                                     key={`${upvoter.id}-${upvoterIdx}`}
-                                    className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-purple-200 rounded text-xs"
+                                    to={`/dashboard/profile/${upvoter.id}`}
+                                    className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-purple-200 rounded text-xs hover:border-purple-400 hover:bg-purple-50 transition-colors"
                                   >
                                     <User className="h-3 w-3 text-gray-400" />
                                     <span className="font-medium">{upvoter.name}</span>
                                     <span className="text-gray-400">• {formatDate(upvoter.upvotedAt)}</span>
-                                  </span>
+                                  </Link>
                                 ))}
                               </div>
                             </div>

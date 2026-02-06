@@ -1,6 +1,51 @@
 # Changelog
 
 ---
+## [2026-02-06] Author Profile Page & Clickable Names
+
+### Added
+- **Database RPC Functions** for author profile (SECURITY DEFINER):
+  - `get_author_profile(p_author_id, p_viewer_id)` - Returns profile + badges + friendship in 1 call
+  - `get_author_content_summary(p_author_id, p_viewer_id)` - Returns content grouped by course/subject with server-side visibility
+
+- **AuthorProfile.jsx** - New page at `/dashboard/profile/:userId`:
+  - Uses 2 RPC calls instead of 6 direct queries (performance + security)
+  - Displays author name, role badge, institution, course level
+  - Shows public badges (own profile shows all badges with hidden indicator)
+  - Content grouped by Course → Subject with note/flashcard counts
+  - "Also Creates Content For" section listing other courses (upsell hook)
+  - Add Friend button with full friendship lifecycle (pending/accepted/rejected)
+  - "Preview as Visitor" toggle on own profile
+  - Back button with history-aware navigation
+
+- **Clickable Author Names** - All author/user names now link to profile page:
+  - `BrowseNotes.jsx` - Note card footer author name
+  - `ReviewFlashcards.jsx` - Deck card author name (moved outside study button)
+  - `NoteDetail.jsx` - Author badge in note header
+  - `FindFriends.jsx` - User card name
+  - `MyFriends.jsx` - Friend card name
+  - `MyContributions.jsx` - Upvoter names (summary list, note upvoters, deck upvoters)
+
+### Changed
+- `App.jsx` - Added AuthorProfile import and `/dashboard/profile/:userId` route
+- `BrowseNotes.jsx` - Added `Link` import, wrapped author name in `<Link>`
+- `ReviewFlashcards.jsx` - Added `Link` import, extracted author name outside study button as separate clickable `<Link>`
+- `NoteDetail.jsx` - Added `Link` import, wrapped author badge `<div>` with `<Link>`
+- `FindFriends.jsx` - Added `Link` import, wrapped user name in `<Link>`
+- `MyFriends.jsx` - Added `Link` import, wrapped friend name in `<Link>`
+- `MyContributions.jsx` - Added `Link` import, replaced upvoter `<span>` with `<Link>` in 3 locations
+
+### Files Changed
+- `src/pages/dashboard/Profile/AuthorProfile.jsx` (NEW)
+- `src/App.jsx`
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+- `src/components/notes/NoteDetail.jsx`
+- `src/pages/dashboard/Friends/FindFriends.jsx`
+- `src/pages/dashboard/Friends/MyFriends.jsx`
+- `src/pages/dashboard/Content/MyContributions.jsx`
+
+---
 ## [2026-02-06] Grid/Grouped View Toggle & Collapsible Sections
 
 ### Added

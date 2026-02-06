@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -167,7 +168,12 @@ export default function MyFriends() {
                     {/* Info */}
                     <div>
                       <CardTitle className="text-lg">
-                        {friend.full_name || 'Unknown'}
+                        <Link
+                          to={`/dashboard/profile/${friend.id}`}
+                          className="hover:text-blue-600 transition-colors"
+                        >
+                          {friend.full_name || 'Unknown'}
+                        </Link>
                         {friend.role === 'professor' && (
                           <span className="ml-2 text-sm font-normal text-blue-600">
                             👨‍🏫 Professor

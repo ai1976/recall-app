@@ -1,13 +1,32 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-02-06
-**Current Phase:** Phase 1B Complete - Grid/Grouped View Toggle & Collapsible Sections
+**Current Phase:** Phase 1B Complete - Author Profile Page & Clickable Names
 
 ---
 
 ## Just Completed ✅
 
-### Grid/Grouped View Toggle & Collapsible Sections (Feb 6, 2026)
+### Author Profile Page & Clickable Names (Feb 6, 2026)
+- [x] Created `get_author_profile()` RPC function (SECURITY DEFINER) - returns profile + badges + friendship in 1 call
+- [x] Created `get_author_content_summary()` RPC function (SECURITY DEFINER) - returns content grouped by course/subject with server-side visibility
+- [x] Created `AuthorProfile.jsx` page at `/dashboard/profile/:userId` using 2 RPC calls (not 6 direct queries)
+- [x] Shows author name, role badge, institution, course level
+- [x] Shows PUBLIC badges (all badges for own profile with hidden indicator)
+- [x] Content grouped by Course → Subject with note/flashcard counts
+- [x] "Also Creates Content For" section for courses viewer isn't enrolled in
+- [x] Add Friend button with full friendship status handling
+- [x] "Preview as Visitor" toggle on own profile
+- [x] Back button with history-aware navigation
+- [x] Made author names clickable `<Link>` in 6 locations:
+  - BrowseNotes.jsx (note card footer)
+  - ReviewFlashcards.jsx (deck card)
+  - NoteDetail.jsx (author badge in header)
+  - FindFriends.jsx (user card name)
+  - MyFriends.jsx (friend card name)
+  - MyContributions.jsx (upvoter names - summary, notes, decks)
+
+### Previous: Grid/Grouped View Toggle & Collapsible Sections (Feb 6, 2026)
 - [x] Added Grid/Grouped view toggle to MyNotes.jsx (matching MyFlashcards pattern)
 - [x] Implemented Grouped View with Subject → Topic hierarchy
 - [x] Notes without subject/topic go into "Uncategorized" section (sorted last)
@@ -78,7 +97,15 @@ None currently.
 
 ## Session Notes
 
-### 2026-02-06 Session
+### 2026-02-06 Session (Author Profile)
+- Created 2 SECURITY DEFINER RPC functions: `get_author_profile()` and `get_author_content_summary()`
+- Created AuthorProfile.jsx using RPC functions (2 round-trips instead of 6 direct queries)
+- Added `/dashboard/profile/:userId` route to App.jsx
+- Made author/user names clickable Links in 6 files (BrowseNotes, ReviewFlashcards, NoteDetail, FindFriends, MyFriends, MyContributions)
+- Server-side visibility enforcement: public for strangers, public+friends for friends, all for own
+- **MUST RUN SQL**: Both functions need to be created in Supabase SQL Editor before page works
+
+### 2026-02-06 Session (Grid/Grouped)
 - Added Grid/Grouped view toggle to MyNotes.jsx with localStorage persistence
 - Implemented Subject → Topic hierarchy grouping with "Uncategorized" fallback
 - Extracted `renderNoteCard` helper for shared card rendering in both views

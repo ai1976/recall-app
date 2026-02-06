@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { FileText, Search, Filter, Users, ChevronDown, ChevronRight } from 'lucide-react';
@@ -659,12 +659,16 @@ export default function BrowseNotes() {
 
                                       {/* Footer with Author, Date, and Upvote */}
                                       <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
-                                        <span className="flex items-center gap-1">
+                                        <Link
+                                          to={`/dashboard/profile/${note.user_id}`}
+                                          className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
                                           {note.user?.role === 'professor' && (
                                             <Users className="h-3 w-3 text-purple-600" />
                                           )}
                                           {note.user?.full_name || 'Unknown'}
-                                        </span>
+                                        </Link>
 
                                         <div className="flex items-center gap-2">
                                           <span>{formatDate(note.created_at)}</span>

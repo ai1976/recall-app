@@ -26,7 +26,7 @@
 
 ### Quick Stats
 - **Total Tables:** 16 ⭐ (was 14, added 2 new tables)
-- **Custom Functions:** 3 ⭐ (was 1, added 2 author filtering functions)
+- **Custom Functions:** 5 ⭐ (added get_author_profile, get_author_content_summary)
 - **RLS Policies:** 24
 - **Indexes:** 53+ ⭐ (was 50+, added 3 indexes)
 - **Triggers:** 0 (currently)
@@ -1668,6 +1668,63 @@ Privacy Notes:
 Returns aggregates only, never individual user data
 Frontend hides comparison when min_users_met = FALSE
 Note: Day boundaries are calculated server-side using UTC. For accurate user-facing stats, frontend should use toLocaleDateString('en-CA') for local timezone handling.
+
+### get_author_profile(p_author_id UUID, p_viewer_id UUID)
+**Purpose:** Returns author profile, public badges, and friendship status in one call
+**Security:** DEFINER (bypasses RLS to read profiles, badges, friendships)
+**Added:** 2026-02-06 (Author Profile Page)
+
+**Parameters:**
+| Name | Type | Description |
+|------|------|-------------|
+| p_author_id | UUID | The user whose profile to view |
+| p_viewer_id | UUID | The logged-in user viewing the profile |
+
+**Returns:** JSON object with:
+| Key | Type | Description |
+|-----|------|-------------|
+| profile | JSON | full_name, email, role, course_level, institution, created_at |
+| badges | JSON[] | Array of badges (all for own profile, public-only for others) |
+| friendship | JSON or null | Friendship record between viewer and author (null if own profile or no friendship) |
+| is_own | BOOLEAN | Whether viewer is viewing their own profile |
+
+**Usage:**
+```sql
+SELECT get_author_profile('author-uuid', 'viewer-uuid');
+```
+
+---
+
+### get_author_content_summary(p_author_id UUID, p_viewer_id UUID)
+**Purpose:** Returns content grouped by course/subject with server-side visibility enforcement
+**Security:** DEFINER (bypasses RLS to read notes, flashcard_decks, friendships, profiles)
+**Added:** 2026-02-06 (Author Profile Page)
+
+**Parameters:**
+| Name | Type | Description |
+|------|------|-------------|
+| p_author_id | UUID | The user whose content to summarize |
+| p_viewer_id | UUID | The logged-in user viewing the profile |
+
+**Returns:** JSON object with:
+| Key | Type | Description |
+|-----|------|-------------|
+| accessible | JSON[] | Courses matching viewer's course_level (or all for own profile) |
+| other_courses | JSON[] | Courses not matching viewer's course_level (upsell section) |
+
+Each course entry: `{ name, subjects: [{ name, notes, flashcards }], totalNotes, totalFlashcards }`
+
+**Visibility Logic:**
+- Own profile: ALL content (private + friends + public)
+- Friend: public + friends visibility
+- Stranger: public only
+
+**Usage:**
+```sql
+SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
+```
+
+---
 
 ### get_user_streak(p_user_id UUID)
 **Purpose:** Calculate consecutive study days in user's local timezone

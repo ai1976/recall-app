@@ -144,6 +144,7 @@ recall-app
 │   │   │   │   ├── FriendRequests.jsx
 │   │   │   │   └── MyFriends.jsx
 │   │   │   ├── Profile
+│   │   │   │   ├── AuthorProfile.jsx
 │   │   │   │   └── MyAchievements.jsx
 │   │   │   └── Study
 │   │   │       ├── Progress.jsx
@@ -333,5 +334,22 @@ git push
 
 ---
 
+
+---
+## 🔧 RECENTLY MODIFIED (Feb 6, 2026)
+
+### **New Files:**
+- ✅ src/pages/dashboard/Profile/AuthorProfile.jsx (NEW - Author profile page)
+
+### **Changes:**
+- ✅ src/App.jsx (Added AuthorProfile route)
+- ✅ src/pages/dashboard/Content/BrowseNotes.jsx (Clickable author names)
+- ✅ src/pages/dashboard/Study/ReviewFlashcards.jsx (Clickable author names)
+- ✅ src/components/notes/NoteDetail.jsx (Clickable author badge)
+- ✅ src/pages/dashboard/Friends/FindFriends.jsx (Clickable user names)
+- ✅ src/pages/dashboard/Friends/MyFriends.jsx (Clickable friend names)
+- ✅ src/pages/dashboard/Content/MyContributions.jsx (Clickable upvoter names)
+
+---
 
 **END OF FILE STRUCTURE DOCUMENT**

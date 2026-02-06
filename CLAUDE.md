@@ -50,6 +50,29 @@ Always update these docs:
 - Group flashcards by `batch_id`, NEVER by timestamp
 - Column is `created_at` in reviews table, NOT `reviewed_at`
 
+## SQL Query Naming (Supabase SQL Editor)
+When providing SQL queries, ALWAYS include:
+1. **Name** with folder prefix in block letters: `[FOLDER] Descriptive Name`
+2. **Description** explaining what the query does and when to use it
+
+### Existing Folders
+- `[CLEANUP]` - Data cleanup, removing duplicates, fixing bad data
+- `[DATA]` - Data inserts, updates, bulk operations
+- `[DIAGNOSTIC]` - Investigating issues, checking state, debugging
+- `[FIX]` - One-time fixes for bugs or migration issues
+- `[FUNCTIONS]` - CREATE/ALTER FUNCTION statements
+- `[REPORTS]` - Analytics, aggregations, dashboards
+- `[SCHEMA]` - ALTER TABLE, CREATE TABLE, indexes, constraints, RLS policies
+- `[TEST]` - Verification queries to confirm changes worked
+
+### Example Format
+```
+Name: [SCHEMA] Add visibility column to notes
+Description: Adds three-tier visibility system (private/friends/public) replacing is_public boolean. Run once during migration.
+```
+
+If SQL doesn't fit existing folders, suggest a new folder name with justification.
+
 ## Testing Mindset
 When implementing features, consider:
 - Happy path + edge cases

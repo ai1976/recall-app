@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -201,7 +202,12 @@ export default function FindFriends() {
                       {/* Info */}
                       <div>
                         <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
-                          <span>{person.full_name || 'Unknown'}</span>
+                          <Link
+                            to={`/dashboard/profile/${person.id}`}
+                            className="hover:text-blue-600 transition-colors"
+                          >
+                            {person.full_name || 'Unknown'}
+                          </Link>
                           {person.role === 'professor' && (
                             <span className="text-sm font-normal text-blue-600">
                               👨‍🏫 Professor
