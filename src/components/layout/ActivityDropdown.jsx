@@ -1,6 +1,6 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, CheckCheck, UserPlus, Trophy, ThumbsUp, MessageSquare } from 'lucide-react';
+import { Bell, CheckCheck, UserPlus, Trophy, ThumbsUp, MessageSquare, Users, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,9 +9,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { supabase } from '@/lib/supabase';
 
-export default function ActivityDropdown({ notifications, unreadCount, markAllRead }) {
+export default function ActivityDropdown({ notifications, unreadCount, markAllRead, deleteNotification, refetch }) {
   const hasMarkedRef = useRef(false);
+  const [actionLoading, setActionLoading] = useState(null);
 
   // Get icon for notification type
   const getNotificationIcon = (type) => {
@@ -25,6 +27,8 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
         return <ThumbsUp className="h-4 w-4 text-green-500" />;
       case 'comment':
         return <MessageSquare className="h-4 w-4 text-purple-500" />;
+      case 'group_invite':
+        return <Users className="h-4 w-4 text-indigo-500" />;
       default:
         return <Bell className="h-4 w-4 text-gray-500" />;
     }
@@ -41,6 +45,8 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
         return '/dashboard/achievements';
       case 'upvote':
         return '/dashboard/my-contributions';
+      case 'group_invite':
+        return '/dashboard/groups';
       default:
         return '/dashboard';
     }
@@ -71,6 +77,121 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
     if (!open) {
       hasMarkedRef.current = false;
     }
+  };
+
+  // Handle group invite accept
+  const handleAcceptInvite = async (notification, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const membershipId = notification.metadata?.membership_id;
+    if (!membershipId) return;
+
+    setActionLoading(notification.id);
+    try {
+      const { error } = await supabase.rpc('accept_group_invite', {
+        p_membership_id: membershipId,
+      });
+      if (error) throw error;
+
+      // Remove notification from list (RPC already marks it as read server-side)
+      if (deleteNotification) {
+        await deleteNotification(notification.id);
+      }
+      if (refetch) refetch();
+    } catch (err) {
+      console.error('Error accepting group invite:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Handle group invite decline
+  const handleDeclineInvite = async (notification, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const membershipId = notification.metadata?.membership_id;
+    if (!membershipId) return;
+
+    setActionLoading(notification.id);
+    try {
+      const { error } = await supabase.rpc('decline_group_invite', {
+        p_membership_id: membershipId,
+      });
+      if (error) throw error;
+
+      // Remove notification from list (RPC already marks it as read server-side)
+      if (deleteNotification) {
+        await deleteNotification(notification.id);
+      }
+      if (refetch) refetch();
+    } catch (err) {
+      console.error('Error declining group invite:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Render a single notification item
+  const renderNotification = (notification) => {
+    const isGroupInvite = notification.type === 'group_invite';
+
+    return (
+      <div
+        key={notification.id}
+        className={`
+          flex items-start gap-3 px-3 py-3
+          ${!notification.is_read ? 'bg-blue-50' : ''}
+        `}
+      >
+        <div className="flex-shrink-0 mt-0.5">
+          {getNotificationIcon(notification.type)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm ${!notification.is_read ? 'font-medium' : ''} text-gray-900`}>
+            {notification.title}
+          </p>
+          {notification.message && (
+            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+              {notification.message}
+            </p>
+          )}
+
+          {/* Inline Accept/Decline for group invites */}
+          {isGroupInvite && notification.metadata?.membership_id && (
+            <div className="flex items-center gap-2 mt-2">
+              <Button
+                size="sm"
+                className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+                onClick={(e) => handleAcceptInvite(notification, e)}
+                disabled={actionLoading === notification.id}
+              >
+                <Check className="h-3 w-3 mr-1" />
+                Accept
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                onClick={(e) => handleDeclineInvite(notification, e)}
+                disabled={actionLoading === notification.id}
+              >
+                <X className="h-3 w-3 mr-1" />
+                Decline
+              </Button>
+            </div>
+          )}
+
+          <p className="text-xs text-gray-400 mt-1">
+            {formatTime(notification.created_at)}
+          </p>
+        </div>
+        {!notification.is_read && (
+          <div className="flex-shrink-0">
+            <div className="h-2 w-2 bg-blue-500 rounded-full" />
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -105,39 +226,53 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
         {/* Notifications List */}
         {notifications && notifications.length > 0 ? (
           <div className="max-h-80 overflow-y-auto">
-            {notifications.map((notification) => (
-              <DropdownMenuItem key={notification.id} asChild>
-                <Link
-                  to={getNotificationLink(notification)}
-                  className={`
-                    flex items-start gap-3 px-3 py-3 cursor-pointer
-                    ${!notification.is_read ? 'bg-blue-50' : ''}
-                  `}
-                >
-                  <div className="flex-shrink-0 mt-0.5">
-                    {getNotificationIcon(notification.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm ${!notification.is_read ? 'font-medium' : ''} text-gray-900`}>
-                      {notification.title}
-                    </p>
-                    {notification.message && (
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                        {notification.message}
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-400 mt-1">
-                      {formatTime(notification.created_at)}
-                    </p>
-                  </div>
-                  {!notification.is_read && (
-                    <div className="flex-shrink-0">
-                      <div className="h-2 w-2 bg-blue-500 rounded-full" />
+            {notifications.map((notification) => {
+              // Group invites render inline (with Accept/Decline) — not as links
+              if (notification.type === 'group_invite') {
+                return (
+                  <DropdownMenuItem key={notification.id} asChild>
+                    <div className="cursor-default">
+                      {renderNotification(notification)}
                     </div>
-                  )}
-                </Link>
-              </DropdownMenuItem>
-            ))}
+                  </DropdownMenuItem>
+                );
+              }
+
+              // All other notifications render as links
+              return (
+                <DropdownMenuItem key={notification.id} asChild>
+                  <Link
+                    to={getNotificationLink(notification)}
+                    className={`
+                      flex items-start gap-3 px-3 py-3 cursor-pointer
+                      ${!notification.is_read ? 'bg-blue-50' : ''}
+                    `}
+                  >
+                    <div className="flex-shrink-0 mt-0.5">
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm ${!notification.is_read ? 'font-medium' : ''} text-gray-900`}>
+                        {notification.title}
+                      </p>
+                      {notification.message && (
+                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                          {notification.message}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">
+                        {formatTime(notification.created_at)}
+                      </p>
+                    </div>
+                    {!notification.is_read && (
+                      <div className="flex-shrink-0">
+                        <div className="h-2 w-2 bg-blue-500 rounded-full" />
+                      </div>
+                    )}
+                  </Link>
+                </DropdownMenuItem>
+              );
+            })}
           </div>
         ) : (
           <div className="px-3 py-8 text-center">

@@ -8,6 +8,7 @@ import {
   CreditCard,
   FileText,
   Upload,
+  Network,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -29,6 +30,8 @@ export default function NavDesktop({
   notifications,
   unreadCount,
   markAllRead,
+  deleteNotification,
+  refetchNotifications,
   pendingCount,
   handleSignOut,
 }) {
@@ -154,6 +157,21 @@ export default function NavDesktop({
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Groups */}
+            <Link
+              to="/dashboard/groups"
+              className={`
+                px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
+                ${isActive('/dashboard/groups') || location.pathname.startsWith('/dashboard/groups/')
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                }
+              `}
+            >
+              <Network className="h-4 w-4" />
+              Groups
+            </Link>
+
             {/* Super Admin Link */}
             {isSuperAdmin && (
               <Link
@@ -184,6 +202,8 @@ export default function NavDesktop({
           notifications={notifications}
           unreadCount={unreadCount}
           markAllRead={markAllRead}
+          deleteNotification={deleteNotification}
+          refetch={refetchNotifications}
         />
 
         {/* Profile Dropdown */}

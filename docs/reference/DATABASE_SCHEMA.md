@@ -25,7 +25,7 @@
 ## 1. OVERVIEW
 
 ### Quick Stats
-- **Total Tables:** 16 ⭐ (was 14, added 2 new tables)
+- **Total Tables:** 20 ⭐ (was 19, added notifications table)
 - **Custom Functions:** 5 ⭐ (added get_author_profile, get_author_content_summary)
 - **RLS Policies:** 24
 - **Indexes:** 53+ ⭐ (was 50+, added 3 indexes)
@@ -540,6 +540,93 @@ UNIQUE(user_id, friend_id)
 Prevents: User A sending multiple requests to User B
 
 ---
+
+### 2.14 study_groups ⭐ NEW
+
+**Purpose:** Study group metadata (name, description, creator)
+**Created:** February 6, 2026
+**Columns:** 6
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | uuid | NO | gen_random_uuid() | Primary key |
+| name | text | NO | - | Group name |
+| description | text | YES | - | Optional description |
+| created_by | uuid | NO | - | FK to profiles.id, ON DELETE CASCADE |
+| created_at | timestamptz | NO | NOW() | When created |
+| updated_at | timestamptz | NO | NOW() | When last updated |
+
+**Key Indexes:** created_by, created_at
+**RLS Policies:** Members can read, creator can update/delete, authenticated can insert own
+
+---
+
+### 2.15 study_group_members ⭐ UPDATED
+
+**Purpose:** Group membership with roles (admin/member) and invitation status
+**Created:** February 6, 2026
+**Updated:** February 6, 2026 (added status + invited_by for invitation flow)
+**Columns:** 7
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | uuid | NO | gen_random_uuid() | Primary key |
+| group_id | uuid | NO | - | FK to study_groups.id, ON DELETE CASCADE |
+| user_id | uuid | NO | - | FK to profiles.id, ON DELETE CASCADE |
+| role | text | NO | 'member' | CHECK: admin or member |
+| joined_at | timestamptz | NO | NOW() | When joined (updated to NOW() on accept) |
+| status | text | NO | 'active' | CHECK: 'invited' or 'active'. Default 'active' for backward compat. |
+| invited_by | uuid | YES | NULL | FK to profiles.id, ON DELETE SET NULL. Who sent the invitation. |
+
+**UNIQUE Constraint:** `UNIQUE(group_id, user_id)` - prevents duplicate membership
+**Key Indexes:** group_id, user_id, role, status
+**RLS Policies:** Members read own groups, admins insert/delete, user can delete self
+
+---
+
+### 2.16 content_group_shares ⭐ NEW
+
+**Purpose:** Links content (notes/decks) to study groups for shared access
+**Created:** February 6, 2026
+**Columns:** 6
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | uuid | NO | gen_random_uuid() | Primary key |
+| group_id | uuid | NO | - | FK to study_groups.id, ON DELETE CASCADE |
+| content_type | text | NO | - | CHECK: 'note' or 'flashcard_deck' |
+| content_id | uuid | NO | - | ID of the note or flashcard_deck |
+| shared_by | uuid | NO | - | FK to profiles.id, ON DELETE CASCADE |
+| shared_at | timestamptz | NO | NOW() | When shared |
+
+**UNIQUE Constraint:** `UNIQUE(group_id, content_type, content_id)` - prevents duplicate shares
+**Key Indexes:** group_id, (content_type, content_id), shared_by
+**RLS Policies:** Members read, admins insert/delete
+**ON DELETE CASCADE:** Deleting group removes shares but NOT the original notes/decks
+
+---
+
+### 2.17 notifications ⭐ NEW
+
+**Purpose:** User notifications (group invites, friend requests, etc.) with JSONB metadata
+**Created:** February 6, 2026
+**Columns:** 8
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | uuid | NO | gen_random_uuid() | Primary key |
+| user_id | uuid | NO | - | FK to profiles.id, ON DELETE CASCADE |
+| type | text | NO | - | Notification type (e.g., 'group_invite', 'friend_request') |
+| title | text | NO | - | Notification title |
+| message | text | YES | NULL | Notification body/description |
+| is_read | boolean | NO | false | Read/unread status |
+| metadata | jsonb | YES | NULL | Type-specific data (group_id, membership_id, etc.) |
+| created_at | timestamptz | NO | NOW() | When notification was created |
+
+**Key Indexes:** user_id, is_read, created_at DESC, composite unread (user_id WHERE is_read=false)
+**RLS Policies:** Users can SELECT/UPDATE/DELETE own rows only. INSERT allowed for authenticated.
+**Realtime:** Must enable Supabase Realtime on this table (Dashboard → Database → Replication)
+
 ---
 
 ### 2.14 content_creators ⭐ NEW
@@ -1567,11 +1654,28 @@ LIMIT 10;
 
 **Purpose:** Quick reference for what changed and when
 
-### February 6, 2026
+### February 6, 2026 (Group Invitation Flow + Notification Backend)
+- ✅ Created `notifications` table (id, user_id, type, title, message, is_read, metadata JSONB, created_at)
+- ✅ Created 5 notification RPCs (get_unread_count, get_recent, mark_all_read, mark_single_read, delete) + cleanup utility
+- ✅ Added `status` column to study_group_members (CHECK: 'invited'/'active', DEFAULT 'active')
+- ✅ Added `invited_by` column to study_group_members (FK → profiles.id ON DELETE SET NULL)
+- ✅ Updated invite_to_group() → inserts as 'invited' + creates notification with JSONB metadata
+- ✅ Created accept_group_invite() and decline_group_invite() RPCs with auto notification cleanup
+- ✅ Created get_pending_group_invites() RPC for MyGroups page
+- ✅ Updated 5 existing RPCs with `AND status = 'active'` filter (get_user_groups, get_group_detail, get_browsable_notes, get_browsable_decks, leave_group)
+- ✅ Total tables: 19 → 20 (added notifications)
+- ✅ Total indexes: 60+
+
+### February 6, 2026 (Study Groups + Card Suspension)
 - ✅ Added `status` column to reviews table (active/suspended)
 - ✅ Added `skip_until` column to reviews table (skip 24hr)
 - ✅ Added 3 indexes (status, skip_until, composite partial)
 - ✅ Created 6 RPC functions (skip, suspend, suspend_topic, unsuspend, reset, get_suspended)
+- ✅ Created 3 Study Groups tables (study_groups, study_group_members, content_group_shares)
+- ✅ Created 8 Study Groups RPC functions (create_study_group, invite_to_group, leave_group, share_content_with_groups, get_user_groups, get_group_shared_content, get_group_members)
+- ✅ Created 2 unified content RPCs (get_browsable_notes, get_browsable_decks) — server-side visibility logic
+- ✅ Fixed infinite recursion in sgm_select_member RLS policy → replaced with sgm_select_own
+- ✅ Total tables: 16 → 19 (added 3 study group tables)
 - ✅ Total indexes: 56+
 
 ### January 9, 2026

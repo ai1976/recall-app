@@ -1,6 +1,139 @@
 # Changelog
 
 ---
+## [2026-02-06] Group Invitation Flow + Notification Backend
+
+### Added
+- **`notifications` table** — Full notification system backend (id, user_id, type, title, message, is_read, metadata JSONB, created_at). RLS policies for own-row access. Indexes including composite unread index.
+- **5 Notification RPCs** — `get_unread_notification_count`, `get_recent_notifications`, `mark_notifications_read`, `mark_single_notification_read`, `delete_notification`. All SECURITY DEFINER with auth.uid() ownership checks.
+- **`cleanup_old_notifications()`** — Utility function for cron-based retention (deletes notifications > 60 days old).
+- **`status` column on `study_group_members`** — `TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('invited', 'active'))`. Zero migration risk — existing rows default to 'active'.
+- **`invited_by` column on `study_group_members`** — `UUID REFERENCES profiles(id) ON DELETE SET NULL`. Tracks who sent the invitation.
+- **`accept_group_invite(p_membership_id)`** RPC — Verifies invitation belongs to caller, updates status → 'active', auto-marks related notification as read.
+- **`decline_group_invite(p_membership_id)`** RPC — Marks notification as read, then hard DELETEs membership row.
+- **`get_pending_group_invites()`** RPC — Returns pending invitations for MyGroups page with group info, inviter name, member count.
+- **Pending Invitations section on MyGroups.jsx** — Amber-bordered cards above groups grid with Accept/Decline buttons.
+- **Pending Invitations in GroupDetail.jsx members panel** — Admin-only section showing invited users with Cancel button.
+- **Inline Accept/Decline in ActivityDropdown** — Group invite notifications render with action buttons (following FriendsDropdown pattern).
+
+### Changed
+- **`invite_to_group()`** — Now inserts with `status = 'invited'` instead of `'active'`. Creates notification with `type = 'group_invite'` and JSONB metadata.
+- **`get_user_groups()`** — Now filters `AND sgm.status = 'active'` so pending invites don't appear as groups.
+- **`get_group_detail()`** — Members query filters `status = 'active'`. Returns new `pending_invitations` key for admin view.
+- **`get_browsable_notes()`** — Added `AND sgm.status = 'active'` in group-shared EXISTS subquery (security: invited users can't see content).
+- **`get_browsable_decks()`** — Same security filter as notes.
+- **`leave_group()`** — Member count/admin count queries now filter `AND status = 'active'`. Only active members can leave.
+- **GroupDetail.jsx** — Button text "Add Members" → "Invite Members", toast "Member added!" → "Invitation sent!", search excludes pending invitations.
+- **ActivityDropdown.jsx** — Added group_invite notification type with Users icon (indigo), inline Accept/Decline buttons.
+- **Navigation.jsx** — Passes `deleteNotification` and `refetchNotifications` to ActivityDropdown via NavDesktop/NavMobile.
+
+### Files Changed
+- `src/components/layout/ActivityDropdown.jsx` (REWRITTEN)
+- `src/components/layout/Navigation.jsx`
+- `src/components/layout/NavDesktop.jsx`
+- `src/components/layout/NavMobile.jsx`
+- `src/pages/dashboard/Groups/MyGroups.jsx`
+- `src/pages/dashboard/Groups/GroupDetail.jsx`
+- `docs/database/study-groups/13_SCHEMA_notifications_table.sql` (NEW)
+- `docs/database/study-groups/14_FUNCTIONS_notification_rpcs.sql` (NEW)
+- `docs/database/study-groups/15_SCHEMA_add_invitation_status.sql` (NEW)
+- `docs/database/study-groups/16_FUNCTION_invite_to_group_v2.sql` (NEW)
+- `docs/database/study-groups/17_FUNCTION_accept_group_invite.sql` (NEW)
+- `docs/database/study-groups/18_FUNCTION_decline_group_invite.sql` (NEW)
+- `docs/database/study-groups/19_FUNCTION_get_pending_group_invites.sql` (NEW)
+- `docs/database/study-groups/20_FUNCTION_get_user_groups_v2.sql` (NEW)
+- `docs/database/study-groups/21_FUNCTION_get_group_detail_v2.sql` (NEW)
+- `docs/database/study-groups/22_FUNCTION_get_browsable_notes_v2.sql` (NEW)
+- `docs/database/study-groups/23_FUNCTION_get_browsable_decks_v2.sql` (NEW)
+- `docs/database/study-groups/24_FUNCTION_leave_group_v2.sql` (NEW)
+
+### Manual Step Required
+- Enable Supabase Realtime on `notifications` table: Dashboard → Database → Replication → Enable for `notifications`
+
+---
+## [2026-02-06] Study Groups - RLS Fix + Server-Side Content Fetching
+
+### Fixed
+- **Infinite Recursion Bug**: `sgm_select_member` RLS policy on `study_group_members` self-referenced its own table, causing PostgreSQL infinite recursion. Replaced with `sgm_select_own` using simple `USING (user_id = auth.uid())` — no subquery, no recursion.
+- **"Failed to load group" on GroupDetail**: The direct `study_groups` SELECT went through RLS which depended on `study_group_members` RLS — fragile chain. Replaced 3-query pattern (group SELECT + get_group_members RPC + get_group_shared_content RPC) with single `get_group_detail(p_group_id)` SECURITY DEFINER RPC that returns group info, members, and shared content in one call. Zero RLS dependency.
+
+### Changed
+- **GroupDetail.jsx** - Replaced 3 separate DB calls with single `get_group_detail` RPC call. Eliminates RLS chain failure.
+- **BrowseNotes.jsx** - Replaced 3-query client-side merge (visibility query + group shares + missing items → JS array merge) with single `get_browsable_notes()` RPC call. Fixes pagination compatibility and reduces DB round-trips from 3 to 1.
+- **ReviewFlashcards.jsx** - Same refactor: replaced 3-query client-side merge with single `get_browsable_decks()` RPC call.
+
+### Security & Privacy
+- **Privacy**: `get_group_detail` and `get_group_members` do NOT return member emails. Only safe public fields: user_id, full_name, role, joined_at.
+- **Security**: All group RPCs use strict `IF NOT EXISTS (...) THEN RAISE EXCEPTION 'Access denied'` pattern.
+- **Null safety**: All arrays in `get_group_detail` use double COALESCE — both in the subquery and in the final `json_build_object` — ensuring `[]` never `null`.
+
+### Added
+- **`get_group_detail(p_group_id)`** RPC - Returns group info + members + shared content in one call. SECURITY DEFINER with membership check. Replaces 3 separate queries. No email in member data.
+- **`get_group_members(p_group_id)`** RPC - Returns all members of a group with profiles. SECURITY DEFINER with explicit membership check. No email in output.
+- **`get_browsable_notes()`** RPC - Single query returning all notes visible to the user (own + public + friends + group-shared) with profile/subject/topic JOINs. Server-side visibility enforcement.
+- **`get_browsable_decks()`** RPC - Same for flashcard decks. Single query with full visibility logic.
+
+### Files Changed
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+- `src/pages/dashboard/Groups/GroupDetail.jsx`
+- `docs/database/study-groups/02_RLS_study_groups_policies.sql` (FIXED)
+- `docs/database/study-groups/09_FUNCTION_get_group_members.sql` (NEW)
+- `docs/database/study-groups/10_FUNCTION_get_browsable_notes.sql` (NEW)
+- `docs/database/study-groups/11_FUNCTION_get_browsable_decks.sql` (NEW)
+- `docs/database/study-groups/12_FUNCTION_get_group_detail.sql` (NEW)
+
+---
+## [2026-02-06] Study Groups (Phase 1: Read-Only)
+
+### Added
+- **Database Tables** (3 new):
+  - `study_groups` - Group metadata (name, description, creator)
+  - `study_group_members` - Membership with roles (admin/member), UNIQUE(group_id, user_id)
+  - `content_group_shares` - Content-to-group sharing links (note/flashcard_deck)
+  - All group_id foreign keys use `ON DELETE CASCADE` (deleting group removes shares, NOT original content)
+
+- **Database RLS Policies** (8 new):
+  - `sg_select_member`, `sg_insert`, `sg_update_creator`, `sg_delete_creator` on study_groups
+  - `sgm_select_member`, `sgm_insert_admin`, `sgm_delete` on study_group_members
+  - `cgs_select_member`, `cgs_insert_admin`, `cgs_delete_admin` on content_group_shares
+
+- **Database Functions** (6 new SECURITY DEFINER RPCs):
+  - `create_study_group(p_name, p_description)` - Creates group + adds creator as admin
+  - `invite_to_group(p_group_id, p_user_id)` - Admin adds member
+  - `leave_group(p_group_id)` - Member leaves (promotes oldest member if last admin)
+  - `share_content_with_groups(p_content_type, p_content_id, p_group_ids)` - Multi-group share
+  - `get_user_groups()` - Returns user's groups with member count and role
+  - `get_group_shared_content(p_group_id)` - Returns shared notes and decks for a group
+
+- **MyGroups.jsx** - List user's study groups with create/leave/delete actions
+- **CreateGroup.jsx** - Form to create a new study group
+- **GroupDetail.jsx** - Group page with members panel, shared content, invite members, share content dialogs
+- **Navigation** - Added "Groups" link in desktop nav and "Study Groups" section in mobile menu
+
+### Changed
+- **App.jsx** - Added 3 routes: `/dashboard/groups`, `/dashboard/groups/new`, `/dashboard/groups/:groupId`
+- **NavDesktop.jsx** - Added Groups nav link with active state
+- **NavMobile.jsx** - Added Groups section in mobile sheet menu
+- **NoteUpload.jsx** - Added "Study Groups" visibility option with group multi-select checkboxes, shares note with groups after upload
+- **FlashcardCreate.jsx** - Added "Study Groups" visibility option with group multi-select checkboxes, shares deck with groups after creation
+- **BrowseNotes.jsx** - Fetches and merges group-shared notes alongside public/friends notes
+- **ReviewFlashcards.jsx** - Fetches and merges group-shared decks alongside public/friends decks
+
+### Files Changed
+- `src/App.jsx`
+- `src/components/layout/NavDesktop.jsx`
+- `src/components/layout/NavMobile.jsx`
+- `src/components/notes/NoteUpload.jsx`
+- `src/components/flashcards/FlashcardCreate.jsx`
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+- `src/pages/dashboard/Groups/MyGroups.jsx` (NEW)
+- `src/pages/dashboard/Groups/CreateGroup.jsx` (NEW)
+- `src/pages/dashboard/Groups/GroupDetail.jsx` (NEW)
+- `docs/database/study-groups/` (8 SQL files - NEW)
+
+---
 ## [2026-02-06] Card Suspension System (Skip, Suspend, Reset)
 
 ### Added

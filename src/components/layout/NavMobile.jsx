@@ -13,6 +13,7 @@ import {
   Trophy,
   LogOut,
   Folder,
+  Network,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,6 +36,8 @@ export default function NavMobile({
   notifications,
   unreadCount,
   markAllRead,
+  deleteNotification,
+  refetchNotifications,
   pendingCount,
   handleSignOut,
 }) {
@@ -89,6 +92,8 @@ export default function NavMobile({
             notifications={notifications}
             unreadCount={unreadCount}
             markAllRead={markAllRead}
+            deleteNotification={deleteNotification}
+            refetch={refetchNotifications}
           />
 
           {/* Hamburger Menu */}
@@ -193,6 +198,21 @@ export default function NavMobile({
                           <span className="text-sm text-gray-700">Bulk Upload</span>
                         </button>
                       )}
+
+                      {/* Groups Section */}
+                      <div className="px-4 py-2 mt-2">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                          <Network className="h-4 w-4" />
+                          Groups
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleNavClick('/dashboard/groups')}
+                        className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"
+                      >
+                        <Network className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-gray-700">Study Groups</span>
+                      </button>
 
                       {/* Divider */}
                       <div className="my-2 border-t border-gray-200" />

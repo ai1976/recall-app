@@ -8,7 +8,7 @@ import NavMobile from './NavMobile';
 export default function Navigation() {
   const { user, signOut } = useAuth();
   const { role, isSuperAdmin, isAdmin, isProfessor, isLoading: roleLoading } = useRole();
-  const { notifications, unreadCount, markAllRead, loading: notifLoading } = useNotifications(5);
+  const { notifications, unreadCount, markAllRead, deleteNotification, refetch: refetchNotifications, loading: notifLoading } = useNotifications(5);
   const { pendingCount, loading: friendLoading } = useFriendRequestCount();
 
   if (!user) return null;
@@ -32,6 +32,8 @@ export default function Navigation() {
     notifications,
     unreadCount,
     markAllRead,
+    deleteNotification,
+    refetchNotifications,
     notifLoading,
     pendingCount,
     friendLoading,

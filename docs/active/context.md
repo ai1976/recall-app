@@ -17,6 +17,109 @@
 ---
 ---
 
+## Study Groups + Invitation Flow + Notifications Backend (2026-02-06)
+
+### Study Groups (Phase 1: Read-Only Sharing)
+
+**Concept:** Users create groups, invite friends, share notes/flashcards with selected people.
+
+#### 4-Tier Visibility Model
+| Level | Who Can See |
+|-------|-------------|
+| **Private** | Only creator |
+| **Study Groups** | Creator + group members (stored as 'private' in DB, accessed via content_group_shares) |
+| **Friends** | Creator + accepted friends |
+| **Public** | Everyone |
+
+#### Database Tables (3 new)
+- `study_groups` — Group metadata (name, description, creator). Creator can update/delete.
+- `study_group_members` — Membership with roles (admin/member) + invitation status ('invited'/'active') + invited_by. UNIQUE(group_id, user_id). ON DELETE CASCADE from study_groups.
+- `content_group_shares` — Links content (notes/decks) to groups. UNIQUE(group_id, content_type, content_id). ON DELETE CASCADE from study_groups (deleting group removes shares, NOT original content).
+
+#### Invitation Flow (Consent-Based)
+1. Admin clicks "Invite Members" → searches users → clicks "Invite"
+2. `invite_to_group()` inserts with `status = 'invited'` + creates notification with JSONB metadata
+3. Invited user sees notification in bell dropdown with inline Accept/Decline buttons
+4. Invited user also sees amber "Pending Invitations" section on MyGroups page
+5. Accept → `accept_group_invite()` updates status to 'active', marks notification read
+6. Decline → `decline_group_invite()` marks notification read, hard DELETEs membership row
+7. Admin can cancel pending invitations from GroupDetail members panel
+
+#### Security Rules
+- Only **active** members can view group content (`AND sgm.status = 'active'` in all content queries)
+- Invited users CANNOT see shared notes/decks until they accept
+- No email returned in any group RPC (privacy)
+- Strict `IF NOT EXISTS` membership check with 'Access denied' exception
+- All arrays use double COALESCE ensuring `[]` never `null`
+
+### Notifications Backend
+
+**Architecture:** `notifications` table was pre-existing (from Phase 1B). We added `title`, `metadata JSONB`, `is_read` columns + updated CHECK constraint to include `group_invite` type.
+
+#### Notification Types (CHECK constraint)
+`content_upvoted`, `badge_earned`, `friend_request`, `friend_accepted`, `friend_rejected`, `welcome`, `group_invite`
+
+#### RPCs (6 SECURITY DEFINER functions)
+1. `get_unread_notification_count(p_user_id)` → INTEGER
+2. `get_recent_notifications(p_user_id, p_limit)` → TABLE (includes metadata JSONB)
+3. `mark_notifications_read(p_user_id)` → VOID (mark all)
+4. `mark_single_notification_read(p_notification_id)` → VOID
+5. `delete_notification(p_notification_id)` → VOID
+6. `cleanup_old_notifications()` → INTEGER (deletes > 60 days, for cron)
+
+#### Realtime
+- `notifications` table has Supabase Realtime enabled (Replication toggle in Dashboard)
+- `useNotifications.js` hook subscribes to INSERT events filtered by `user_id`
+- New notifications appear instantly in bell dropdown without page refresh
+
+#### Group Invite Notification Metadata (JSONB)
+```json
+{
+  "group_id": "uuid",
+  "group_name": "Study Group Name",
+  "inviter_id": "uuid",
+  "inviter_name": "John Doe",
+  "membership_id": "uuid"
+}
+```
+
+### Study Group RPCs (14 SECURITY DEFINER functions)
+1. `create_study_group(p_name, p_description)` — Creates group + adds creator as admin
+2. `invite_to_group(p_group_id, p_user_id)` — Admin invites (status='invited' + notification)
+3. `accept_group_invite(p_membership_id)` — User accepts, auto-marks notification read
+4. `decline_group_invite(p_membership_id)` — User declines, hard DELETEs row
+5. `get_pending_group_invites()` — Returns pending invitations for MyGroups page
+6. `leave_group(p_group_id)` — Member leaves (promotes oldest if last admin, deletes group if last member)
+7. `share_content_with_groups(p_content_type, p_content_id, p_group_ids)` — Multi-group share
+8. `get_user_groups()` — Returns user's ACTIVE groups with member count and role
+9. `get_group_shared_content(p_group_id)` — Returns shared notes and decks
+10. `get_group_members(p_group_id)` — Returns active members (no email)
+11. `get_group_detail(p_group_id)` — Returns group + active members + pending invitations + shared content (single call)
+12. `get_browsable_notes()` — All visible notes (own + public + friends + group-shared, active members only)
+13. `get_browsable_decks()` — Same for flashcard decks
+14. `get_filtered_authors_for_notes/flashcards()` — Author search (pre-existing, not modified)
+
+### Frontend Pages
+- `MyGroups.jsx` — Group list + "Pending Invitations" section with Accept/Decline
+- `CreateGroup.jsx` — Name + description form
+- `GroupDetail.jsx` — Members panel (with pending section for admins), shared content, invite/share/remove dialogs
+
+### Navigation
+- Desktop: `Network` icon + "Groups" link in main nav
+- Mobile: Study Groups section in hamburger sheet
+- ActivityDropdown: group_invite notifications with inline Accept/Decline buttons
+
+### SQL Files
+All in `docs/database/study-groups/` (files 01-26):
+- 01-08: Phase 1 schema + RLS + functions
+- 09-12: RLS fix + server-side content fetching
+- 13-14: Notifications table + RPCs
+- 15-19: Invitation flow (status column + invite/accept/decline/pending RPCs)
+- 20-24: Updated existing RPCs with status='active' filter
+- 25-26: Fixes (missing columns, ambiguous ref, type CHECK constraint)
+
+---
+
 ## Phase 1E: Achievement Badges System (2026-01-26)
 
 ### New Database Tables
@@ -489,11 +592,12 @@ STUDENT (Regular users)
 
 ---
 
-## Three-Tier Visibility System
+## Four-Tier Visibility System
 
 | Level | Who Can See |
 |-------|-------------|
 | **Private** | Only creator |
+| **Study Groups** | Creator + active group members (stored as 'private', accessed via content_group_shares) |
 | **Friends** | Creator + accepted friends |
 | **Public** | Everyone |
 

@@ -336,7 +336,55 @@ git push
 
 
 ---
-## 🔧 RECENTLY MODIFIED (Feb 6, 2026)
+## 🔧 RECENTLY MODIFIED (Feb 6, 2026) - Study Groups
+
+### **New Files:**
+- ✅ src/pages/dashboard/Groups/MyGroups.jsx (NEW - Study groups list)
+- ✅ src/pages/dashboard/Groups/CreateGroup.jsx (NEW - Create group form)
+- ✅ src/pages/dashboard/Groups/GroupDetail.jsx (NEW - Group detail with members/content)
+- ✅ docs/database/study-groups/ (8 SQL files - schema, RLS, functions)
+
+### **Changes:**
+- ✅ src/App.jsx (Added 3 Groups routes)
+- ✅ src/components/layout/NavDesktop.jsx (Added Groups nav link)
+- ✅ src/components/layout/NavMobile.jsx (Added Study Groups section)
+- ✅ src/components/notes/NoteUpload.jsx (Study Groups visibility + group multi-select)
+- ✅ src/components/flashcards/FlashcardCreate.jsx (Study Groups visibility + group multi-select)
+- ✅ src/pages/dashboard/Content/BrowseNotes.jsx (Merge group-shared notes)
+- ✅ src/pages/dashboard/Study/ReviewFlashcards.jsx (Merge group-shared decks)
+
+---
+## 🔧 RECENTLY MODIFIED (Feb 6, 2026) - Invitation Flow + Notifications Backend
+
+### **New SQL Files:**
+- ✅ docs/database/study-groups/13_SCHEMA_notifications_table.sql (NEW)
+- ✅ docs/database/study-groups/14_FUNCTIONS_notification_rpcs.sql (NEW - 5 RPCs + cleanup)
+- ✅ docs/database/study-groups/15_SCHEMA_add_invitation_status.sql (NEW)
+- ✅ docs/database/study-groups/16_FUNCTION_invite_to_group_v2.sql (NEW)
+- ✅ docs/database/study-groups/17_FUNCTION_accept_group_invite.sql (NEW)
+- ✅ docs/database/study-groups/18_FUNCTION_decline_group_invite.sql (NEW)
+- ✅ docs/database/study-groups/19_FUNCTION_get_pending_group_invites.sql (NEW)
+- ✅ docs/database/study-groups/20_FUNCTION_get_user_groups_v2.sql (NEW)
+- ✅ docs/database/study-groups/21_FUNCTION_get_group_detail_v2.sql (NEW)
+- ✅ docs/database/study-groups/22_FUNCTION_get_browsable_notes_v2.sql (NEW)
+- ✅ docs/database/study-groups/23_FUNCTION_get_browsable_decks_v2.sql (NEW)
+- ✅ docs/database/study-groups/24_FUNCTION_leave_group_v2.sql (NEW)
+- ✅ docs/database/study-groups/25_FIX_notifications_missing_columns_and_ambiguous_ref.sql (NEW)
+- ✅ docs/database/study-groups/26_FIX_notifications_type_check_constraint.sql (NEW)
+
+### **New Reference Doc:**
+- ✅ docs/reference/STUDY_GROUPS.md (NEW - Complete groups + notifications logic reference)
+
+### **Changes:**
+- ✅ src/components/layout/ActivityDropdown.jsx (REWRITTEN - group_invite with inline Accept/Decline)
+- ✅ src/components/layout/Navigation.jsx (Added deleteNotification, refetchNotifications props)
+- ✅ src/components/layout/NavDesktop.jsx (Added new props + Network icon for Groups)
+- ✅ src/components/layout/NavMobile.jsx (Added new props + Network icon for Groups)
+- ✅ src/pages/dashboard/Groups/MyGroups.jsx (Added pending invitations section)
+- ✅ src/pages/dashboard/Groups/GroupDetail.jsx (Invite flow, pending section, cancel invite)
+
+---
+## 🔧 RECENTLY MODIFIED (Feb 6, 2026) - Author Profile
 
 ### **New Files:**
 - ✅ src/pages/dashboard/Profile/AuthorProfile.jsx (NEW - Author profile page)

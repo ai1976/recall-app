@@ -1,11 +1,54 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-02-06
-**Current Phase:** Phase 1B Complete - Author Profile Page & Clickable Names
+**Current Phase:** Study Groups (Phase 1: Read-Only) Complete
 
 ---
 
 ## Just Completed ✅
+
+### Group Invitation Flow + Notification Backend (Feb 6, 2026)
+- [x] Created `notifications` table with RLS policies, indexes, and JSONB metadata column
+- [x] Created 5 notification RPCs + cleanup utility (matches existing useNotifications.js hook)
+- [x] Added `status` ('invited'/'active') and `invited_by` columns to `study_group_members`
+- [x] Updated `invite_to_group()` — now inserts as 'invited' + creates notification with metadata
+- [x] Created `accept_group_invite()` — verifies ownership, updates status, auto-marks notification read
+- [x] Created `decline_group_invite()` — marks notification read, hard DELETEs membership row
+- [x] Created `get_pending_group_invites()` — for MyGroups pending invitations section
+- [x] Updated 5 existing RPCs with `AND status = 'active'` security filter (get_user_groups, get_group_detail, get_browsable_notes, get_browsable_decks, leave_group)
+- [x] Updated ActivityDropdown.jsx — group_invite type with inline Accept/Decline buttons
+- [x] Updated Navigation.jsx + NavDesktop.jsx + NavMobile.jsx — pass deleteNotification/refetch props
+- [x] Updated MyGroups.jsx — pending invitations section with amber-bordered cards + Accept/Decline
+- [x] Updated GroupDetail.jsx — "Invite Members" button, "Invitation sent!" toast, pending section in members panel, cancel invite for admins, search excludes pending
+- [x] **MUST RUN SQL**: 12 new SQL files (13-24) in `docs/database/study-groups/` in Supabase SQL Editor
+- [x] **MUST ENABLE**: Supabase Realtime on `notifications` table (Dashboard → Database → Replication)
+
+### Study Groups - RLS Fix + Server-Side Content Fetching (Feb 6, 2026)
+- [x] Fixed infinite recursion in `sgm_select_member` RLS policy → replaced with `sgm_select_own`
+- [x] Fixed "Failed to load group" on GroupDetail — replaced 3-query RLS-dependent pattern with single `get_group_detail()` RPC
+- [x] Created `get_group_detail()` RPC — returns group info + members + shared content in one call (SECURITY DEFINER)
+- [x] Created `get_group_members()` SECURITY DEFINER RPC with membership check
+- [x] Created `get_browsable_notes()` RPC — single server-side query for all visible notes (own + public + friends + group-shared)
+- [x] Created `get_browsable_decks()` RPC — same for flashcard decks
+- [x] Refactored GroupDetail.jsx: single RPC call instead of 3 separate queries
+- [x] Refactored BrowseNotes.jsx: removed 3-query client-side merge, now uses single RPC call
+- [x] Refactored ReviewFlashcards.jsx: same refactor, single RPC call
+- [x] **MUST RUN SQL**: 4 new SQL files (`09`, `10`, `11`, `12`) + updated `02` in `docs/database/study-groups/`
+
+### Study Groups - Phase 1: Read-Only (Feb 6, 2026)
+- [x] Created 3 database tables: `study_groups`, `study_group_members`, `content_group_shares`
+- [x] All group_id FKs use `ON DELETE CASCADE` (group deletion removes shares, NOT original content)
+- [x] 8 RLS policies for member-scoped read, admin-only writes (sgm_select_member → sgm_select_own after fix)
+- [x] 6 SECURITY DEFINER RPC functions (create, invite, leave, share, get_groups, get_content)
+- [x] MyGroups.jsx - Group list with create/leave/delete
+- [x] CreateGroup.jsx - Name + description form, creator becomes admin
+- [x] GroupDetail.jsx - Members panel, shared content, invite/share dialogs
+- [x] Visibility model: Private | Study Groups | Friends | Public (4-tier)
+- [x] NoteUpload + FlashcardCreate - "Study Groups" option + group multi-select checkboxes
+- [x] BrowseNotes + ReviewFlashcards - Server-side unified content fetching via RPCs
+- [x] Navigation updated in desktop and mobile
+- [x] Members can VIEW shared content only, NOT edit
+- [x] **MUST RUN SQL**: 11 SQL files in `docs/database/study-groups/` in Supabase SQL Editor
 
 ### Card Suspension System - Skip, Suspend, Reset (Feb 6, 2026)
 - [x] Added `status` (active/suspended) and `skip_until` (DATE) columns to reviews table
@@ -97,6 +140,8 @@
 | Instant mark-as-read | ✅ Approved | Notifications marked read immediately on dropdown open |
 | Modular navigation | ✅ Implemented | 6 component files for maintainability |
 | Mobile Sheet (not menu) | ✅ Implemented | Smooth UX with slide-in animation |
+| Study Groups Phase 1 | ✅ Implemented | Read-only sharing, 4-tier visibility, ON DELETE CASCADE |
+| Group Invitation Flow | ✅ Implemented | Invite → Notify → Accept/Decline. No auto-add. Notification backend active. |
 
 ---
 
@@ -107,6 +152,33 @@ None currently.
 ---
 
 ## Session Notes
+
+### 2026-02-06 Session (Group Invitation Flow + Notification Backend)
+- Built full notification backend: `notifications` table + 5 RPCs + cleanup utility
+- Added `status` ('invited'/'active') + `invited_by` columns to `study_group_members`
+- Follows friendships table pattern (status column, not separate table)
+- `invite_to_group()` now inserts as 'invited' and creates notification with JSONB metadata
+- Accept/decline RPCs auto-cleanup notifications via metadata->>'membership_id'
+- All content-access RPCs updated with `AND status = 'active'` security filter
+- ActivityDropdown: group_invite notifications render with inline Accept/Decline (not as links)
+- MyGroups: Amber-bordered "Pending Invitations" section above groups grid
+- GroupDetail: "Invite Members" button, pending section in members panel, cancel invite for admins
+- Search filter in invite dialog excludes both active members AND pending invitations
+- 12 SQL files (13-24) must be run in Supabase SQL Editor
+- Must enable Supabase Realtime on `notifications` table separately
+
+### 2026-02-06 Session (Study Groups Phase 1)
+- Created 3 new database tables with ON DELETE CASCADE on group_id FKs
+- 8 RLS policies: members read their own groups, admins manage membership/shares
+- 6 SECURITY DEFINER RPC functions for all group operations
+- 3 new pages: MyGroups, CreateGroup, GroupDetail (with invite, share content, remove member dialogs)
+- 4-tier visibility model: Private | Study Groups | Friends | Public
+- NoteUpload + FlashcardCreate: "Study Groups" visibility with multi-select group checkboxes
+- BrowseNotes + ReviewFlashcards: merge group-shared content with existing visibility-filtered content
+- Navigation: Groups link in desktop nav, Study Groups section in mobile sheet
+- leave_group() promotes oldest member to admin if last admin leaves
+- Content stores as 'private' visibility in DB when shared with groups (access via content_group_shares table)
+- SQL files in docs/database/study-groups/ (01-08) must be run in Supabase SQL Editor
 
 ### 2026-02-06 Session (Card Suspension System)
 - Added `status` TEXT NOT NULL DEFAULT 'active' CHECK (active/suspended) to reviews table

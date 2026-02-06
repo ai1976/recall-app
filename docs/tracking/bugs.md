@@ -2,6 +2,42 @@
 
 ## Resolved Bugs
 
+### [Feb 6, 2026] Blank Page — NavDesktop/NavMobile Missing Props
+- **Files:** NavDesktop.jsx, NavMobile.jsx
+- **Issue:** App rendered blank white page after adding notification props to ActivityDropdown
+- **Root Cause:** `deleteNotification` and `refetchNotifications` were passed from Navigation.jsx but never destructured in NavDesktop/NavMobile prop definitions
+- **Console Error:** `Uncaught ReferenceError: deleteNotification is not defined at NavDesktop (NavDesktop.jsx:203:11)`
+- **Solution:** Added `deleteNotification` and `refetchNotifications` to prop destructuring in both components
+- **Status:** ✅ RESOLVED
+
+### [Feb 6, 2026] Notifications RPC Fails — `column n.title does not exist`
+- **Files:** SQL 14 (notification RPCs), SQL 25 (fix)
+- **Issue:** `get_recent_notifications` RPC returned 400 error
+- **Root Cause:** `notifications` table pre-existed from Phase 1B with different schema (no `title`, `metadata`, `is_read` columns). `CREATE TABLE IF NOT EXISTS` in SQL #13 skipped creation.
+- **Solution:** SQL #25 — `ALTER TABLE` to add missing columns + backfill title from message
+- **Status:** ✅ RESOLVED
+
+### [Feb 6, 2026] Ambiguous `group_id` in `get_pending_group_invites`
+- **Files:** SQL 19, SQL 25 (fix)
+- **Issue:** MyGroups page error: `column reference "group_id" is ambiguous`
+- **Root Cause:** Subquery `WHERE group_id = sg.id` conflicted with `RETURNS TABLE` which also declares `group_id`
+- **Solution:** Aliased subquery table as `sub`: `WHERE sub.group_id = sg.id`
+- **Status:** ✅ RESOLVED
+
+### [Feb 6, 2026] Invitation Fails — `notifications_type_check` Constraint Violation
+- **Files:** SQL 26 (fix)
+- **Issue:** `invite_to_group()` failed with `new row for relation "notifications" violates check constraint "notifications_type_check"`
+- **Root Cause:** Existing CHECK constraint on `type` column only allowed original types, not `group_invite`
+- **Solution:** SQL #26 — DROP and recreate constraint with `group_invite` added
+- **Status:** ✅ RESOLVED
+
+### [Feb 6, 2026] React Key Warning — Pending Invitations in GroupDetail
+- **Files:** GroupDetail.jsx
+- **Issue:** Console warning: `Each child in a list should have a unique "key" prop`
+- **Root Cause:** JSX used `invite.id` but SQL returns `invite.membership_id` as the field name
+- **Solution:** Changed `key={invite.id}` → `key={invite.membership_id}` (and matching cancel/disable refs)
+- **Status:** ✅ RESOLVED
+
 ### [Feb 5, 2026] Back Button Navigates to Dashboard Instead of Previous Page
 - **Files:** NoteDetail.jsx, ReviewBySubject.jsx, ReviewSession.jsx
 - **Issue:** Back button always went to `/dashboard` even when user came from another page (e.g., Browse Notes)
