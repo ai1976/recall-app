@@ -14,6 +14,7 @@
 - [x] View preference persisted in localStorage (`myNotes_viewMode`)
 - [x] Collapsible subject and topic sections with chevron icons (both views)
 - [x] Added collapsible sections to BrowseNotes.jsx (subject + topic levels)
+- [x] Added collapsible sections to ReviewFlashcards.jsx (subject level with Study All button preserved)
 - [x] Gradient header styling on subject groups (blue-to-indigo)
 - [x] Note/topic counts displayed on group headers
 
@@ -82,8 +83,9 @@ None currently.
 - Implemented Subject → Topic hierarchy grouping with "Uncategorized" fallback
 - Extracted `renderNoteCard` helper for shared card rendering in both views
 - Added collapsible chevrons to BrowseNotes.jsx (subject + topic levels)
+- Added collapsible chevrons to ReviewFlashcards.jsx (subject level, Study All button uses stopPropagation)
 - No database changes required (uses existing subject/topic joins)
-- No new files created (only modified MyNotes.jsx and BrowseNotes.jsx)
+- No new files created (modified MyNotes.jsx, BrowseNotes.jsx, ReviewFlashcards.jsx)
 
 ### 2026-02-05 Session
 - Implemented Author Search with server-side filtering per QA Bot requirements

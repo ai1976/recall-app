@@ -18,19 +18,27 @@
   - Gradient background on subject headers (blue-to-indigo)
   - `collapsedGroups` state tracks open/closed sections independently
 
+- **ReviewFlashcards.jsx - Collapsible Sections:**
+  - Subject headers now collapsible with ChevronDown/ChevronRight icons
+  - Gradient background on subject headers (blue-to-indigo)
+  - "Study All" button preserved with `e.stopPropagation()` to avoid triggering collapse
+  - `collapsedGroups` state tracks open/closed sections independently
+
 ### Changed
 - `MyNotes.jsx` - Added `useMemo`, `ChevronDown`, `ChevronRight` imports
 - `BrowseNotes.jsx` - Added `ChevronDown`, `ChevronRight` imports, collapsible state
+- `ReviewFlashcards.jsx` - Added `ChevronDown` import, collapsible state
 
 ### Technical Details
 - No database changes required (uses existing `subject_id`/`topic_id` joins)
-- No new files created (only modified 2 existing files)
+- No new files created (only modified 3 existing files)
 - Grouped view sorts alphabetically with "Uncategorized" always last
 - Both subject and topic levels independently collapsible
 
 ### Files Changed
 - `src/pages/dashboard/Content/MyNotes.jsx`
 - `src/pages/dashboard/Content/BrowseNotes.jsx`
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
 
 ---
 ## [2026-02-05] Author Search with Server-Side Filtering

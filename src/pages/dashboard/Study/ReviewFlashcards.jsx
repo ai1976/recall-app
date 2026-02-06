@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Brain, Play, ChevronRight, User, Users, Filter, Search } from 'lucide-react';
+import { Brain, Play, ChevronRight, ChevronDown, User, Users, Filter, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import UpvoteButton from '@/components/ui/UpvoteButton';
 
@@ -33,6 +33,16 @@ export default function ReviewFlashcards() {
 
   // Store subject name to ID mapping for RPC calls
   const [subjectNameToId, setSubjectNameToId] = useState({});
+
+  // Collapsed groups state for collapsible sections
+  const [collapsedGroups, setCollapsedGroups] = useState({});
+
+  const toggleGroupCollapse = (groupKey) => {
+    setCollapsedGroups(prev => ({
+      ...prev,
+      [groupKey]: !prev[groupKey]
+    }));
+  };
 
   useEffect(() => {
     fetchFlashcardSets();
@@ -500,89 +510,109 @@ export default function ReviewFlashcards() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {flashcardSets.map((subject, idx) => (
-              <Card key={idx}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-xl">{subject.name}</CardTitle>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {subject.course && <span className="font-medium">{subject.course}</span>}
-                        {subject.course && ' • '}
-                        {subject.totalCards} total cards
-                        {subject.professorCards > 0 && ` • ${subject.professorCards} from professors`}
-                        {subject.ownCards > 0 && ` • ${subject.ownCards} yours`}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => startStudySession(subject.name)}
-                      className="gap-2"
-                    >
-                      <Play className="h-4 w-4" />
-                      Study All ({subject.totalCards})
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {subject.decks.map((deck) => (
-                      <div
-                        key={deck.id}
-                        className="text-left p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
-                      >
-                        {/* Clickable Study Area */}
-                        <button
-                          onClick={() => startStudySession(subject.name, deck.topicName)}
-                          className="w-full text-left"
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900 group-hover:text-blue-700">
-                                {deck.topicName}
-                              </h4>
-                              <p className="text-sm text-gray-600 mt-1">
-                                {deck.card_count} cards
-                                {deck.owner && (
-                                  <span className="text-gray-400"> • by {deck.owner.full_name}</span>
-                                )}
-                              </p>
-                            </div>
-                            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 flex-shrink-0" />
-                          </div>
-                        </button>
-                        
-                        {/* Footer with badges and upvote */}
-                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
-                          <div className="flex gap-2 flex-wrap">
-                            {deck.owner?.role === 'professor' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded">
-                                <Users className="h-3 w-3" />
-                                Verified
-                              </span>
-                            )}
-                            {deck.user_id === user.id && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-                                <User className="h-3 w-3" />
-                                Yours
-                              </span>
-                            )}
-                          </div>
-                          
-                          {/* Upvote Button for Deck */}
-                          <UpvoteButton
-                            contentType="flashcard_deck"
-                            targetId={deck.id}
-                            initialCount={deck.upvote_count || 0}
-                            ownerId={deck.user_id}
-                            size="sm"
-                          />
+            {flashcardSets.map((subject, idx) => {
+              const subjectKey = `subject-${idx}-${subject.name}`;
+              const isSubjectCollapsed = collapsedGroups[subjectKey];
+
+              return (
+                <Card key={idx}>
+                  {/* Collapsible Subject Header */}
+                  <CardHeader
+                    className="cursor-pointer select-none bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors"
+                    onClick={() => toggleGroupCollapse(subjectKey)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {isSubjectCollapsed ? (
+                          <ChevronRight className="h-5 w-5 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-500" />
+                        )}
+                        <div>
+                          <CardTitle className="text-xl">{subject.name}</CardTitle>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {subject.course && <span className="font-medium">{subject.course}</span>}
+                            {subject.course && ' \u2022 '}
+                            {subject.totalCards} total cards
+                            {subject.professorCards > 0 && ` \u2022 ${subject.professorCards} from professors`}
+                            {subject.ownCards > 0 && ` \u2022 ${subject.ownCards} yours`}
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      <Button
+                        onClick={(e) => { e.stopPropagation(); startStudySession(subject.name); }}
+                        className="gap-2"
+                      >
+                        <Play className="h-4 w-4" />
+                        Study All ({subject.totalCards})
+                      </Button>
+                    </div>
+                  </CardHeader>
+
+                  {/* Collapsible Subject Content */}
+                  {!isSubjectCollapsed && (
+                    <CardContent className="pt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {subject.decks.map((deck) => (
+                          <div
+                            key={deck.id}
+                            className="text-left p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                          >
+                            {/* Clickable Study Area */}
+                            <button
+                              onClick={() => startStudySession(subject.name, deck.topicName)}
+                              className="w-full text-left"
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-gray-900 group-hover:text-blue-700">
+                                    {deck.topicName}
+                                  </h4>
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    {deck.card_count} cards
+                                    {deck.owner && (
+                                      <span className="text-gray-400"> • by {deck.owner.full_name}</span>
+                                    )}
+                                  </p>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 flex-shrink-0" />
+                              </div>
+                            </button>
+
+                            {/* Footer with badges and upvote */}
+                            <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                              <div className="flex gap-2 flex-wrap">
+                                {deck.owner?.role === 'professor' && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded">
+                                    <Users className="h-3 w-3" />
+                                    Verified
+                                  </span>
+                                )}
+                                {deck.user_id === user.id && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                                    <User className="h-3 w-3" />
+                                    Yours
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Upvote Button for Deck */}
+                              <UpvoteButton
+                                contentType="flashcard_deck"
+                                targetId={deck.id}
+                                initialCount={deck.upvote_count || 0}
+                                ownerId={deck.user_id}
+                                size="sm"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
