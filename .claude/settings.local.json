@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(ls -la \"C:\\\\Users\\\\Anand\\\\.claude\"\" 2>/dev/null || echo \"Directory not found \")"
+    ]
+  }
+}
