@@ -142,25 +142,30 @@ export default function Dashboard() {
   };
 
   const fetchPersonalStats = async (userId) => {
-    // Fetch user's reviews
+    // Fetch user's active reviews (exclude suspended)
     const { data: reviews } = await supabase
       .from('reviews')
-      .select('created_at, quality, flashcard_id, next_review_date')
+      .select('created_at, quality, flashcard_id, next_review_date, status, skip_until')
       .eq('user_id', userId);
 
     const reviewList = reviews || [];
 
-    if (reviewList.length > 0) {
+    // Only use active reviews for stats
+    const activeReviews = reviewList.filter(r => r.status === 'active' || !r.status);
+
+    if (activeReviews.length > 0) {
       // Rolling 7 days calculation
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
       sevenDaysAgo.setHours(0, 0, 0, 0);
 
-      const weeklyReviews = reviewList.filter(r => new Date(r.created_at) >= sevenDaysAgo);
+      // Only count reviews with quality > 0 for weekly stats (skip/suspend create quality=0 records)
+      const weeklyReviews = activeReviews.filter(r => new Date(r.created_at) >= sevenDaysAgo && r.quality > 0);
       setCardsReviewedThisWeek(weeklyReviews.length);
 
-      // Calculate streak
-      const sortedReviews = [...reviewList].sort((a, b) => 
+      // Calculate streak (only count actual reviews, not skip/suspend actions)
+      const actualReviews = activeReviews.filter(r => r.quality > 0);
+      const sortedReviews = [...actualReviews].sort((a, b) =>
         new Date(b.created_at) - new Date(a.created_at)
       );
       setStudyStreak(calculateStreak(sortedReviews));
@@ -171,14 +176,18 @@ export default function Dashboard() {
         setAccuracy(Math.round((easyMedium / weeklyReviews.length) * 100));
       }
 
-      // Cards mastered (unique cards ever reviewed)
-      const uniqueCards = new Set(reviewList.map(r => r.flashcard_id));
+      // Cards mastered (unique cards ever reviewed, active only)
+      const uniqueCards = new Set(actualReviews.map(r => r.flashcard_id));
       setCardsMastered(uniqueCards.size);
 
-      // Reviews due (next_review_date <= today) - using user's LOCAL timezone
+      // Reviews due: active, not suspended, not skipped, next_review_date <= today
       const todayString = formatLocalDate(new Date());
 
-      const dueCount = reviewList.filter(r => r.next_review_date && r.next_review_date <= todayString).length;
+      const dueCount = activeReviews.filter(r =>
+        r.next_review_date &&
+        r.next_review_date <= todayString &&
+        (!r.skip_until || r.skip_until <= todayString)
+      ).length;
       setReviewsDue(dueCount);
     }
   };

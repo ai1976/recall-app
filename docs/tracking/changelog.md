@@ -1,6 +1,45 @@
 # Changelog
 
 ---
+## [2026-02-06] Card Suspension System (Skip, Suspend, Reset)
+
+### Added
+- **Database Migration**: `status` (active/suspended) and `skip_until` (DATE) columns on reviews table
+- **Database Indexes**: `idx_reviews_status`, `idx_reviews_skip_until`, `idx_reviews_user_status_due` (partial composite)
+- **Database Functions** (6 new SECURITY DEFINER RPCs):
+  - `skip_card(p_user_id, p_flashcard_id)` - Hides card for 24 hours (timezone-aware)
+  - `suspend_card(p_user_id, p_flashcard_id)` - Suspends card indefinitely
+  - `suspend_topic_cards(p_user_id, p_topic_id)` - Bulk suspends all cards in a topic
+  - `unsuspend_card(p_user_id, p_flashcard_id)` - Reactivates suspended card (due today)
+  - `reset_card(p_user_id, p_flashcard_id)` - Deletes review record (card becomes New)
+  - `get_suspended_cards(p_user_id)` - Returns suspended cards with details for Progress page
+
+- **StudyMode.jsx** - Card management during study:
+  - [Skip 24hr] button on question side (no confirmation needed)
+  - [More] dropdown menu with Suspend Card, Suspend Topic, Reset Card
+  - Skip/More actions also available on answer side
+  - Confirmation dialogs for all destructive actions (suspend/reset)
+  - Topic suspension removes matching cards from current session
+
+- **Progress.jsx** - Suspended Cards section:
+  - Collapsible "Suspended Cards" section with amber styling
+  - Cards grouped by subject with Unsuspend button per card
+  - Confirmation dialog for unsuspend with card preview
+
+### Changed
+- **ReviewSession.jsx** - Filters out suspended (`status='suspended'`) and skipped (`skip_until > today`) cards from due queue
+- **ReviewBySubject.jsx** - Same suspension/skip filtering
+- **Dashboard.jsx** - Due count excludes suspended/skipped cards; streak only counts actual reviews (quality > 0)
+- **Progress.jsx** - Stats queries filter by `status='active'`; streak calculation excludes suspended reviews
+
+### Files Changed
+- `src/components/flashcards/StudyMode.jsx` (rewritten with skip/suspend/reset)
+- `src/pages/dashboard/Study/Progress.jsx` (rewritten with suspended cards section)
+- `src/pages/dashboard/Study/ReviewSession.jsx` (due cards query updated)
+- `src/pages/dashboard/Study/ReviewBySubject.jsx` (due cards query updated)
+- `src/pages/Dashboard.jsx` (stats filtering updated)
+
+---
 ## [2026-02-06] Author Profile Page & Clickable Names
 
 ### Added

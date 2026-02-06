@@ -2,10 +2,36 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Brain, ArrowLeft, RotateCcw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Brain,
+  ArrowLeft,
+  RotateCcw,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  SkipForward,
+  MoreVertical,
+  PauseCircle,
+  Trash2,
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-export default function StudyMode({ 
+export default function StudyMode({
   flashcards: propFlashcards = null,
   onComplete = null,
   onExit = null
@@ -24,11 +50,16 @@ export default function StudyMode({
     hard: 0
   });
 
-  useEffect(() => {
-    console.log("✅ STABLE VERSION: StudyMode.jsx with Explicit DB Logic");
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    type: null, // 'suspend' | 'suspendTopic' | 'reset'
+    title: '',
+    description: '',
+  });
 
+  useEffect(() => {
     if (propFlashcards && propFlashcards.length > 0) {
-      console.log('✅ Using passed flashcards:', propFlashcards.length);
       setFlashcards(propFlashcards);
       setLoading(false);
     } else {
@@ -39,17 +70,11 @@ export default function StudyMode({
 
   const fetchFlashcards = async () => {
     try {
-      console.log("🔄 Starting fetchFlashcards...");
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error("❌ No authenticated user found");
-        return;
-      }
+      if (!user) return;
 
       const subjectParam = searchParams.get('subject');
       const topicParam = searchParams.get('topic');
-
-      console.log(`📊 Parameters - Subject: ${subjectParam}, Topic: ${topicParam}`);
 
       const filterString = `is_public.eq.true,user_id.eq.${user.id},visibility.eq.friends`;
 
@@ -64,12 +89,7 @@ export default function StudyMode({
 
       const { data, error } = await query.order('created_at', { ascending: false });
 
-      if (error) {
-        console.error("❌ Supabase Error:", error);
-        throw error;
-      }
-
-      console.log(`✅ Raw Cards Fetched: ${data?.length}`);
+      if (error) throw error;
 
       // Clean special characters
       let cleanedData = (data || []).map(card => ({
@@ -112,7 +132,7 @@ export default function StudyMode({
 
   const handleRating = async (quality) => {
     const currentCard = flashcards[currentIndex];
-    
+
     setSessionStats(prev => ({
       ...prev,
       [quality]: prev[quality] + 1
@@ -120,16 +140,13 @@ export default function StudyMode({
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('❌ No user found');
-        return;
-      }
+      if (!user) return;
 
       // 1. Calculate Interval
       let intervalDays;
       let qualityScore;
       let easinessFactor;
-      
+
       if (quality === 'easy') {
         intervalDays = 7;
         qualityScore = 5;
@@ -143,22 +160,18 @@ export default function StudyMode({
         qualityScore = 1;
         easinessFactor = 2.3;
       }
-      
-      // 2. ✅ FIX: Strict Local Date Calculation (Replacing UTC logic)
+
+      // 2. Strict Local Date Calculation
       const today = new Date();
       const nextDate = new Date(today);
       nextDate.setDate(today.getDate() + intervalDays);
-      
-      // Manually construct YYYY-MM-DD using Local Time
-      // This prevents the "Yesterday in UTC" bug which causes loops
+
       const year = nextDate.getFullYear();
       const month = String(nextDate.getMonth() + 1).padStart(2, '0');
       const day = String(nextDate.getDate()).padStart(2, '0');
       const dateString = `${year}-${month}-${day}`;
 
-      console.log(`📅 Scheduling Card ${currentCard.id} for: ${dateString} (Local)`);
-
-      // 3. Explicitly Check for existing review (Stability over Optimization)
+      // 3. Check for existing review
       const { data: existingReview, error: selectError } = await supabase
         .from('reviews')
         .select('id, repetition')
@@ -169,9 +182,6 @@ export default function StudyMode({
       if (selectError) throw selectError;
 
       if (existingReview) {
-        // UPDATE existing review
-        console.log(`🔄 Updating existing review (ID: ${existingReview.id})`);
-        
         const { error: updateError } = await supabase
           .from('reviews')
           .update({
@@ -180,17 +190,15 @@ export default function StudyMode({
             repetition: (existingReview.repetition || 0) + 1,
             easiness: easinessFactor,
             next_review_date: dateString,
-            last_reviewed_at: new Date().toISOString()
+            last_reviewed_at: new Date().toISOString(),
+            status: 'active',
+            skip_until: null
           })
           .eq('id', existingReview.id);
 
         if (updateError) throw updateError;
-        console.log('✅ Review updated successfully');
 
       } else {
-        // INSERT new review
-        console.log(`➕ Creating new review for card ${currentCard.id}`);
-        
         const { error: insertError } = await supabase
           .from('reviews')
           .insert({
@@ -201,27 +209,26 @@ export default function StudyMode({
             repetition: 1,
             easiness: easinessFactor,
             next_review_date: dateString,
-            last_reviewed_at: new Date().toISOString()
+            last_reviewed_at: new Date().toISOString(),
+            status: 'active'
           });
 
         if (insertError) throw insertError;
-        console.log('✅ New review created successfully');
       }
 
-      // Success feedback
       toast({
-        title: "Progress saved! ✅",
+        title: "Progress saved!",
         description: `Next review in ${intervalDays} day${intervalDays > 1 ? 's' : ''}`,
       });
 
     } catch (error) {
-      console.error('❌ Error saving review:', error);
+      console.error('Error saving review:', error);
       toast({
         title: "Error",
         description: "Failed to save progress.",
         variant: "destructive"
       });
-      return; // Don't advance if failed
+      return;
     }
 
     // 4. Advance to Next Card
@@ -233,12 +240,239 @@ export default function StudyMode({
         onComplete(sessionStats);
       } else {
         toast({
-          title: "Study session complete! 🎉",
+          title: "Study session complete!",
           description: `You reviewed ${flashcards.length} flashcards`,
         });
         if(onExit) onExit();
       }
     }
+  };
+
+  // ============================================================
+  // SKIP: Hide card for 24 hours
+  // ============================================================
+  const handleSkip = async () => {
+    const currentCard = flashcards[currentIndex];
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase.rpc('skip_card', {
+        p_user_id: user.id,
+        p_flashcard_id: currentCard.id
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Card skipped",
+        description: "This card will reappear tomorrow.",
+      });
+
+      advanceOrFinish();
+    } catch (error) {
+      console.error('Error skipping card:', error);
+      toast({
+        title: "Error",
+        description: "Failed to skip card.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // ============================================================
+  // SUSPEND: Remove card indefinitely
+  // ============================================================
+  const handleSuspend = async () => {
+    const currentCard = flashcards[currentIndex];
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase.rpc('suspend_card', {
+        p_user_id: user.id,
+        p_flashcard_id: currentCard.id
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Card suspended",
+        description: "You can unsuspend it from the Progress page.",
+      });
+
+      advanceOrFinish();
+    } catch (error) {
+      console.error('Error suspending card:', error);
+      toast({
+        title: "Error",
+        description: "Failed to suspend card.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // ============================================================
+  // SUSPEND TOPIC: Bulk suspend all cards for this topic
+  // ============================================================
+  const handleSuspendTopic = async () => {
+    const currentCard = flashcards[currentIndex];
+    const topicId = currentCard.topic_id;
+
+    if (!topicId) {
+      toast({
+        title: "No topic",
+        description: "This card doesn't belong to a topic.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: count, error } = await supabase.rpc('suspend_topic_cards', {
+        p_user_id: user.id,
+        p_topic_id: topicId
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Topic suspended",
+        description: `${count} card${count !== 1 ? 's' : ''} suspended. Unsuspend from the Progress page.`,
+      });
+
+      // Remove all cards from this topic from current session
+      const topicName = currentCard.topics?.name || currentCard.custom_topic;
+      const remaining = flashcards.filter((c, idx) => {
+        if (idx <= currentIndex) return false;
+        const cTopic = c.topics?.name || c.custom_topic;
+        return cTopic !== topicName;
+      });
+
+      if (remaining.length > 0) {
+        setFlashcards([flashcards[currentIndex], ...remaining]);
+        setCurrentIndex(0);
+        advanceOrFinish();
+      } else {
+        finishSession();
+      }
+    } catch (error) {
+      console.error('Error suspending topic:', error);
+      toast({
+        title: "Error",
+        description: "Failed to suspend topic.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // ============================================================
+  // RESET: Delete review record, card becomes "New"
+  // ============================================================
+  const handleReset = async () => {
+    const currentCard = flashcards[currentIndex];
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase.rpc('reset_card', {
+        p_user_id: user.id,
+        p_flashcard_id: currentCard.id
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Card reset",
+        description: "This card is now treated as new.",
+      });
+
+      advanceOrFinish();
+    } catch (error) {
+      console.error('Error resetting card:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reset card.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // ============================================================
+  // Helper: Advance to next card or finish session
+  // ============================================================
+  const advanceOrFinish = () => {
+    if (currentIndex < flashcards.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setShowAnswer(false);
+    } else {
+      finishSession();
+    }
+  };
+
+  const finishSession = () => {
+    if (onComplete) {
+      onComplete(sessionStats);
+    } else {
+      toast({
+        title: "Study session complete!",
+        description: `You reviewed ${flashcards.length} flashcards`,
+      });
+      if (onExit) onExit();
+    }
+  };
+
+  // ============================================================
+  // Confirmation dialog handler
+  // ============================================================
+  const handleConfirmAction = () => {
+    setConfirmDialog(prev => ({ ...prev, open: false }));
+
+    switch (confirmDialog.type) {
+      case 'suspend':
+        handleSuspend();
+        break;
+      case 'suspendTopic':
+        handleSuspendTopic();
+        break;
+      case 'reset':
+        handleReset();
+        break;
+      default:
+        break;
+    }
+  };
+
+  const openConfirmDialog = (type) => {
+    const currentCard = flashcards[currentIndex];
+    const topicName = currentCard?.topics?.name || currentCard?.custom_topic || 'this topic';
+
+    const configs = {
+      suspend: {
+        title: 'Suspend this card?',
+        description: 'This card will be removed from your review queue indefinitely. You can unsuspend it from the Progress page.',
+      },
+      suspendTopic: {
+        title: `Suspend all "${topicName}" cards?`,
+        description: `All cards in this topic will be removed from your review queue. You can unsuspend them individually from the Progress page.`,
+      },
+      reset: {
+        title: 'Reset this card?',
+        description: 'This will delete all review history for this card. It will become a "New" card with no scheduling data. This action cannot be undone.',
+      },
+    };
+
+    setConfirmDialog({
+      open: true,
+      type,
+      ...configs[type],
+    });
   };
 
   const restartSession = () => {
@@ -296,13 +530,13 @@ export default function StudyMode({
               <ArrowLeft className="h-4 w-4" />
               Back to Selection
             </Button>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <div className="text-sm text-gray-600">
                 Card {currentIndex + 1} of {flashcards.length}
               </div>
               <Button variant="outline" size="sm" onClick={restartSession} className="gap-2">
                 <RotateCcw className="h-4 w-4" />
-                Restart
+                <span className="hidden sm:inline">Restart</span>
               </Button>
             </div>
           </div>
@@ -342,7 +576,7 @@ export default function StudyMode({
             <div className="mb-6">
               <Brain className="h-20 w-20 text-purple-600 mx-auto mb-4" />
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Study Session Complete! 🎉
+                Study Session Complete!
               </h2>
               <p className="text-gray-600">
                 You reviewed {flashcards.length} flashcards
@@ -383,7 +617,7 @@ export default function StudyMode({
               <div className="text-center mb-4">
                 <p className="text-sm text-gray-600">
                   {currentCard.subjects?.name || currentCard.custom_subject}
-                  {(currentCard.topics?.name || currentCard.custom_topic) && 
+                  {(currentCard.topics?.name || currentCard.custom_topic) &&
                     ` • ${currentCard.topics?.name || currentCard.custom_topic}`
                   }
                 </p>
@@ -398,7 +632,7 @@ export default function StudyMode({
                       QUESTION
                     </span>
                   </div>
-                  
+
                   {currentCard.front_image_url && (
                     <img
                       src={currentCard.front_image_url}
@@ -406,15 +640,54 @@ export default function StudyMode({
                       className="max-w-full h-auto max-h-64 mx-auto rounded-lg mb-6 shadow-md"
                     />
                   )}
-                  
+
                   <p className="text-2xl md:text-3xl font-semibold text-gray-900 mb-8 whitespace-pre-wrap">
                     {currentCard.front_text}
                   </p>
 
-                  <Button onClick={() => setShowAnswer(true)} size="lg" className="gap-2 px-8">
-                    <Brain className="h-5 w-5" />
-                    Show Answer
-                  </Button>
+                  <div className="flex items-center justify-center gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={handleSkip}
+                      className="gap-2 text-gray-600 hover:text-orange-600 hover:border-orange-300"
+                    >
+                      <SkipForward className="h-4 w-4" />
+                      Skip 24hr
+                    </Button>
+
+                    <Button onClick={() => setShowAnswer(true)} size="lg" className="gap-2 px-8">
+                      <Brain className="h-5 w-5" />
+                      Show Answer
+                    </Button>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon" className="text-gray-500">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openConfirmDialog('suspend')}>
+                          <PauseCircle className="h-4 w-4 mr-2 text-amber-600" />
+                          Suspend Card
+                        </DropdownMenuItem>
+                        {(currentCard.topic_id) && (
+                          <DropdownMenuItem onClick={() => openConfirmDialog('suspendTopic')}>
+                            <PauseCircle className="h-4 w-4 mr-2 text-amber-600" />
+                            Suspend Topic
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => openConfirmDialog('reset')}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Reset Card
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               ) : (
                 <div className="w-full">
@@ -431,7 +704,7 @@ export default function StudyMode({
                     <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-sm font-semibold rounded-full mb-4">
                       ANSWER
                     </span>
-                    
+
                     {currentCard.back_image_url && (
                       <img
                         src={currentCard.back_image_url}
@@ -439,7 +712,7 @@ export default function StudyMode({
                         className="max-w-full h-auto max-h-64 mx-auto rounded-lg mb-4 shadow-md"
                       />
                     )}
-                    
+
                     {currentCard.back_text ? (
                       <p className="text-xl md:text-2xl font-semibold text-gray-900 whitespace-pre-wrap">
                         {currentCard.back_text}
@@ -455,7 +728,7 @@ export default function StudyMode({
                     <p className="text-center text-sm text-gray-600 mb-4">
                       How well did you remember this?
                     </p>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-3 gap-4 mb-4">
                       <Button
                         onClick={() => handleRating('hard')}
                         variant="outline"
@@ -484,6 +757,48 @@ export default function StudyMode({
                         <span className="text-xs text-gray-500">Review in 7 days</span>
                       </Button>
                     </div>
+
+                    {/* Skip/More actions also available on answer side */}
+                    <div className="flex items-center justify-center gap-3 pt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleSkip}
+                        className="gap-1 text-xs text-gray-500 hover:text-orange-600"
+                      >
+                        <SkipForward className="h-3 w-3" />
+                        Skip 24hr
+                      </Button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="gap-1 text-xs text-gray-500">
+                            <MoreVertical className="h-3 w-3" />
+                            More
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="center">
+                          <DropdownMenuItem onClick={() => openConfirmDialog('suspend')}>
+                            <PauseCircle className="h-4 w-4 mr-2 text-amber-600" />
+                            Suspend Card
+                          </DropdownMenuItem>
+                          {(currentCard.topic_id) && (
+                            <DropdownMenuItem onClick={() => openConfirmDialog('suspendTopic')}>
+                              <PauseCircle className="h-4 w-4 mr-2 text-amber-600" />
+                              Suspend Topic
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => openConfirmDialog('reset')}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Reset Card
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 </div>
               )}
@@ -491,7 +806,7 @@ export default function StudyMode({
 
             <div className="text-center mt-6">
               <p className="text-sm text-gray-500">
-                {showAnswer 
+                {showAnswer
                   ? "Rate how well you remembered to continue"
                   : "Try to recall the answer before revealing it"}
               </p>
@@ -499,6 +814,27 @@ export default function StudyMode({
           </div>
         )}
       </main>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{confirmDialog.title}</DialogTitle>
+            <DialogDescription>{confirmDialog.description}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}>
+              Cancel
+            </Button>
+            <Button
+              variant={confirmDialog.type === 'reset' ? 'destructive' : 'default'}
+              onClick={handleConfirmAction}
+            >
+              {confirmDialog.type === 'reset' ? 'Reset Card' : 'Suspend'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

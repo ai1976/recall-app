@@ -41,11 +41,12 @@ export default function ReviewBySubject() {
       // ✅ FIXED: Get today's date in user's LOCAL timezone (not UTC)
       const todayString = formatLocalDate(new Date());
 
-      // Get due reviews
+      // Get due reviews (exclude suspended and skipped)
       const { data: dueReviews, error: reviewsError } = await supabase
         .from('reviews')
-        .select('flashcard_id, next_review_date')
+        .select('flashcard_id, next_review_date, skip_until')
         .eq('user_id', user.id)
+        .eq('status', 'active')
         .lte('next_review_date', todayString);
 
       if (reviewsError) throw reviewsError;
@@ -55,7 +56,10 @@ export default function ReviewBySubject() {
         return;
       }
 
-      const dueCardIds = dueReviews.map(r => r.flashcard_id);
+      // Filter out skipped cards
+      const dueCardIds = dueReviews
+        .filter(r => !r.skip_until || r.skip_until <= todayString)
+        .map(r => r.flashcard_id);
 
       // Get flashcards with subject info
       const { data: cards, error: cardsError } = await supabase

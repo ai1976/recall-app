@@ -45,15 +45,20 @@ export default function ReviewSession() {
       console.log(`📅 Today is: ${todayString}`);
 
       // 1. Get Scheduled Reviews (Due Today or earlier)
+      //    Exclude suspended cards and cards with active skip_until
       const { data: dueReviews, error: reviewsError } = await supabase
         .from('reviews')
-        .select('flashcard_id')
+        .select('flashcard_id, skip_until')
         .eq('user_id', user.id)
+        .eq('status', 'active')
         .lte('next_review_date', todayString);
 
       if (reviewsError) throw reviewsError;
-      
-      const scheduledIds = dueReviews?.map(r => r.flashcard_id) || [];
+
+      // Filter out skipped cards (skip_until > today)
+      const scheduledIds = (dueReviews || [])
+        .filter(r => !r.skip_until || r.skip_until <= todayString)
+        .map(r => r.flashcard_id);
 
       if (scheduledIds.length === 0) {
         setLoading(false);

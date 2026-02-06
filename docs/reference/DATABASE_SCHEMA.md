@@ -231,7 +231,16 @@
 | interval | integer | NO | 1 | Days until next review |
 | repetitions | integer | NO | 0 | Consecutive correct reviews |
 | next_review_date | timestamp | NO | NOW() | When card is due next |
+| status | text | NO | 'active' | active/suspended (card suspension system) |
+| skip_until | date | YES | NULL | Date until which card is hidden (skip 24hr) |
 | created_at | timestamp | NO | NOW() | When review happened |
+
+**Card Suspension System (NEW - February 6, 2026):**
+- `status` column enables indefinite card suspension ('active' or 'suspended')
+- `skip_until` enables temporary 24-hour skip (card reappears after date)
+- Suspended cards don't count as "due" and don't affect streak
+- Skipped cards are filtered out of due queries when `skip_until > today`
+- Constraint: `CHECK (status IN ('active', 'suspended'))`
 
 **Why This Structure:**
 - Implements SuperMemo-2 algorithm for optimal retention
@@ -1034,6 +1043,9 @@ CREATE INDEX idx_reviews_user_id ON reviews(user_id);
 CREATE INDEX idx_reviews_flashcard_id ON reviews(flashcard_id);
 CREATE INDEX idx_reviews_next_review_date ON reviews(next_review_date);
 CREATE INDEX idx_reviews_created_at ON reviews(created_at); -- For streak calculation
+CREATE INDEX idx_reviews_status ON reviews(status); -- ⭐ NEW (Feb 6, 2026) - Card suspension
+CREATE INDEX idx_reviews_skip_until ON reviews(skip_until); -- ⭐ NEW (Feb 6, 2026) - Skip filtering
+CREATE INDEX idx_reviews_user_status_due ON reviews(user_id, status, next_review_date) WHERE status = 'active'; -- ⭐ NEW (Feb 6, 2026) - Composite partial
 ```
 
 #### subjects Table
@@ -1555,6 +1567,13 @@ LIMIT 10;
 
 **Purpose:** Quick reference for what changed and when
 
+### February 6, 2026
+- ✅ Added `status` column to reviews table (active/suspended)
+- ✅ Added `skip_until` column to reviews table (skip 24hr)
+- ✅ Added 3 indexes (status, skip_until, composite partial)
+- ✅ Created 6 RPC functions (skip, suspend, suspend_topic, unsuspend, reset, get_suspended)
+- ✅ Total indexes: 56+
+
 ### January 9, 2026
 - ✅ Added `creator_id` to flashcards table (user attribution)
 - ✅ Added `content_creator_id` to flashcards table (revenue attribution)
@@ -1725,6 +1744,42 @@ SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
 ```
 
 ---
+
+### skip_card(p_user_id UUID, p_flashcard_id UUID)
+**Purpose:** Skips a card for 24 hours by setting skip_until to tomorrow (user's local timezone)
+**Security:** DEFINER
+**Added:** 2026-02-06 (Card Suspension System)
+**Returns:** VOID
+
+### suspend_card(p_user_id UUID, p_flashcard_id UUID)
+**Purpose:** Suspends a card indefinitely by setting status='suspended'
+**Security:** DEFINER
+**Added:** 2026-02-06 (Card Suspension System)
+**Returns:** VOID
+
+### suspend_topic_cards(p_user_id UUID, p_topic_id UUID)
+**Purpose:** Bulk suspends all cards in a topic. Creates review records for cards without one.
+**Security:** DEFINER
+**Added:** 2026-02-06 (Card Suspension System)
+**Returns:** INTEGER (count of suspended cards)
+
+### unsuspend_card(p_user_id UUID, p_flashcard_id UUID)
+**Purpose:** Reactivates a suspended card, scheduling it for review today
+**Security:** DEFINER
+**Added:** 2026-02-06 (Card Suspension System)
+**Returns:** VOID
+
+### reset_card(p_user_id UUID, p_flashcard_id UUID)
+**Purpose:** Deletes review record, making card "New" again. Destructive action.
+**Security:** DEFINER
+**Added:** 2026-02-06 (Card Suspension System)
+**Returns:** VOID
+
+### get_suspended_cards(p_user_id UUID)
+**Purpose:** Returns all suspended cards for a user with flashcard details for Progress page
+**Security:** DEFINER
+**Added:** 2026-02-06 (Card Suspension System)
+**Returns:** TABLE (review_id, flashcard_id, front_text, back_text, subject_name, topic_name, suspended_at)
 
 ### get_user_streak(p_user_id UUID)
 **Purpose:** Calculate consecutive study days in user's local timezone
