@@ -2,6 +2,13 @@
 
 ## Resolved Bugs
 
+### [Feb 6, 2026] Groups Link Not Working on Production Vercel — Duplicate HTML in index.html
+- **Files:** index.html
+- **Issue:** Groups navigation link worked on localhost but refreshed to Dashboard on production Vercel. Hard refresh and browser restart did not help.
+- **Root Cause:** `index.html` had duplicate HTML structure — lines 24-29 were a copy of lines 18-23 (`</head>`, `<body>`, `<div id="root">`, `<script>`, `</body>`, `</html>`). This created two `<div id="root">` elements in the DOM. Vite's dev server was forgiving, but the production build copied the malformed HTML into `dist/index.html`, confusing React Router's client-side navigation.
+- **Solution:** Removed duplicate lines 24-29 from `index.html`. Rebuilt to verify clean `dist/index.html`.
+- **Status:** ✅ RESOLVED
+
 ### [Feb 6, 2026] Blank Page — NavDesktop/NavMobile Missing Props
 - **Files:** NavDesktop.jsx, NavMobile.jsx
 - **Issue:** App rendered blank white page after adding notification props to ActivityDropdown
