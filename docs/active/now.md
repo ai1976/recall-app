@@ -7,6 +7,17 @@
 
 ## Just Completed ✅
 
+### Help & Guide Page (Feb 7, 2026)
+- [x] Created `src/data/helpContent.js` — Structured content data (6 tabs, 24 sections, 10 FAQs)
+- [x] Created `src/pages/dashboard/Help.jsx` — Help page with tabs, search, collapsible sections, back-to-top
+- [x] URL deep linking via `useSearchParams` (e.g., `/dashboard/help?tab=study-groups`)
+- [x] Search filters across all tabs and FAQs simultaneously
+- [x] Custom expand/collapse sections using Card components (no accordion dependency)
+- [x] Added "Help & Guide" to ProfileDropdown.jsx (above Sign Out separator)
+- [x] Added "Help & Guide" to NavMobile.jsx (after My Achievements)
+- [x] Added route in App.jsx (`/dashboard/help`)
+- [x] Added `scrollbar-hide` CSS utility to index.css
+
 ### Allow All Members to Share Content in Groups (Feb 7, 2026)
 - [x] Updated `share_content_with_groups()` RPC — changed admin check to active member check
 - [x] Updated RLS INSERT policy on `content_group_shares` — `cgs_insert_admin` → `cgs_insert_member` (any active member)

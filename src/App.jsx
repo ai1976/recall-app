@@ -40,6 +40,7 @@ import ReviewSession from '@/pages/dashboard/Study/ReviewSession'
 import MyProgress from '@/pages/dashboard/Study/Progress'
 import MyAchievements from '@/pages/dashboard/Profile/MyAchievements';
 import AuthorProfile from '@/pages/dashboard/Profile/AuthorProfile';
+import Help from '@/pages/dashboard/Help';
 import ReviewBySubject from '@/pages/dashboard/Study/ReviewBySubject';
 
 // Note Components
@@ -183,6 +184,10 @@ function App() {
           <Route
             path="/dashboard/profile/:userId"
             element={session ? <AuthorProfile /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/dashboard/help"
+            element={session ? <Help /> : <Navigate to="/login" replace />}
           />
           
           {/* Groups Routes */}

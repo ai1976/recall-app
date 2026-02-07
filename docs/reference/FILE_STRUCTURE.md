@@ -115,6 +115,7 @@ recall-app
 │   ├── contexts
 │   │   └── AuthContext.jsx
 │   ├── data
+│   │   └── helpContent.js
 │   ├── hooks
 │   │   ├── use-toast.js
 │   │   ├── useActivityFeed.js
@@ -146,6 +147,7 @@ recall-app
 │   │   │   ├── Profile
 │   │   │   │   ├── AuthorProfile.jsx
 │   │   │   │   └── MyAchievements.jsx
+│   │   │   ├── Help.jsx
 │   │   │   └── Study
 │   │   │       ├── Progress.jsx
 │   │   │       ├── ReviewBySubject.jsx
@@ -406,6 +408,20 @@ git push
 - ✅ src/pages/dashboard/Friends/FindFriends.jsx (Clickable user names)
 - ✅ src/pages/dashboard/Friends/MyFriends.jsx (Clickable friend names)
 - ✅ src/pages/dashboard/Content/MyContributions.jsx (Clickable upvoter names)
+
+---
+
+## 🔧 RECENTLY MODIFIED (Feb 7, 2026) - Help & Guide Page
+
+### **New Files:**
+- ✅ src/data/helpContent.js (NEW - Structured help content data)
+- ✅ src/pages/dashboard/Help.jsx (NEW - Help & Guide page)
+
+### **Changes:**
+- ✅ src/App.jsx (Added Help import + route)
+- ✅ src/components/layout/ProfileDropdown.jsx (Added Help & Guide menu item)
+- ✅ src/components/layout/NavMobile.jsx (Added Help & Guide button)
+- ✅ src/index.css (Added scrollbar-hide utility)
 
 ---
 

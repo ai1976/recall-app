@@ -1,6 +1,27 @@
 # Changelog
 
 ---
+## [2026-02-07] Help & Guide Documentation Page
+
+### Added
+- **`src/data/helpContent.js`** — Structured help content data file with 6 tabs (Getting Started, Content, Study System, Social, Study Groups, More), 24 collapsible sections, and 10 FAQ items. Data-driven architecture separates content from rendering.
+- **`src/pages/dashboard/Help.jsx`** — Full Help page component with tabbed navigation, cross-tab search, collapsible Card sections, back-to-top button, and URL deep linking via `useSearchParams`.
+- **`scrollbar-hide` CSS utility** — Added to `src/index.css` for hiding scrollbars on the tab bar (mobile horizontal scroll).
+
+### Changed
+- **`src/components/layout/ProfileDropdown.jsx`** — Added "Help & Guide" menu item with HelpCircle icon above the Sign Out separator.
+- **`src/components/layout/NavMobile.jsx`** — Added "Help & Guide" button after My Achievements in the mobile navigation sheet.
+- **`src/App.jsx`** — Added import and protected route for `/dashboard/help`.
+
+### Files Changed
+- `src/data/helpContent.js` (NEW)
+- `src/pages/dashboard/Help.jsx` (NEW)
+- `src/App.jsx`
+- `src/components/layout/ProfileDropdown.jsx`
+- `src/components/layout/NavMobile.jsx`
+- `src/index.css`
+
+---
 ## [2026-02-07] Allow All Members to Share Content in Groups
 
 ### Changed
