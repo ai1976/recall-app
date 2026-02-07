@@ -7,6 +7,15 @@
 
 ## Just Completed ✅
 
+### Allow All Members to Share Content in Groups (Feb 7, 2026)
+- [x] Updated `share_content_with_groups()` RPC — changed admin check to active member check
+- [x] Updated RLS INSERT policy on `content_group_shares` — `cgs_insert_admin` → `cgs_insert_member` (any active member)
+- [x] Updated RLS DELETE policy — `cgs_delete_admin` → `cgs_delete_own_or_admin` (admin deletes any, member deletes own)
+- [x] Updated GroupDetail.jsx — Share Content button visible to all members (not just admin)
+- [x] Updated GroupDetail.jsx — Delete button: admin can delete any shared content, member can delete only their own
+- [x] Invite Members button remains admin-only
+- [x] **MUST RUN SQL**: `docs/database/study-groups/27_FIX_allow_all_members_to_share_content.sql`
+
 ### Group Invitation Flow + Notification Backend (Feb 6, 2026)
 - [x] Created `notifications` table with RLS policies, indexes, and JSONB metadata column
 - [x] Created 5 notification RPCs + cleanup utility (matches existing useNotifications.js hook)

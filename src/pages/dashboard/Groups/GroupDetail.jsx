@@ -353,8 +353,7 @@ export default function GroupDetail() {
               <p className="text-gray-600 mt-2">{group.description}</p>
             )}
           </div>
-          {isAdmin && (
-            <div className="flex gap-2">
+          <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -365,12 +364,13 @@ export default function GroupDetail() {
                 <Share2 className="h-4 w-4 mr-2" />
                 Share Content
               </Button>
-              <Button onClick={() => setInviteOpen(true)}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Invite Members
-              </Button>
+              {isAdmin && (
+                <Button onClick={() => setInviteOpen(true)}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Invite Members
+                </Button>
+              )}
             </div>
-          )}
         </div>
       </div>
 
@@ -502,7 +502,7 @@ export default function GroupDetail() {
                           Shared {formatDate(note.shared_at)}
                         </p>
                       </div>
-                      {isAdmin && (
+                      {(isAdmin || note.author_id === user.id) && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -556,7 +556,7 @@ export default function GroupDetail() {
                           Shared {formatDate(deck.shared_at)}
                         </p>
                       </div>
-                      {isAdmin && (
+                      {(isAdmin || deck.author_id === user.id) && (
                         <Button
                           variant="ghost"
                           size="sm"

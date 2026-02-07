@@ -1,6 +1,19 @@
 # Changelog
 
 ---
+## [2026-02-07] Allow All Members to Share Content in Groups
+
+### Changed
+- **`share_content_with_groups()`** — Changed admin-only check to active member check. Any group member can now share their own content.
+- **RLS INSERT policy on `content_group_shares`** — Renamed `cgs_insert_admin` → `cgs_insert_member`. Any active group member can insert shares (must be `shared_by = auth.uid()`).
+- **RLS DELETE policy on `content_group_shares`** — Renamed `cgs_delete_admin` → `cgs_delete_own_or_admin`. Admins can delete any share; regular members can only delete their own (`shared_by = auth.uid()`).
+- **GroupDetail.jsx** — "Share Content" button visible to all members (previously admin-only). Delete icons on shared content: admin sees all, member sees only their own. "Invite Members" remains admin-only.
+
+### Files Changed
+- `src/pages/dashboard/Groups/GroupDetail.jsx`
+- `docs/database/study-groups/27_FIX_allow_all_members_to_share_content.sql` (NEW)
+
+---
 ## [2026-02-06] Group Invitation Flow + Notification Backend
 
 ### Added

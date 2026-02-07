@@ -354,6 +354,15 @@ git push
 - ✅ src/pages/dashboard/Study/ReviewFlashcards.jsx (Merge group-shared decks)
 
 ---
+## 🔧 RECENTLY MODIFIED (Feb 7, 2026) - Allow All Members to Share Content
+
+### **New SQL Files:**
+- ✅ docs/database/study-groups/27_FIX_allow_all_members_to_share_content.sql (NEW)
+
+### **Changes:**
+- ✅ src/pages/dashboard/Groups/GroupDetail.jsx (Share button for all members, delete own/admin logic)
+
+---
 ## 🔧 RECENTLY MODIFIED (Feb 6, 2026) - Invitation Flow + Notifications Backend
 
 ### **New SQL Files:**
