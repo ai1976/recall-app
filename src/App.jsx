@@ -40,6 +40,7 @@ import ReviewSession from '@/pages/dashboard/Study/ReviewSession'
 import MyProgress from '@/pages/dashboard/Study/Progress'
 import MyAchievements from '@/pages/dashboard/Profile/MyAchievements';
 import AuthorProfile from '@/pages/dashboard/Profile/AuthorProfile';
+import ProfileSettings from '@/pages/dashboard/Profile/ProfileSettings';
 import Help from '@/pages/dashboard/Help';
 import ReviewBySubject from '@/pages/dashboard/Study/ReviewBySubject';
 
@@ -117,6 +118,7 @@ function App() {
             /dashboard/progress            → pages/dashboard/Study/Progress.jsx
             /dashboard/achievements        → pages/dashboard/Profile/MyAchievements.jsx
             /dashboard/profile/:userId     → pages/dashboard/Profile/AuthorProfile.jsx
+            /dashboard/settings            → pages/dashboard/Profile/ProfileSettings.jsx
             /dashboard/help                → pages/dashboard/Help.jsx
             /dashboard/groups              → pages/dashboard/Groups/MyGroups.jsx
             /dashboard/groups/new          → pages/dashboard/Groups/CreateGroup.jsx
@@ -226,6 +228,10 @@ function App() {
           <Route
             path="/dashboard/profile/:userId"
             element={session ? <AuthorProfile /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/dashboard/settings"
+            element={session ? <ProfileSettings /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/help"

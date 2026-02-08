@@ -1,6 +1,33 @@
 # Changelog
 
 ---
+## [2026-02-08] FindFriends Privacy Fix & Profile Settings Page
+
+### Added
+- **`ProfileSettings.jsx` page** — New `/dashboard/settings` route allowing users to edit Full Name, Course Level, and Institution
+- **Institution dropdown** with 12 curated options (ICAI, major coaching centers) + "Other" for custom input, using `SearchableSelect` for searchable alphabetical list
+- **Settings link** in ProfileDropdown menu (Settings icon, above Sign Out separator)
+- **"Joined {year}"** display on FindFriends cards for user disambiguation
+
+### Changed
+- **FindFriends.jsx** — Email addresses are now masked (`an***@gmail.com`) instead of shown in full
+- **FindFriends.jsx** — Institution and "Joined {year}" now displayed alongside masked email and course level
+- **FindFriends.jsx** — Search now filters by name only (removed email search to prevent email enumeration)
+- **FindFriends.jsx** — Search placeholder updated to "Search by name..."
+- **FindFriends.jsx** — Avatar fallback changed from email initial to `?` when no name exists
+
+### Security
+- Client-side email masking with code comment acknowledging cosmetic-only limitation
+- Input sanitization: Institution custom text is trimmed and Title Cased before save
+- Email search removed to prevent confirming whether an email exists in the system
+
+### Files Changed
+- `src/pages/dashboard/Friends/FindFriends.jsx` (modified — privacy + disambiguation)
+- `src/pages/dashboard/Profile/ProfileSettings.jsx` (NEW)
+- `src/App.jsx` (added import + route for ProfileSettings)
+- `src/components/layout/ProfileDropdown.jsx` (added Settings menu item)
+
+---
 ## [2026-02-08] Flashcard Text-to-Speech (Read Aloud)
 
 ### Added

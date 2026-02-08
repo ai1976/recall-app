@@ -8,6 +8,7 @@ import {
   Trophy,
   ChevronDown,
   HelpCircle,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -107,6 +108,12 @@ export default function ProfileDropdown({ user, role, isLoading, handleSignOut }
           <Link to="/dashboard/help" className="flex items-center gap-2 cursor-pointer">
             <HelpCircle className="h-4 w-4" />
             Help & Guide
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/dashboard/settings" className="flex items-center gap-2 cursor-pointer">
+            <Settings className="h-4 w-4" />
+            Settings
           </Link>
         </DropdownMenuItem>
 

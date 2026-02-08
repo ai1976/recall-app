@@ -148,7 +148,8 @@ recall-app
 │   │   │   │   └── MyGroups.jsx
 │   │   │   ├── Profile
 │   │   │   │   ├── AuthorProfile.jsx
-│   │   │   │   └── MyAchievements.jsx
+│   │   │   │   ├── MyAchievements.jsx
+│   │   │   │   └── ProfileSettings.jsx
 │   │   │   ├── Help.jsx
 │   │   │   └── Study
 │   │   │       ├── Progress.jsx
@@ -465,6 +466,18 @@ git push
 
 ### **Changes:**
 - ✅ src/pages/dashboard/Study/StudyMode.jsx (Added TTS: SpeakButton on question + answer sides, SpeechSettings popover)
+
+---
+
+## 🔧 RECENTLY MODIFIED (Feb 8, 2026) - FindFriends Privacy & Profile Settings
+
+### **New Files:**
+- ✅ src/pages/dashboard/Profile/ProfileSettings.jsx (NEW - Profile settings page: name, course, institution)
+
+### **Changes:**
+- ✅ src/pages/dashboard/Friends/FindFriends.jsx (Masked emails, added institution + joined year, name-only search)
+- ✅ src/App.jsx (Added ProfileSettings import + /dashboard/settings route)
+- ✅ src/components/layout/ProfileDropdown.jsx (Added Settings menu item with gear icon)
 
 ---
 

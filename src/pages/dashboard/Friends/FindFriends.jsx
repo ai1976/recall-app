@@ -10,10 +10,20 @@ import { useToast } from '@/hooks/use-toast';
 import BadgeIcon from '@/components/badges/BadgeIcon';
 import PageContainer from '@/components/layout/PageContainer';
 
+// NOTE: Email masking is cosmetic only. Full email is present in data payload.
+// A future improvement would be to mask server-side via an RPC or database view.
+function maskEmail(email) {
+  if (!email) return '';
+  const [local, domain] = email.split('@');
+  if (!domain) return email;
+  const visible = local.slice(0, 2);
+  return `${visible}***@${domain}`;
+}
+
 export default function FindFriends() {
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -30,13 +40,13 @@ export default function FindFriends() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, course_level, role')
+        .select('id, full_name, email, course_level, role, institution, created_at')
         .neq('id', user.id)
         .order('full_name');
 
       if (error) throw error;
       setUsers(data || []);
-      
+
       // Fetch public badges for all users
       fetchUserBadges((data || []).map(u => u.id));
     } catch (error) {
@@ -46,7 +56,7 @@ export default function FindFriends() {
 
   const fetchUserBadges = async (userIds) => {
     if (!userIds || userIds.length === 0) return;
-    
+
     try {
       // Fetch only PUBLIC badges (is_public = true)
       const { data, error } = await supabase
@@ -63,9 +73,9 @@ export default function FindFriends() {
         `)
         .in('user_id', userIds)
         .eq('is_public', true);  // Only fetch public badges
-      
+
       if (error) throw error;
-      
+
       // Group badges by user_id
       const badgesByUser = {};
       (data || []).forEach(item => {
@@ -76,7 +86,7 @@ export default function FindFriends() {
           badgesByUser[item.user_id].push(item.badge_definitions);
         }
       });
-      
+
       setUserBadges(badgesByUser);
     } catch (error) {
       console.error('Error fetching user badges:', error);
@@ -134,18 +144,17 @@ export default function FindFriends() {
       f => (f.user_id === user.id && f.friend_id === userId) ||
            (f.friend_id === user.id && f.user_id === userId)
     );
-    
+
     if (!friendship) return null;
-    
+
     if (friendship.user_id === user.id) {
       return { status: friendship.status, type: 'sent' };
     }
     return { status: friendship.status, type: 'received' };
   };
 
-  const filteredUsers = users.filter(u => 
-    u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = users.filter(u =>
+    u.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -163,7 +172,7 @@ export default function FindFriends() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
           <Input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder="Search by name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -188,6 +197,7 @@ export default function FindFriends() {
             const friendStatus = getFriendshipStatus(person.id);
             const canAddFriend = !friendStatus || friendStatus.status === 'rejected';
             const personBadges = userBadges[person.id] || [];
+            const joinedYear = person.created_at ? new Date(person.created_at).getFullYear() : null;
 
             return (
               <Card key={person.id}>
@@ -196,9 +206,9 @@ export default function FindFriends() {
                     <div className="flex items-start gap-3">
                       {/* Avatar */}
                       <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-lg">
-                        {person.full_name?.charAt(0) || person.email?.charAt(0)}
+                        {person.full_name?.charAt(0) || '?'}
                       </div>
-                      
+
                       {/* Info */}
                       <div>
                         <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
@@ -234,9 +244,15 @@ export default function FindFriends() {
                           )}
                         </CardTitle>
                         <CardDescription>
-                          {person.email}
+                          {maskEmail(person.email)}
                           {person.course_level && (
                             <span className="ml-2">• {person.course_level}</span>
+                          )}
+                          {person.institution && (
+                            <span className="ml-2">• {person.institution}</span>
+                          )}
+                          {joinedYear && (
+                            <span className="ml-2">• Joined {joinedYear}</span>
                           )}
                         </CardDescription>
                       </div>
@@ -254,21 +270,21 @@ export default function FindFriends() {
                           Add Friend
                         </Button>
                       )}
-                      
+
                       {friendStatus?.status === 'pending' && friendStatus?.type === 'sent' && (
                         <Button variant="outline" size="sm" disabled>
                           <Clock className="h-4 w-4 mr-2" />
                           Request Sent
                         </Button>
                       )}
-                      
+
                       {friendStatus?.status === 'pending' && friendStatus?.type === 'received' && (
                         <Button variant="outline" size="sm" disabled>
                           <Clock className="h-4 w-4 mr-2" />
                           Pending
                         </Button>
                       )}
-                      
+
                       {friendStatus?.status === 'accepted' && (
                         <Button variant="outline" size="sm" disabled>
                           <Users className="h-4 w-4 mr-2" />

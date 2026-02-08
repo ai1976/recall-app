@@ -7,6 +7,18 @@
 
 ## Just Completed ✅
 
+### FindFriends Privacy Fix & Profile Settings Page (Feb 8, 2026)
+- [x] Masked emails in FindFriends (`an***@gmail.com`) — cosmetic client-side masking, code comment added
+- [x] Added institution + "Joined {year}" display on FindFriends cards for user disambiguation
+- [x] Removed email from search filter (name-only search prevents email enumeration)
+- [x] Created `ProfileSettings.jsx` — edit Full Name, Course Level, Institution
+- [x] Institution field: dropdown (In-house / External / Other) with custom text input for "Other"
+- [x] Input sanitization: trim whitespace + Title Case for custom institution names
+- [x] Added `/dashboard/settings` route in App.jsx
+- [x] Added Settings link with gear icon in ProfileDropdown.jsx
+- [x] No database changes — uses existing `institution` column in profiles table
+- [x] Build verified clean: `npx vite build` passes with no errors
+
 ### Flashcard Text-to-Speech / Read Aloud (Feb 8, 2026)
 - [x] Created `useSpeech.js` hook — wraps Web Speech API with sentence chunking (Chrome 15-sec bug fix), localStorage for voice URI + speed
 - [x] Created `SpeakButton.jsx` — reusable volume icon (Volume2/VolumeX) with pulse animation, hidden on unsupported browsers or empty text
