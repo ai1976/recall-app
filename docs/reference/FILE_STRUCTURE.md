@@ -62,9 +62,6 @@ recall-app
 │   ├── assets
 │   │   └── react.svg
 │   ├── components
-│   │   ├── admin
-│   │   │   ├── AdminDashboard.jsx
-│   │   │   └── SuperAdminDashboard.jsx
 │   │   ├── badges
 │   │   │   ├── BadgeCard.jsx
 │   │   │   ├── BadgeIcon.jsx
@@ -73,10 +70,7 @@ recall-app
 │   │   │   ├── ActivityFeed.jsx
 │   │   │   └── AnonymousStats.jsx
 │   │   ├── flashcards
-│   │   │   ├── FlashcardCard.jsx
-│   │   │   ├── FlashcardCreate.jsx
-│   │   │   ├── MyFlashcards.jsx
-│   │   │   └── StudyMode.jsx
+│   │   │   └── FlashcardCard.jsx
 │   │   ├── layout
 │   │   │   ├── ActivityDropdown.jsx
 │   │   │   ├── FriendsDropdown.jsx
@@ -85,13 +79,6 @@ recall-app
 │   │   │   ├── NavMobile.jsx
 │   │   │   ├── PageContainer.jsx
 │   │   │   └── ProfileDropdown.jsx
-│   │   ├── notes
-│   │   │   ├── index.jsx
-│   │   │   ├── NoteDetail.jsx
-│   │   │   ├── NoteEdit.jsx
-│   │   │   └── NoteUpload.jsx
-│   │   ├── professor
-│   │   │   └── ProfessorTools.jsx
 │   │   └── ui
 │   │       ├── alert.jsx
 │   │       ├── button.jsx
@@ -130,6 +117,9 @@ recall-app
 │   │   └── utils.js
 │   ├── main.jsx
 │   ├── pages
+│   │   ├── admin
+│   │   │   ├── AdminDashboard.jsx
+│   │   │   └── SuperAdminDashboard.jsx
 │   │   ├── auth
 │   │   │   ├── ForgotPassword.jsx
 │   │   │   ├── Login.jsx
@@ -138,12 +128,21 @@ recall-app
 │   │   ├── dashboard
 │   │   │   ├── Content
 │   │   │   │   ├── BrowseNotes.jsx
+│   │   │   │   ├── FlashcardCreate.jsx
 │   │   │   │   ├── MyContributions.jsx
-│   │   │   │   └── MyNotes.jsx
+│   │   │   │   ├── MyFlashcards.jsx
+│   │   │   │   ├── MyNotes.jsx
+│   │   │   │   ├── NoteDetail.jsx
+│   │   │   │   ├── NoteEdit.jsx
+│   │   │   │   └── NoteUpload.jsx
 │   │   │   ├── Friends
 │   │   │   │   ├── FindFriends.jsx
 │   │   │   │   ├── FriendRequests.jsx
 │   │   │   │   └── MyFriends.jsx
+│   │   │   ├── Groups
+│   │   │   │   ├── CreateGroup.jsx
+│   │   │   │   ├── GroupDetail.jsx
+│   │   │   │   └── MyGroups.jsx
 │   │   │   ├── Profile
 │   │   │   │   ├── AuthorProfile.jsx
 │   │   │   │   └── MyAchievements.jsx
@@ -152,7 +151,10 @@ recall-app
 │   │   │       ├── Progress.jsx
 │   │   │       ├── ReviewBySubject.jsx
 │   │   │       ├── ReviewFlashcards.jsx
-│   │   │       └── ReviewSession.jsx
+│   │   │       ├── ReviewSession.jsx
+│   │   │       └── StudyMode.jsx
+│   │   ├── professor
+│   │   │   └── ProfessorTools.jsx
 │   │   ├── Dashboard.jsx
 │   │   ├── Home.jsx
 │   │   ├── PrivacyPolicy.jsx
@@ -185,21 +187,22 @@ recall-app
 - `src/pages/dashboard/Study/Progress.jsx` - Analytics page
 
 ### **Notes:**
-- `src/components/notes/NoteUpload.jsx` - Upload note page ⭐
-- `src/components/notes/NoteDetails.jsx` - View note details
-- `src/components/notes/NoteEdit.jsx` - Edit note
+- `src/pages/dashboard/Content/NoteUpload.jsx` - Upload note page
+- `src/pages/dashboard/Content/NoteDetail.jsx` - View note details
+- `src/pages/dashboard/Content/NoteEdit.jsx` - Edit note
 
 ### **Flashcards:**
-- `src/components/flashcards/FlashcardCreate.jsx` - Create flashcard ⭐
-- `src/components/flashcards/MyFlashcards.jsx` - User's flashcards
-- `src/components/flashcards/StudyMode.jsx` - Review session
+- `src/pages/dashboard/Content/FlashcardCreate.jsx` - Create flashcard
+- `src/pages/dashboard/Content/MyFlashcards.jsx` - User's flashcards
+- `src/pages/dashboard/Study/StudyMode.jsx` - Review session
+- `src/components/flashcards/FlashcardCard.jsx` - Reusable flashcard display card
 
 ### **Admin:**
-- `src/components/admin/AdminDashboard.jsx` - Admin panel
-- `src/components/admin/SuperAdminDashboard.jsx` - Super admin panel
+- `src/pages/admin/AdminDashboard.jsx` - Admin panel
+- `src/pages/admin/SuperAdminDashboard.jsx` - Super admin panel
 
 ### **Professor:**
-- `src/components/professor/ProfessorTools.jsx` - Bulk upload, etc.
+- `src/pages/professor/ProfessorTools.jsx` - Bulk upload, etc.
 
 ### **Configuration:**
 - `src/lib/supabase.js` - Supabase client setup
@@ -350,8 +353,8 @@ git push
 - ✅ src/App.jsx (Added 3 Groups routes)
 - ✅ src/components/layout/NavDesktop.jsx (Added Groups nav link)
 - ✅ src/components/layout/NavMobile.jsx (Added Study Groups section)
-- ✅ src/components/notes/NoteUpload.jsx (Study Groups visibility + group multi-select)
-- ✅ src/components/flashcards/FlashcardCreate.jsx (Study Groups visibility + group multi-select)
+- ✅ src/pages/dashboard/Content/NoteUpload.jsx (Study Groups visibility + group multi-select)
+- ✅ src/pages/dashboard/Content/FlashcardCreate.jsx (Study Groups visibility + group multi-select)
 - ✅ src/pages/dashboard/Content/BrowseNotes.jsx (Merge group-shared notes)
 - ✅ src/pages/dashboard/Study/ReviewFlashcards.jsx (Merge group-shared decks)
 
@@ -404,7 +407,7 @@ git push
 - ✅ src/App.jsx (Added AuthorProfile route)
 - ✅ src/pages/dashboard/Content/BrowseNotes.jsx (Clickable author names)
 - ✅ src/pages/dashboard/Study/ReviewFlashcards.jsx (Clickable author names)
-- ✅ src/components/notes/NoteDetail.jsx (Clickable author badge)
+- ✅ src/pages/dashboard/Content/NoteDetail.jsx (Clickable author badge)
 - ✅ src/pages/dashboard/Friends/FindFriends.jsx (Clickable user names)
 - ✅ src/pages/dashboard/Friends/MyFriends.jsx (Clickable friend names)
 - ✅ src/pages/dashboard/Content/MyContributions.jsx (Clickable upvoter names)
@@ -422,6 +425,28 @@ git push
 - ✅ src/components/layout/ProfileDropdown.jsx (Added Help & Guide menu item)
 - ✅ src/components/layout/NavMobile.jsx (Added Help & Guide button)
 - ✅ src/index.css (Added scrollbar-hide utility)
+
+---
+
+## 🔧 RECENTLY MODIFIED (Feb 8, 2026) - File Structure Refactor
+
+### **Moved Files (pages out of components/):**
+- ✅ `src/components/notes/NoteUpload.jsx` → `src/pages/dashboard/Content/NoteUpload.jsx`
+- ✅ `src/components/notes/NoteDetail.jsx` → `src/pages/dashboard/Content/NoteDetail.jsx`
+- ✅ `src/components/notes/NoteEdit.jsx` → `src/pages/dashboard/Content/NoteEdit.jsx`
+- ✅ `src/components/flashcards/FlashcardCreate.jsx` → `src/pages/dashboard/Content/FlashcardCreate.jsx`
+- ✅ `src/components/flashcards/MyFlashcards.jsx` → `src/pages/dashboard/Content/MyFlashcards.jsx`
+- ✅ `src/components/flashcards/StudyMode.jsx` → `src/pages/dashboard/Study/StudyMode.jsx`
+- ✅ `src/components/admin/SuperAdminDashboard.jsx` → `src/pages/admin/SuperAdminDashboard.jsx`
+- ✅ `src/components/admin/AdminDashboard.jsx` → `src/pages/admin/AdminDashboard.jsx`
+- ✅ `src/components/professor/ProfessorTools.jsx` → `src/pages/professor/ProfessorTools.jsx`
+
+### **Deleted:**
+- ✅ `src/components/notes/index.jsx` (dead placeholder)
+
+### **Route Fix:**
+- ✅ `/notes/edit/:id` → `/dashboard/notes/edit/:id` (added missing `/dashboard` prefix)
+- ✅ Legacy redirect from old path preserved
 
 ---
 

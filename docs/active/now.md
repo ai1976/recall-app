@@ -1,19 +1,33 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-02-06
+**Last Updated:** 2026-02-08
 **Current Phase:** Study Groups (Phase 1: Read-Only) Complete
 
 ---
 
 ## Just Completed ✅
 
+### File Structure Refactor — Pages out of Components (Feb 8, 2026)
+- [x] Moved 9 page-level components from `src/components/` to `src/pages/` (enforces pages=routed, components=reusable convention)
+- [x] Notes pages (NoteUpload, NoteDetail, NoteEdit) → `pages/dashboard/Content/`
+- [x] Flashcard pages (FlashcardCreate, MyFlashcards) → `pages/dashboard/Content/`
+- [x] StudyMode → `pages/dashboard/Study/`
+- [x] Admin pages → `pages/admin/`
+- [x] ProfessorTools → `pages/professor/`
+- [x] Fixed NoteEdit route: `/notes/edit/:id` → `/dashboard/notes/edit/:id` (was only route missing `/dashboard` prefix)
+- [x] Added legacy redirect for old `/notes/edit/:id` path
+- [x] Added route-to-file mapping comment block in App.jsx
+- [x] Deleted dead `components/notes/index.jsx` placeholder
+- [x] Removed empty `components/notes/`, `components/admin/`, `components/professor/` directories
+- [x] Updated imports in App.jsx, ReviewSession.jsx, NoteDetail.jsx
+
 ### Clickable Content in Author Profile (Feb 8, 2026)
 - [x] Made note/flashcard counts in AuthorProfile subject rows clickable `<Link>` elements
-- [x] Notes count links to `/dashboard/browse-notes?author=<id>&subject=<name>`
+- [x] Notes count links to `/dashboard/notes?author=<id>&subject=<name>`
 - [x] Flashcards count links to `/dashboard/review-flashcards?author=<id>&subject=<name>`
 - [x] Added `useSearchParams` URL param reading to BrowseNotes.jsx (initializes `filterAuthor` + `filterSubject` from URL)
 - [x] Added `useSearchParams` URL param reading to ReviewFlashcards.jsx (same pattern)
-- [x] Deep-linking now supported: `/dashboard/browse-notes?author=xxx&subject=Income Tax` auto-filters
+- [x] Deep-linking now supported: `/dashboard/notes?author=xxx&subject=Income Tax` auto-filters
 
 ### Help & Guide Page (Feb 7, 2026)
 - [x] Created `src/data/helpContent.js` — Structured content data (6 tabs, 24 sections, 10 FAQs)
@@ -180,6 +194,19 @@ None currently.
 ---
 
 ## Session Notes
+
+### 2026-02-08 Session (File Structure Refactor)
+- Root cause: `/dashboard/browse-notes` bug from mismatched file name (`BrowseNotes.jsx`) vs route path (`/dashboard/notes`)
+- Moved 9 page-level components from `src/components/` to `src/pages/` to enforce convention: pages=routed, components=reusable
+- Fixed only route missing `/dashboard` prefix: `/notes/edit/:id` → `/dashboard/notes/edit/:id`
+- Added `LegacyNoteEditRedirect` component for old bookmark compatibility
+- Added route-to-file mapping comment (27 routes) in App.jsx for quick reference
+- Deleted dead `components/notes/index.jsx` (old "Coming Soon" placeholder, never imported)
+- Only 3 files needed import path updates: App.jsx, ReviewSession.jsx, NoteDetail.jsx
+- All moved files use `@/` alias imports so internal imports didn't break
+- `FlashcardCard.jsx` stays in `components/flashcards/` (reusable component, not a page)
+- Empty directories removed: `components/notes/`, `components/admin/`, `components/professor/`
+- Build verified clean: `npx vite build` passes with no errors
 
 ### 2026-02-06 Session (Group Invitation Flow + Notification Backend)
 - Built full notification backend: `notifications` table + 5 RPCs + cleanup utility

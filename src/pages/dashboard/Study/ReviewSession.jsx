@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, ArrowLeft, AlertCircle, Play, BookOpen } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import StudyMode from '@/components/flashcards/StudyMode';
+import StudyMode from '@/pages/dashboard/Study/StudyMode';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ReviewSession() {

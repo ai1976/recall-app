@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Toaster } from '@/components/ui/toaster'
@@ -43,22 +43,28 @@ import AuthorProfile from '@/pages/dashboard/Profile/AuthorProfile';
 import Help from '@/pages/dashboard/Help';
 import ReviewBySubject from '@/pages/dashboard/Study/ReviewBySubject';
 
-// Note Components
-import NoteUpload from '@/components/notes/NoteUpload'
-import NoteDetail from '@/components/notes/NoteDetail'
-import NoteEdit from '@/components/notes/NoteEdit'
+// Dashboard - Content Pages (Notes & Flashcards)
+import NoteUpload from '@/pages/dashboard/Content/NoteUpload'
+import NoteDetail from '@/pages/dashboard/Content/NoteDetail'
+import NoteEdit from '@/pages/dashboard/Content/NoteEdit'
+import FlashcardCreate from '@/pages/dashboard/Content/FlashcardCreate'
+import MyFlashcards from '@/pages/dashboard/Content/MyFlashcards'
 
-// Flashcard Components
-import FlashcardCreate from '@/components/flashcards/FlashcardCreate'
-import MyFlashcards from '@/components/flashcards/MyFlashcards'
-import StudyMode from '@/components/flashcards/StudyMode'
+// Dashboard - Study Pages (continued)
+import StudyMode from '@/pages/dashboard/Study/StudyMode'
 
-// Admin Components
-import SuperAdminDashboard from '@/components/admin/SuperAdminDashboard'
-import AdminDashboard from '@/components/admin/AdminDashboard'
+// Admin Pages
+import SuperAdminDashboard from '@/pages/admin/SuperAdminDashboard'
+import AdminDashboard from '@/pages/admin/AdminDashboard'
 
-// Professor Components
-import ProfessorTools from '@/components/professor/ProfessorTools'
+// Professor Pages
+import ProfessorTools from '@/pages/professor/ProfessorTools'
+
+// Legacy redirect: /notes/edit/:id → /dashboard/notes/edit/:id
+function LegacyNoteEditRedirect() {
+  const { id } = useParams()
+  return <Navigate to={`/dashboard/notes/edit/${id}`} replace />
+}
 
 function App() {
   const [session, setSession] = useState(null)
@@ -92,6 +98,37 @@ function App() {
       <BrowserRouter>
         {session && <Navigation />}
         <Routes>
+          {/*
+            Route → File Mapping (for quick reference):
+            /                              → pages/Home.jsx
+            /dashboard                     → pages/Dashboard.jsx
+            /dashboard/notes               → pages/dashboard/Content/BrowseNotes.jsx
+            /dashboard/notes/new           → pages/dashboard/Content/NoteUpload.jsx
+            /dashboard/notes/:id           → pages/dashboard/Content/NoteDetail.jsx
+            /dashboard/notes/edit/:id      → pages/dashboard/Content/NoteEdit.jsx
+            /dashboard/my-notes            → pages/dashboard/Content/MyNotes.jsx
+            /dashboard/my-contributions    → pages/dashboard/Content/MyContributions.jsx
+            /dashboard/flashcards          → pages/dashboard/Content/MyFlashcards.jsx
+            /dashboard/flashcards/new      → pages/dashboard/Content/FlashcardCreate.jsx
+            /dashboard/review-flashcards   → pages/dashboard/Study/ReviewFlashcards.jsx
+            /dashboard/review-session      → pages/dashboard/Study/ReviewSession.jsx
+            /dashboard/review-by-subject   → pages/dashboard/Study/ReviewBySubject.jsx
+            /dashboard/study               → pages/dashboard/Study/StudyMode.jsx
+            /dashboard/progress            → pages/dashboard/Study/Progress.jsx
+            /dashboard/achievements        → pages/dashboard/Profile/MyAchievements.jsx
+            /dashboard/profile/:userId     → pages/dashboard/Profile/AuthorProfile.jsx
+            /dashboard/help                → pages/dashboard/Help.jsx
+            /dashboard/groups              → pages/dashboard/Groups/MyGroups.jsx
+            /dashboard/groups/new          → pages/dashboard/Groups/CreateGroup.jsx
+            /dashboard/groups/:groupId     → pages/dashboard/Groups/GroupDetail.jsx
+            /dashboard/find-friends        → pages/dashboard/Friends/FindFriends.jsx
+            /dashboard/friend-requests     → pages/dashboard/Friends/FriendRequests.jsx
+            /dashboard/my-friends          → pages/dashboard/Friends/MyFriends.jsx
+            /super-admin                   → pages/admin/SuperAdminDashboard.jsx
+            /admin                         → pages/admin/AdminDashboard.jsx
+            /professor/tools               → pages/professor/ProfessorTools.jsx
+          */}
+
           {/* Landing Page Route */}
           <Route 
             path="/" 
@@ -138,8 +175,13 @@ function App() {
             element={session ? <MyNotes /> : <Navigate to="/login" replace />}
           />
           <Route
-            path="/notes/edit/:id" 
+            path="/dashboard/notes/edit/:id"
             element={session ? <NoteEdit /> : <Navigate to="/login" replace />}
+          />
+          {/* Legacy redirect for old /notes/edit/:id bookmarks */}
+          <Route
+            path="/notes/edit/:id"
+            element={<LegacyNoteEditRedirect />}
           />
           
           {/* Flashcards Routes */}

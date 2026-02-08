@@ -158,7 +158,7 @@ export default function NoteDetail() {
                 <>
                   <Button
                     variant="outline"
-                    onClick={() => navigate(`/notes/edit/${note.id}`)}
+                    onClick={() => navigate(`/dashboard/notes/edit/${note.id}`)}
                     className="gap-2"
                   >
                     <Edit className="h-4 w-4" />

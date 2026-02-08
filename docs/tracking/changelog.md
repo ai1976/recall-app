@@ -1,6 +1,29 @@
 # Changelog
 
 ---
+## [2026-02-08] File Structure Refactor — Pages out of Components
+
+### Changed
+- **Moved 9 page-level components** from `src/components/` to `src/pages/`:
+  - Notes pages (NoteUpload, NoteDetail, NoteEdit) → `pages/dashboard/Content/`
+  - Flashcard pages (FlashcardCreate, MyFlashcards) → `pages/dashboard/Content/`
+  - StudyMode → `pages/dashboard/Study/`
+  - Admin pages (AdminDashboard, SuperAdminDashboard) → `pages/admin/`
+  - ProfessorTools → `pages/professor/`
+- **Fixed NoteEdit route**: `/notes/edit/:id` → `/dashboard/notes/edit/:id` (was the only route missing `/dashboard` prefix)
+- **Added legacy redirect** for `/notes/edit/:id` → `/dashboard/notes/edit/:id` to preserve bookmarks
+- **Added route-to-file mapping** comment block in App.jsx for developer reference
+- **Deleted** dead `components/notes/index.jsx` placeholder file
+- **Updated imports** in App.jsx, ReviewSession.jsx, NoteDetail.jsx
+
+### Files Changed
+- `src/App.jsx` (imports + route fix + mapping comment)
+- `src/pages/dashboard/Study/ReviewSession.jsx` (StudyMode import path)
+- `src/pages/dashboard/Content/NoteDetail.jsx` (edit route path)
+- 9 files moved (see FILE_STRUCTURE.md)
+- 1 file deleted (`src/components/notes/index.jsx`)
+
+---
 ## [2026-02-08] Clickable Content in Author Profile
 
 ### Added
@@ -10,7 +33,7 @@
 
 ### Changed
 - `AuthorProfile.jsx` - Note/flashcard counts in subject rows are now clickable `<Link>` elements
-  - Notes count → navigates to `/dashboard/browse-notes?author=<id>&subject=<name>`
+  - Notes count → navigates to `/dashboard/notes?author=<id>&subject=<name>`
   - Flashcards count → navigates to `/dashboard/review-flashcards?author=<id>&subject=<name>`
 - `BrowseNotes.jsx` - Added `useSearchParams` to initialize `filterAuthor` and `filterSubject` from URL
 - `ReviewFlashcards.jsx` - Added `useSearchParams` to initialize `filterAuthor` and `filterSubject` from URL
