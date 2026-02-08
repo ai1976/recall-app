@@ -7,6 +7,14 @@
 
 ## Just Completed ✅
 
+### Clickable Content in Author Profile (Feb 8, 2026)
+- [x] Made note/flashcard counts in AuthorProfile subject rows clickable `<Link>` elements
+- [x] Notes count links to `/dashboard/browse-notes?author=<id>&subject=<name>`
+- [x] Flashcards count links to `/dashboard/review-flashcards?author=<id>&subject=<name>`
+- [x] Added `useSearchParams` URL param reading to BrowseNotes.jsx (initializes `filterAuthor` + `filterSubject` from URL)
+- [x] Added `useSearchParams` URL param reading to ReviewFlashcards.jsx (same pattern)
+- [x] Deep-linking now supported: `/dashboard/browse-notes?author=xxx&subject=Income Tax` auto-filters
+
 ### Help & Guide Page (Feb 7, 2026)
 - [x] Created `src/data/helpContent.js` — Structured content data (6 tabs, 24 sections, 10 FAQs)
 - [x] Created `src/pages/dashboard/Help.jsx` — Help page with tabs, search, collapsible sections, back-to-top

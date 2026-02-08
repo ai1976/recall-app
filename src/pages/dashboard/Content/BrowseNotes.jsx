@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { FileText, Search, Filter, Users, ChevronDown, ChevronRight } from 'lucide-react';
@@ -11,18 +11,19 @@ import UpvoteButton from '@/components/ui/UpvoteButton';
 
 export default function BrowseNotes() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [groupedNotes, setGroupedNotes] = useState([]);
   const [allGroupedNotes, setAllGroupedNotes] = useState([]);
   const [allNotesFlat, setAllNotesFlat] = useState([]);
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCourse, setFilterCourse] = useState('all');
-  const [filterSubject, setFilterSubject] = useState('all');
+  const [filterSubject, setFilterSubject] = useState(searchParams.get('subject') || 'all');
   const [filterTopic, setFilterTopic] = useState('all');
   const [filterRole, setFilterRole] = useState('all');
-  const [filterAuthor, setFilterAuthor] = useState('all');
+  const [filterAuthor, setFilterAuthor] = useState(searchParams.get('author') || 'all');
   
   const [availableCourses, setAvailableCourses] = useState([]);
   const [availableSubjects, setAvailableSubjects] = useState([]);

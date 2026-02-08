@@ -1,6 +1,26 @@
 # Changelog
 
 ---
+## [2026-02-08] Clickable Content in Author Profile
+
+### Added
+- **URL Deep-Linking for BrowseNotes & ReviewFlashcards:**
+  - Both pages now read `author` and `subject` query params from URL on mount
+  - Enables pre-filtered navigation from Author Profile and any future deep links
+
+### Changed
+- `AuthorProfile.jsx` - Note/flashcard counts in subject rows are now clickable `<Link>` elements
+  - Notes count → navigates to `/dashboard/browse-notes?author=<id>&subject=<name>`
+  - Flashcards count → navigates to `/dashboard/review-flashcards?author=<id>&subject=<name>`
+- `BrowseNotes.jsx` - Added `useSearchParams` to initialize `filterAuthor` and `filterSubject` from URL
+- `ReviewFlashcards.jsx` - Added `useSearchParams` to initialize `filterAuthor` and `filterSubject` from URL
+
+### Files Changed
+- `src/pages/dashboard/Profile/AuthorProfile.jsx`
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+
+---
 ## [2026-02-07] Help & Guide Documentation Page
 
 ### Added

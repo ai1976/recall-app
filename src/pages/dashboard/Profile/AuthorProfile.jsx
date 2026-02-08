@@ -397,16 +397,22 @@ export default function AuthorProfile() {
                             <span className="text-gray-700">{subject.name}</span>
                             <div className="flex items-center gap-4 text-sm text-gray-500">
                               {subject.notes > 0 && (
-                                <span className="flex items-center gap-1">
+                                <Link
+                                  to={`/dashboard/notes?author=${userId}&subject=${encodeURIComponent(subject.name)}`}
+                                  className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                                >
                                   <FileText className="h-3.5 w-3.5" />
                                   {subject.notes} notes
-                                </span>
+                                </Link>
                               )}
                               {subject.flashcards > 0 && (
-                                <span className="flex items-center gap-1">
+                                <Link
+                                  to={`/dashboard/review-flashcards?author=${userId}&subject=${encodeURIComponent(subject.name)}`}
+                                  className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                                >
                                   <Brain className="h-3.5 w-3.5" />
                                   {subject.flashcards} flashcards
-                                </span>
+                                </Link>
                               )}
                             </div>
                           </div>

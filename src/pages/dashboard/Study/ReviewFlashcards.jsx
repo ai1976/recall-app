@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,17 +11,18 @@ import UpvoteButton from '@/components/ui/UpvoteButton';
 
 export default function ReviewFlashcards() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [flashcardSets, setFlashcardSets] = useState([]);
   const [allSets, setAllSets] = useState([]);
   const [allDecksFlat, setAllDecksFlat] = useState([]);
-  
+
   const [filterCourse, setFilterCourse] = useState('all');
-  const [filterSubject, setFilterSubject] = useState('all');
+  const [filterSubject, setFilterSubject] = useState(searchParams.get('subject') || 'all');
   const [filterTopic, setFilterTopic] = useState('all');
   const [filterRole, setFilterRole] = useState('all');
-  const [filterAuthor, setFilterAuthor] = useState('all');
+  const [filterAuthor, setFilterAuthor] = useState(searchParams.get('author') || 'all');
   const [searchQuery, setSearchQuery] = useState('');
   
   const [availableCourses, setAvailableCourses] = useState([]);
