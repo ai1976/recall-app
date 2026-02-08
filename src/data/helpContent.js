@@ -155,16 +155,23 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'Every piece of content you create has a visibility level that controls who can see it. You can change this at any time.',
+            text: 'When you create a note or flashcard deck, you choose one of three visibility levels:',
           },
           {
             type: 'list',
             items: [
               'Private \u2014 Only you can see this content. Use this for personal notes or work-in-progress material.',
-              'Study Groups \u2014 Visible to members of study groups you share it with. Great for group study sessions.',
               'Friends \u2014 Visible to your accepted friends on Recall. Good for sharing with classmates you trust.',
               'Public \u2014 Visible to all Recall users. Ideal for sharing helpful material with the wider community.',
             ],
+          },
+          {
+            type: 'paragraph',
+            text: 'You can change the visibility of your content at any time from "My Contributions".',
+          },
+          {
+            type: 'paragraph',
+            text: 'Sharing with Study Groups works differently \u2014 it is not a visibility setting you pick during creation. Instead, you share existing content with a group from the group\'s detail page (see the Study Groups tab for details). This means the same note or deck can be private on the browse page but still shared with specific groups.',
           },
           {
             type: 'tip',
@@ -537,12 +544,12 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'Any group member can share notes or flashcard decks with the group. You do not need to be the group admin to share.',
+            text: 'Sharing content with a group is done from the group\'s detail page \u2014 not during content creation. You first create your note or flashcard deck (with any visibility setting), then share it with a group separately. Any group member can share, not just the admin.',
           },
           {
             type: 'steps',
             items: [
-              'Open the group detail page.',
+              'Go to "Groups" and open the group you want to share with.',
               'Click "Share Content".',
               'Select notes or flashcard decks from your content library.',
               'Confirm sharing. The content is now visible to all group members.',
@@ -551,6 +558,10 @@ export const HELP_TABS = [
           {
             type: 'paragraph',
             text: 'Shared content appears in members\' browse and review pages. If you remove content from the group, members can no longer access it through the group (though any reviews they already started will continue in their personal review queue).',
+          },
+          {
+            type: 'tip',
+            text: 'A note or deck can be "Private" (hidden from the public browse page) and still shared with specific groups. Group sharing and visibility are independent.',
           },
         ],
       },
@@ -694,7 +705,7 @@ export const FAQ_ITEMS = [
   },
   {
     question: 'Can I share private content with a study group?',
-    answer: 'Yes. When you share private content with a study group, group members will be able to see it. The content\'s visibility setting is independent of group sharing \u2014 a card can be "Private" (not visible on the public browse page) but still shared with specific groups.',
+    answer: 'Yes. Group sharing is done separately from the group\'s detail page, not during content creation. A note or deck can be "Private" (hidden from the public browse page) but still shared with specific groups. Group members will see it through the group, even though it is not publicly visible.',
   },
   {
     question: 'What happens if I leave a study group?',
