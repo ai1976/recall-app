@@ -30,6 +30,9 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useSpeech } from '@/hooks/useSpeech';
+import SpeakButton from '@/components/flashcards/SpeakButton';
+import SpeechSettings from '@/components/flashcards/SpeechSettings';
 
 export default function StudyMode({
   flashcards: propFlashcards = null,
@@ -50,6 +53,9 @@ export default function StudyMode({
     hard: 0
   });
 
+  // TTS
+  const { speak, stop, isSpeaking, isSupported, voices, selectedVoice, selectVoice, rate, setRate } = useSpeech();
+
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
@@ -67,6 +73,29 @@ export default function StudyMode({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propFlashcards]);
+
+  // Stop speech when card changes or answer is revealed
+  useEffect(() => {
+    stop();
+  }, [currentIndex, showAnswer, stop]);
+
+  const handleSpeakFront = () => {
+    if (isSpeaking) {
+      stop();
+    } else {
+      const card = flashcards[currentIndex];
+      if (card?.front_text) speak(card.front_text);
+    }
+  };
+
+  const handleSpeakBack = () => {
+    if (isSpeaking) {
+      stop();
+    } else {
+      const card = flashcards[currentIndex];
+      if (card?.back_text) speak(card.back_text);
+    }
+  };
 
   const fetchFlashcards = async () => {
     try {
@@ -627,10 +656,25 @@ export default function StudyMode({
             <div className="bg-white rounded-xl shadow-xl p-8 md:p-12 min-h-[400px] flex flex-col justify-center items-center">
               {!showAnswer ? (
                 <div className="w-full text-center">
-                  <div className="mb-6">
+                  <div className="mb-6 flex items-center justify-center gap-2">
                     <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-full">
                       QUESTION
                     </span>
+                    {currentCard.front_text && (
+                      <SpeakButton
+                        onClick={handleSpeakFront}
+                        isSpeaking={isSpeaking}
+                        isSupported={isSupported}
+                      />
+                    )}
+                    <SpeechSettings
+                      voices={voices}
+                      selectedVoice={selectedVoice}
+                      onSelectVoice={selectVoice}
+                      rate={rate}
+                      onRateChange={setRate}
+                      isSupported={isSupported}
+                    />
                   </div>
 
                   {currentCard.front_image_url && (
@@ -692,18 +736,36 @@ export default function StudyMode({
               ) : (
                 <div className="w-full">
                   <div className="mb-6 pb-6 border-b border-gray-200">
-                    <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-full mb-3">
-                      QUESTION
-                    </span>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-full">
+                        QUESTION
+                      </span>
+                      {currentCard.front_text && (
+                        <SpeakButton
+                          onClick={handleSpeakFront}
+                          isSpeaking={isSpeaking}
+                          isSupported={isSupported}
+                        />
+                      )}
+                    </div>
                     <p className="text-lg text-gray-700 whitespace-pre-wrap">
                       {currentCard.front_text}
                     </p>
                   </div>
 
                   <div className="text-center mb-8">
-                    <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-sm font-semibold rounded-full mb-4">
-                      ANSWER
-                    </span>
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                      <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-sm font-semibold rounded-full">
+                        ANSWER
+                      </span>
+                      {currentCard.back_text && (
+                        <SpeakButton
+                          onClick={handleSpeakBack}
+                          isSpeaking={isSpeaking}
+                          isSupported={isSupported}
+                        />
+                      )}
+                    </div>
 
                     {currentCard.back_image_url && (
                       <img

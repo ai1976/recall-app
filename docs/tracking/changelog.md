@@ -1,6 +1,24 @@
 # Changelog
 
 ---
+## [2026-02-08] Flashcard Text-to-Speech (Read Aloud)
+
+### Added
+- **`useSpeech.js` hook** — Wraps browser Web Speech API with sentence chunking (prevents Chrome 15-second cutoff bug), localStorage persistence for voice and speed preferences
+- **`SpeakButton.jsx` component** — Reusable volume icon button (Volume2/VolumeX from Lucide) with pulse animation while speaking, graceful degradation on unsupported browsers
+- **`SpeechSettings.jsx` component** — Popover with voice selector (grouped by language) and speed slider (0.5x–2.0x), persisted to localStorage
+- **TTS in StudyMode.jsx** — Volume icon next to QUESTION badge (question side) and both QUESTION + ANSWER badges (answer side), with settings gear icon for voice/speed
+
+### Changed
+- `StudyMode.jsx` — Added speech auto-cancel on card advance, answer reveal, skip, suspend, and reset actions
+
+### Files Changed
+- `src/hooks/useSpeech.js` (NEW)
+- `src/components/flashcards/SpeakButton.jsx` (NEW)
+- `src/components/flashcards/SpeechSettings.jsx` (NEW)
+- `src/pages/dashboard/Study/StudyMode.jsx` (modified)
+
+---
 ## [2026-02-08] File Structure Refactor — Pages out of Components
 
 ### Changed

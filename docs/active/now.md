@@ -7,6 +7,15 @@
 
 ## Just Completed ✅
 
+### Flashcard Text-to-Speech / Read Aloud (Feb 8, 2026)
+- [x] Created `useSpeech.js` hook — wraps Web Speech API with sentence chunking (Chrome 15-sec bug fix), localStorage for voice URI + speed
+- [x] Created `SpeakButton.jsx` — reusable volume icon (Volume2/VolumeX) with pulse animation, hidden on unsupported browsers or empty text
+- [x] Created `SpeechSettings.jsx` — popover with voice selector (grouped by language) + speed slider (0.5x–2.0x)
+- [x] Integrated into `StudyMode.jsx` — volume icon on QUESTION side, volume icons on both QUESTION recap + ANSWER side after reveal, settings gear next to first volume icon
+- [x] Auto-cancel speech on card advance, answer reveal, skip, suspend, reset, and component unmount
+- [x] No database changes — pure client-side feature using browser-native Web Speech API
+- [x] No new dependencies — zero external packages added
+
 ### File Structure Refactor — Pages out of Components (Feb 8, 2026)
 - [x] Moved 9 page-level components from `src/components/` to `src/pages/` (enforces pages=routed, components=reusable convention)
 - [x] Notes pages (NoteUpload, NoteDetail, NoteEdit) → `pages/dashboard/Content/`
@@ -194,6 +203,17 @@ None currently.
 ---
 
 ## Session Notes
+
+### 2026-02-08 Session (Flashcard Text-to-Speech)
+- Created `useSpeech.js` hook using Web Speech API with sentence chunking to prevent Chrome/Edge 15-second TTS cutoff bug
+- Text is split by sentence-ending punctuation (. ! ? \n) and spoken sequentially; fallback to full text if no punctuation
+- Voice and speed preferences persisted to localStorage (`recall-tts-voice-uri`, `recall-tts-rate`)
+- `SpeakButton` uses `e.stopPropagation()` (established pattern for nested clickable elements)
+- `SpeechSettings` uses existing Radix Popover component with voice grouped by language code
+- Voices loaded via `voiceschanged` event listener (Chrome loads voices async)
+- Speech auto-cancels via `useEffect` on `[currentIndex, showAnswer]` — covers all card transitions
+- No database changes needed — future language-per-deck feature would add `language` column to `flashcard_decks`
+- Build verified clean: `npx vite build` passes with no errors
 
 ### 2026-02-08 Session (File Structure Refactor)
 - Root cause: `/dashboard/browse-notes` bug from mismatched file name (`BrowseNotes.jsx`) vs route path (`/dashboard/notes`)

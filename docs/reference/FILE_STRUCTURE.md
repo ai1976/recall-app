@@ -70,7 +70,9 @@ recall-app
 │   │   │   ├── ActivityFeed.jsx
 │   │   │   └── AnonymousStats.jsx
 │   │   ├── flashcards
-│   │   │   └── FlashcardCard.jsx
+│   │   │   ├── FlashcardCard.jsx
+│   │   │   ├── SpeakButton.jsx
+│   │   │   └── SpeechSettings.jsx
 │   │   ├── layout
 │   │   │   ├── ActivityDropdown.jsx
 │   │   │   ├── FriendsDropdown.jsx
@@ -110,7 +112,8 @@ recall-app
 │   │   ├── useFriendRequestCount.js
 │   │   ├── useNotifications.js
 │   │   ├── useOCR.js
-│   │   └── useRole.js
+│   │   ├── useRole.js
+│   │   └── useSpeech.js
 │   ├── index.css
 │   ├── lib
 │   │   ├── supabase.js
@@ -196,6 +199,9 @@ recall-app
 - `src/pages/dashboard/Content/MyFlashcards.jsx` - User's flashcards
 - `src/pages/dashboard/Study/StudyMode.jsx` - Review session
 - `src/components/flashcards/FlashcardCard.jsx` - Reusable flashcard display card
+- `src/components/flashcards/SpeakButton.jsx` - TTS volume icon button
+- `src/components/flashcards/SpeechSettings.jsx` - Voice/speed settings popover
+- `src/hooks/useSpeech.js` - Web Speech API hook (TTS)
 
 ### **Admin:**
 - `src/pages/admin/AdminDashboard.jsx` - Admin panel
@@ -447,6 +453,18 @@ git push
 ### **Route Fix:**
 - ✅ `/notes/edit/:id` → `/dashboard/notes/edit/:id` (added missing `/dashboard` prefix)
 - ✅ Legacy redirect from old path preserved
+
+---
+
+## 🔧 RECENTLY MODIFIED (Feb 8, 2026) - Flashcard Text-to-Speech
+
+### **New Files:**
+- ✅ src/hooks/useSpeech.js (NEW - Web Speech API hook with sentence chunking + localStorage persistence)
+- ✅ src/components/flashcards/SpeakButton.jsx (NEW - Reusable volume icon button with pulse animation)
+- ✅ src/components/flashcards/SpeechSettings.jsx (NEW - Voice/speed settings popover)
+
+### **Changes:**
+- ✅ src/pages/dashboard/Study/StudyMode.jsx (Added TTS: SpeakButton on question + answer sides, SpeechSettings popover)
 
 ---
 
