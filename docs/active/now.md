@@ -7,6 +7,26 @@
 
 ## Just Completed ✅
 
+### Fix: Flashcard Deck Names in Share Content Dialog (Feb 9, 2026)
+- [x] **Fixed:** Share Content dialog showed "Flashcard Deck" for all decks instead of actual subject/topic names
+- [x] Root cause: `subject_id` and `topic_id` were not included in the Supabase select query, so name lookups always failed
+- [x] Added `subject_id, topic_id` to flashcard_decks query in `fetchUserContent()`
+- [x] Added topic name lookup (fetches from `topics` table, same pattern as subjects)
+- [x] Added `display_topic` field using `custom_topic || topicsMap[topic_id]`
+- [x] Decks now show as "Subject - Topic" (e.g., "Auditing & Ethics - Audit of Items of Financial Statements")
+- [x] No database changes — frontend-only fix
+
+### Dependent Subject Dropdowns + Skipped Duplicates Report (Feb 9, 2026)
+- [x] **FlashcardCreate + NoteUpload:** Subject dropdown now filters by selected course (`discipline_id`)
+- [x] Disciplines loaded on mount; course name matched to discipline for subject filtering
+- [x] Subject & topic selections reset when course changes (prevents stale cross-course selections)
+- [x] Custom courses (no discipline match) show all subjects as fallback
+- [x] **Fixed:** `description` column removed from topics insert/select — column doesn't exist in DB
+- [x] **Fixed:** `sort_order` → `order_num` for all subjects/topics DB queries (same as disciplines)
+- [x] **BulkUploadTopics:** Skipped duplicates now listed by name (`Subject → Topic`) in success report
+- [x] DATABASE_SCHEMA.md updated for all 3 structure tables (disciplines, subjects, topics) with verified live DB columns
+- [x] Build verified clean
+
 ### Bulk Upload QA Refinements + Disciplines Fix (Feb 9, 2026)
 - [x] Removed forced download gate — all stepper steps freely clickable (returning users skip to Step 2)
 - [x] Added first-timer nudge (amber Info box in Step 2 when Step 1 not done) on both pages

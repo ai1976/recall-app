@@ -1,6 +1,36 @@
 # Changelog
 
 ---
+## [2026-02-09] Fix: Flashcard Deck Names in Share Content Dialog
+
+### Fixed
+- **GroupDetail.jsx** — Share Content dialog showed generic "Flashcard Deck" for all decks instead of actual subject/topic names. Root cause: `subject_id` and `topic_id` were missing from the Supabase select query, so subject/topic name lookups always returned undefined and fell back to "Flashcard Deck". Added both columns to query, added topic name lookup, and decks now display as "Subject - Topic".
+
+### Files Changed
+- `src/pages/dashboard/Groups/GroupDetail.jsx`
+
+---
+## [2026-02-09] Dependent subject dropdown + skipped duplicates report
+
+### Added
+- **FlashcardCreate + NoteUpload** — Subject dropdown now filters by selected course via `discipline_id` lookup
+- **BulkUploadTopics** — Skipped duplicates now listed by name (`Subject → Topic`) in success report
+
+### Changed
+- **FlashcardCreate + NoteUpload** — Disciplines loaded on mount; course name matched to discipline for subject filtering
+- **FlashcardCreate + NoteUpload** — Subject & topic selections reset when course changes
+- Custom courses (no discipline match) show all subjects as fallback
+
+### Fixed
+- **BulkUploadTopics** — Removed `description` column from topics insert and select (column doesn't exist)
+- **BulkUploadTopics** — All subjects/topics queries now use `order_num` instead of `sort_order`
+
+### Files Changed
+- `src/pages/dashboard/Content/FlashcardCreate.jsx` (dependent subject dropdown)
+- `src/pages/dashboard/Content/NoteUpload.jsx` (dependent subject dropdown)
+- `src/pages/admin/BulkUploadTopics.jsx` (skipped entries report, order_num fix, description removal)
+
+---
 ## [2026-02-09] Fix: disciplines table — correct column names + required code column
 
 ### Fixed
