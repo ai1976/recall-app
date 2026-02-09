@@ -7,11 +7,12 @@
 
 ## Just Completed ✅
 
-### Bulk Upload QA Refinements (Feb 9, 2026)
+### Bulk Upload QA Refinements + Disciplines Fix (Feb 9, 2026)
 - [x] Removed forced download gate — all stepper steps freely clickable (returning users skip to Step 2)
 - [x] Added first-timer nudge (amber Info box in Step 2 when Step 1 not done) on both pages
 - [x] Step 3 shows contextual amber nudge when prerequisites missing (links back to relevant step)
-- [x] Added `is_active` filter to disciplines query in both bulk upload pages
+- [x] **Fixed:** disciplines queries now use correct column names (`is_active`, `order_num` — NOT `sort_order`)
+- [x] **Fixed:** Create New Course insert now includes required `code` column (auto-generated from name)
 - [x] BulkUploadTopics: Added `[+ New Course]` inline form next to course dropdown
 - [x] Course creation: Title Case enforcement + case-insensitive duplicate check + DB unique constraint catch
 - [x] BulkUploadTopics: Added `subject_sort_order` and `sort_order` (topic) optional CSV columns
@@ -20,7 +21,8 @@
 - [x] Template changed to generic examples (language learning) instead of CA-specific
 - [x] Current Entries download now includes sort_order columns and respects sort_order in output
 - [x] CSV parser handles both `sort_order` and `topic_sort_order` header names
-- [x] No database schema changes — uses existing sort_order columns
+- [x] No database schema changes — uses existing sort_order columns on subjects/topics tables
+- [x] **Note:** `disciplines` table uses `order_num` (not `sort_order`), has required `code` column. Schema verified against live DB.
 - [x] Build verified clean
 
 ### Streamlined Bulk Upload Pages (Feb 9, 2026)

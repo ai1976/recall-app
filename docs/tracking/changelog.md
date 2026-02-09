@@ -1,6 +1,25 @@
 # Changelog
 
 ---
+## [2026-02-09] Fix: disciplines table — correct column names + required code column
+
+### Fixed
+- **Both bulk upload pages** — `loadCourses()` now uses correct columns: `.eq('is_active', true).order('order_num').order('name')` (disciplines uses `order_num`, not `sort_order`)
+- **BulkUploadTopics.jsx** — Create New Course insert now includes required `code` column (auto-generated from name, e.g., "CA Final" → "CAFIN")
+- **DATABASE_SCHEMA.md** — Disciplines section rewritten with verified live DB schema (8 columns including `code`, `level`, `order_num`, `order`)
+
+### Added
+- `generateCode()` utility in BulkUploadTopics — creates short uppercase code from course name (first 2-3 chars per word, max 8 chars)
+
+### Root Cause
+- `DATABASE_SCHEMA.md` was inaccurate for disciplines table — listed `sort_order`/`description`/`icon`/`updated_at` which don't exist, missed `code`/`level`/`order_num`/`order` which do exist
+
+### Files Changed
+- `src/pages/dashboard/BulkUploadFlashcards.jsx` (loadCourses query: correct column names)
+- `src/pages/admin/BulkUploadTopics.jsx` (loadCourses query + insert with code + generateCode utility)
+- `docs/reference/DATABASE_SCHEMA.md` (disciplines section rewritten from live DB)
+
+---
 ## [2026-02-09] Bulk Upload QA Refinements
 
 ### Changed

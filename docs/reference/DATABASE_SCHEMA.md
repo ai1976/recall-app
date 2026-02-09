@@ -259,29 +259,33 @@
 
 ### 2.5 disciplines
 
-**Purpose:** Top-level course categories (CA, CMA, CS)  
-**Created:** December 2025 (Phase 0.5)  
+**Purpose:** Top-level course categories (CA, CMA, CS)
+**Created:** December 2025 (Phase 0.5)
 **Columns:** 8
+**Verified against live DB:** 2026-02-09
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
 | id | uuid | NO | uuid_generate_v4() | Primary key |
 | name | text | NO | - | e.g., "CA Intermediate" |
-| description | text | YES | NULL | Optional description |
-| icon | text | YES | NULL | Icon name for UI |
-| sort_order | integer | NO | 0 | Display order |
-| is_active | boolean | NO | true | Enable/disable courses |
-| created_at | timestamp | NO | NOW() | Creation timestamp |
-| updated_at | timestamp | NO | NOW() | Last modified |
+| code | text | NO | - | Short code e.g., "CAINT" (**REQUIRED** on insert, no default) |
+| level | text | YES | NULL | e.g., "Intermediate" |
+| order_num | integer | YES | 0 | Display order |
+| is_active | boolean | YES | true | Enable/disable courses |
+| created_at | timestamptz | YES | now() | Creation timestamp |
+| order | integer | YES | 1 | Secondary ordering |
+
+**⚠️ Key differences from `subjects`/`topics` tables:**
+- Uses `order_num` and `order` columns (NOT `sort_order`)
+- `code` is NOT NULL with no default — must be provided on insert
+- `is_active` defaults to `true` but is nullable (not NOT NULL like in subjects/topics)
 
 **Pre-Loaded Data:**
-- CA Foundation
-- CA Intermediate (8 subjects, 147 topics)
-- CA Final
+- CA Intermediate (code: CAINT, level: Intermediate, 8 subjects, 147 topics)
 
-**Related Tables:** subjects, notes, flashcards  
-**Key Indexes:** name, is_active, sort_order  
-**RLS Policies:** 1 policy (public read)
+**Related Tables:** subjects, notes, flashcards
+**Key Indexes:** name
+**RLS Policies:** 2 policies (public read, admin insert)
 
 ---
 

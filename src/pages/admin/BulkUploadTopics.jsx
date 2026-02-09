@@ -12,6 +12,22 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, CheckCircle, XCircle, Download, ChevronDown, ChevronUp, AlertCircle, ArrowRight, ArrowLeft, Info, Plus, X } from 'lucide-react';
 
+// ─── Generate short code from course name ───
+// "CA Final" → "CAFIN", "Spanish Level 1" → "SPALEV1"
+// Takes first 2-3 chars of each word, uppercase, max 8 chars
+function generateCode(name) {
+  if (!name) return '';
+  const words = name.trim().split(/\s+/);
+  let code = '';
+  for (const word of words) {
+    // For short words (≤3 chars), take entire word; otherwise take first 3 chars
+    const chunk = word.length <= 3 ? word : word.slice(0, 3);
+    code += chunk.toUpperCase();
+  }
+  // Cap at 8 characters
+  return code.slice(0, 8);
+}
+
 // ─── Title Case utility ───
 function toTitleCase(str) {
   if (!str) return str;
@@ -126,6 +142,8 @@ export default function BulkUploadTopics() {
       const { data, error } = await supabase
         .from('disciplines')
         .select('id, name')
+        .eq('is_active', true)
+        .order('order_num')
         .order('name');
 
       if (error) throw error;
@@ -195,10 +213,13 @@ export default function BulkUploadTopics() {
     setCreateCourseError('');
 
     try {
+      const code = generateCode(titleCasedName);
+
       const { data, error } = await supabase
         .from('disciplines')
         .insert({
-          name: titleCasedName
+          name: titleCasedName,
+          code: code
         })
         .select()
         .single();
