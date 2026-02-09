@@ -7,6 +7,16 @@
 
 ## Just Completed ✅
 
+### Profile Completion Modal & Course Label Update (Feb 9, 2026)
+- [x] Non-dismissible modal on Dashboard when `course_level` or `institution` is NULL
+- [x] Uses same SearchableSelect institution list and course dropdown as ProfileSettings
+- [x] Blocks interaction: no close button, no escape, no click-outside dismiss
+- [x] Added `hideCloseButton` prop to `DialogContent` component (reusable for other non-dismissible dialogs)
+- [x] ProfileSettings course label changed to "Primary Course" (future multi-course prep)
+- [x] Dashboard re-fetches after modal save for updated class stats
+- [x] No database changes — reads existing `course_level` and `institution` columns
+- [x] Build verified clean
+
 ### FindFriends Privacy Fix & Profile Settings Page (Feb 8, 2026)
 - [x] Masked emails in FindFriends (`an***@gmail.com`) — cosmetic client-side masking, code comment added
 - [x] Added institution + "Joined {year}" display on FindFriends cards for user disambiguation

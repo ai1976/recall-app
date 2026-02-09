@@ -469,6 +469,15 @@ git push
 
 ---
 
+## 🔧 RECENTLY MODIFIED (Feb 9, 2026) - Profile Completion Modal
+
+### **Changes:**
+- ✅ src/pages/Dashboard.jsx (Non-dismissible profile completion modal when course/institution is NULL)
+- ✅ src/pages/dashboard/Profile/ProfileSettings.jsx (Course label → "Primary Course")
+- ✅ src/components/ui/dialog.jsx (Added `hideCloseButton` prop to DialogContent)
+
+---
+
 ## 🔧 RECENTLY MODIFIED (Feb 8, 2026) - FindFriends Privacy & Profile Settings
 
 ### **New Files:**

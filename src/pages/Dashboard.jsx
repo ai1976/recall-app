@@ -3,15 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import AnonymousStats from '@/components/dashboard/AnonymousStats';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
 import { useBadges } from '@/hooks/useBadges';
 import { useToast } from '@/hooks/use-toast';
 import BadgeToast from '@/components/badges/BadgeToast';
 import PageContainer from '@/components/layout/PageContainer';
-import { 
-  BookOpen, 
-  CreditCard, 
+import {
+  BookOpen,
+  CreditCard,
   CheckCircle,
   Flame,
   Target,
@@ -19,8 +30,39 @@ import {
   Upload,
   PlusCircle,
   FileText,
-  Play
+  Play,
+  Loader2,
 } from 'lucide-react';
+
+// Must match ProfileSettings.jsx — static curated list, "Other" always last.
+const COURSE_LEVELS = [
+  'CA Foundation',
+  'CA Intermediate',
+  'CA Final',
+];
+
+const INSTITUTION_OPTIONS = [
+  'Aldine CA',
+  'Ambitions Commerce Institute Pvt Ltd',
+  'EduSum',
+  'Ektvam Academy',
+  'JK Shah Classes',
+  'More Classes Commerce',
+  'PhysicsWallah',
+  'Self Study',
+  'Swapnil Patni Classes',
+  'The Institute of Chartered Accountants of India (ICAI)',
+  'Unacademy',
+  'Other',
+];
+
+function toTitleCase(str) {
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
 
 // ============================================================
 // HELPER: Format date as YYYY-MM-DD in user's LOCAL timezone
@@ -62,6 +104,13 @@ export default function Dashboard() {
   const [isNewUser, setIsNewUser] = useState(false);
   const [hasUserActivity, setHasUserActivity] = useState(false);
 
+  // Profile completion modal state
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [modalCourseLevel, setModalCourseLevel] = useState('');
+  const [modalInstitutionSelect, setModalInstitutionSelect] = useState('');
+  const [modalCustomInstitution, setModalCustomInstitution] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+
   // Badge notifications
   const { unnotifiedBadges, clearUnnotifiedBadges } = useBadges();
   const { toast } = useToast();
@@ -92,15 +141,29 @@ export default function Dashboard() {
         return;
       }
 
-      // Fetch profile for name and course level
+      // Fetch profile for name, course level, and institution
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, course_level')
+        .select('full_name, course_level, institution')
         .eq('id', authUser.id)
         .single();
 
       if (profile) {
         setUserName(profile.full_name || '');
+
+        // Show profile completion modal if course_level or institution is missing
+        if (!profile.course_level || !profile.institution) {
+          setModalCourseLevel(profile.course_level || '');
+          // Pre-fill institution dropdown if they have one
+          if (profile.institution) {
+            const presetMatch = INSTITUTION_OPTIONS.find(
+              opt => opt !== 'Other' && opt === profile.institution
+            );
+            setModalInstitutionSelect(presetMatch ? presetMatch : 'Other');
+            if (!presetMatch) setModalCustomInstitution(profile.institution);
+          }
+          setShowProfileModal(true);
+        }
       }
 
       // Fetch all data in parallel
@@ -275,6 +338,55 @@ export default function Dashboard() {
     return streak;
   };
 
+  // Profile completion modal save handler
+  const handleProfileModalSave = async () => {
+    if (!modalCourseLevel) {
+      toast({ title: 'Course required', description: 'Please select your primary course.', variant: 'destructive' });
+      return;
+    }
+    if (!modalInstitutionSelect) {
+      toast({ title: 'Institution required', description: 'Please select your institution.', variant: 'destructive' });
+      return;
+    }
+    if (modalInstitutionSelect === 'Other' && !modalCustomInstitution.trim()) {
+      toast({ title: 'Institution required', description: 'Please enter your institution name.', variant: 'destructive' });
+      return;
+    }
+
+    let finalInstitution = '';
+    if (modalInstitutionSelect === 'Other') {
+      const trimmed = modalCustomInstitution.trim();
+      finalInstitution = trimmed ? toTitleCase(trimmed) : '';
+    } else {
+      finalInstitution = modalInstitutionSelect;
+    }
+
+    setSavingProfile(true);
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          course_level: modalCourseLevel,
+          institution: finalInstitution,
+        })
+        .eq('id', authUser.id);
+
+      if (error) throw error;
+
+      setShowProfileModal(false);
+      toast({ title: 'Profile updated!', description: 'Your course and institution have been saved.' });
+
+      // Reload dashboard data to reflect updated course_level (for class stats)
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -285,7 +397,73 @@ export default function Dashboard() {
 
   return (
     <PageContainer width="full">
-        
+
+        {/* ===== PROFILE COMPLETION MODAL (non-dismissible) ===== */}
+        <Dialog open={showProfileModal} onOpenChange={() => {}}>
+          <DialogContent
+            className="sm:max-w-md"
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onEscapeKeyDown={(e) => e.preventDefault()}
+            onInteractOutside={(e) => e.preventDefault()}
+            hideCloseButton
+          >
+            <DialogHeader>
+              <DialogTitle>Complete Your Profile</DialogTitle>
+              <DialogDescription>
+                Please set your course and institution to get the most out of Recall.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              {/* Primary Course */}
+              <div className="space-y-2">
+                <Label>Primary Course <span className="text-red-500">*</span></Label>
+                <Select value={modalCourseLevel} onValueChange={setModalCourseLevel}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your active course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COURSE_LEVELS.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Institution */}
+              <div className="space-y-2">
+                <Label>Institution <span className="text-red-500">*</span></Label>
+                <SearchableSelect
+                  value={modalInstitutionSelect}
+                  onValueChange={(val) => {
+                    setModalInstitutionSelect(val);
+                    if (val !== 'Other') setModalCustomInstitution('');
+                  }}
+                  options={INSTITUTION_OPTIONS}
+                  placeholder="Select your institution"
+                />
+                {modalInstitutionSelect === 'Other' && (
+                  <Input
+                    value={modalCustomInstitution}
+                    onChange={(e) => setModalCustomInstitution(e.target.value)}
+                    placeholder="Enter your institution name"
+                    className="mt-2"
+                  />
+                )}
+              </div>
+
+              {/* Save Button */}
+              <Button onClick={handleProfileModalSave} disabled={savingProfile} className="w-full">
+                {savingProfile ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : null}
+                {savingProfile ? 'Saving...' : 'Save & Continue'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Header Section */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold">

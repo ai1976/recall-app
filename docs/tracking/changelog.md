@@ -1,6 +1,25 @@
 # Changelog
 
 ---
+## [2026-02-09] Profile Completion Modal & Course Label Update
+
+### Added
+- **Non-dismissible profile completion modal** on Dashboard — shown when `course_level` or `institution` is NULL
+- Modal uses same curated institution SearchableSelect and course dropdown as ProfileSettings
+- Modal blocks interaction (no close button, no escape, no click-outside) until both fields are saved
+- `hideCloseButton` prop added to `DialogContent` component for non-dismissible dialogs
+
+### Changed
+- **ProfileSettings.jsx** — Course field label changed from "Course Level" to "Primary Course" (implies changeable, prepares for future multi-course support)
+- **Dashboard.jsx** — Profile query now fetches `institution` alongside `full_name` and `course_level`
+- Dashboard re-fetches data after modal save to reflect updated course in class stats
+
+### Files Changed
+- `src/pages/Dashboard.jsx` (profile completion modal + imports)
+- `src/pages/dashboard/Profile/ProfileSettings.jsx` (label change)
+- `src/components/ui/dialog.jsx` (added `hideCloseButton` prop)
+
+---
 ## [2026-02-08] FindFriends Privacy Fix & Profile Settings Page
 
 ### Added

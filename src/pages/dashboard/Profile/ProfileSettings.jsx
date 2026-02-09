@@ -27,6 +27,7 @@ const INSTITUTION_OPTIONS = [
   'JK Shah Classes',
   'More Classes Commerce',
   'PhysicsWallah',
+  'Self Study',
   'Swapnil Patni Classes',
   'The Institute of Chartered Accountants of India (ICAI)',
   'Unacademy',
@@ -193,12 +194,12 @@ export default function ProfileSettings() {
             />
           </div>
 
-          {/* Course Level */}
+          {/* Primary Course */}
           <div className="space-y-2">
-            <Label>Course Level</Label>
+            <Label>Primary Course</Label>
             <Select value={courseLevel} onValueChange={setCourseLevel}>
               <SelectTrigger>
-                <SelectValue placeholder="Select your course" />
+                <SelectValue placeholder="Select your active course" />
               </SelectTrigger>
               <SelectContent>
                 {COURSE_LEVELS.map((level) => (
