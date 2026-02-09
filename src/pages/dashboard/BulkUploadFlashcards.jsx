@@ -104,8 +104,6 @@ export default function BulkUploadFlashcards() {
       const { data, error } = await supabase
         .from('disciplines')
         .select('id, name')
-        .eq('is_active', true)
-        .order('sort_order')
         .order('name');
 
       if (error) throw error;
