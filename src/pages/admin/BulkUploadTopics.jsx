@@ -331,7 +331,7 @@ DATA HYGIENE:
       if (subjectIds.length > 0) {
         const { data: topicData, error: topError } = await supabase
           .from('topics')
-          .select('id, name, subject_id, description, order_num')
+          .select('id, name, subject_id, order_num')
           .in('subject_id', subjectIds)
           .order('order_num', { ascending: true })
           .order('name', { ascending: true });
@@ -352,7 +352,7 @@ DATA HYGIENE:
           csv += `"${subject.name}","(no topics yet)","",${subject.order_num || 0},\n`;
         } else {
           subjectTopics.forEach(topic => {
-            csv += `"${subject.name}","${topic.name}","${topic.description || ''}",${subject.order_num || 0},${topic.order_num || 0}\n`;
+            csv += `"${subject.name}","${topic.name}","",${subject.order_num || 0},${topic.order_num || 0}\n`;
           });
         }
       });
@@ -679,7 +679,6 @@ DATA HYGIENE:
           topicsToInsert.push({
             subject_id: subjectRecord.id,
             name: titleCasedTopic,
-            description: row.description || null,
             is_active: true,
             order_num: row.topicSortOrder || 0
           });
