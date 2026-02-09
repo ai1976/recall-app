@@ -32,6 +32,7 @@ export default function NoteUpload() {
   const [showCustomCourse, setShowCustomCourse] = useState(false);
   const [customCourse, setCustomCourse] = useState('');
   const [allCourses, setAllCourses] = useState([]);
+  const [disciplines, setDisciplines] = useState([]);
 
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -47,11 +48,28 @@ export default function NoteUpload() {
   const [topicOpen, setTopicOpen] = useState(false);
 
   useEffect(() => {
-    fetchSubjects();
+    fetchDisciplines();
     fetchAllCourses();
     fetchUserGroups();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // When targetCourse changes, filter subjects by matching discipline
+  useEffect(() => {
+    if (targetCourse && disciplines.length > 0) {
+      const matchedDiscipline = disciplines.find(
+        d => d.name.toLowerCase() === targetCourse.toLowerCase()
+      );
+      fetchSubjects(matchedDiscipline?.id || null);
+    } else if (!targetCourse && !showCustomCourse) {
+      setSubjects([]);
+    }
+    // Reset subject & topic when course changes
+    setSelectedSubject(null);
+    setSelectedTopic(null);
+    setTopics([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetCourse, disciplines]);
 
   const fetchUserGroups = async () => {
     try {
@@ -71,12 +89,34 @@ export default function NoteUpload() {
     );
   };
 
-  const fetchSubjects = async () => {
+  const fetchDisciplines = async () => {
     try {
       const { data, error } = await supabase
+        .from('disciplines')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('order_num')
+        .order('name');
+
+      if (error) throw error;
+      setDisciplines(data || []);
+    } catch (error) {
+      console.error('Error fetching disciplines:', error);
+    }
+  };
+
+  const fetchSubjects = async (disciplineId) => {
+    try {
+      let query = supabase
         .from('subjects')
         .select('*')
         .order('name');
+
+      if (disciplineId) {
+        query = query.eq('discipline_id', disciplineId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setSubjects(data || []);

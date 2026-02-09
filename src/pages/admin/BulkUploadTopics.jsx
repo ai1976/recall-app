@@ -606,6 +606,7 @@ DATA HYGIENE:
       let subjectsCreated = 0;
       let topicsCreated = 0;
       let skipped = 0;
+      const skippedEntries = []; // Track which entries were skipped
       const uploadErrors = [];
 
       // Group rows by subject for efficient batch processing
@@ -671,6 +672,7 @@ DATA HYGIENE:
 
           if (topicSet.has(topicLookupKey)) {
             skipped++;
+            skippedEntries.push(`${subjectRecord.name} → ${toTitleCase(row.topic)}`);
             continue;
           }
 
@@ -709,7 +711,8 @@ DATA HYGIENE:
         success: true,
         subjectsCreated,
         topicsCreated,
-        skipped
+        skipped,
+        skippedEntries
       });
 
       // Audit log
@@ -815,9 +818,16 @@ DATA HYGIENE:
                 <strong>{uploadResults.topicsCreated}</strong> new topic{uploadResults.topicsCreated !== 1 ? 's' : ''} created
               </p>
               {uploadResults.skipped > 0 && (
-                <p className="text-sm text-gray-500">
-                  {uploadResults.skipped} duplicate{uploadResults.skipped !== 1 ? 's' : ''} skipped
-                </p>
+                <div className="text-sm text-gray-500">
+                  <p className="mb-1">
+                    {uploadResults.skipped} duplicate{uploadResults.skipped !== 1 ? 's' : ''} skipped:
+                  </p>
+                  <ul className="text-xs text-gray-400 space-y-0.5 max-h-32 overflow-y-auto">
+                    {uploadResults.skippedEntries?.map((entry, i) => (
+                      <li key={i}>• {entry}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
 
