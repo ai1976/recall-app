@@ -2,6 +2,13 @@
 
 ## Resolved Bugs
 
+### [Feb 9, 2026] Flashcard Deck Names Missing in Share Content Dialog
+- **Files:** GroupDetail.jsx
+- **Issue:** Share Content dialog showed "Flashcard Deck" for every deck instead of actual subject/topic names, making it impossible to identify which deck to share
+- **Root Cause:** `fetchUserContent()` query selected `custom_subject, custom_topic` but NOT `subject_id, topic_id`. The subject name lookup used `d.subject_id` which was always `undefined` (never fetched). Topic names were never looked up at all.
+- **Solution:** Added `subject_id, topic_id` to the select query. Added topic name lookup from `topics` table. Created `display_topic` field. Updated display to show "Subject - Topic".
+- **Status:** ✅ RESOLVED
+
 ### [Feb 6, 2026] Groups Link Not Working on Production Vercel — Duplicate HTML in index.html
 - **Files:** index.html
 - **Issue:** Groups navigation link worked on localhost but refreshed to Dashboard on production Vercel. Hard refresh and browser restart did not help.

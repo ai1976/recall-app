@@ -244,14 +244,16 @@ export default function GroupDetail() {
       // Get user's flashcard decks
       const { data: decks } = await supabase
         .from('flashcard_decks')
-        .select('id, target_course, card_count, custom_subject, custom_topic')
+        .select('id, target_course, card_count, subject_id, topic_id, custom_subject, custom_topic')
         .eq('user_id', user.id)
         .gt('card_count', 0)
         .order('created_at', { ascending: false });
 
       // Fetch subject/topic names for decks
       const subjectIds = [...new Set(decks?.map(d => d.subject_id).filter(Boolean) || [])];
+      const topicIds = [...new Set(decks?.map(d => d.topic_id).filter(Boolean) || [])];
       let subjectsMap = {};
+      let topicsMap = {};
       if (subjectIds.length > 0) {
         const { data: subjects } = await supabase
           .from('subjects')
@@ -259,12 +261,20 @@ export default function GroupDetail() {
           .in('id', subjectIds);
         subjects?.forEach(s => { subjectsMap[s.id] = s.name; });
       }
+      if (topicIds.length > 0) {
+        const { data: topics } = await supabase
+          .from('topics')
+          .select('id, name')
+          .in('id', topicIds);
+        topics?.forEach(t => { topicsMap[t.id] = t.name; });
+      }
 
       setUserNotes(notes || []);
       setUserDecks(
         (decks || []).map(d => ({
           ...d,
           display_name: d.custom_subject || subjectsMap[d.subject_id] || 'Flashcard Deck',
+          display_topic: d.custom_topic || topicsMap[d.topic_id] || '',
         }))
       );
     } catch (error) {
@@ -695,7 +705,7 @@ export default function GroupDetail() {
                         >
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate">
-                              {deck.display_name} {deck.custom_topic ? `- ${deck.custom_topic}` : ''}
+                              {deck.display_name}{deck.display_topic ? ` - ${deck.display_topic}` : ''}
                             </p>
                             <p className="text-xs text-gray-500">
                               {deck.card_count} cards - {deck.target_course}
