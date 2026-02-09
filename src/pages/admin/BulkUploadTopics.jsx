@@ -319,9 +319,9 @@ DATA HYGIENE:
 
       const { data: subjects, error: subError } = await supabase
         .from('subjects')
-        .select('id, name, sort_order')
+        .select('id, name, order_num')
         .eq('discipline_id', selectedCourse)
-        .order('sort_order', { ascending: true })
+        .order('order_num', { ascending: true })
         .order('name', { ascending: true });
 
       if (subError) throw subError;
@@ -331,9 +331,9 @@ DATA HYGIENE:
       if (subjectIds.length > 0) {
         const { data: topicData, error: topError } = await supabase
           .from('topics')
-          .select('id, name, subject_id, description, sort_order')
+          .select('id, name, subject_id, description, order_num')
           .in('subject_id', subjectIds)
-          .order('sort_order', { ascending: true })
+          .order('order_num', { ascending: true })
           .order('name', { ascending: true });
 
         if (topError) throw topError;
@@ -349,10 +349,10 @@ DATA HYGIENE:
         const subjectTopics = topics.filter(t => t.subject_id === subject.id);
 
         if (subjectTopics.length === 0) {
-          csv += `"${subject.name}","(no topics yet)","",${subject.sort_order || 0},\n`;
+          csv += `"${subject.name}","(no topics yet)","",${subject.order_num || 0},\n`;
         } else {
           subjectTopics.forEach(topic => {
-            csv += `"${subject.name}","${topic.name}","${topic.description || ''}",${subject.sort_order || 0},${topic.sort_order || 0}\n`;
+            csv += `"${subject.name}","${topic.name}","${topic.description || ''}",${subject.order_num || 0},${topic.order_num || 0}\n`;
           });
         }
       });
@@ -574,7 +574,7 @@ DATA HYGIENE:
       // Fetch existing subjects for this course
       const { data: existingSubjects, error: subError } = await supabase
         .from('subjects')
-        .select('id, name, sort_order')
+        .select('id, name, order_num')
         .eq('discipline_id', selectedCourse);
 
       if (subError) throw subError;
@@ -593,9 +593,9 @@ DATA HYGIENE:
       }
 
       // Build lookup maps (case-insensitive)
-      const subjectMap = new Map(); // lowercase name → { id, name, sort_order }
+      const subjectMap = new Map(); // lowercase name → { id, name, order_num }
       existingSubjects?.forEach(s => {
-        subjectMap.set(s.name.toLowerCase(), { id: s.id, name: s.name, sort_order: s.sort_order });
+        subjectMap.set(s.name.toLowerCase(), { id: s.id, name: s.name, order_num: s.order_num });
       });
 
       const topicSet = new Set(); // "subjectId|topicNameLower"
@@ -616,7 +616,7 @@ DATA HYGIENE:
           groupedBySubject.set(key, { originalName: row.subject, subjectSortOrder: row.subjectSortOrder, topics: [] });
         }
         groupedBySubject.get(key).topics.push(row);
-        // Use the first non-zero sort_order encountered for the subject
+        // Use the first non-zero order encountered for the subject
         if (row.subjectSortOrder !== 0 && groupedBySubject.get(key).subjectSortOrder === 0) {
           groupedBySubject.get(key).subjectSortOrder = row.subjectSortOrder;
         }
@@ -636,7 +636,7 @@ DATA HYGIENE:
               discipline_id: selectedCourse,
               name: titleCasedName,
               is_active: true,
-              sort_order: group.subjectSortOrder || 0
+              order_num: group.subjectSortOrder || 0
             })
             .select()
             .single();
@@ -646,20 +646,20 @@ DATA HYGIENE:
             continue;
           }
 
-          subjectRecord = { id: newSubject.id, name: newSubject.name, sort_order: newSubject.sort_order };
+          subjectRecord = { id: newSubject.id, name: newSubject.name, order_num: newSubject.order_num };
           subjectMap.set(subjectKey, subjectRecord);
           subjectsCreated++;
-        } else if (group.subjectSortOrder !== 0 && subjectRecord.sort_order === 0) {
-          // Update existing subject's sort_order if CSV provides one and DB has default 0
+        } else if (group.subjectSortOrder !== 0 && subjectRecord.order_num === 0) {
+          // Update existing subject's order_num if CSV provides one and DB has default 0
           try {
             await supabase
               .from('subjects')
-              .update({ sort_order: group.subjectSortOrder })
+              .update({ order_num: group.subjectSortOrder })
               .eq('id', subjectRecord.id);
-            subjectRecord.sort_order = group.subjectSortOrder;
+            subjectRecord.order_num = group.subjectSortOrder;
           } catch (updateErr) {
-            // Non-critical: sort order update failed, continue
-            console.log('Subject sort_order update failed (non-critical):', updateErr);
+            // Non-critical: order_num update failed, continue
+            console.log('Subject order_num update failed (non-critical):', updateErr);
           }
         }
 
@@ -681,7 +681,7 @@ DATA HYGIENE:
             name: titleCasedTopic,
             description: row.description || null,
             is_active: true,
-            sort_order: row.topicSortOrder || 0
+            order_num: row.topicSortOrder || 0
           });
 
           // Mark as existing to prevent duplicates within same CSV

@@ -291,20 +291,22 @@
 
 ### 2.6 subjects
 
-**Purpose:** Course subjects (e.g., Taxation, Accounting)  
-**Created:** December 2025 (Phase 0.5)  
-**Columns:** 8
+**Purpose:** Course subjects (e.g., Taxation, Accounting)
+**Created:** December 2025 (Phase 0.5)
+**Columns:** 7 (assumed same pattern as topics — verified via error message)
+**Verified against live DB:** 2026-02-09 (inferred from topics + error confirmation)
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
 | id | uuid | NO | uuid_generate_v4() | Primary key |
-| discipline_id | uuid | NO | - | Foreign key to disciplines |
+| discipline_id | uuid | YES | NULL | Foreign key to disciplines |
 | name | text | NO | - | e.g., "Advanced Accounting" |
-| description | text | YES | NULL | Optional description |
-| icon | text | YES | NULL | Icon name for UI |
-| sort_order | integer | NO | 0 | Display order |
-| is_active | boolean | NO | true | Enable/disable subjects |
-| created_at | timestamp | NO | NOW() | Creation timestamp |
+| order_num | integer | YES | 0 | Display order (**NOT** `sort_order`) |
+| is_active | boolean | YES | true | Enable/disable subjects |
+| created_at | timestamptz | YES | now() | Creation timestamp |
+| order | integer | YES | 1 | Secondary ordering |
+
+**⚠️ Note:** Uses `order_num` (NOT `sort_order`). Same column naming as `disciplines` and `topics`.
 
 **Pre-Loaded Data (CA Intermediate):**
 1. Advanced Accounting
@@ -316,34 +318,37 @@
 7. Financial Management
 8. Strategic Management
 
-**Related Tables:** disciplines, topics, notes, flashcards  
-**Key Indexes:** discipline_id, name, is_active, sort_order  
+**Related Tables:** disciplines, topics, notes, flashcards
+**Key Indexes:** discipline_id, name, is_active, order_num
 **RLS Policies:** 1 policy (public read)
 
 ---
 
 ### 2.7 topics
 
-**Purpose:** Granular topics within subjects  
-**Created:** December 2025 (Phase 0.5)  
+**Purpose:** Granular topics within subjects
+**Created:** December 2025 (Phase 0.5)
 **Columns:** 7
+**Verified against live DB:** 2026-02-09
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
 | id | uuid | NO | uuid_generate_v4() | Primary key |
-| subject_id | uuid | NO | - | Foreign key to subjects |
+| subject_id | uuid | YES | NULL | Foreign key to subjects |
 | name | text | NO | - | e.g., "AS 1 Disclosure of Accounting Policies" |
-| description | text | YES | NULL | Optional description |
-| sort_order | integer | NO | 0 | Display order |
-| is_active | boolean | NO | true | Enable/disable topics |
-| created_at | timestamp | NO | NOW() | Creation timestamp |
+| order_num | integer | YES | 0 | Display order (**NOT** `sort_order`) |
+| is_active | boolean | YES | true | Enable/disable topics |
+| created_at | timestamptz | YES | now() | Creation timestamp |
+| order | integer | YES | 1 | Secondary ordering |
+
+**⚠️ All three structure tables (disciplines, subjects, topics) use `order_num`, NOT `sort_order`.**
 
 **Pre-Loaded Data:**
 - 147 topics across 8 CA Intermediate subjects
 - Sourced from official CA syllabus spreadsheet
 
-**Related Tables:** subjects, notes, flashcards  
-**Key Indexes:** subject_id, name, is_active, sort_order  
+**Related Tables:** subjects, notes, flashcards
+**Key Indexes:** subject_id, name, is_active, order_num
 **RLS Policies:** 1 policy (public read)
 
 ---
