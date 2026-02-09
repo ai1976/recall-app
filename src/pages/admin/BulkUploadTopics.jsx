@@ -126,7 +126,6 @@ export default function BulkUploadTopics() {
       const { data, error } = await supabase
         .from('disciplines')
         .select('id, name')
-        .eq('is_active', true)
         .order('name');
 
       if (error) throw error;
@@ -199,9 +198,7 @@ export default function BulkUploadTopics() {
       const { data, error } = await supabase
         .from('disciplines')
         .insert({
-          name: titleCasedName,
-          is_active: true,
-          sort_order: 0
+          name: titleCasedName
         })
         .select()
         .single();
