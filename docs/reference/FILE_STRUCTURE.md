@@ -478,6 +478,7 @@ git push
 - ✅ src/pages/dashboard/Friends/FindFriends.jsx (Masked emails, added institution + joined year, name-only search)
 - ✅ src/App.jsx (Added ProfileSettings import + /dashboard/settings route)
 - ✅ src/components/layout/ProfileDropdown.jsx (Added Settings menu item with gear icon)
+- ✅ src/components/layout/NavMobile.jsx (Added Settings link to mobile hamburger menu)
 
 ---
 

@@ -15,6 +15,7 @@ import {
   Folder,
   Network,
   HelpCircle,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -246,6 +247,13 @@ export default function NavMobile({
                       >
                         <HelpCircle className="h-5 w-5 text-gray-500" />
                         <span className="text-sm font-medium text-gray-900">Help & Guide</span>
+                      </button>
+                      <button
+                        onClick={() => handleNavClick('/dashboard/settings')}
+                        className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-50"
+                      >
+                        <Settings className="h-5 w-5 text-gray-500" />
+                        <span className="text-sm font-medium text-gray-900">Settings</span>
                       </button>
 
                       {/* Super Admin */}

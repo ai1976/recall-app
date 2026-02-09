@@ -6,7 +6,7 @@
 ### Added
 - **`ProfileSettings.jsx` page** — New `/dashboard/settings` route allowing users to edit Full Name, Course Level, and Institution
 - **Institution dropdown** with 12 curated options (ICAI, major coaching centers) + "Other" for custom input, using `SearchableSelect` for searchable alphabetical list
-- **Settings link** in ProfileDropdown menu (Settings icon, above Sign Out separator)
+- **Settings link** in ProfileDropdown (desktop) and NavMobile hamburger menu (mobile)
 - **"Joined {year}"** display on FindFriends cards for user disambiguation
 
 ### Changed
@@ -26,6 +26,7 @@
 - `src/pages/dashboard/Profile/ProfileSettings.jsx` (NEW)
 - `src/App.jsx` (added import + route for ProfileSettings)
 - `src/components/layout/ProfileDropdown.jsx` (added Settings menu item)
+- `src/components/layout/NavMobile.jsx` (added Settings link to mobile hamburger menu)
 
 ---
 ## [2026-02-08] Flashcard Text-to-Speech (Read Aloud)

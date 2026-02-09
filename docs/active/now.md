@@ -15,7 +15,7 @@
 - [x] Institution field: dropdown (In-house / External / Other) with custom text input for "Other"
 - [x] Input sanitization: trim whitespace + Title Case for custom institution names
 - [x] Added `/dashboard/settings` route in App.jsx
-- [x] Added Settings link with gear icon in ProfileDropdown.jsx
+- [x] Added Settings link with gear icon in ProfileDropdown.jsx (desktop) and NavMobile.jsx (mobile)
 - [x] No database changes — uses existing `institution` column in profiles table
 - [x] Build verified clean: `npx vite build` passes with no errors
 
