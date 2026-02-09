@@ -61,6 +61,10 @@ import AdminDashboard from '@/pages/admin/AdminDashboard'
 // Professor Pages
 import ProfessorTools from '@/pages/professor/ProfessorTools'
 
+// Bulk Upload Pages
+import BulkUploadFlashcards from '@/pages/dashboard/BulkUploadFlashcards'
+import BulkUploadTopics from '@/pages/admin/BulkUploadTopics'
+
 // Legacy redirect: /notes/edit/:id → /dashboard/notes/edit/:id
 function LegacyNoteEditRedirect() {
   const { id } = useParams()
@@ -128,7 +132,9 @@ function App() {
             /dashboard/my-friends          → pages/dashboard/Friends/MyFriends.jsx
             /super-admin                   → pages/admin/SuperAdminDashboard.jsx
             /admin                         → pages/admin/AdminDashboard.jsx
-            /professor/tools               → pages/professor/ProfessorTools.jsx
+            /professor/tools               → (redirects to /dashboard/bulk-upload)
+            /dashboard/bulk-upload         → pages/dashboard/BulkUploadFlashcards.jsx
+            /admin/bulk-upload-topics      → pages/admin/BulkUploadTopics.jsx
           */}
 
           {/* Landing Page Route */}
@@ -276,10 +282,20 @@ function App() {
             element={session ? <AdminDashboard /> : <Navigate to="/login" replace />}
           />
 
-          {/* Professor Routes */}
+          {/* Bulk Upload Routes */}
+          <Route
+            path="/dashboard/bulk-upload"
+            element={session ? <BulkUploadFlashcards /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/admin/bulk-upload-topics"
+            element={session ? <BulkUploadTopics /> : <Navigate to="/login" replace />}
+          />
+
+          {/* Professor Routes (legacy redirect) */}
           <Route
             path="/professor/tools"
-            element={session ? <ProfessorTools /> : <Navigate to="/login" replace />}
+            element={session ? <Navigate to="/dashboard/bulk-upload" replace /> : <Navigate to="/login" replace />}
           />
           
           {/* Catch-all Route */}

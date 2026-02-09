@@ -146,14 +146,12 @@ export default function NavDesktop({
                     Create Flashcard
                   </Link>
                 </DropdownMenuItem>
-                {(isProfessor || isAdmin || isSuperAdmin) && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/dashboard/bulk-upload" className="flex items-center gap-2 cursor-pointer">
-                      <Upload className="h-4 w-4" />
-                      Bulk Upload
-                    </Link>
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard/bulk-upload" className="flex items-center gap-2 cursor-pointer">
+                    <Upload className="h-4 w-4" />
+                    Bulk Upload
+                  </Link>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -186,6 +184,23 @@ export default function NavDesktop({
               >
                 <Shield className="h-4 w-4" />
                 Super Admin
+              </Link>
+            )}
+
+            {/* Admin Bulk Upload Topics */}
+            {(isAdmin || isSuperAdmin) && (
+              <Link
+                to="/admin/bulk-upload-topics"
+                className={`
+                  px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
+                  ${isActive('/admin/bulk-upload-topics')
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  }
+                `}
+              >
+                <Upload className="h-4 w-4" />
+                Manage Topics
               </Link>
             )}
           </>

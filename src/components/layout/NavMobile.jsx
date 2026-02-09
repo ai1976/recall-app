@@ -191,15 +191,13 @@ export default function NavMobile({
                         <CreditCard className="h-4 w-4 text-gray-400" />
                         <span className="text-sm text-gray-700">Create Flashcard</span>
                       </button>
-                      {(isProfessor || isAdmin || isSuperAdmin) && (
-                        <button
-                          onClick={() => handleNavClick('/dashboard/bulk-upload')}
-                          className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"
-                        >
-                          <Upload className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-700">Bulk Upload</span>
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleNavClick('/dashboard/bulk-upload')}
+                        className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"
+                      >
+                        <Upload className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-gray-700">Bulk Upload</span>
+                      </button>
 
                       {/* Groups Section */}
                       <div className="px-4 py-2 mt-2">
@@ -255,6 +253,20 @@ export default function NavMobile({
                         <Settings className="h-5 w-5 text-gray-500" />
                         <span className="text-sm font-medium text-gray-900">Settings</span>
                       </button>
+
+                      {/* Admin: Manage Topics */}
+                      {(isAdmin || isSuperAdmin) && (
+                        <>
+                          <div className="my-2 border-t border-gray-200" />
+                          <button
+                            onClick={() => handleNavClick('/admin/bulk-upload-topics')}
+                            className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-50"
+                          >
+                            <Upload className="h-5 w-5 text-blue-500" />
+                            <span className="text-sm font-medium text-gray-900">Manage Topics</span>
+                          </button>
+                        </>
+                      )}
 
                       {/* Super Admin */}
                       {isSuperAdmin && (

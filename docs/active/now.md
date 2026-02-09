@@ -7,6 +7,40 @@
 
 ## Just Completed ✅
 
+### Bulk Upload QA Refinements (Feb 9, 2026)
+- [x] Removed forced download gate — all stepper steps freely clickable (returning users skip to Step 2)
+- [x] Added first-timer nudge (amber Info box in Step 2 when Step 1 not done) on both pages
+- [x] Step 3 shows contextual amber nudge when prerequisites missing (links back to relevant step)
+- [x] Added `is_active` filter to disciplines query in both bulk upload pages
+- [x] BulkUploadTopics: Added `[+ New Course]` inline form next to course dropdown
+- [x] Course creation: Title Case enforcement + case-insensitive duplicate check + DB unique constraint catch
+- [x] BulkUploadTopics: Added `subject_sort_order` and `sort_order` (topic) optional CSV columns
+- [x] Sort logic: 0 = alphabetical fallback, explicit integers sorted first (sort_order ASC, name ASC)
+- [x] Existing subjects with sort_order=0 get updated if CSV provides a non-zero value
+- [x] Template changed to generic examples (language learning) instead of CA-specific
+- [x] Current Entries download now includes sort_order columns and respects sort_order in output
+- [x] CSV parser handles both `sort_order` and `topic_sort_order` header names
+- [x] No database schema changes — uses existing sort_order columns
+- [x] Build verified clean
+
+### Streamlined Bulk Upload Pages (Feb 9, 2026)
+- [x] Created `BulkUploadFlashcards.jsx` — new stepper-based UI replacing old ProfessorTools 4-card layout
+- [x] 3-step collapsible stepper: Download Files → Prepare & Select CSV → Upload
+- [x] "Required columns" hint in Step 2 so users don't need to open template to check headers
+- [x] Success state replaces stepper with "Upload More" / "View My Flashcards" buttons
+- [x] Created `BulkUploadTopics.jsx` — admin-only page for bulk-adding subjects & topics to a course
+- [x] Case-insensitive matching: "taxation" maps to existing "Taxation" (no duplicates)
+- [x] Title Case enforcement: "income tax" → "Income Tax" for new entries
+- [x] Duplicate detection: existing subject+topic combos are skipped automatically
+- [x] Same stepper design pattern as flashcard bulk upload (consistent UX)
+- [x] Route: `/dashboard/bulk-upload` (flashcards, all users), `/admin/bulk-upload-topics` (admin only)
+- [x] `/professor/tools` now redirects to `/dashboard/bulk-upload`
+- [x] Nav links updated: Bulk Upload visible to all users (was professor/admin only), "Manage Topics" link for admin/super_admin
+- [x] FlashcardCreate.jsx "Try Bulk Upload" link updated to new route
+- [x] All CSV parsing/upload logic preserved from original ProfessorTools
+- [x] No database schema changes
+- [x] Build verified clean
+
 ### Profile Completion Modal & Course Label Update (Feb 9, 2026)
 - [x] Non-dismissible modal on Dashboard when `course_level` or `institution` is NULL
 - [x] Uses same SearchableSelect institution list and course dropdown as ProfileSettings

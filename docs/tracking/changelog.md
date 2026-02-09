@@ -1,6 +1,54 @@
 # Changelog
 
 ---
+## [2026-02-09] Bulk Upload QA Refinements
+
+### Changed
+- **Both Bulk Upload pages** — Removed forced download gate. All stepper steps are now freely clickable. Returning users can skip directly to Step 2 without re-downloading templates.
+- **Both Bulk Upload pages** — Added `is_active` filter to disciplines query (future-proofing for soft-deleted courses)
+- **Step component** — Removed `disabled` prop; all steps are always interactive
+- **First-timer nudge** — Amber Info box appears in Step 2 when Step 1 hasn't been completed, with link back to Step 1
+- **Step 3 guards** — Shows contextual amber nudge when course/file not selected, with links to relevant steps
+
+### Added (BulkUploadTopics)
+- **`[+ New Course]` button** — Inline form next to course dropdown for creating new disciplines without leaving the page
+- **Course creation validation** — Case-insensitive duplicate check, Title Case enforcement, DB unique constraint handling
+- **`subject_sort_order` column** (optional) — Explicit display order for subjects
+- **`sort_order` column** (optional) — Explicit display order for topics within a subject
+- **Sort order logic** — If blank/0, falls back to alphabetical. If provided, items sorted by number first (sort_order ASC, name ASC)
+- **Existing subject sort update** — If CSV provides non-zero sort_order for an existing subject with default 0, the DB is updated
+- **Generic template** — Example rows use language learning (Grammar/Vocabulary) instead of CA-specific entries
+- **Current Entries download** — Now includes Subject Sort Order and Topic Sort Order columns, sorted by sort_order
+
+### Files Changed
+- `src/pages/dashboard/BulkUploadFlashcards.jsx` (step gates removed, is_active filter, first-timer nudge, Step 3 guard)
+- `src/pages/admin/BulkUploadTopics.jsx` (major overhaul: step gates, is_active, sort_order, Create New Course, generic template)
+
+---
+## [2026-02-09] Streamlined Bulk Upload Pages
+
+### Added
+- **`BulkUploadFlashcards.jsx`** — New stepper-based bulk upload replacing 4-card ProfessorTools layout. 3 collapsible steps: Download Files → Prepare & Select CSV → Upload. Available to all users.
+- **`BulkUploadTopics.jsx`** — Admin-only page for bulk-adding subjects & topics to a course via CSV. Case-insensitive matching (prevents duplicates), Title Case enforcement for new entries, automatic duplicate skipping.
+- **"Manage Topics" nav link** — Visible to admin/super_admin in both desktop and mobile navigation
+- **"Required columns" hint** in Step 2 of both bulk upload pages (saves users from opening template just to check headers)
+
+### Changed
+- **Bulk Upload nav link** — Now visible to ALL users (was restricted to professor/admin/super_admin)
+- **`/professor/tools` route** — Now redirects to `/dashboard/bulk-upload` (legacy support)
+- **FlashcardCreate.jsx** — "Try Bulk Upload" link updated from `/professor/tools` to `/dashboard/bulk-upload`
+- **NavDesktop.jsx** — Removed role gate on Bulk Upload link; added "Manage Topics" admin link
+- **NavMobile.jsx** — Same changes as NavDesktop
+
+### Files Changed
+- `src/pages/dashboard/BulkUploadFlashcards.jsx` (NEW)
+- `src/pages/admin/BulkUploadTopics.jsx` (NEW)
+- `src/App.jsx` (new routes, import, legacy redirect)
+- `src/pages/dashboard/Content/FlashcardCreate.jsx` (link update)
+- `src/components/layout/NavDesktop.jsx` (role gate removal, admin link)
+- `src/components/layout/NavMobile.jsx` (role gate removal, admin link)
+
+---
 ## [2026-02-09] Profile Completion Modal & Course Label Update
 
 ### Added

@@ -822,7 +822,7 @@ export default function FlashcardCreate() {
               <Button
                 variant="link"
                 className="h-auto p-0 text-blue-600 hover:text-blue-700"
-                onClick={() => navigate('/professor/tools')}
+                onClick={() => navigate('/dashboard/bulk-upload')}
               >
                 Try Bulk Upload
               </Button>

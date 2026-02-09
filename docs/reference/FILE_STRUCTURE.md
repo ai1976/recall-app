@@ -122,6 +122,7 @@ recall-app
 │   ├── pages
 │   │   ├── admin
 │   │   │   ├── AdminDashboard.jsx
+│   │   │   ├── BulkUploadTopics.jsx
 │   │   │   └── SuperAdminDashboard.jsx
 │   │   ├── auth
 │   │   │   ├── ForgotPassword.jsx
@@ -150,6 +151,7 @@ recall-app
 │   │   │   │   ├── AuthorProfile.jsx
 │   │   │   │   ├── MyAchievements.jsx
 │   │   │   │   └── ProfileSettings.jsx
+│   │   │   ├── BulkUploadFlashcards.jsx
 │   │   │   ├── Help.jsx
 │   │   │   └── Study
 │   │   │       ├── Progress.jsx
@@ -159,6 +161,7 @@ recall-app
 │   │   │       └── StudyMode.jsx
 │   │   ├── professor
 │   │   │   └── ProfessorTools.jsx
+│   │   │   (legacy — /professor/tools redirects to /dashboard/bulk-upload)
 │   │   ├── Dashboard.jsx
 │   │   ├── Home.jsx
 │   │   ├── PrivacyPolicy.jsx
@@ -207,9 +210,11 @@ recall-app
 ### **Admin:**
 - `src/pages/admin/AdminDashboard.jsx` - Admin panel
 - `src/pages/admin/SuperAdminDashboard.jsx` - Super admin panel
+- `src/pages/admin/BulkUploadTopics.jsx` - Bulk upload subjects & topics (admin only)
 
-### **Professor:**
-- `src/pages/professor/ProfessorTools.jsx` - Bulk upload, etc.
+### **Bulk Upload:**
+- `src/pages/dashboard/BulkUploadFlashcards.jsx` - Bulk upload flashcards via CSV (all users)
+- `src/pages/professor/ProfessorTools.jsx` - Legacy (redirects to BulkUploadFlashcards)
 
 ### **Configuration:**
 - `src/lib/supabase.js` - Supabase client setup
