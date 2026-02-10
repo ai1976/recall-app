@@ -89,30 +89,30 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'Notes are the foundation of your study material. You can upload notes in several ways:',
+            text: 'Notes are the foundation of your study material. You can create notes using text, images, or PDFs:',
           },
           {
             type: 'list',
             items: [
-              'Image Upload with OCR \u2014 Take a photo of handwritten or printed notes. Recall uses OCR (optical character recognition) to extract the text automatically.',
-              'Manual Text Entry \u2014 Type or paste your notes directly into the editor.',
-              'PDF Upload \u2014 Upload PDF documents and Recall will extract the content.',
+              'Text Entry \u2014 Type or paste your notes directly into the text editor.',
+              'Image Upload \u2014 Upload photos of notes, textbook pages, or handwritten material as image attachments.',
+              'PDF Upload \u2014 Upload PDF documents to store alongside your notes.',
             ],
           },
           {
             type: 'steps',
             items: [
               'Go to "Create" \u2192 "Upload Note" from the navigation bar.',
-              'Choose your content type (text, image, or PDF).',
+              'Enter a title for your note.',
               'Select the course, subject, and topic to organize your note.',
+              'Add your content \u2014 type text, upload an image, or upload a PDF (you can combine text with an image or PDF).',
               'Set the visibility level (Private, Study Groups, Friends, or Public).',
-              'Add optional tags for easier searching.',
               'Click "Upload" to save your note.',
             ],
           },
           {
             type: 'tip',
-            text: 'For best OCR results, make sure your photos are well-lit with clear text. You can always edit the extracted text after uploading.',
+            text: 'You can upload both text and an image in the same note \u2014 for example, type a summary and attach the original page photo for reference.',
           },
         ],
       },
@@ -155,12 +155,13 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'When you create a note or flashcard deck, you choose one of three visibility levels:',
+            text: 'When you create a note or flashcard deck, you choose one of four visibility levels:',
           },
           {
             type: 'list',
             items: [
               'Private \u2014 Only you can see this content. Use this for personal notes or work-in-progress material.',
+              'Study Groups \u2014 Share with specific study groups you belong to. When selected, you can pick which groups to share with from a checklist. If you are not in any groups yet, you will be prompted to create one.',
               'Friends \u2014 Visible to your accepted friends on Recall. Good for sharing with classmates you trust.',
               'Public \u2014 Visible to all Recall users. Ideal for sharing helpful material with the wider community.',
             ],
@@ -168,10 +169,6 @@ export const HELP_TABS = [
           {
             type: 'paragraph',
             text: 'You can change the visibility of your content at any time from "My Contributions".',
-          },
-          {
-            type: 'paragraph',
-            text: 'Sharing with Study Groups works differently \u2014 it is not a visibility setting you pick during creation. Instead, you share existing content with a group from the group\'s detail page (see the Study Groups tab for details). This means the same note or deck can be private on the browse page but still shared with specific groups.',
           },
           {
             type: 'tip',
@@ -544,15 +541,13 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'Sharing content with a group is done from the group\'s detail page \u2014 not during content creation. You first create your note or flashcard deck (with any visibility setting), then share it with a group separately. Any group member can share, not just the admin.',
+            text: 'There are two ways to share content with a study group:',
           },
           {
-            type: 'steps',
+            type: 'list',
             items: [
-              'Go to "Groups" and open the group you want to share with.',
-              'Click "Share Content".',
-              'Select notes or flashcard decks from your content library.',
-              'Confirm sharing. The content is now visible to all group members.',
+              'At creation time \u2014 When creating a note or flashcard deck, select "Study Groups" as the visibility and check the groups you want to share with.',
+              'From the group page \u2014 Open any group and click "Share Content" to share existing notes or flashcard decks from your library. Any group member can share, not just the admin.',
             ],
           },
           {
@@ -561,7 +556,7 @@ export const HELP_TABS = [
           },
           {
             type: 'tip',
-            text: 'A note or deck can be "Private" (hidden from the public browse page) and still shared with specific groups. Group sharing and visibility are independent.',
+            text: 'Content shared with groups is stored as "Private" in the database \u2014 it won\'t appear on the public browse page. Only group members can see it through the group.',
           },
         ],
       },
@@ -705,7 +700,7 @@ export const FAQ_ITEMS = [
   },
   {
     question: 'Can I share private content with a study group?',
-    answer: 'Yes. Group sharing is done separately from the group\'s detail page, not during content creation. A note or deck can be "Private" (hidden from the public browse page) but still shared with specific groups. Group members will see it through the group, even though it is not publicly visible.',
+    answer: 'Yes. You can share content with a study group in two ways: select "Study Groups" visibility when creating the content, or share existing content from the group\'s detail page. Either way, the content is stored as private \u2014 it won\'t appear on the public browse page, but group members can access it through the group.',
   },
   {
     question: 'What happens if I leave a study group?',
