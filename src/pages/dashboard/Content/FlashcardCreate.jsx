@@ -294,7 +294,7 @@ export default function FlashcardCreate() {
       // Build query to find existing deck
       let existingDeckQuery = supabase
         .from('flashcard_decks')
-        .select('id, card_count')
+        .select('id')
         .eq('user_id', user.id);
 
       // Handle NULL comparisons correctly (Supabase uses .is() for NULL)
@@ -332,15 +332,14 @@ export default function FlashcardCreate() {
       let deckId;
 
       if (existingDeck) {
-        // ✅ REUSE existing deck and update card_count
+        // ✅ REUSE existing deck (card_count maintained by DB trigger)
         deckId = existingDeck.id;
         console.log('♻️ Reusing existing deck:', deckId);
 
-        // Update card_count
+        // Update updated_at only — card_count is auto-incremented by trigger
         await supabase
           .from('flashcard_decks')
-          .update({ 
-            card_count: existingDeck.card_count + flashcards.length,
+          .update({
             updated_at: new Date().toISOString()
           })
           .eq('id', deckId);
@@ -360,7 +359,7 @@ export default function FlashcardCreate() {
             custom_topic: customTopicValue,
             target_course: finalTargetCourse,
             visibility: dbVisibility,
-            card_count: flashcards.length,
+            card_count: 0, // auto-incremented by DB trigger on flashcard insert
             upvote_count: 0
           })
           .select('id')

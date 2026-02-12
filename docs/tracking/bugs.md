@@ -2,6 +2,16 @@
 
 ## Resolved Bugs
 
+### [Feb 12, 2026] card_count Double-Counting in flashcard_decks
+- **Files:** `FlashcardCreate.jsx`, `flashcard_decks` table, `flashcards` table
+- **Issue:** Study mode showed ~2x the actual card count (e.g., 46 cards shown when student created 23). Affected multiple students across all their decks.
+- **Root Cause:** Frontend manually incremented `card_count` on every flashcard save. A prior code change caused the save handler to fire twice per submission, doubling the counter each time. ~46 decks affected across 6 students.
+- **Solution (3-part):**
+  1. SQL ran to recalculate `card_count` from actual `flashcards` rows (data fix)
+  2. DB trigger `flashcards_count_trigger` added — auto-maintains `card_count` on INSERT/DELETE
+  3. Manual `card_count` increment removed from `FlashcardCreate.jsx` — DB is now sole source of truth
+- **Status:** ✅ RESOLVED
+
 ### [Feb 9, 2026] Flashcard Deck Names Missing in Share Content Dialog
 - **Files:** GroupDetail.jsx
 - **Issue:** Share Content dialog showed "Flashcard Deck" for every deck instead of actual subject/topic names, making it impossible to identify which deck to share

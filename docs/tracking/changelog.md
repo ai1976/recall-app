@@ -1,6 +1,22 @@
 # Changelog
 
 ---
+## [2026-02-12] Fix: card_count Double-Counting + DB Trigger
+
+### Fixed
+- **FlashcardCreate.jsx** — Removed manual `card_count` increment logic (both existing deck update and new deck insert). `card_count` is now maintained exclusively by a database trigger, eliminating double-counting.
+
+### Added
+- **DB Trigger** (`flashcards_count_trigger`) — Auto-increments `card_count` on `flashcards` INSERT, decrements on DELETE. Single source of truth for deck size.
+
+### Changed
+- **FlashcardCreate.jsx** — Existing deck lookup no longer fetches `card_count` (no longer needed). New deck inserts with `card_count: 0` (trigger populates it).
+- **DB (one-time fix)** — Ran SQL to recalculate all `card_count` values from actual `flashcards` rows, fixing ~46 decks across 6 students that had inflated counts.
+
+### Files Changed
+- `src/pages/dashboard/Content/FlashcardCreate.jsx`
+
+---
 ## [2026-02-09] Fix: Flashcard Deck Names in Share Content Dialog
 
 ### Fixed
