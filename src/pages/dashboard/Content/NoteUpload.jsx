@@ -729,6 +729,23 @@ export default function NoteUpload() {
                   rows={3}
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label>Content Type</Label>
+                <div className="flex gap-2 flex-wrap">
+                  {['text', 'table', 'math', 'diagram', 'mixed'].map((type) => (
+                    <Button
+                      key={type}
+                      type="button"
+                      variant={contentType === type ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setContentType(type)}
+                    >
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
 

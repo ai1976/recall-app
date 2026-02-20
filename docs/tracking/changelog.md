@@ -1,6 +1,21 @@
 # Changelog
 
 ---
+## [2026-02-20] Fix: Content Type Selector Missing on Upload Note
+
+### Fixed
+- **NoteUpload.jsx** — Content Type buttons (Text, Table, Math, Diagram, Mixed) were available in Edit Note but missing from Upload Note. Added the selector to the "Note Details" card after the Description field. The `contentType` state and DB write already existed — only the UI was missing.
+
+### Files Changed
+- `src/pages/dashboard/Content/NoteUpload.jsx`
+
+---
+## [2026-02-20] Revert: Dark Mode / Theme Toggle
+
+### Reverted
+- Dark mode feature reverted (commit `1af9c61` reverts `a716938`). Root cause: app uses a mix of hardcoded Tailwind color classes (e.g. `bg-gray-900`) and semantic CSS variable classes (e.g. `bg-background`). Applying `dark` class to `<html>` only flips the semantic classes, leaving hardcoded colors unchanged — resulting in an inconsistent half-dark appearance. Proper implementation requires a full component audit to replace hardcoded colors with semantic tokens. Deferred to a future dedicated effort.
+
+---
 ## [2026-02-20] Landing Page Stats — Total Counts + Visibility Fix
 
 ### Added

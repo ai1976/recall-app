@@ -7,6 +7,12 @@
 
 ## Just Completed ✅
 
+### Fix: Content Type Selector Missing on Upload Note (Feb 20, 2026)
+- [x] **Bug:** Content Type buttons (Text, Table, Math, Diagram, Mixed) were only shown in Edit Note, not in Upload Note
+- [x] **Fix:** Added Content Type selector to the "Note Details" card in `NoteUpload.jsx`, after the Description field
+- [x] `contentType` state already existed and was already saved to DB — only the UI was missing
+- [x] No database changes — frontend-only fix
+
 ### Landing Page Stats — Total Counts + Visibility Fix (Feb 20, 2026)
 - [x] **Hero 4-stat grid:** Now shows true platform-wide totals (1383 flashcards, 38 notes) via `get_platform_stats()` SECURITY DEFINER RPC — bypasses RLS so unauthenticated visitors see real counts, not just public content
 - [x] **Educator section:** Keeps public-only counts (458 flashcards, 34 notes) so new users see what they can actually browse. Relabeled "Flashcards to Browse" and "Notes to Browse"
