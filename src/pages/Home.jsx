@@ -46,15 +46,13 @@ export default function Home() {
           setEducators(educatorData);
         }
         
-        // Count ALL flashcards (total platform activity — for hero grid)
-        const { count: totalFlashcardCount } = await supabase
-          .from('flashcards')
-          .select('*', { count: 'exact', head: true });
-
-        // Count ALL notes (total platform activity — for hero grid)
-        const { count: totalNoteCount } = await supabase
-          .from('notes')
-          .select('*', { count: 'exact', head: true });
+        // Count ALL flashcards + notes via SECURITY DEFINER RPC (bypasses RLS)
+        // Direct table queries from unauthenticated context are RLS-filtered to public-only,
+        // so we use this function to get true platform-wide totals for the hero grid.
+        const { data: platformStats } = await supabase
+          .rpc('get_platform_stats');
+        const totalFlashcardCount = platformStats?.total_flashcards ?? 0;
+        const totalNoteCount = platformStats?.total_notes ?? 0;
 
         // Count PUBLIC flashcards only (what new users can browse — for educator section)
         const { count: flashcardCount } = await supabase

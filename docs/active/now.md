@@ -8,11 +8,11 @@
 ## Just Completed ✅
 
 ### Landing Page Stats — Total Counts + Visibility Fix (Feb 20, 2026)
-- [x] **Hero 4-stat grid:** Now shows total platform counts (`totalFlashcards`, `totalNotes`) — all visibility levels, not public-only. Relabeled "Flashcards Created" and "Notes Uploaded" (honest about what it represents)
-- [x] **Educator section:** Keeps public-only counts so new users see what they can actually browse. Relabeled "Flashcards to Browse" and "Notes to Browse" (sets correct expectations)
-- [x] **Hero social proof line:** Updated from "X+ items shared" → "X+ items created" to match total count semantics
-- [x] **Bug fix:** Public queries were using legacy `is_public = true` column — changed to `visibility = 'public'` (the correct source of truth since Jan 2026 migration)
-- [x] No database changes — frontend-only, 2 new Supabase count queries added
+- [x] **Hero 4-stat grid:** Now shows true platform-wide totals (1383 flashcards, 38 notes) via `get_platform_stats()` SECURITY DEFINER RPC — bypasses RLS so unauthenticated visitors see real counts, not just public content
+- [x] **Educator section:** Keeps public-only counts (458 flashcards, 34 notes) so new users see what they can actually browse. Relabeled "Flashcards to Browse" and "Notes to Browse"
+- [x] **Hero social proof line:** Updated from "X+ items shared" → "X+ items created"
+- [x] **Bug fix:** Public queries were using legacy `is_public = true` column — changed to `visibility = 'public'`
+- [x] **MUST RUN SQL:** `get_platform_stats()` function in Supabase SQL Editor (see changelog for full SQL)
 
 ### Fix: Activity Feed "View" Button UUID Error (Feb 20, 2026)
 - [x] **Bug:** Clicking "View" on a note in the Recent Activity section caused "Page Not Found" with error "Invalid input syntax for type uuid: 'undefined'"

@@ -3,13 +3,29 @@
 ---
 ## [2026-02-20] Landing Page Stats — Total Counts + Visibility Fix
 
+### Added
+- **DB Function** `get_platform_stats()` — SECURITY DEFINER function that returns total flashcard and note counts across all visibility levels. Bypasses RLS so unauthenticated landing page visitors see true platform totals (1383 flashcards, 38 notes) instead of public-only counts (458 / 34).
+
+```sql
+CREATE OR REPLACE FUNCTION get_platform_stats()
+RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_total_flashcards INTEGER;
+  v_total_notes INTEGER;
+BEGIN
+  SELECT COUNT(*)::INTEGER INTO v_total_flashcards FROM flashcards;
+  SELECT COUNT(*)::INTEGER INTO v_total_notes FROM notes;
+  RETURN json_build_object('total_flashcards', v_total_flashcards, 'total_notes', v_total_notes);
+END; $$;
+```
+
 ### Changed
-- **Home.jsx** — Hero 4-stat grid now shows total platform activity counts (`totalFlashcards`, `totalNotes` — all visibility levels). Relabeled from "Flashcards" / "Notes" to "Flashcards Created" / "Notes Uploaded".
-- **Home.jsx** — Educator section retains public-only counts. Relabeled from "Verified Flashcards" / "Study Notes" to "Flashcards to Browse" / "Notes to Browse" to set accurate expectations for new users.
-- **Home.jsx** — Hero social proof line updated from "X+ items shared" to "X+ items created" (matches total count semantics).
+- **Home.jsx** — Hero 4-stat grid now calls `get_platform_stats()` RPC for true total counts. Relabeled "Flashcards Created" / "Notes Uploaded".
+- **Home.jsx** — Educator section retains direct public-only queries. Relabeled "Flashcards to Browse" / "Notes to Browse".
+- **Home.jsx** — Hero social proof line updated from "X+ items shared" to "X+ items created".
 
 ### Fixed
-- **Home.jsx** — Public flashcard and note count queries were using legacy `is_public = true` column. Changed to `visibility = 'public'` (source of truth since Jan 2026 migration). This was silently returning incorrect counts.
+- **Home.jsx** — Public count queries were using legacy `is_public = true` column. Changed to `visibility = 'public'`.
 
 ### Files Changed
 - `src/pages/Home.jsx`
