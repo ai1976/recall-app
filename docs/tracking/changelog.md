@@ -1,6 +1,21 @@
 # Changelog
 
 ---
+## [2026-02-20] Dark Mode / Theme Toggle
+
+### Added
+- **`src/contexts/ThemeContext.jsx`** — `ThemeProvider` + `useTheme` hook. Manages 'light' | 'dark' | 'system' state. Persists to `localStorage`. Applies/removes `dark` class on `<html>`. In 'system' mode, listens to `prefers-color-scheme` media query and updates live when OS theme changes.
+
+### Changed
+- **App.jsx** — Wrapped app with `<ThemeProvider>` (outermost, above AuthProvider)
+- **ProfileDropdown.jsx** — Added 3-option pill toggle (Sun/Light, Monitor/System, Moon/Dark) between user header and nav links. Active option highlighted with `bg-background shadow-sm`.
+
+### Files Changed
+- `src/contexts/ThemeContext.jsx` *(new)*
+- `src/App.jsx`
+- `src/components/layout/ProfileDropdown.jsx`
+
+---
 ## [2026-02-20] Landing Page Stats — Total Counts + Visibility Fix
 
 ### Added

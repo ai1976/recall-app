@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  User,
   LogOut,
   BarChart3,
   Folder,
@@ -9,7 +8,11 @@ import {
   ChevronDown,
   HelpCircle,
   Settings,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -20,8 +23,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/lib/supabase';
 
+const THEME_OPTIONS = [
+  { value: 'light', icon: Sun, label: 'Light' },
+  { value: 'system', icon: Monitor, label: 'System' },
+  { value: 'dark', icon: Moon, label: 'Dark' },
+];
+
 export default function ProfileDropdown({ user, role, isLoading, handleSignOut }) {
   const [userName, setUserName] = useState('');
+  const { theme, setTheme } = useTheme();
 
   // Fetch user's full name from profiles table
   useEffect(() => {
@@ -83,6 +93,27 @@ export default function ProfileDropdown({ user, role, isLoading, handleSignOut }
               {role.replace('_', ' ')}
             </span>
           )}
+        </div>
+
+        {/* Theme Toggle */}
+        <div className="px-3 py-2 border-b">
+          <p className="text-xs text-muted-foreground mb-1.5">Theme</p>
+          <div className="flex rounded-md border p-0.5 bg-muted">
+            {THEME_OPTIONS.map(({ value, icon: Icon, label }) => (
+              <button
+                key={value}
+                onClick={() => setTheme(value)}
+                className={`flex-1 flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-colors
+                  ${theme === value
+                    ? 'bg-background shadow-sm font-medium text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                <Icon className="h-3 w-3" />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Profile Links */}

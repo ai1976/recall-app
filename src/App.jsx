@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 
 // Layout Components
 import Navigation from '@/components/layout/Navigation'
@@ -99,6 +100,7 @@ function App() {
   }
 
   return (
+    <ThemeProvider>
     <AuthProvider>
       <BrowserRouter>
         {session && <Navigation />}
@@ -308,6 +310,7 @@ function App() {
         <Toaster />
       </BrowserRouter>
     </AuthProvider>
+    </ThemeProvider>
   )
 }
 
