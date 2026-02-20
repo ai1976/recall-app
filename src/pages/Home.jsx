@@ -8,8 +8,10 @@ export default function Home() {
   const [stats, setStats] = useState({
     students: 0,
     educators: 0,
-    flashcards: 0,
-    notes: 0,
+    flashcards: 0,     // public only — used in educator section (what new users can browse)
+    notes: 0,          // public only — used in educator section
+    totalFlashcards: 0, // all visibility — used in hero grid (platform activity)
+    totalNotes: 0,      // all visibility — used in hero grid
     isLoading: true
   });
 
@@ -44,23 +46,35 @@ export default function Home() {
           setEducators(educatorData);
         }
         
-        // Count public flashcards
+        // Count ALL flashcards (total platform activity — for hero grid)
+        const { count: totalFlashcardCount } = await supabase
+          .from('flashcards')
+          .select('*', { count: 'exact', head: true });
+
+        // Count ALL notes (total platform activity — for hero grid)
+        const { count: totalNoteCount } = await supabase
+          .from('notes')
+          .select('*', { count: 'exact', head: true });
+
+        // Count PUBLIC flashcards only (what new users can browse — for educator section)
         const { count: flashcardCount } = await supabase
           .from('flashcards')
           .select('*', { count: 'exact', head: true })
-          .eq('is_public', true);
-        
-        // Count public notes
+          .eq('visibility', 'public');
+
+        // Count PUBLIC notes only (what new users can browse — for educator section)
         const { count: noteCount } = await supabase
           .from('notes')
           .select('*', { count: 'exact', head: true })
-          .eq('is_public', true);
-        
+          .eq('visibility', 'public');
+
         setStats({
           students: studentCount || 0,
           educators: educatorCount || 0,
           flashcards: flashcardCount || 0,
           notes: noteCount || 0,
+          totalFlashcards: totalFlashcardCount || 0,
+          totalNotes: totalNoteCount || 0,
           isLoading: false
         });
         
@@ -71,6 +85,8 @@ export default function Home() {
           educators: 0,
           flashcards: 0,
           notes: 0,
+          totalFlashcards: 0,
+          totalNotes: 0,
           isLoading: false
         });
       }
@@ -165,7 +181,7 @@ export default function Home() {
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
               <span className="text-gray-700">
-                {stats.isLoading ? 'Active community' : `${stats.flashcards + stats.notes}+ items shared`}
+                {stats.isLoading ? 'Active community' : `${stats.totalFlashcards + stats.totalNotes}+ items created`}
               </span>
             </div>
           </div>
@@ -207,15 +223,15 @@ export default function Home() {
             </div>
             <div>
               <div className="text-4xl font-bold text-green-600">
-                {stats.flashcards}
+                {stats.totalFlashcards}
               </div>
-              <div className="text-gray-600 mt-2">Flashcards</div>
+              <div className="text-gray-600 mt-2">Flashcards Created</div>
             </div>
             <div>
               <div className="text-4xl font-bold text-orange-600">
-                {stats.notes}
+                {stats.totalNotes}
               </div>
-              <div className="text-gray-600 mt-2">Notes</div>
+              <div className="text-gray-600 mt-2">Notes Uploaded</div>
             </div>
           </div>
         </div>
@@ -428,13 +444,13 @@ export default function Home() {
                   <div className="text-3xl font-bold text-purple-600 mb-2">
                     {stats.flashcards}
                   </div>
-                  <div className="text-gray-600">Verified Flashcards</div>
+                  <div className="text-gray-600">Flashcards to Browse</div>
                 </div>
                 <div>
                   <div className="text-3xl font-bold text-green-600 mb-2">
                     {stats.notes}
                   </div>
-                  <div className="text-gray-600">Study Notes</div>
+                  <div className="text-gray-600">Notes to Browse</div>
                 </div>
               </div>
               

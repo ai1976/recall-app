@@ -1,6 +1,20 @@
 # Changelog
 
 ---
+## [2026-02-20] Landing Page Stats — Total Counts + Visibility Fix
+
+### Changed
+- **Home.jsx** — Hero 4-stat grid now shows total platform activity counts (`totalFlashcards`, `totalNotes` — all visibility levels). Relabeled from "Flashcards" / "Notes" to "Flashcards Created" / "Notes Uploaded".
+- **Home.jsx** — Educator section retains public-only counts. Relabeled from "Verified Flashcards" / "Study Notes" to "Flashcards to Browse" / "Notes to Browse" to set accurate expectations for new users.
+- **Home.jsx** — Hero social proof line updated from "X+ items shared" to "X+ items created" (matches total count semantics).
+
+### Fixed
+- **Home.jsx** — Public flashcard and note count queries were using legacy `is_public = true` column. Changed to `visibility = 'public'` (source of truth since Jan 2026 migration). This was silently returning incorrect counts.
+
+### Files Changed
+- `src/pages/Home.jsx`
+
+---
 ## [2026-02-20] Fix: Activity Feed "View" Button Crash
 
 ### Fixed

@@ -7,6 +7,13 @@
 
 ## Just Completed ✅
 
+### Landing Page Stats — Total Counts + Visibility Fix (Feb 20, 2026)
+- [x] **Hero 4-stat grid:** Now shows total platform counts (`totalFlashcards`, `totalNotes`) — all visibility levels, not public-only. Relabeled "Flashcards Created" and "Notes Uploaded" (honest about what it represents)
+- [x] **Educator section:** Keeps public-only counts so new users see what they can actually browse. Relabeled "Flashcards to Browse" and "Notes to Browse" (sets correct expectations)
+- [x] **Hero social proof line:** Updated from "X+ items shared" → "X+ items created" to match total count semantics
+- [x] **Bug fix:** Public queries were using legacy `is_public = true` column — changed to `visibility = 'public'` (the correct source of truth since Jan 2026 migration)
+- [x] No database changes — frontend-only, 2 new Supabase count queries added
+
 ### Fix: Activity Feed "View" Button UUID Error (Feb 20, 2026)
 - [x] **Bug:** Clicking "View" on a note in the Recent Activity section caused "Page Not Found" with error "Invalid input syntax for type uuid: 'undefined'"
 - [x] **Root Cause:** `ActivityFeed.jsx` referenced `activity.content_id` but the `get_recent_activity_feed` RPC returns the UUID as `id` (consistent with all other RPCs). `activity.content_id` was always `undefined`, producing the URL `/dashboard/notes/undefined`.
