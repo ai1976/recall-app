@@ -1,11 +1,17 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-02-08
+**Last Updated:** 2026-02-20
 **Current Phase:** Study Groups (Phase 1: Read-Only) Complete
 
 ---
 
 ## Just Completed ✅
+
+### Fix: Activity Feed "View" Button UUID Error (Feb 20, 2026)
+- [x] **Bug:** Clicking "View" on a note in the Recent Activity section caused "Page Not Found" with error "Invalid input syntax for type uuid: 'undefined'"
+- [x] **Root Cause:** `ActivityFeed.jsx` referenced `activity.content_id` but the `get_recent_activity_feed` RPC returns the UUID as `id` (consistent with all other RPCs). `activity.content_id` was always `undefined`, producing the URL `/dashboard/notes/undefined`.
+- [x] **Fix:** Changed `activity.content_id` → `activity.id` in both the `handleActivityClick` navigate call and the React `key` prop
+- [x] No database changes — frontend-only fix in `ActivityFeed.jsx`
 
 ### Fix: card_count Double-Counting Bug + DB Trigger (Feb 12, 2026)
 - [x] **Diagnosed:** `card_count` in `flashcard_decks` was ~2x actual flashcard count for multiple students

@@ -1,6 +1,15 @@
 # Changelog
 
 ---
+## [2026-02-20] Fix: Activity Feed "View" Button Crash
+
+### Fixed
+- **ActivityFeed.jsx** — Clicking "View" on a note in the Recent Activity section navigated to `/dashboard/notes/undefined`, causing a Supabase UUID parse error ("invalid input syntax for type uuid: 'undefined'"). Root cause: component used `activity.content_id` but the `get_recent_activity_feed` RPC returns the identifier as `id`. Changed to `activity.id` in both the navigation handler and the React `key` prop.
+
+### Files Changed
+- `src/components/dashboard/ActivityFeed.jsx`
+
+---
 ## [2026-02-12] Fix: card_count Double-Counting + DB Trigger
 
 ### Fixed

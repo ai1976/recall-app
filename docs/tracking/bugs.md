@@ -2,6 +2,13 @@
 
 ## Resolved Bugs
 
+### [Feb 20, 2026] Activity Feed "View" Button — Invalid UUID Error
+- **Files:** `ActivityFeed.jsx`
+- **Issue:** Clicking "View" on any note in the Dashboard Recent Activity section showed "Page Not Found" with Supabase error "invalid input syntax for type uuid: 'undefined'"
+- **Root Cause:** `ActivityFeed.jsx` accessed `activity.content_id` for both the React key and the navigate call, but the `get_recent_activity_feed` RPC returns the note/deck UUID as `id` (consistent with all other RPCs in the codebase). `activity.content_id` was always `undefined`, so the URL became `/dashboard/notes/undefined`.
+- **Solution:** Changed `activity.content_id` → `activity.id` in two places: the `handleActivityClick` navigate call and the `key` prop on the activity row.
+- **Status:** ✅ RESOLVED
+
 ### [Feb 12, 2026] card_count Double-Counting in flashcard_decks
 - **Files:** `FlashcardCreate.jsx`, `flashcard_decks` table, `flashcards` table
 - **Issue:** Study mode showed ~2x the actual card count (e.g., 46 cards shown when student created 23). Affected multiple students across all their decks.

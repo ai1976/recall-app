@@ -40,7 +40,7 @@ export default function ActivityFeed({ limit = 5 }) {
   // Handle click on activity item
   const handleActivityClick = (activity) => {
     if (activity.content_type === 'note') {
-      navigate(`/dashboard/notes/${activity.content_id}`);
+      navigate(`/dashboard/notes/${activity.id}`);
     } else if (activity.content_type === 'deck') {
       // Navigate to flashcards filtered by subject
       navigate(`/dashboard/review-flashcards?subject=${encodeURIComponent(activity.subject)}`);
@@ -130,7 +130,7 @@ export default function ActivityFeed({ limit = 5 }) {
         <div className="divide-y">
           {activities.map((activity) => (
             <div
-              key={`${activity.content_type}-${activity.content_id}`}
+              key={`${activity.content_type}-${activity.id}`}
               className="flex items-center justify-between p-3 sm:p-4 hover:bg-accent/50 transition"
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
