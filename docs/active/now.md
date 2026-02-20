@@ -7,14 +7,6 @@
 
 ## Just Completed ✅
 
-### Dark Mode / Theme Toggle (Feb 20, 2026)
-- [x] Created `ThemeContext.jsx` — manages 'light' | 'dark' | 'system' state, persists to localStorage, applies `dark` class to `<html>`
-- [x] "System" mode listens to `prefers-color-scheme` media query and updates in real-time if OS theme changes
-- [x] Wrapped `App.jsx` with `<ThemeProvider>` (outermost wrapper, inside StrictMode)
-- [x] Added 3-option pill toggle (Light / System / Dark) to `ProfileDropdown.jsx` below user header
-- [x] Default: 'system' (first-time users follow their OS preference automatically)
-- [x] No database changes — per-device preference via localStorage
-
 ### Landing Page Stats — Total Counts + Visibility Fix (Feb 20, 2026)
 - [x] **Hero 4-stat grid:** Now shows true platform-wide totals (1383 flashcards, 38 notes) via `get_platform_stats()` SECURITY DEFINER RPC — bypasses RLS so unauthenticated visitors see real counts, not just public content
 - [x] **Educator section:** Keeps public-only counts (458 flashcards, 34 notes) so new users see what they can actually browse. Relabeled "Flashcards to Browse" and "Notes to Browse"
