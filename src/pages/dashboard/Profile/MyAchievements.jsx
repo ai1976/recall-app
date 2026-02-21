@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useBadges } from '@/hooks/useBadges';
 import BadgeCard from '@/components/badges/BadgeCard';
 import BadgeIcon from '@/components/badges/BadgeIcon';
-import { Trophy, Flame, BookOpen, Users } from 'lucide-react';
+import { Trophy, Flame, BookOpen, Users, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import PageContainer from '@/components/layout/PageContainer';
 
@@ -78,62 +78,61 @@ export default function MyAchievements() {
       if (!user) return;
 
       try {
-        const [notesResult, flashcardsResult, streakResult, upvotesResult] = await Promise.all([
+        const [statsResult, streakResult, subjectResult] = await Promise.all([
+          // Single-row O(1) lookup replaces multiple COUNT(*) aggregations
           supabase
-            .from('notes')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id),
-          
+            .from('user_stats')
+            .select('total_notes, total_flashcards, total_reviews, total_upvotes_given, total_upvotes_received, total_friends')
+            .eq('user_id', user.id)
+            .single(),
+
+          supabase.rpc('get_user_streak', { p_user_id: user.id }),
+
+          // For subject_expert: find max flashcard count across subjects
           supabase
             .from('flashcards')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id),
-          
-          supabase.rpc('get_user_streak', { p_user_id: user.id }),
-          
-          Promise.all([
-            supabase
-              .from('notes')
-              .select('id')
-              .eq('user_id', user.id),
-            supabase
-              .from('flashcard_decks')
-              .select('id')
-              .eq('user_id', user.id)
-          ]).then(async ([notesRes, decksRes]) => {
-            const noteIds = notesRes.data?.map(n => n.id) || [];
-            const deckIds = decksRes.data?.map(d => d.id) || [];
-            
-            let totalUpvotes = 0;
-            
-            if (noteIds.length > 0) {
-              const { count: noteUpvotes } = await supabase
-                .from('upvotes')
-                .select('id', { count: 'exact', head: true })
-                .eq('content_type', 'note')
-                .in('target_id', noteIds);
-              totalUpvotes += noteUpvotes || 0;
-            }
-            
-            if (deckIds.length > 0) {
-              const { count: deckUpvotes } = await supabase
-                .from('upvotes')
-                .select('id', { count: 'exact', head: true })
-                .eq('content_type', 'flashcard_deck')
-                .in('target_id', deckIds);
-              totalUpvotes += deckUpvotes || 0;
-            }
-            
-            return totalUpvotes;
-          })
+            .select('subject_id')
+            .eq('user_id', user.id)
+            .not('subject_id', 'is', null),
         ]);
 
+        const stats = statsResult.data || {};
+        const streak = streakResult.data || 0;
+
+        // Calculate max cards in a single subject
+        let maxSubjectCount = 0;
+        if (subjectResult.data && subjectResult.data.length > 0) {
+          const subjectCounts = {};
+          subjectResult.data.forEach(({ subject_id }) => {
+            subjectCounts[subject_id] = (subjectCounts[subject_id] || 0) + 1;
+          });
+          maxSubjectCount = Math.max(...Object.values(subjectCounts));
+        }
+
         setProgress({
-          digitalizer: notesResult.count || 0,
-          memory_architect: flashcardsResult.count || 0,
-          streak_master: streakResult.data || 0,
-          night_owl: 0,
-          rising_star: upvotesResult || 0
+          // Phase 1E badges
+          digitalizer:      stats.total_notes || 0,
+          memory_architect: stats.total_flashcards || 0,
+          streak_master:    streak,
+          night_owl:        0,
+          rising_star:      stats.total_upvotes_received || 0,
+          // Phase 1F - Content Creator
+          prolific_writer:  stats.total_notes || 0,
+          deck_builder:     stats.total_flashcards || 0,
+          subject_expert:   maxSubjectCount,
+          // Phase 1F - Study Habits
+          first_steps:      stats.total_reviews || 0,
+          committed_learner: streak,
+          monthly_master:   streak,
+          early_bird:       0,
+          century_club:     stats.total_reviews || 0,
+          review_veteran:   stats.total_reviews || 0,
+          // Phase 1F - Social
+          social_learner:   stats.total_friends || 0,
+          community_pillar: stats.total_friends || 0,
+          helpful_peer:     stats.total_upvotes_given || 0,
+          // Phase 1F - Special
+          pioneer:          0,
         });
 
       } catch (err) {
@@ -163,8 +162,9 @@ export default function MyAchievements() {
 
   const categoryInfo = {
     content: { name: 'Content Creator', icon: BookOpen, color: 'text-blue-600' },
-    study: { name: 'Study Habits', icon: Flame, color: 'text-orange-600' },
-    social: { name: 'Community', icon: Users, color: 'text-purple-600' }
+    study:   { name: 'Study Habits',    icon: Flame,    color: 'text-orange-600' },
+    social:  { name: 'Community',       icon: Users,    color: 'text-purple-600' },
+    special: { name: 'Special',         icon: Star,     color: 'text-yellow-600' },
   };
 
   // Count public badges

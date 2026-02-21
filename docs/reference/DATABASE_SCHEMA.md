@@ -25,7 +25,7 @@
 ## 1. OVERVIEW
 
 ### Quick Stats
-- **Total Tables:** 20 ⭐ (was 19, added notifications table)
+- **Total Tables:** 21 ⭐ (was 20, added user_stats table)
 - **Custom Functions:** 5 ⭐ (added get_author_profile, get_author_content_summary)
 - **RLS Policies:** 24
 - **Indexes:** 53+ ⭐ (was 50+, added 3 indexes)
@@ -1663,6 +1663,20 @@ LIMIT 10;
 
 **Purpose:** Quick reference for what changed and when
 
+### February 21, 2026 (Phase 1F - Extended Badge System)
+- ✅ Created `user_stats` table (user_id PK, total_notes, total_flashcards, total_reviews, total_upvotes_given, total_upvotes_received, total_friends, updated_at) — O(1) counter lookups replace O(n) COUNT(*) in badge triggers
+- ✅ RLS on user_stats: users SELECT own row; all writes via SECURITY DEFINER triggers
+- ✅ Initialized user_stats rows for all existing users; backfilled counters from live data
+- ✅ Created 5 counter triggers (trg_aaa_counter_notes/flashcards/reviews/upvotes/friendships) — named trg_aaa_* to fire before trg_badge_* alphabetically
+- ✅ Updated badge_definitions.category CHECK constraint to include 'special' (was content/study/social only)
+- ✅ Inserted 13 new badge definitions (order_num 10–22): prolific_writer, deck_builder, subject_expert, first_steps, committed_learner, monthly_master, early_bird, century_club, review_veteran, social_learner, community_pillar, helpful_peer, pioneer
+- ✅ Updated award_badge(): night_owl + early_bird default to is_public=FALSE; uses RETURNING id for idempotency
+- ✅ Updated 4 badge trigger functions (fn_badge_check_notes/flashcards/reviews/upvotes) to read user_stats instead of COUNT(*)
+- ✅ Created 2 new badge trigger functions: fn_badge_check_friendships (social_learner, community_pillar), fn_badge_check_new_profile (initializes user_stats + awards pioneer)
+- ✅ Created 2 new triggers: trg_badge_friendship (friendships AFTER UPDATE), trg_badge_new_profile (profiles AFTER INSERT)
+- ✅ Awarded retroactive badges to qualifying existing users via backfill
+- ✅ Total tables: 20 → 21 (added user_stats)
+
 ### February 6, 2026 (Group Invitation Flow + Notification Backend)
 - ✅ Created `notifications` table (id, user_id, type, title, message, is_read, metadata JSONB, created_at)
 - ✅ Created 5 notification RPCs (get_unread_count, get_recent, mark_all_read, mark_single_read, delete) + cleanup utility
@@ -1961,7 +1975,27 @@ Groups flashcards into logical decks by user/subject/topic. Enables upvoting at 
 
 ---
 
-## Achievement Badges Tables (Phase 1E)
+## Achievement Badges Tables (Phase 1E + 1F)
+
+### user_stats ⭐ NEW (Phase 1F)
+Per-user integer counters for O(1) badge eligibility checks. Eliminates COUNT(*) aggregations from badge triggers, preventing bulk upload crashes.
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| user_id | UUID | NO | - | PK + FK → profiles.id ON DELETE CASCADE |
+| total_notes | INTEGER | NO | 0 | Total notes uploaded |
+| total_flashcards | INTEGER | NO | 0 | Total flashcards created |
+| total_reviews | INTEGER | NO | 0 | Total reviews completed |
+| total_upvotes_given | INTEGER | NO | 0 | Total upvotes the user has given |
+| total_upvotes_received | INTEGER | NO | 0 | Total upvotes received on user's content |
+| total_friends | INTEGER | NO | 0 | Accepted friendships count |
+| updated_at | TIMESTAMPTZ | NO | NOW() | Last counter update |
+
+**RLS Policies:** Users can SELECT own row only. All writes via SECURITY DEFINER trigger functions (bypass RLS).
+**Maintained by:** Counter triggers `trg_aaa_counter_*` (fire before badge triggers alphabetically).
+**Initialized:** Row created on profiles INSERT via `trg_badge_new_profile`. Backfilled for existing users.
+
+---
 
 ### badge_definitions
 Static reference table for all achievement badges.
@@ -1973,11 +2007,13 @@ Static reference table for all achievement badges.
 | name | TEXT | NO | - | Display name |
 | description | TEXT | NO | - | Badge description |
 | icon_key | TEXT | NO | - | Maps to Lucide icon |
-| category | TEXT | NO | - | 'content', 'study', 'social' |
+| category | TEXT | NO | - | 'content', 'study', 'social', 'special' ⭐ |
 | threshold | INTEGER | NO | 1 | Target number to earn |
 | is_active | BOOLEAN | YES | true | Whether badge is active |
 | order_num | INTEGER | YES | 0 | Display order |
 | created_at | TIMESTAMP | YES | now() | Created timestamp |
+
+**⭐ Phase 1F:** category CHECK constraint updated to include 'special' (was only content/study/social).
 
 ### user_badges
 Tracks which badges each user has earned.
@@ -2015,45 +2051,85 @@ Logs daily activity for streak and time-based badge calculations.
 
 | Function | Parameters | Returns | Description |
 |----------|------------|---------|-------------|
-| award_badge | p_user_id, p_badge_key | BOOLEAN | Awards badge, returns true if new |
-| log_review_activity | p_user_id, p_review_timestamp | VOID | Logs activity with IST conversion |
-| get_user_streak | p_user_id | INTEGER | Consecutive study days |
-| is_night_owl_hour | p_hour | BOOLEAN | True if 23 or 0-4 |
-| get_user_badges | p_user_id | TABLE | All badges with is_public |
+| award_badge | p_user_id, p_badge_key | BOOLEAN | Awards badge idempotently. night_owl + early_bird default private. ⭐ Updated Phase 1F |
+| log_review_activity | p_user_id, p_review_timestamp | VOID | Logs activity with user's stored timezone |
+| get_user_streak | p_user_id | INTEGER | Consecutive study days in user's local timezone |
+| is_night_owl_hour | p_hour | BOOLEAN | True if hour is 23 or 0-4 |
+| get_user_badges | p_user_id | TABLE | All badges with is_public flag |
 | get_public_user_badges | p_user_id | TABLE | Only public badges |
-| get_unnotified_badges | p_user_id | TABLE | Unnotified badges, marks notified |
+| get_unnotified_badges | p_user_id | TABLE | Unnotified badges, marks as notified |
+| fn_update_notes_counter | — | TRIGGER | Increments/decrements user_stats.total_notes ⭐ Phase 1F |
+| fn_update_flashcards_counter | — | TRIGGER | Increments/decrements user_stats.total_flashcards ⭐ Phase 1F |
+| fn_update_reviews_counter | — | TRIGGER | Increments/decrements user_stats.total_reviews ⭐ Phase 1F |
+| fn_update_upvotes_counter | — | TRIGGER | Increments upvotes_given (upvoter) + upvotes_received (owner) ⭐ Phase 1F |
+| fn_update_friendships_counter | — | TRIGGER | Increments/decrements total_friends for both users ⭐ Phase 1F |
+| fn_badge_check_notes | — | TRIGGER | Reads user_stats; awards digitalizer + prolific_writer ⭐ Phase 1F |
+| fn_badge_check_flashcards | — | TRIGGER | Reads user_stats; awards memory_architect + deck_builder + subject_expert ⭐ Phase 1F |
+| fn_badge_check_reviews | — | TRIGGER | Reads user_stats; awards all review + streak + time-based badges ⭐ Phase 1F |
+| fn_badge_check_upvotes | — | TRIGGER | Reads user_stats; awards helpful_peer + rising_star ⭐ Phase 1F |
+| fn_badge_check_friendships | — | TRIGGER | Reads user_stats; awards social_learner + community_pillar ⭐ Phase 1F |
+| fn_badge_check_new_profile | — | TRIGGER | Initializes user_stats row; awards pioneer if pre-March 2026 ⭐ Phase 1F |
+
+### award_badge(p_user_id UUID, p_badge_key TEXT)
+**Updated:** 2026-02-21 (Phase 1F)
+**Key changes:**
+- night_owl and early_bird badges awarded with `is_public = FALSE` by default
+- Uses `INSERT ... ON CONFLICT DO NOTHING RETURNING id` — race-condition safe, returns TRUE only on new award
 
 ---
 
 ## Badge-Related Triggers
 
+### Counter Triggers (fire FIRST — named trg_aaa_* for alphabetical priority)
+
 | Trigger | Table | Event | Function |
 |---------|-------|-------|----------|
-| trg_badge_note_upload | notes | AFTER INSERT | Checks digitalizer |
-| trg_badge_flashcard_create | flashcards | AFTER INSERT | Checks memory_architect |
-| trg_badge_review | reviews | AFTER INSERT | Logs activity, checks streak_master & night_owl |
-| trg_badge_upvote | upvotes | AFTER INSERT | Checks rising_star |
+| trg_aaa_counter_notes | notes | AFTER INSERT OR DELETE | fn_update_notes_counter |
+| trg_aaa_counter_flashcards | flashcards | AFTER INSERT OR DELETE | fn_update_flashcards_counter |
+| trg_aaa_counter_reviews | reviews | AFTER INSERT OR DELETE | fn_update_reviews_counter |
+| trg_aaa_counter_upvotes | upvotes | AFTER INSERT OR DELETE | fn_update_upvotes_counter |
+| trg_aaa_counter_friendships | friendships | AFTER UPDATE OR DELETE | fn_update_friendships_counter |
 
-### log_review_activity(p_user_id UUID, p_review_timestamp TIMESTAMPTZ)
-**Purpose:** Logs review activity with timezone-aware local date/hour
-**Security:** DEFINER
-**Updated:** 2026-01-30 (Now uses stored user timezone)
+### Badge Award Triggers (fire SECOND — named trg_badge_*)
 
-**Changes:**
-- Fetches user's timezone from `profiles.timezone`
-- Converts UTC timestamp to user's local timezone
-- Extracts local date and hour for accurate activity logging
+| Trigger | Table | Event | Function | Badges Checked |
+|---------|-------|-------|----------|----------------|
+| trg_badge_note_upload | notes | AFTER INSERT | fn_badge_check_notes | digitalizer, prolific_writer |
+| trg_badge_flashcard_create | flashcards | AFTER INSERT | fn_badge_check_flashcards | memory_architect, deck_builder, subject_expert |
+| trg_badge_review | reviews | AFTER INSERT | fn_badge_check_reviews | first_steps, streak_master, committed_learner, monthly_master, night_owl, early_bird, century_club, review_veteran |
+| trg_badge_upvote | upvotes | AFTER INSERT | fn_badge_check_upvotes | helpful_peer, rising_star |
+| trg_badge_friendship | friendships | AFTER UPDATE | fn_badge_check_friendships | social_learner, community_pillar ⭐ NEW |
+| trg_badge_new_profile | profiles | AFTER INSERT | fn_badge_check_new_profile | pioneer ⭐ NEW |
 
-### check_night_owl_badge()
-**Purpose:** Trigger function to award Night Owl badge for late-night reviews
-**Security:** DEFINER
-**Updated:** 2026-01-30 (Now uses stored user timezone)
+**Trigger ordering:** PostgreSQL fires triggers alphabetically by name within the same table/event. `trg_aaa_*` always fires before `trg_badge_*`, ensuring counters are updated before badge checks read them.
 
-**Logic:**
-- Gets user's stored timezone from profiles
-- Converts review timestamp to user's local time
-- Checks if hour is 23 (11 PM) or 0-4 (midnight to 4 AM)
-- Awards 'night_owl' badge if true
+---
+
+## Badge Catalogue (Phase 1E + 1F)
+
+| Key | Name | Category | Threshold | Icon | Default Privacy |
+|-----|------|----------|-----------|------|----------------|
+| digitalizer | Digitalizer | content | 1 note | upload | public |
+| memory_architect | Memory Architect | content | 10 flashcards | brain | public |
+| prolific_writer | Prolific Writer | content | 5 notes | file-text | public |
+| deck_builder | Deck Builder | content | 50 flashcards | layers | public |
+| subject_expert | Subject Expert | content | 20 cards/subject | graduation-cap | public |
+| streak_master | Streak Master | study | 3-day streak | flame | public |
+| first_steps | First Steps | study | 1 review | footprints | public |
+| committed_learner | Committed Learner | study | 7-day streak | calendar-check | public |
+| monthly_master | Monthly Master | study | 30-day streak | calendar-range | public |
+| night_owl | Night Owl | study | review 11PM-4AM | moon | **private** |
+| early_bird | Early Bird | study | review 5-7AM | sunrise | **private** |
+| century_club | Century Club | study | 100 reviews | award | public |
+| review_veteran | Review Veteran | study | 500 reviews | medal | public |
+| rising_star | Rising Star | social | 5 upvotes received | star | public |
+| helpful_peer | Helpful Peer | social | 10 upvotes given | thumbs-up | public |
+| social_learner | Social Learner | social | 3 friends | users | public |
+| community_pillar | Community Pillar | social | 10 friends | heart-handshake | public |
+| pioneer | Pioneer | special | pre-March 2026 | flag | public |
+
+---
+
 **END OF DATABASE_SCHEMA.md**
 
 *This document saved you 2+ hours of debugging. Keep it updated!* 🎯

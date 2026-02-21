@@ -1,6 +1,29 @@
 # Changelog
 
 ---
+## [2026-02-21] Phase 1F - Extended Badge System with Performance Optimizations
+
+### Added
+- **`user_stats` table** — Integer counters (total_notes, total_flashcards, total_reviews, total_upvotes_given, total_upvotes_received, total_friends) per user. O(1) badge checks vs O(n) COUNT(*). RLS: users read own row only; all writes via SECURITY DEFINER triggers.
+- **5 counter triggers** (`trg_aaa_counter_notes/flashcards/reviews/upvotes/friendships`) — Increment/decrement counters on INSERT/DELETE. Named `trg_aaa_*` to fire before `trg_badge_*` alphabetically.
+- **13 new badge definitions** — prolific_writer (5 notes), deck_builder (50 flashcards), subject_expert (20 cards/subject), first_steps (1 review), committed_learner (7-day streak), monthly_master (30-day streak), early_bird (5-7 AM review), century_club (100 reviews), review_veteran (500 reviews), social_learner (3 friends), community_pillar (10 friends), helpful_peer (10 upvotes given), pioneer (pre-March 2026 signup).
+- **`trg_badge_friendship`** — New trigger on friendships UPDATE → awards social_learner and community_pillar for both users when friendship becomes accepted.
+- **`trg_badge_new_profile`** — New trigger on profiles INSERT → initializes user_stats row + awards pioneer badge if registered before March 2026.
+- **`BadgeIcon.jsx`** — 13 new icon mappings: FileText (teal), Layers (cyan), GraduationCap (violet), Footprints (green), CalendarCheck (emerald), CalendarRange (amber), Sunrise (rose), Award (sky), Medal (amber-700), Users (blue-400), HeartHandshake (pink), ThumbsUp (lime), Flag (red).
+
+### Changed
+- **`award_badge()` DB function** — night_owl and early_bird now default to `is_public = FALSE`. Uses `RETURNING id` pattern for accurate new-badge detection.
+- **`fn_badge_check_notes()`** — Reads `user_stats.total_notes` instead of `COUNT(notes)`. Adds prolific_writer check.
+- **`fn_badge_check_flashcards()`** — Reads `user_stats.total_flashcards` instead of `COUNT(flashcards)`. Adds deck_builder and subject_expert (subject-scoped COUNT only).
+- **`fn_badge_check_reviews()`** — Full rewrite: reads `user_stats.total_reviews`, adds first_steps/century_club/review_veteran/committed_learner/monthly_master/early_bird. Timezone from `profiles.timezone`.
+- **`fn_badge_check_upvotes()`** — Reads `user_stats.total_upvotes_given/received` instead of subquery COUNT. Adds helpful_peer check.
+- **`MyAchievements.jsx`** — Added `special` category to `categoryInfo` (Star icon). Replaced 5 parallel COUNT queries with single `user_stats` read + streak call + subject grouping.
+
+### Files Changed
+- `src/components/badges/BadgeIcon.jsx`
+- `src/pages/dashboard/Profile/MyAchievements.jsx`
+
+---
 ## [2026-02-20] Fix: Content Type Selector Missing on Upload Note
 
 ### Fixed

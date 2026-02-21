@@ -1,11 +1,32 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-02-20
-**Current Phase:** Study Groups (Phase 1: Read-Only) Complete
+**Last Updated:** 2026-02-21
+**Current Phase:** Phase 1F - Extended Badge System
 
 ---
 
 ## Just Completed ✅
+
+### Phase 1F - Extended Badge System with Performance Optimizations (Feb 21, 2026)
+- [x] **Scalability fix:** Created `user_stats` table with integer counters — badge checks now O(1) instead of O(n) COUNT(*). Prevents bulk upload crash.
+- [x] **Counter triggers:** 5 new triggers (`trg_aaa_counter_*`) on notes/flashcards/reviews/upvotes/friendships — alphabetically before badge triggers.
+- [x] **13 new badges:** prolific_writer, deck_builder, subject_expert, first_steps, committed_learner, monthly_master, early_bird, century_club, review_veteran, social_learner, community_pillar, helpful_peer, pioneer.
+- [x] **Timezone support:** Night Owl + Early Bird use `profiles.timezone` (already existed). No IST hardcoding.
+- [x] **Race condition fix:** `award_badge` uses `INSERT ... ON CONFLICT DO NOTHING` — safe for concurrent calls.
+- [x] **Default privacy:** night_owl and early_bird are private by default in updated `award_badge`.
+- [x] **Pioneer badge:** Awarded via profile INSERT trigger for new users + backfill for all existing users.
+- [x] **Friendship trigger:** `trg_badge_friendship` on friendships UPDATE for social badges.
+- [x] **Frontend — BadgeIcon.jsx:** Added 13 new icon mappings (FileText, Layers, GraduationCap, Footprints, CalendarCheck, CalendarRange, Sunrise, Award, Medal, Users, HeartHandshake, ThumbsUp, Flag).
+- [x] **Frontend — MyAchievements.jsx:** Added `special` category, replaced 5 separate COUNT queries with single `user_stats` read + streak call.
+- [x] SQL scripts in `docs/sql/phase1f/` (6 files, run in order 01→06).
+
+### SQL Execution Order
+1. `01_schema.sql` — Create user_stats table + RLS + initialize rows
+2. `05_award_badge.sql` — Update award_badge (badge triggers depend on it)
+3. `02_counter_triggers.sql` — Counter trigger functions + triggers
+4. `03_badge_definitions.sql` — Insert 13 new badge definitions
+5. `04_badge_triggers.sql` — Updated badge trigger functions + triggers
+6. `06_backfill.sql` — Populate user_stats + award retroactive badges
 
 ### Fix: Content Type Selector Missing on Upload Note (Feb 20, 2026)
 - [x] **Bug:** Content Type buttons (Text, Table, Math, Diagram, Mixed) were only shown in Edit Note, not in Upload Note
