@@ -16,7 +16,9 @@ import {
   Network,
   HelpCircle,
   Settings,
+  GraduationCap,
 } from 'lucide-react';
+import { useCourseContext } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -45,6 +47,9 @@ export default function NavMobile({
 }) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+
+  // Course context for professors/admins
+  const { teachingCourses, activeCourse, setActiveCourse, isContentCreator } = useCourseContext();
 
   // Navigate and close sheet
   const handleNavClick = (path) => {
@@ -147,6 +152,49 @@ export default function NavMobile({
                         <LayoutDashboard className="h-5 w-5 text-gray-500" />
                         <span className="text-sm font-medium text-gray-900">Dashboard</span>
                       </button>
+
+                      {/* Course Context Switcher — professors/admins with 2+ courses */}
+                      {isContentCreator && teachingCourses.length > 1 && (
+                        <>
+                          <div className="px-4 py-2 mt-2">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                              <GraduationCap className="h-4 w-4" />
+                              Course Context
+                            </p>
+                          </div>
+                          {teachingCourses.map((course) => {
+                            const name     = course.disciplines.name;
+                            const isActive = name === activeCourse;
+                            return (
+                              <button
+                                key={course.id}
+                                onClick={() => {
+                                  setActiveCourse(name);
+                                  setOpen(false);
+                                }}
+                                className={`w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50 ${
+                                  isActive ? 'bg-indigo-50' : ''
+                                }`}
+                              >
+                                <span
+                                  className={`h-2 w-2 rounded-full flex-shrink-0 ${
+                                    isActive ? 'bg-indigo-500' : 'bg-gray-300'
+                                  }`}
+                                />
+                                <span className={`text-sm flex-1 ${isActive ? 'text-indigo-700 font-medium' : 'text-gray-700'}`}>
+                                  {name}
+                                </span>
+                                {isActive && (
+                                  <span className="text-[10px] font-medium text-indigo-600">Active</span>
+                                )}
+                                {course.is_primary && !isActive && (
+                                  <span className="text-[10px] text-gray-400">Primary</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </>
+                      )}
 
                       {/* Study Section */}
                       <div className="px-4 py-2 mt-2">

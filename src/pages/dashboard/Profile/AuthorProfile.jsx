@@ -35,6 +35,7 @@ export default function AuthorProfile() {
   const [friendshipData, setFriendshipData] = useState(null);
   const [contentSummary, setContentSummary] = useState([]);
   const [otherCourses, setOtherCourses] = useState([]);
+  const [teachingCourses, setTeachingCourses] = useState([]); // array of course name strings
   const [sendingRequest, setSendingRequest] = useState(false);
   const [collapsedCourses, setCollapsedCourses] = useState({});
   const [showPreview, setShowPreview] = useState(false);
@@ -100,6 +101,9 @@ export default function AuthorProfile() {
         setFriendshipStatus(null);
         setFriendshipData(null);
       }
+
+      // Set teaching courses (from updated get_author_profile RPC — array of strings)
+      setTeachingCourses(profileData?.teaching_courses || []);
 
       // Set content
       setContentSummary(contentData?.accessible || []);
@@ -254,9 +258,22 @@ export default function AuthorProfile() {
               {profile.institution && (
                 <p className="text-gray-600 mt-1">{profile.institution}</p>
               )}
-              {profile.course_level && (
+
+              {/* Teaching courses for professors/admins; course_level for students */}
+              {teachingCourses.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {teachingCourses.map((courseName) => (
+                    <span
+                      key={courseName}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200"
+                    >
+                      {courseName}
+                    </span>
+                  ))}
+                </div>
+              ) : profile.course_level ? (
                 <p className="text-sm text-gray-500 mt-0.5">{profile.course_level}</p>
-              )}
+              ) : null}
 
               {/* Badges — only public badges shown here; manage privacy in My Achievements */}
               {publicBadges.length > 0 && (

@@ -496,4 +496,28 @@ git push
 
 ---
 
+---
+## 🔧 RECENTLY MODIFIED (Feb 21, 2026) - Phase A: Professor Multi-Course
+
+### New Files:
+- ✅ `src/contexts/CourseContext.jsx` (NEW — multi-course teaching context for professors/admins)
+- ✅ `src/components/layout/CourseSwitcher.jsx` (NEW — indigo pill dropdown in nav bar)
+- ✅ `docs/database/multi-course/01_SCHEMA_profile_courses.sql` (NEW — table + RLS)
+- ✅ `docs/database/multi-course/02_BACKFILL_professors_admins.sql` (NEW — one-time migration)
+- ✅ `docs/database/multi-course/03_DISCIPLINES_verify_active.sql` (NEW — diagnostic)
+- ✅ `docs/database/multi-course/04_FUNCTION_update_get_author_profile.sql` (NEW — updated RPC)
+
+### Changes:
+- ✅ `src/App.jsx` (Added CourseContextProvider import + wrapping)
+- ✅ `src/components/layout/NavDesktop.jsx` (Added CourseSwitcher to right section)
+- ✅ `src/components/layout/NavMobile.jsx` (Added Course Context section in hamburger sheet)
+- ✅ `src/pages/dashboard/Profile/ProfileSettings.jsx` (Added Teaching Areas card for professors/admins)
+- ✅ `src/pages/dashboard/Profile/AuthorProfile.jsx` (Shows teaching courses as indigo chips)
+- ✅ `src/pages/Dashboard.jsx` (Class stats use activeCourse from context; reactive useEffect for course switch)
+
+### New Key File Locations:
+- **Course Context:** `src/contexts/CourseContext.jsx`
+- **Course Switcher UI:** `src/components/layout/CourseSwitcher.jsx`
+- **Multi-course SQL:** `docs/database/multi-course/` (4 files)
+
 **END OF FILE STRUCTURE DOCUMENT**

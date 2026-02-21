@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useCourseContext } from '@/contexts/CourseContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -76,6 +77,11 @@ const formatLocalDate = (date) => {
 export default function Dashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+
+  // activeCourse from CourseContext — lets professors switch class stats by course
+  const { activeCourse } = useCourseContext();
+  // Track initial mount so the activeCourse effect doesn't double-fetch on first load
+  const isInitialMount = useRef(true);
   
   // User info
   const [userName, setUserName] = useState('');
@@ -133,6 +139,19 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Re-fetch class stats when a professor/admin switches active course context
+  // Skip the very first render (fetchDashboardData already handles initial load)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (activeCourse) {
+      fetchClassStats(activeCourse);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCourse]);
+
   const fetchDashboardData = async () => {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -167,10 +186,12 @@ export default function Dashboard() {
       }
 
       // Fetch all data in parallel
+      // For professors/admins: activeCourse may override profile.course_level for class stats
+      const courseForStats = activeCourse || profile?.course_level;
       await Promise.all([
         fetchPersonalStats(authUser.id),
         fetchContentCounts(authUser.id),
-        fetchClassStats(profile?.course_level)
+        fetchClassStats(courseForStats)
       ]);
 
       // Determine if new user

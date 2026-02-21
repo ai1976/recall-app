@@ -25,7 +25,7 @@
 ## 1. OVERVIEW
 
 ### Quick Stats
-- **Total Tables:** 21 ⭐ (was 20, added user_stats table)
+- **Total Tables:** 22 ⭐ (was 21, added profile_courses table)
 - **Custom Functions:** 5 ⭐ (added get_author_profile, get_author_content_summary)
 - **RLS Policies:** 24
 - **Indexes:** 53+ ⭐ (was 50+, added 3 indexes)
@@ -48,6 +48,13 @@
 
 ### Revenue Tracking ⭐ NEW
 - **content_creators** - Content creators for revenue sharing (Vivitsu, professors)
+
+### Multi-Course Teaching ⭐ NEW (Feb 21, 2026)
+- **profile_courses** - Junction table: professors/admins/super_admins → multiple disciplines
+  - `profiles.course_level` kept as "primary course" for backward compat with all RLS
+  - `profile_courses` is additive — extends, does not replace, `course_level`
+  - `is_primary = TRUE` row always synced with `profiles.course_level` via `setPrimaryCourse()`
+  - SQL: `docs/database/multi-course/` (4 files, run in order 01→04)
 
 ### Supporting Tables
 - **comments** - Comments on shared notes

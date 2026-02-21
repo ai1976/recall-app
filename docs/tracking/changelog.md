@@ -1,6 +1,31 @@
 # Changelog
 
 ---
+## [2026-02-21] Phase A: Professor Multi-Course — Teaching Areas + Course Context Switcher
+
+### Added
+- **`src/contexts/CourseContext.jsx`** (NEW) — React context managing `teachingCourses` (from `profile_courses` table) and `activeCourse` (session-only string). Exposes `addCourse(disciplineId)`, `removeCourse(profileCourseId)`, `setPrimaryCourse(id, name)`. `setPrimaryCourse` writes both `profile_courses.is_primary` and `profiles.course_level` (backward compat constraint). Runs for all users; relevant data only populated for `professor/admin/super_admin`.
+- **`src/components/layout/CourseSwitcher.jsx`** (NEW) — Compact indigo pill dropdown rendered in the navigation bar. Session-only course switcher for professors/admins with 2+ teaching courses. Shows active/primary status. Renders nothing for students or single-course users.
+- **`docs/database/multi-course/01_SCHEMA_profile_courses.sql`** (NEW) — `profile_courses` table with `(user_id, discipline_id, is_primary, created_at)`, UNIQUE constraint, 2 indexes, 5 RLS policies.
+- **`docs/database/multi-course/02_BACKFILL_professors_admins.sql`** (NEW) — One-time backfill seeds `profile_courses` from `profiles.course_level` for all professors/admins/super_admins.
+- **`docs/database/multi-course/03_DISCIPLINES_verify_active.sql`** (NEW) — Diagnostic query to confirm CA Foundation/Intermediate/Final exist and are `is_active = TRUE` before backfill.
+- **`docs/database/multi-course/04_FUNCTION_update_get_author_profile.sql`** (NEW) — Updated `get_author_profile()` RPC. Adds `teaching_courses` JSON array (strings, primary first). All existing keys unchanged — backward compatible.
+
+### Changed
+- **`src/App.jsx`** — Added `CourseContextProvider` import. Wrapped app tree inside `<CourseContextProvider>` (nested inside `<AuthProvider>`, outside `<BrowserRouter>`).
+- **`src/components/layout/NavDesktop.jsx`** — Added `CourseSwitcher` import. Rendered as first element of the right icon section (before FriendsDropdown).
+- **`src/components/layout/NavMobile.jsx`** — Added `GraduationCap` icon import and `useCourseContext` import. Added "Course Context" section in the sheet's scrollable nav area (before Study section). Flat tappable rows — no nested dropdowns on mobile.
+- **`src/pages/dashboard/Profile/ProfileSettings.jsx`** — Added `useCourseContext` import + `Plus/X/Star/GraduationCap` icon imports. Added Teaching Areas state (`allDisciplines`, `selectedNewCourse`, `addingCourse`, `removingId`, `settingPrimaryId`). Added `useEffect` to fetch active disciplines for professors/admins. Added `handleAddCourse`, `handleRemoveCourse`, `handleSetPrimary` handlers. Added "My Teaching Areas" card (visible only to `isContentCreator`). `courseLoading` from context included in initial loading gate.
+- **`src/pages/dashboard/Profile/AuthorProfile.jsx`** — Added `teachingCourses` state. Extracts `profileData?.teaching_courses` from `get_author_profile` RPC response. Profile header now renders indigo chips for all teaching courses (for professors/admins) or falls back to single `course_level` text (for students).
+- **`src/pages/Dashboard.jsx`** — Added `useRef` import + `useCourseContext` import. Added `activeCourse` + `isInitialMount` ref. `fetchClassStats` now uses `activeCourse || profile?.course_level`. Added second `useEffect` that watches `activeCourse` and re-fetches class stats on course switch (skips initial mount to prevent double-fetch).
+
+### Database Migration — Run in Order
+1. `docs/database/multi-course/03_DISCIPLINES_verify_active.sql` (diagnostic first)
+2. `docs/database/multi-course/01_SCHEMA_profile_courses.sql`
+3. `docs/database/multi-course/02_BACKFILL_professors_admins.sql`
+4. `docs/database/multi-course/04_FUNCTION_update_get_author_profile.sql`
+
+---
 ## [2026-02-21] UX: Consistent Notes → Flashcards Ordering in Dashboard Quick Actions
 
 ### Changed

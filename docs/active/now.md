@@ -1,11 +1,30 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-02-21
-**Current Phase:** Phase 1F - Extended Badge System
+**Current Phase:** Phase A - Professor Multi-Course
 
 ---
 
 ## Just Completed ✅
+
+### Phase A: Professor Multi-Course — Teaching Areas + Course Context Switcher (Feb 21, 2026)
+- [x] **`profile_courses` table** — Junction table linking users to multiple disciplines. `is_primary` flag, `UNIQUE(user_id, discipline_id)`, full RLS, two indexes. Additive to `profiles.course_level` (backward compat preserved).
+- [x] **Backfill** — One-time migration seeds `profile_courses` from existing `profiles.course_level` for all professors/admins/super_admins.
+- [x] **`CourseContext.jsx`** (NEW) — React context that fetches `profile_courses`, manages `activeCourse` session state, exposes `addCourse`, `removeCourse`, `setPrimaryCourse`. `setPrimaryCourse` syncs `profiles.course_level` atomically for backward compat.
+- [x] **`CourseSwitcher.jsx`** (NEW) — Compact indigo pill dropdown in the nav bar (desktop: right section; mobile: Course Context section in hamburger sheet). Session-only, no DB write. Renders only when `isContentCreator && teachingCourses.length >= 2`.
+- [x] **`App.jsx`** — Wrapped with `<CourseContextProvider>` inside `<AuthProvider>`.
+- [x] **`NavDesktop.jsx`** — CourseSwitcher added to right icon section.
+- [x] **`NavMobile.jsx`** — Course Context section added to sheet (tappable rows, flat list, no nested dropdowns).
+- [x] **`ProfileSettings.jsx`** — "My Teaching Areas" card added (visible to professor/admin/super_admin). Add course from disciplines dropdown, set primary (star button), remove (X button, disabled for primary). Disciplines fetched from DB — always up to date.
+- [x] **`AuthorProfile.jsx`** — Profile header now shows all teaching courses as indigo chips (from updated RPC). Falls back to single `course_level` for students.
+- [x] **`Dashboard.jsx`** — Class stats use `activeCourse` from context. Reactive `useEffect` re-fetches class stats when professor switches course (initial mount skipped via `useRef`).
+- [x] **Updated `get_author_profile()` RPC** — Added `teaching_courses` JSON array (primary first). All existing keys unchanged. SQL in `docs/database/multi-course/04_FUNCTION_update_get_author_profile.sql`.
+
+### SQL Execution Order (run in Supabase SQL Editor)
+1. `docs/database/multi-course/03_DISCIPLINES_verify_active.sql` — Verify CA Foundation/Inter/Final are active
+2. `docs/database/multi-course/01_SCHEMA_profile_courses.sql` — Create table + RLS + indexes
+3. `docs/database/multi-course/02_BACKFILL_professors_admins.sql` — Seed from course_level
+4. `docs/database/multi-course/04_FUNCTION_update_get_author_profile.sql` — Update RPC
 
 ### UX: Consistent Notes → Flashcards Ordering Across Dashboard (Feb 21, 2026)
 - [x] **Issue:** Quick Actions section had Notes → Flashcards for browse items, but then Flashcards → Notes for create items (Create Flashcard before Upload Note), inconsistent with all other sections
@@ -310,9 +329,17 @@
 
 ## Next Up 🎯
 
-### Phase 0.5: Professor Content Seeding
-- [ ] Recruit professors to upload content
-- [ ] Bulk upload flashcards for CA Intermediate subjects
+### Professor Content Seeding (Unblocked by Phase A)
+- [ ] Add CA Foundation as teaching area in Profile Settings → Teaching Areas
+- [ ] Add CA Final as teaching area
+- [ ] Switch to CA Foundation context in CourseSwitcher → create content
+- [ ] Recruit other professors to add teaching areas
+
+### Phase B: Student Multi-Course (Deferred — Needs Business Decisions First)
+- [ ] Decision needed: Upgrade-within-discipline vs cross-discipline enrollment
+- [ ] Decision needed: Free tier per course or shared?
+- [ ] Decision needed: Dashboard with multiple courses — tab/switch or aggregate?
+- [ ] Build `student_enrollments` table + billing integration when decisions are made
 
 ### Phase 2: Expansion (March 2026)
 - [ ] Scale to 150 CA Foundation students

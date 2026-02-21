@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { CourseContextProvider } from '@/contexts/CourseContext'
 
 // Layout Components
 import Navigation from '@/components/layout/Navigation'
@@ -100,6 +101,7 @@ function App() {
 
   return (
     <AuthProvider>
+      <CourseContextProvider>
       <BrowserRouter>
         {session && <Navigation />}
         <Routes>
@@ -307,6 +309,7 @@ function App() {
         
         <Toaster />
       </BrowserRouter>
+      </CourseContextProvider>
     </AuthProvider>
   )
 }

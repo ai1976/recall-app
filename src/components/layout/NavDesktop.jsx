@@ -19,6 +19,7 @@ import {
 import FriendsDropdown from './FriendsDropdown';
 import ActivityDropdown from './ActivityDropdown';
 import ProfileDropdown from './ProfileDropdown';
+import CourseSwitcher from './CourseSwitcher';
 
 export default function NavDesktop({
   user,
@@ -207,8 +208,11 @@ export default function NavDesktop({
         )}
       </div>
 
-      {/* Right: Icons + Profile */}
+      {/* Right: Course Switcher + Icons + Profile */}
       <div className="hidden md:flex md:items-center md:space-x-2">
+        {/* Course Context Switcher — professors/admins with 2+ courses only */}
+        <CourseSwitcher />
+
         {/* Friends Icon with Dropdown */}
         <FriendsDropdown pendingCount={pendingCount} />
 
