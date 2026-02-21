@@ -7,6 +7,13 @@
 
 ## Just Completed ✅
 
+### Fix: Private Badges Showing on Author Profile Page (Feb 21, 2026)
+- [x] **Bug:** Badges marked private in My Achievements were still visible on the Author Profile page (own + others' profiles)
+- [x] **Root Cause:** `AuthorProfile.jsx` rendered `badges.map(...)` over all badges returned by `get_author_profile` RPC. For own profile the RPC returns ALL badges (including private); the old code only added a 🔒 icon but never hid the badge.
+- [x] **Fix:** Computed `publicBadges = badges.filter(b => b.is_public !== false)` and replaced `badges.map` with `publicBadges.map`. Removed the now-redundant EyeOff indicator inside badge pills.
+- [x] No database changes — frontend-only fix in `AuthorProfile.jsx`
+- [x] Privacy now consistent across the full app: My Achievements = manage privacy; Author Page = public-only view
+
 ### Phase 1F - Extended Badge System with Performance Optimizations (Feb 21, 2026)
 - [x] **Scalability fix:** Created `user_stats` table with integer counters — badge checks now O(1) instead of O(n) COUNT(*). Prevents bulk upload crash.
 - [x] **Counter triggers:** 5 new triggers (`trg_aaa_counter_*`) on notes/flashcards/reviews/upvotes/friendships — alphabetically before badge triggers.
@@ -243,7 +250,7 @@
 - [x] Created `get_author_content_summary()` RPC function (SECURITY DEFINER) - returns content grouped by course/subject with server-side visibility
 - [x] Created `AuthorProfile.jsx` page at `/dashboard/profile/:userId` using 2 RPC calls (not 6 direct queries)
 - [x] Shows author name, role badge, institution, course level
-- [x] Shows PUBLIC badges (all badges for own profile with hidden indicator)
+- [x] Shows PUBLIC badges only (private badges hidden via frontend filter — managed in My Achievements)
 - [x] Content grouped by Course → Subject with note/flashcard counts
 - [x] "Also Creates Content For" section for courses viewer isn't enrolled in
 - [x] Add Friend button with full friendship status handling

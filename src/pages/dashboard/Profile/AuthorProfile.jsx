@@ -201,6 +201,9 @@ export default function AuthorProfile() {
   const totalAccessibleNotes = contentSummary.reduce((sum, c) => sum + (c.totalNotes || 0), 0);
   const totalAccessibleFlashcards = contentSummary.reduce((sum, c) => sum + (c.totalFlashcards || 0), 0);
 
+  // Only render public badges on the Author page — private badges are managed on My Achievements
+  const publicBadges = badges.filter(b => b.is_public !== false);
+
   return (
     <PageContainer width="full">
       {/* Back button */}
@@ -255,11 +258,11 @@ export default function AuthorProfile() {
                 <p className="text-sm text-gray-500 mt-0.5">{profile.course_level}</p>
               )}
 
-              {/* Badges */}
-              {badges.length > 0 && (
+              {/* Badges — only public badges shown here; manage privacy in My Achievements */}
+              {publicBadges.length > 0 && (
                 <div className="flex items-center gap-2 mt-3 flex-wrap">
                   <Award className="h-4 w-4 text-yellow-500" />
-                  {badges.map((badge) => (
+                  {publicBadges.map((badge) => (
                     <div
                       key={badge.id}
                       className="flex items-center gap-1.5 px-2.5 py-1 bg-yellow-50 border border-yellow-200 rounded-full"
@@ -274,9 +277,6 @@ export default function AuthorProfile() {
                       <span className="text-xs font-medium text-yellow-800">
                         {badge.badge_name}
                       </span>
-                      {isOwnProfile && !badge.is_public && (
-                        <EyeOff className="h-3 w-3 text-gray-400" title="Hidden from others" />
-                      )}
                     </div>
                   ))}
                 </div>

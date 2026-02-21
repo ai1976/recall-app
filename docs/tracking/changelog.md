@@ -1,6 +1,21 @@
 # Changelog
 
 ---
+## [2026-02-21] Fix: Private Badges Showing on Author Profile Page
+
+### Fixed
+- **`AuthorProfile.jsx`** — Private badges were visible on the Author Profile page for all viewers including the badge owner. The `get_author_profile` RPC returns all badges (including private) for own-profile views; the frontend was rendering them all with only a cosmetic EyeOff icon on private ones.
+
+### Changed
+- Computed `publicBadges = badges.filter(b => b.is_public !== false)` before rendering
+- Replaced `badges.map(...)` with `publicBadges.map(...)` in the badge pills section
+- Removed the EyeOff indicator inside badge pills (no longer needed — private badges are not shown at all)
+- Badge section now only renders if at least one public badge exists
+
+### Files Changed
+- `src/pages/dashboard/Profile/AuthorProfile.jsx`
+
+---
 ## [2026-02-21] Phase 1F - Extended Badge System with Performance Optimizations
 
 ### Added
