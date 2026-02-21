@@ -54,7 +54,7 @@
   - `profiles.course_level` kept as "primary course" for backward compat with all RLS
   - `profile_courses` is additive — extends, does not replace, `course_level`
   - `is_primary = TRUE` row always synced with `profiles.course_level` via `setPrimaryCourse()`
-  - SQL: `docs/database/multi-course/` (4 files, run in order 01→04)
+  - SQL: run manually in Supabase SQL Editor (provided in chat)
 
 ### Supporting Tables
 - **comments** - Comments on shared notes

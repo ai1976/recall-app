@@ -502,10 +502,6 @@ git push
 ### New Files:
 - ✅ `src/contexts/CourseContext.jsx` (NEW — multi-course teaching context for professors/admins)
 - ✅ `src/components/layout/CourseSwitcher.jsx` (NEW — indigo pill dropdown in nav bar)
-- ✅ `docs/database/multi-course/01_SCHEMA_profile_courses.sql` (NEW — table + RLS)
-- ✅ `docs/database/multi-course/02_BACKFILL_professors_admins.sql` (NEW — one-time migration)
-- ✅ `docs/database/multi-course/03_DISCIPLINES_verify_active.sql` (NEW — diagnostic)
-- ✅ `docs/database/multi-course/04_FUNCTION_update_get_author_profile.sql` (NEW — updated RPC)
 
 ### Changes:
 - ✅ `src/App.jsx` (Added CourseContextProvider import + wrapping)
@@ -518,6 +514,5 @@ git push
 ### New Key File Locations:
 - **Course Context:** `src/contexts/CourseContext.jsx`
 - **Course Switcher UI:** `src/components/layout/CourseSwitcher.jsx`
-- **Multi-course SQL:** `docs/database/multi-course/` (4 files)
 
 **END OF FILE STRUCTURE DOCUMENT**
