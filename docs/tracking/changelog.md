@@ -1,6 +1,19 @@
 # Changelog
 
 ---
+## [2026-02-21] UX: Consistent Notes → Flashcards Ordering in Dashboard Quick Actions
+
+### Changed
+- **`Dashboard.jsx`** — Quick Actions section: swapped "Create Flashcard" and "Upload Note" cards so create actions follow the same Notes-first order as browse actions. New order: Browse Notes → Browse Flashcards → Upload Note → Create Flashcard.
+
+### Design Decision Documented
+- **Notes-first standard:** All sections (Create Menu in nav, Quick Actions, My Contributions) use Notes → Flashcards order. Notes are foundational content; flashcards are derived from them.
+- **Study Menu exception:** Intentionally keeps Flashcards-first ("Review Flashcards" → "Browse Notes") because the Study menu is for active spaced-repetition study — reviewing flashcards is the primary action. Browsing notes is passive reference. See `docs/active/now.md` Active Decisions for full rationale.
+
+### Files Changed
+- `src/pages/Dashboard.jsx`
+
+---
 ## [2026-02-21] Fix: Private Badges Showing on Author Profile Page
 
 ### Fixed

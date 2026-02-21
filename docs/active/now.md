@@ -7,6 +7,13 @@
 
 ## Just Completed ✅
 
+### UX: Consistent Notes → Flashcards Ordering Across Dashboard (Feb 21, 2026)
+- [x] **Issue:** Quick Actions section had Notes → Flashcards for browse items, but then Flashcards → Notes for create items (Create Flashcard before Upload Note), inconsistent with all other sections
+- [x] **Fix:** Swapped "Create Flashcard" and "Upload Note" cards in Quick Actions so the order is now: Browse Notes → Browse Flashcards → **Upload Note → Create Flashcard**
+- [x] All sections now follow Notes-first order for consistency: Create Menu (nav), Quick Actions, My Contributions
+- [x] Study Menu intentionally keeps Flashcards-first — see Active Decisions for rationale
+- [x] No database changes — frontend-only fix in `Dashboard.jsx`
+
 ### Fix: Private Badges Showing on Author Profile Page (Feb 21, 2026)
 - [x] **Bug:** Badges marked private in My Achievements were still visible on the Author Profile page (own + others' profiles)
 - [x] **Root Cause:** `AuthorProfile.jsx` rendered `badges.map(...)` over all badges returned by `get_author_profile` RPC. For own profile the RPC returns ALL badges (including private); the old code only added a 🔒 icon but never hid the badge.
@@ -317,6 +324,8 @@
 
 | Decision | Status | Notes |
 |----------|--------|-------|
+| Notes → Flashcards ordering standard | ✅ Decided | All sections use Notes-first order: Create Menu (nav), Quick Actions, My Contributions. Rationale: notes are foundational content; flashcards are derived from them. |
+| Study Menu: Flashcards-first (intentional exception) | ✅ Decided | Study Menu keeps Flashcards first ("Review Flashcards" → "Browse Notes") because reviewing flashcards is the primary, active study action (spaced repetition core). Browsing notes is passive reference. The menu's purpose — active study — overrides the general Notes-first standard. |
 | Grid/Grouped toggle on MyNotes | ✅ Implemented | localStorage persistence, matches MyFlashcards pattern |
 | Collapsible groups on BrowseNotes | ✅ Implemented | Subject + Topic levels, chevron icons |
 | Server-side author filtering | ✅ Implemented | RPC functions for performance & security |

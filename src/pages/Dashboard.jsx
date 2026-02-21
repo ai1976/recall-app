@@ -684,25 +684,8 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
-                <Card 
-                  className="hover:bg-accent cursor-pointer transition hover:border-primary" 
-                  onClick={() => navigate('/dashboard/flashcards/new')}
-                >
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm sm:text-base">Create Flashcard</p>
-                        <p className="text-xs text-muted-foreground">Add your own</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card 
-                  className="hover:bg-accent cursor-pointer transition hover:border-primary" 
+                <Card
+                  className="hover:bg-accent cursor-pointer transition hover:border-primary"
                   onClick={() => navigate('/dashboard/notes/new')}
                 >
                   <CardContent className="pt-4 pb-4">
@@ -713,6 +696,23 @@ export default function Dashboard() {
                       <div>
                         <p className="font-medium text-sm sm:text-base">Upload Note</p>
                         <p className="text-xs text-muted-foreground">Photos or PDFs</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card
+                  className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                  onClick={() => navigate('/dashboard/flashcards/new')}
+                >
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm sm:text-base">Create Flashcard</p>
+                        <p className="text-xs text-muted-foreground">Add your own</p>
                       </div>
                     </div>
                   </CardContent>
