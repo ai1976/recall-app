@@ -4,9 +4,12 @@
  * Purpose: Migrate 162 flashcard images from base64 TEXT columns in the
  *          database to the `flashcard-images` Supabase Storage bucket.
  *
- * Safe to re-run: uploads use unique timestamps, so duplicate runs create
- * new files but do not corrupt existing data. Old Storage files can be
- * cleaned up manually after confirming the migration.
+ * Why paginated: fetching all 162 base64 rows in one query = ~110 MB HTTP
+ * response → Supabase API timeout. Instead we fetch 3 rows at a time
+ * (≈1.7 MB per request) and process immediately.
+ *
+ * Safe to re-run: rows already containing Storage URLs are detected
+ * client-side (startsWith check) and skipped automatically.
  *
  * Remove this file and its route from App.jsx once migration is confirmed.
  */
@@ -19,7 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
 const BUCKET = 'flashcard-images';
-const BATCH_SIZE = 3; // process N cards concurrently
+const PAGE_SIZE = 3; // rows fetched per HTTP request (keeps each response ≤ ~2 MB)
 
 /** Convert a base64 data-URL to a Blob */
 function base64ToBlob(dataUrl) {
@@ -45,7 +48,8 @@ export default function MigrateFlashcards() {
   const navigate = useNavigate();
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
-  const [stats, setStats] = useState({ total: 0, processed: 0, failed: 0 });
+  // scanned = rows examined so far; total = candidate rows; processed/failed = base64 rows only
+  const [stats, setStats] = useState({ total: 0, scanned: 0, processed: 0, failed: 0, skipped: 0 });
   const [logs, setLogs] = useState([]);
 
   const addLog = (msg, type = 'info') => {
@@ -55,44 +59,50 @@ export default function MigrateFlashcards() {
 
   const updateStats = (patch) => setStats(prev => ({ ...prev, ...patch }));
 
+  /** Upload one side (front/back) of a card and return the public Storage URL, or null on failure */
+  const uploadSide = async (cardId, side, dataUrl) => {
+    try {
+      const blob = base64ToBlob(dataUrl);
+      const ext = mimeToExt(blob.type);
+      const fileName = `migrated/${cardId}-${side}-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET)
+        .upload(fileName, blob, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from(BUCKET)
+        .getPublicUrl(fileName);
+
+      addLog(`  ✅ ${side}: uploaded → ${fileName}`, 'success');
+      return publicUrl;
+    } catch (err) {
+      addLog(`  ❌ ${side}: ${err.message}`, 'error');
+      return null;
+    }
+  };
+
+  /** Migrate a single card. Returns true on full success. */
   const migrateCard = async (card) => {
-    const results = [];
-
-    for (const side of ['front', 'back']) {
-      const col = `${side}_image_url`;
-      const raw = card[col];
-      if (!raw || !raw.startsWith('data:')) continue;
-
-      try {
-        const blob = base64ToBlob(raw);
-        const ext = mimeToExt(blob.type);
-        const fileName = `migrated/${card.id}-${side}-${Date.now()}.${ext}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from(BUCKET)
-          .upload(fileName, blob, { upsert: true });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from(BUCKET)
-          .getPublicUrl(fileName);
-
-        results.push({ col, publicUrl });
-        addLog(`✅ Card ${card.id} | ${side}: uploaded → ${fileName}`, 'success');
-      } catch (err) {
-        addLog(`❌ Card ${card.id} | ${side}: ${err.message}`, 'error');
-        return false; // signal partial/full failure for this card
-      }
-    }
-
-    if (results.length === 0) return true; // nothing to migrate on this card
-
-    // Update DB row with Storage URLs
+    addLog(`📋 Card ${card.id}`);
     const patch = {};
-    for (const { col, publicUrl } of results) {
-      patch[col] = publicUrl;
+    let anyFailed = false;
+
+    if (card.front_image_url?.startsWith('data:')) {
+      const url = await uploadSide(card.id, 'front', card.front_image_url);
+      if (url) patch.front_image_url = url;
+      else anyFailed = true;
     }
+
+    if (card.back_image_url?.startsWith('data:')) {
+      const url = await uploadSide(card.id, 'back', card.back_image_url);
+      if (url) patch.back_image_url = url;
+      else anyFailed = true;
+    }
+
+    if (Object.keys(patch).length === 0) return !anyFailed;
 
     const { error: updateError } = await supabase
       .from('flashcards')
@@ -100,62 +110,95 @@ export default function MigrateFlashcards() {
       .eq('id', card.id);
 
     if (updateError) {
-      addLog(`❌ Card ${card.id} | DB update failed: ${updateError.message}`, 'error');
+      addLog(`  ❌ DB update failed: ${updateError.message}`, 'error');
       return false;
     }
 
-    return true;
+    return !anyFailed;
   };
 
   const runMigration = async () => {
     setRunning(true);
     setDone(false);
     setLogs([]);
-    setStats({ total: 0, processed: 0, failed: 0 });
+    setStats({ total: 0, scanned: 0, processed: 0, failed: 0, skipped: 0 });
 
-    addLog('🔍 Fetching flashcards with base64 images…');
+    // ── Step 1: Fast count using NULL check only ────────────────────────────
+    // NULL check does NOT load large TOAST column values → very fast.
+    // We filter by back_image_url because diagnostic confirmed all 162 images
+    // are on the back side. Front is also checked client-side for safety.
+    addLog('🔍 Counting candidate rows (NULL check — fast)…');
 
-    // Fetch all cards where either image column contains base64
-    const { data: cards, error: fetchError } = await supabase
+    const { count: total, error: countError } = await supabase
       .from('flashcards')
-      .select('id, front_image_url, back_image_url')
-      .or('front_image_url.like.data:%,back_image_url.like.data:%');
+      .select('*', { count: 'exact', head: true })
+      .not('back_image_url', 'is', null);
 
-    if (fetchError) {
-      addLog(`❌ Fetch error: ${fetchError.message}`, 'error');
+    if (countError) {
+      addLog(`❌ Count failed: ${countError.message}`, 'error');
       setRunning(false);
       return;
     }
 
-    const total = cards?.length ?? 0;
-    addLog(`📊 Found ${total} flashcard(s) with base64 images.`);
-    updateStats({ total });
-
     if (total === 0) {
-      addLog('🎉 Nothing to migrate! All images already in Storage.', 'success');
+      addLog('🎉 No rows with image data found — nothing to migrate!', 'success');
       setDone(true);
       setRunning(false);
       return;
     }
 
+    addLog(`📊 ${total} candidate row(s) — fetching ${PAGE_SIZE} at a time…`);
+    updateStats({ total });
+
+    // ── Step 2: Paginated fetch + process ──────────────────────────────────
+    let scanned = 0;
     let processed = 0;
     let failed = 0;
+    let skipped = 0; // rows already using Storage URLs
 
-    // Process in batches of BATCH_SIZE
-    for (let i = 0; i < cards.length; i += BATCH_SIZE) {
-      const batch = cards.slice(i, i + BATCH_SIZE);
-      const results = await Promise.all(batch.map(card => migrateCard(card)));
+    for (let page = 0; page * PAGE_SIZE < total; page++) {
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
 
-      for (const ok of results) {
-        if (ok) processed++;
-        else failed++;
+      const { data: batch, error: fetchError } = await supabase
+        .from('flashcards')
+        .select('id, front_image_url, back_image_url')
+        .not('back_image_url', 'is', null)
+        .order('id')          // stable ordering for consistent pagination
+        .range(from, to);     // only PAGE_SIZE rows per HTTP response
+
+      if (fetchError) {
+        addLog(`❌ Fetch error at offset ${from}: ${fetchError.message}`, 'error');
+        break;
       }
 
-      updateStats({ processed, failed });
+      if (!batch || batch.length === 0) break;
+
+      scanned += batch.length;
+      updateStats({ scanned });
+
+      for (const card of batch) {
+        const hasFrontBase64 = card.front_image_url?.startsWith('data:');
+        const hasBackBase64  = card.back_image_url?.startsWith('data:');
+
+        if (!hasFrontBase64 && !hasBackBase64) {
+          // Already a Storage URL — skip silently
+          skipped++;
+          updateStats({ skipped });
+          continue;
+        }
+
+        const ok = await migrateCard(card);
+        if (ok) processed++;
+        else failed++;
+        updateStats({ processed, failed });
+      }
     }
 
+    // ── Done ────────────────────────────────────────────────────────────────
+    const summary = `${processed} migrated, ${failed} failed, ${skipped} already done`;
     addLog(
-      `\n🏁 Migration complete — ${processed} succeeded, ${failed} failed out of ${total}.`,
+      `\n🏁 Complete — ${summary}.`,
       failed > 0 ? 'error' : 'success'
     );
     setDone(true);
@@ -163,7 +206,7 @@ export default function MigrateFlashcards() {
   };
 
   const pct = stats.total > 0
-    ? Math.round(((stats.processed + stats.failed) / stats.total) * 100)
+    ? Math.round((stats.scanned / stats.total) * 100)
     : 0;
 
   return (
@@ -189,10 +232,11 @@ export default function MigrateFlashcards() {
             <CardTitle className="text-amber-800 text-base">⚠️ Before you start</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-amber-800 space-y-1">
-            <p>1. The <strong>flashcard-images</strong> bucket must exist in Supabase Storage.</p>
-            <p>2. RLS policies must allow authenticated writes to <code>migrated/</code> prefix.</p>
-            <p>3. This migration is safe to re-run — it only processes rows still containing base64 data.</p>
-            <p>4. Delete this admin page and its route after confirming migration success.</p>
+            <p>1. The <strong>flashcard-images</strong> bucket must exist in Supabase Storage (Public ON).</p>
+            <p>2. RLS policies must allow authenticated writes to the <code>migrated/</code> prefix.</p>
+            <p>3. Safe to re-run — already-migrated rows (Storage URLs) are detected and skipped.</p>
+            <p>4. Expected time: ~3–6 minutes for 162 images (network dependent).</p>
+            <p>5. Delete this page and its route from <code>App.jsx</code> after confirming success.</p>
           </CardContent>
         </Card>
 
@@ -205,15 +249,15 @@ export default function MigrateFlashcards() {
               className="w-full"
               size="lg"
             >
-              {running ? 'Migration in progress…' : done ? '✅ Run Again' : '🚀 Start Migration'}
+              {running ? 'Migration in progress…' : done ? '🔄 Run Again' : '🚀 Start Migration'}
             </Button>
 
-            {/* Progress bar */}
+            {/* Progress bar — tracks rows scanned vs total */}
             {(running || done) && stats.total > 0 && (
               <div className="space-y-1">
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Progress</span>
-                  <span>{stats.processed + stats.failed} / {stats.total} ({pct}%)</span>
+                  <span>Scanning rows</span>
+                  <span>{stats.scanned} / {stats.total} ({pct}%)</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                   <div
@@ -221,10 +265,11 @@ export default function MigrateFlashcards() {
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <div className="flex gap-4 text-xs text-muted-foreground">
-                  <span className="text-green-600">✅ {stats.processed} ok</span>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span className="text-green-600">✅ {stats.processed} migrated</span>
                   {stats.failed > 0 && <span className="text-red-600">❌ {stats.failed} failed</span>}
-                  <span>📦 {stats.total} total</span>
+                  {stats.skipped > 0 && <span className="text-gray-500">⏭ {stats.skipped} already done</span>}
+                  <span>📦 {stats.total} total rows</span>
                 </div>
               </div>
             )}
@@ -238,7 +283,7 @@ export default function MigrateFlashcards() {
               <CardTitle className="text-base font-mono">Migration Log</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-gray-900 text-gray-100 rounded-lg p-4 h-72 overflow-y-auto font-mono text-xs space-y-0.5">
+              <div className="bg-gray-900 text-gray-100 rounded-lg p-4 h-80 overflow-y-auto font-mono text-xs space-y-0.5">
                 {logs.map((entry, i) => (
                   <div
                     key={i}
@@ -263,9 +308,9 @@ export default function MigrateFlashcards() {
             <CardContent className="pt-6 text-sm text-green-800">
               <p className="font-semibold">🎉 Migration successful!</p>
               <p className="mt-1">
-                All {stats.processed} flashcard image(s) have been moved to Storage.
-                You can now delete this admin page (<code>src/pages/admin/MigrateFlashcards.jsx</code>)
-                and remove its route from <code>App.jsx</code>.
+                All {stats.processed} image(s) moved to Storage.
+                You can now delete <code>src/pages/admin/MigrateFlashcards.jsx</code> and
+                remove its import + route from <code>src/App.jsx</code>.
               </p>
             </CardContent>
           </Card>
