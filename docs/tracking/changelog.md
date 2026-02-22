@@ -1,6 +1,44 @@
 # Changelog
 
 ---
+## [2026-02-22] Egress Optimisation — Flashcard Image Storage Fix + Migration Tool
+
+### Added
+- **`src/pages/admin/MigrateFlashcards.jsx`** (NEW, TEMPORARY) — One-time admin utility at `/admin/migrate-flashcards`. Fetches all flashcards where `front_image_url` or `back_image_url` starts with `data:`, uploads each to `flashcard-images` Storage bucket under `migrated/` prefix (upsert:true, safe to re-run), updates DB row with Storage URL. Processes in batches of 3. Shows progress bar, per-card terminal log (colour-coded), and success card prompting self-deletion after migration is confirmed.
+- **`FlashcardCreate.jsx`** — `uploadingImage` state (`{ index, side } | null`) for per-card upload spinner. `X` lucide icon for image removal. `imageCompression` import (`browser-image-compression`).
+
+### Changed
+- **`FlashcardCreate.jsx`** — `handleImageUpload` converted from sync FileReader base64 to async compress → upload pipeline: `imageCompression` (`maxSizeMB: 0.2`, `maxWidthOrHeight: 1200`, `useWebWorker: true`) → upload to `flashcard-images` bucket under `{userId}/{timestamp}-{side}-{index}.{ext}` → store public Storage URL. EXIF rotation handled automatically.
+- **`FlashcardCreate.jsx`** — Flashcard state shape: `frontImage/backImage` (base64 strings) → `frontImageUrl/frontImagePreview/backImageUrl/backImagePreview` (Storage URL + `URL.createObjectURL()` preview).
+- **`FlashcardCreate.jsx`** — `addFlashcard()` uses new state shape.
+- **`FlashcardCreate.jsx`** — `removeFlashcard()` now calls `URL.revokeObjectURL()` on both preview URLs before removing card (memory leak prevention).
+- **`FlashcardCreate.jsx`** — `handleSubmit` flashcard insert: `card.frontImage/backImage` → `card.frontImageUrl/backImageUrl`.
+- **`FlashcardCreate.jsx`** — Front + back image JSX: spinner during upload, "Add Image" → "Change Image" label after upload, ×-button on preview thumbnail to clear image (revokes ObjectURL, nulls both URL fields).
+- **`App.jsx`** — Added `MigrateFlashcards` import and `/admin/migrate-flashcards` route. Route comment map updated.
+
+### Files Changed
+- `src/pages/admin/MigrateFlashcards.jsx` (NEW)
+- `src/pages/dashboard/Content/FlashcardCreate.jsx`
+- `src/App.jsx`
+
+---
+## [2026-02-22] Egress Optimisation — Lazy Loading + Load More + Image Compression
+
+### Added
+- **`BrowseNotes.jsx`** — `NOTES_PER_PAGE = 10` module-level constant. `visibleCount` state (default 10). Render computes `flatFiltered` (flat array from all filtered groups), slices to `visibleCount`, regroups via existing `groupNotesBySubject()`. "Load More" button appends next 10; resets to 10 on any filter change. Groups remain intact as notes are appended.
+- **`BrowseNotes.jsx`** — `loading="lazy"` + `decoding="async"` attributes on all note `<img>` tags. Off-screen images not fetched until scrolled into view.
+- **`BrowseNotes.jsx`** — `bg-gray-100` on image button wrapper — visible grey placeholder while lazy image loads, prevents CLS.
+- **`NoteUpload.jsx`** — `compressing` state. `handleFileChange` made async. Image files compressed via `browser-image-compression` (`maxSizeMB: 0.2`, `maxWidthOrHeight: 1200`, `useWebWorker: true`) before storing in state. EXIF rotation handled automatically by the library. Fallback to original file on compression error.
+- **`NoteUpload.jsx`** — Upload label: `htmlFor` unlinked + `cursor-wait opacity-75` during compression (prevents double file-picker open). Spinner + "Compressing image…" shown in upload area.
+
+### Changed
+- **`NoteUpload.jsx`** — Upload hint text updated: "JPG, PNG (auto-compressed to ~200KB) or PDF (max 10MB)".
+
+### Files Changed
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+- `src/pages/dashboard/Content/NoteUpload.jsx`
+
+---
 ## [2026-02-22] Push Notifications — P1 PWA Foundation + P4 Frontend Wiring (COMPLETE)
 
 ### Added

@@ -8,11 +8,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Trash2, Image as ImageIcon, Check, ChevronsUpDown } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, X, Image as ImageIcon, Check, ChevronsUpDown } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { notifyContentCreated } from '@/lib/notifyEdge';
+import imageCompression from 'browser-image-compression';
 
 export default function FlashcardCreate() {
   const navigate = useNavigate();
@@ -38,10 +39,11 @@ export default function FlashcardCreate() {
   const [selectedGroupIds, setSelectedGroupIds] = useState([]);
 
   const [flashcards, setFlashcards] = useState([
-    { front: '', back: '', frontImage: null, backImage: null }
+    { front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null }
   ]);
   
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(null); // { index, side } | null
   const [subjectOpen, setSubjectOpen] = useState(false);
   const [topicOpen, setTopicOpen] = useState(false);
 
@@ -227,7 +229,7 @@ export default function FlashcardCreate() {
   const addFlashcard = () => {
     setFlashcards([
       ...flashcards,
-      { front: '', back: '', frontImage: null, backImage: null }
+      { front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null }
     ]);
   };
 
@@ -240,6 +242,9 @@ export default function FlashcardCreate() {
       });
       return;
     }
+    const card = flashcards[index];
+    if (card.frontImagePreview) URL.revokeObjectURL(card.frontImagePreview);
+    if (card.backImagePreview) URL.revokeObjectURL(card.backImagePreview);
     setFlashcards(flashcards.filter((_, i) => i !== index));
   };
 
@@ -249,14 +254,44 @@ export default function FlashcardCreate() {
     setFlashcards(updated);
   };
 
-  const handleImageUpload = (index, side, file) => {
+  const handleImageUpload = async (index, side, file) => {
     if (!file) return;
+    setUploadingImage({ index, side });
+    try {
+      const compressionOptions = { maxSizeMB: 0.2, maxWidthOrHeight: 1200, useWebWorker: true };
+      const compressedBlob = await imageCompression(file, compressionOptions);
+      const ext = compressedBlob.type.split('/')[1] || 'jpg';
+      const compressedFile = new File([compressedBlob], `${Date.now()}.${ext}`, { type: compressedBlob.type });
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      updateFlashcard(index, `${side}Image`, reader.result);
-    };
-    reader.readAsDataURL(file);
+      const { data: { user } } = await supabase.auth.getUser();
+      const fileName = `${user.id}/${Date.now()}-${side}-${index}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('flashcard-images')
+        .upload(fileName, compressedFile);
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('flashcard-images')
+        .getPublicUrl(fileName);
+
+      const preview = URL.createObjectURL(compressedFile);
+      const updated = [...flashcards];
+      // Revoke old preview if replacing
+      if (updated[index][`${side}ImagePreview`]) URL.revokeObjectURL(updated[index][`${side}ImagePreview`]);
+      updated[index][`${side}ImageUrl`] = publicUrl;
+      updated[index][`${side}ImagePreview`] = preview;
+      setFlashcards(updated);
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      toast({
+        title: 'Image upload failed',
+        description: err.message || 'Could not upload image. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploadingImage(null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -389,8 +424,8 @@ export default function FlashcardCreate() {
         custom_topic: customTopicValue,
         front_text: card.front,
         back_text: card.back,
-        front_image_url: card.frontImage || null,
-        back_image_url: card.backImage || null,
+        front_image_url: card.frontImageUrl || null,
+        back_image_url: card.backImageUrl || null,
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
         visibility: cardVisibility,
         is_public: visibility === 'public',
@@ -785,13 +820,20 @@ export default function FlashcardCreate() {
                   />
                   
                   <div className="flex items-center gap-2">
-                    <Label
-                      htmlFor={`front-image-${index}`}
-                      className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent"
-                    >
-                      <ImageIcon className="h-4 w-4" />
-                      <span className="text-sm">Add Image</span>
-                    </Label>
+                    {uploadingImage?.index === index && uploadingImage?.side === 'front' ? (
+                      <div className="inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg opacity-75 cursor-wait">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                        <span className="text-sm">Uploading…</span>
+                      </div>
+                    ) : (
+                      <Label
+                        htmlFor={`front-image-${index}`}
+                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent"
+                      >
+                        <ImageIcon className="h-4 w-4" />
+                        <span className="text-sm">{card.frontImageUrl ? 'Change Image' : 'Add Image'}</span>
+                      </Label>
+                    )}
                     <input
                       id={`front-image-${index}`}
                       type="file"
@@ -800,8 +842,23 @@ export default function FlashcardCreate() {
                       className="hidden"
                     />
                   </div>
-                  {card.frontImage && (
-                    <img src={card.frontImage} alt="Front" className="mt-2 max-h-32 rounded-lg" />
+                  {card.frontImagePreview && (
+                    <div className="relative inline-block mt-2">
+                      <img src={card.frontImagePreview} alt="Front" className="max-h-32 rounded-lg" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          URL.revokeObjectURL(card.frontImagePreview);
+                          const updated = [...flashcards];
+                          updated[index].frontImageUrl = null;
+                          updated[index].frontImagePreview = null;
+                          setFlashcards(updated);
+                        }}
+                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 shadow"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -816,13 +873,20 @@ export default function FlashcardCreate() {
                   />
                   
                   <div className="flex items-center gap-2">
-                    <Label
-                      htmlFor={`back-image-${index}`}
-                      className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent"
-                    >
-                      <ImageIcon className="h-4 w-4" />
-                      <span className="text-sm">Add Image</span>
-                    </Label>
+                    {uploadingImage?.index === index && uploadingImage?.side === 'back' ? (
+                      <div className="inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg opacity-75 cursor-wait">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                        <span className="text-sm">Uploading…</span>
+                      </div>
+                    ) : (
+                      <Label
+                        htmlFor={`back-image-${index}`}
+                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent"
+                      >
+                        <ImageIcon className="h-4 w-4" />
+                        <span className="text-sm">{card.backImageUrl ? 'Change Image' : 'Add Image'}</span>
+                      </Label>
+                    )}
                     <input
                       id={`back-image-${index}`}
                       type="file"
@@ -831,8 +895,23 @@ export default function FlashcardCreate() {
                       className="hidden"
                     />
                   </div>
-                  {card.backImage && (
-                    <img src={card.backImage} alt="Back" className="mt-2 max-h-32 rounded-lg" />
+                  {card.backImagePreview && (
+                    <div className="relative inline-block mt-2">
+                      <img src={card.backImagePreview} alt="Back" className="max-h-32 rounded-lg" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          URL.revokeObjectURL(card.backImagePreview);
+                          const updated = [...flashcards];
+                          updated[index].backImageUrl = null;
+                          updated[index].backImagePreview = null;
+                          setFlashcards(updated);
+                        }}
+                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 shadow"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
                   )}
                 </div>
               </CardContent>

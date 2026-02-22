@@ -13,6 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { notifyContentCreated } from '@/lib/notifyEdge';
+import imageCompression from 'browser-image-compression';
 
 export default function NoteUpload() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export default function NoteUpload() {
   const [contentType, setContentType] = useState('text');
   const [extractedText, setExtractedText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [visibility, setVisibility] = useState('private');
   const [userGroups, setUserGroups] = useState([]);
   const [selectedGroupIds, setSelectedGroupIds] = useState([]);
@@ -227,7 +229,7 @@ export default function NoteUpload() {
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
@@ -250,15 +252,31 @@ export default function NoteUpload() {
       return;
     }
 
-    setFile(selectedFile);
-
     if (selectedFile.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFilePreview(reader.result);
-      };
-      reader.readAsDataURL(selectedFile);
+      setCompressing(true);
+      try {
+        const compressionOptions = {
+          maxSizeMB: 0.2,
+          maxWidthOrHeight: 1200,
+          useWebWorker: true,
+        };
+        const compressedBlob = await imageCompression(selectedFile, compressionOptions);
+        const compressedFile = new File([compressedBlob], selectedFile.name, { type: compressedBlob.type });
+        setFile(compressedFile);
+        const reader = new FileReader();
+        reader.onloadend = () => setFilePreview(reader.result);
+        reader.readAsDataURL(compressedFile);
+      } catch (err) {
+        console.error('Image compression failed, using original file:', err);
+        setFile(selectedFile);
+        const reader = new FileReader();
+        reader.onloadend = () => setFilePreview(reader.result);
+        reader.readAsDataURL(selectedFile);
+      } finally {
+        setCompressing(false);
+      }
     } else {
+      setFile(selectedFile);
       setFilePreview(null);
     }
   };
@@ -680,8 +698,8 @@ export default function NoteUpload() {
                   <Label htmlFor="file-upload">Select File *</Label>
                   <div className="flex items-center justify-center w-full">
                     <label
-                      htmlFor="file-upload"
-                      className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent"
+                      htmlFor={compressing ? undefined : 'file-upload'}
+                      className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg ${compressing ? 'cursor-wait opacity-75' : 'cursor-pointer hover:bg-accent'}`}
                     >
                       {filePreview ? (
                         <img
@@ -689,6 +707,11 @@ export default function NoteUpload() {
                           alt="Preview"
                           className="max-h-56 rounded-lg"
                         />
+                      ) : compressing ? (
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4" />
+                          <p className="text-sm text-muted-foreground">Compressing image…</p>
+                        </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           <ImageIcon className="w-12 h-12 mb-4 text-muted-foreground" />
@@ -697,7 +720,7 @@ export default function NoteUpload() {
                             {file ? file.name : 'Click to upload or drag and drop'}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            JPG, PNG, or PDF (max 10MB)
+                            JPG, PNG (auto-compressed to ~200KB) or PDF (max 10MB)
                           </p>
                         </div>
                       )}

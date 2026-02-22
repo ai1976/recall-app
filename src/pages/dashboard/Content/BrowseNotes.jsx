@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import UpvoteButton from '@/components/ui/UpvoteButton';
 
+const NOTES_PER_PAGE = 10;
+
 export default function BrowseNotes() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -37,6 +39,7 @@ export default function BrowseNotes() {
 
   // Collapsed groups state for collapsible sections
   const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [visibleCount, setVisibleCount] = useState(NOTES_PER_PAGE);
 
   const toggleGroupCollapse = (groupKey) => {
     setCollapsedGroups(prev => ({
@@ -286,6 +289,7 @@ export default function BrowseNotes() {
       })).filter(subject => subject.topics.length > 0);
     }
 
+    setVisibleCount(NOTES_PER_PAGE);
     setGroupedNotes(filtered);
   };
 
@@ -328,6 +332,9 @@ export default function BrowseNotes() {
   }
 
   const totalNotes = groupedNotes.reduce((sum, subject) => sum + subject.totalNotes, 0);
+  const flatFiltered = groupedNotes.flatMap(s => s.topics.flatMap(t => t.notes));
+  const displayedGroupedNotes = groupNotesBySubject(flatFiltered.slice(0, visibleCount));
+  const hasMore = flatFiltered.length > visibleCount;
   const hasActiveFilters = searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || filterTopic !== 'all' || filterRole !== 'all' || filterAuthor !== 'all';
 
   return (
@@ -490,7 +497,7 @@ export default function BrowseNotes() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {groupedNotes.map((subject, idx) => {
+            {displayedGroupedNotes.map((subject, idx) => {
               const subjectKey = `subject-${idx}-${subject.name}`;
               const isSubjectCollapsed = collapsedGroups[subjectKey];
 
@@ -560,12 +567,14 @@ export default function BrowseNotes() {
                                     {note.image_url && (
                                       <button
                                         onClick={() => navigate(`/dashboard/notes/${note.id}`)}
-                                        className="w-full"
+                                        className="w-full bg-gray-100"
                                       >
                                         <img
                                           src={note.image_url}
                                           alt={note.title}
                                           className="w-full h-40 object-cover"
+                                          loading="lazy"
+                                          decoding="async"
                                         />
                                       </button>
                                     )}
@@ -645,6 +654,17 @@ export default function BrowseNotes() {
                 </Card>
               );
             })}
+
+            {hasMore && (
+              <div className="flex justify-center pt-2 pb-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setVisibleCount(prev => prev + NOTES_PER_PAGE)}
+                >
+                  Load More ({flatFiltered.length - visibleCount} more {flatFiltered.length - visibleCount === 1 ? 'note' : 'notes'})
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

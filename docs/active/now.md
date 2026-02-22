@@ -1,11 +1,34 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-02-22
-**Current Phase:** Push Notifications — COMPLETE ✅
+**Current Phase:** Egress Optimisation — COMPLETE ✅
 
 ---
 
 ## Just Completed ✅
+
+### Egress Optimisation: Flashcard Image Storage Fix + Migration Tool (Feb 22, 2026)
+Root cause: 162 flashcard images (110 MB) stored as raw base64 TEXT in DB columns — every study session downloaded the full blobs from the database.
+- [x] **`FlashcardCreate.jsx`** — Replaced `FileReader.readAsDataURL` (base64 → DB) with async compress + Storage upload pipeline. `imageCompression` (same settings as NoteUpload: `maxSizeMB: 0.2, maxWidthOrHeight: 1200`) → upload to `flashcard-images` Storage bucket → store public URL in DB. EXIF-safe via `browser-image-compression`.
+- [x] **`FlashcardCreate.jsx`** — Card state shape changed: `frontImage/backImage` (base64) → `frontImageUrl/frontImagePreview/backImageUrl/backImagePreview` (URL + ObjectURL).
+- [x] **`FlashcardCreate.jsx`** — Per-card upload spinner (`uploadingImage` state tracks `{ index, side }`). Label shows "Change Image" after upload. ×-button on preview to remove image. ObjectURLs revoked on card removal (memory leak prevention).
+- [x] **`src/pages/admin/MigrateFlashcards.jsx`** (NEW) — Temporary admin page at `/admin/migrate-flashcards`. Migrates existing 162 base64 rows to `flashcard-images` Storage. Progress bar, per-card terminal log, batch processing (3 concurrent), `upsert: true` (safe to re-run). Success card prompts deletion of the page.
+- [x] **`App.jsx`** — Added `MigrateFlashcards` import + route at `/admin/migrate-flashcards`.
+- [x] **Build verified clean** — 1975 modules, 5.65s, no errors.
+
+**Pre-requisite (user must do):** Create `flashcard-images` bucket in Supabase Storage (Public ON) + run RLS SQL (provided in chat).
+
+### Egress Optimisation: Lazy Loading + Load More + Image Compression (Feb 22, 2026)
+Root cause: 14+ GB Supabase egress from 26 users — all note images loading at full resolution simultaneously.
+- [x] **`BrowseNotes.jsx`** — Added `loading="lazy"` + `decoding="async"` to all note `<img>` tags. Off-screen images no longer fetched on page load (~90% egress reduction).
+- [x] **`BrowseNotes.jsx`** — Added `bg-gray-100` to image button wrapper as CLS placeholder (grey box visible while images load — prevents layout shift).
+- [x] **`BrowseNotes.jsx`** — Added `NOTES_PER_PAGE = 10` constant + `visibleCount` state. Render computes `flatFiltered` → slices → regroups via existing `groupNotesBySubject()`. Only 10 notes rendered in DOM on load.
+- [x] **`BrowseNotes.jsx`** — "Load More" button appends next 10 notes. `visibleCount` resets to 10 on any filter change. Groups remain intact (new notes tuck into existing headers — no fragmented group split across pages).
+- [x] **`NoteUpload.jsx`** — Imported `browser-image-compression` (already installed v2.0.2). Made `handleFileChange` async.
+- [x] **`NoteUpload.jsx`** — Images compressed client-side before upload: `maxSizeMB: 0.2`, `maxWidthOrHeight: 1200`, `useWebWorker: true`. Handles EXIF rotation automatically (iPhone portrait photos stay upright). Fallback to original file if compression throws.
+- [x] **`NoteUpload.jsx`** — `compressing` state: label gains `cursor-wait opacity-75` + `htmlFor` unlinked during compression (prevents double file picker open). Spinner shown in upload area with "Compressing image…" text.
+- [x] **`NoteUpload.jsx`** — Updated upload hint text: "JPG, PNG (auto-compressed to ~200KB) or PDF (max 10MB)".
+- [x] **Build verified clean** — 1974 modules, 5.42s, no errors.
 
 ### Push Notifications — P1 PWA Foundation + P4 Frontend Wiring (Feb 22, 2026)
 - [x] **`public/site.webmanifest`** — Fixed `name`, `short_name`, `theme_color` (#4f46e5), `start_url: /dashboard`, `purpose: maskable` on 512px icon.

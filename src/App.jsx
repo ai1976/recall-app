@@ -58,6 +58,7 @@ import StudyMode from '@/pages/dashboard/Study/StudyMode'
 // Admin Pages
 import SuperAdminDashboard from '@/pages/admin/SuperAdminDashboard'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
+import MigrateFlashcards from '@/pages/admin/MigrateFlashcards'
 
 // Professor Pages
 import ProfessorTools from '@/pages/professor/ProfessorTools'
@@ -137,6 +138,7 @@ function App() {
             /professor/tools               → (redirects to /dashboard/bulk-upload)
             /dashboard/bulk-upload         → pages/dashboard/BulkUploadFlashcards.jsx
             /admin/bulk-upload-topics      → pages/admin/BulkUploadTopics.jsx
+            /admin/migrate-flashcards     → pages/admin/MigrateFlashcards.jsx (TEMP — delete after migration)
           */}
 
           {/* Landing Page Route */}
@@ -292,6 +294,10 @@ function App() {
           <Route
             path="/admin/bulk-upload-topics"
             element={session ? <BulkUploadTopics /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/admin/migrate-flashcards"
+            element={session ? <MigrateFlashcards /> : <Navigate to="/login" replace />}
           />
 
           {/* Professor Routes (legacy redirect) */}
