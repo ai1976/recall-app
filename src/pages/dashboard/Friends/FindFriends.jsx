@@ -9,6 +9,7 @@ import { Search, UserPlus, Users, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import BadgeIcon from '@/components/badges/BadgeIcon';
 import PageContainer from '@/components/layout/PageContainer';
+import { notifyFriendEvent } from '@/lib/notifyEdge';
 
 // NOTE: Email masking is cosmetic only. Full email is present in data payload.
 // A future improvement would be to mask server-side via an RPC or database view.
@@ -125,6 +126,9 @@ export default function FindFriends() {
         title: "Friend request sent!",
         description: "Your friend request has been sent.",
       });
+
+      // Fire-and-forget push notification to the recipient
+      notifyFriendEvent({ event_type: 'friend_request', actor_id: user.id, target_user_id: friendId });
 
       fetchFriendships();
     } catch (error) {

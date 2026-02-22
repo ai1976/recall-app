@@ -1,11 +1,49 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-02-21
-**Current Phase:** Phase A - Professor Multi-Course
+**Last Updated:** 2026-02-22
+**Current Phase:** Push Notifications — COMPLETE ✅
 
 ---
 
 ## Just Completed ✅
+
+### Push Notifications — P1 PWA Foundation + P4 Frontend Wiring (Feb 22, 2026)
+- [x] **`public/site.webmanifest`** — Fixed `name`, `short_name`, `theme_color` (#4f46e5), `start_url: /dashboard`, `purpose: maskable` on 512px icon.
+- [x] **`public/sw.js`** — Service worker: handles `push` event (shows notification, respects `renotify`/`silent` flags), `notificationclick` (focuses existing tab or opens `/dashboard`), `install`/`activate` with `skipWaiting` + `clients.claim`.
+- [x] **`src/main.jsx`** — Registers `/sw.js` on `window load` event (non-blocking, doesn't delay first render).
+- [x] **`src/lib/notifyEdge.js`** — Fire-and-forget helpers `notifyContentCreated()` and `notifyFriendEvent()` that call the deployed Edge Functions. Never block the primary user action.
+- [x] **`src/hooks/usePushNotifications.js`** — Hook: detects browser support, iOS + standalone status, current permission, existing subscription. Exports `subscribe()` (requests permission → subscribes → POSTs to push-subscribe), `unsubscribe()`, `needsIOSInstall`.
+- [x] **`src/components/notifications/PushPermissionBanner.jsx`** — One-time dismissible banner on Dashboard. Android/desktop: "Enable" button. iOS + not installed: "Add to Home Screen" guide. Permission denied: hidden. Dismissed permanently via `localStorage`.
+- [x] **`src/pages/Dashboard.jsx`** — Added `<PushPermissionBanner />` just above the main content grid.
+- [x] **`src/pages/dashboard/Profile/ProfileSettings.jsx`** — Added "Push Notifications" card at bottom. Shows: enable button (default) / enabled + disable button (subscribed) / install prompt (iOS) / browser settings message (denied) / unsupported message.
+- [x] **`src/pages/dashboard/Content/NoteUpload.jsx`** — Calls `notifyContentCreated()` after successful note insert (only for `public`/`friends` visibility). Fire-and-forget.
+- [x] **`src/pages/dashboard/Content/FlashcardCreate.jsx`** — Calls `notifyContentCreated()` after successful flashcard create (only for `public`/`friends` visibility). Fire-and-forget.
+- [x] **`src/pages/dashboard/Friends/FindFriends.jsx`** — Calls `notifyFriendEvent('friend_request')` after successful send.
+- [x] **`src/pages/dashboard/Profile/AuthorProfile.jsx`** — Same as FindFriends for the Add Friend button.
+- [x] **`src/pages/dashboard/Friends/FriendRequests.jsx`** — Calls `notifyFriendEvent('friend_accepted')` after accept, notifying the original sender.
+- [x] **`src/components/layout/FriendsDropdown.jsx`** — Same accept notification from the nav dropdown quick-accept.
+- [x] **Build verified clean** — 1973 modules, 5.68s, no errors.
+
+### Push Notifications — Phase 3: Edge Functions (Feb 22, 2026)
+- [x] **`supabase/functions/_shared/supabaseAdmin.ts`** — Shared service-role Supabase client for all Edge Functions. Bypasses RLS; never sent to browser.
+- [x] **`supabase/functions/_shared/sendPush.ts`** — VAPID-configured web-push utility. `sendPushToUsers(userIds[], payload)` fetches all active subscriptions, sends concurrently, auto-deactivates expired (HTTP 410/404) subscriptions in one batch UPDATE.
+- [x] **`supabase/functions/push-subscribe/index.ts`** — Saves device subscription (`endpoint, p256dh, auth`) via upsert on `(user_id, endpoint)` conflict key. Creates default `push_notification_preferences` row (all opted-in) if missing.
+- [x] **`supabase/functions/push-unsubscribe/index.ts`** — Soft-deletes subscription (`is_active = false`) when user revokes permission. Preserves row for debugging.
+- [x] **`supabase/functions/notify-friend-event/index.ts`** — Instant (non-aggregated) notification for `friend_request` and `friend_accepted` events. Checks push prefs, INSERTs notification row, sends push with `renotify: true`. Tag = `friend-{actor_id}`.
+- [x] **`supabase/functions/notify-content-created/index.ts`** — Main update-in-place aggregator. 4-hour grouping window per `(creator_id, content_type)` pair. Professor public uploads → `professor_content` type → notifies all students with matching `course_level`. Student/friend uploads → `friend_content` type → notifies accepted friends only. Bulk-INSERTs new notifications; individually UPDATEs existing ones (count in metadata). New notifications → `renotify: true`; updates → `renotify: false` (silent badge bump). Same push `tag` per creator+type causes browser to replace (not stack) notifications.
+- [x] **Deployed all 4 Edge Functions** to project `ztxguiujzirburxpjujf` via `npx supabase functions deploy`.
+- [x] **React build verified clean** after all changes (4.86s, no errors).
+
+### Previously — Push Notifications Setup (Feb 22, 2026 — earlier)
+- [x] **`notifications` schema** — Added `actor_id UUID`, `updated_at TIMESTAMPTZ`, trigger `trg_notifications_updated_at`, CHECK constraint updated with 4 new types (`professor_content`, `friend_content`, `group_content`, `system_announcement`), two new indexes (`idx_notifications_grouping` partial, `idx_notifications_updated_at`).
+- [x] **`get_recent_notifications` RPC** — Rebuilt (DROP + CREATE): returns `actor_id` + `updated_at`, sorts by `updated_at DESC` so aggregated notifications bubble to top.
+- [x] **`get_recent_activity_feed` RPC** — Added SQL grouping by `(creator_id, creator_name, creator_role, content_type, DATE(created_at))`. Added `count INTEGER` and `subject TEXT` columns. Fixed missing subjects JOIN (subject was always blank). Verified: 59 professor uploads correctly grouped into 2 rows (37 + 22).
+- [x] **`useNotifications.js`** — Added UPDATE Realtime subscription alongside existing INSERT subscription. On UPDATE calls `fetchNotifications()` to re-sort by `updated_at DESC`. Does not increment `unreadCount` (row was already unread).
+- [x] **`ActivityFeed.jsx`** — Grouped rendering (`count > 1` → "30 notes added", `"View 30"` button). Fixed long-standing bug: was checking `content_type === 'deck'` but RPC returns `'flashcard_deck'`. Subject hidden for grouped rows. Author-filtered navigation for grouped clicks.
+- [x] **`push_subscriptions` table** — Created with RLS, UNIQUE(user_id, endpoint), partial index on `is_active = true`.
+- [x] **`push_notification_preferences` table** — Created with RLS, one row per user, all boolean prefs default `true`.
+- [x] **Supabase CLI** — Installed via `npm install supabase --save-dev`, linked to project, initialized. VAPID keys generated via `npx web-push generate-vapid-keys`. Secrets set: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT=mailto:recall@moreclassescommerce.com`.
+- [x] **`.env.local`** — `VITE_VAPID_PUBLIC_KEY` added.
 
 ### Phase A: Professor Multi-Course — Teaching Areas + Course Context Switcher (Feb 21, 2026)
 - [x] **`profile_courses` table** — Junction table linking users to multiple disciplines. `is_primary` flag, `UNIQUE(user_id, discipline_id)`, full RLS, two indexes. Additive to `profiles.course_level` (backward compat preserved).

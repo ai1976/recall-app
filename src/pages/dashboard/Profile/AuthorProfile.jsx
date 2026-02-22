@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import PageContainer from '@/components/layout/PageContainer';
 import BadgeIcon from '@/components/badges/BadgeIcon';
+import { notifyFriendEvent } from '@/lib/notifyEdge';
 import {
   ArrowLeft,
   Users,
@@ -134,6 +135,9 @@ export default function AuthorProfile() {
         title: 'Friend request sent!',
         description: `Your friend request has been sent to ${profile?.full_name}.`,
       });
+
+      // Fire-and-forget push notification to the recipient
+      notifyFriendEvent({ event_type: 'friend_request', actor_id: user.id, target_user_id: userId });
 
       setFriendshipStatus('pending_sent');
     } catch (error) {

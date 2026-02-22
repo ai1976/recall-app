@@ -39,11 +39,23 @@ export default function ActivityFeed({ limit = 5 }) {
 
   // Handle click on activity item
   const handleActivityClick = (activity) => {
-    if (activity.content_type === 'note') {
-      navigate(`/dashboard/notes/${activity.id}`);
-    } else if (activity.content_type === 'deck') {
-      // Navigate to flashcards filtered by subject
-      navigate(`/dashboard/review-flashcards?subject=${encodeURIComponent(activity.subject)}`);
+    if (activity.count > 1) {
+      // Grouped row (e.g. "30 notes added") — navigate to author-filtered browse
+      // page so the student can see all items in the group at once
+      if (activity.content_type === 'note') {
+        navigate(`/dashboard/notes?author=${activity.creator_id}`);
+      } else {
+        navigate(`/dashboard/review-flashcards?author=${activity.creator_id}`);
+      }
+    } else {
+      // Single item — navigate directly
+      // FIX: was checking 'deck' but RPC returns 'flashcard_deck', so deck
+      // navigation never worked before this fix
+      if (activity.content_type === 'note') {
+        navigate(`/dashboard/notes/${activity.id}`);
+      } else {
+        navigate(`/dashboard/review-flashcards?subject=${encodeURIComponent(activity.subject || '')}`);
+      }
     }
   };
 
@@ -150,16 +162,28 @@ export default function ActivityFeed({ limit = 5 }) {
                 {/* Content */}
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-sm sm:text-base truncate">
-                    "{activity.title}"
+                    {activity.count > 1
+                      // Grouped: show count + type label instead of individual title
+                      ? `${activity.count} ${activity.content_type === 'note' ? 'notes' : 'flashcard decks'} added`
+                      // Single item: show title in quotes (existing behaviour)
+                      : `"${activity.title}"`
+                    }
                   </p>
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     by {formatCreatorName(activity.creator_name, activity.creator_role)}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] sm:text-xs text-muted-foreground">
-                      {activity.subject}
-                    </span>
-                    <span className="text-[10px] sm:text-xs text-muted-foreground">•</span>
+                    {/* Subject only shown for single items — grouped rows span
+                        multiple subjects so showing one would be misleading.
+                        Also now actually populated (subjects JOIN was missing before) */}
+                    {activity.count === 1 && activity.subject && (
+                      <>
+                        <span className="text-[10px] sm:text-xs text-muted-foreground">
+                          {activity.subject}
+                        </span>
+                        <span className="text-[10px] sm:text-xs text-muted-foreground">•</span>
+                      </>
+                    )}
                     <span className="text-[10px] sm:text-xs text-muted-foreground">
                       {formatRelativeTime(activity.created_at)}
                     </span>
@@ -174,7 +198,12 @@ export default function ActivityFeed({ limit = 5 }) {
                 className="ml-2 flex-shrink-0"
                 onClick={() => handleActivityClick(activity)}
               >
-                {activity.content_type === 'note' ? 'View' : 'Study'}
+                {activity.count > 1
+                  // Grouped: show count so user knows how many items await them
+                  ? `View ${activity.count}`
+                  // Single item: View for notes, Study for flashcard decks
+                  : activity.content_type === 'note' ? 'View' : 'Study'
+                }
               </Button>
             </div>
           ))}

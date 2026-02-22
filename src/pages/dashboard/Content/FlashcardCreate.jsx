@@ -12,6 +12,7 @@ import { ArrowLeft, Plus, Trash2, Image as ImageIcon, Check, ChevronsUpDown } fr
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { notifyContentCreated } from '@/lib/notifyEdge';
 
 export default function FlashcardCreate() {
   const navigate = useNavigate();
@@ -425,6 +426,19 @@ export default function FlashcardCreate() {
           ? `${flashcards.length} flashcard(s) created and shared with ${selectedGroupIds.length} group(s)`
           : `${flashcards.length} flashcard(s) created successfully`,
       });
+
+      // Fire-and-forget push notification — never blocks the create flow
+      if (['public', 'friends'].includes(cardVisibility)) {
+        notifyContentCreated({
+          content_type: 'flashcard_deck',
+          content_id: deckId,
+          creator_id: user.id,
+          title: selectedSubject?.name || customSubject || 'Flashcard Deck',
+          subject_name: selectedSubject?.name || customSubject || null,
+          visibility: cardVisibility,
+          target_course: finalTargetCourse,
+        });
+      }
 
       navigate('/dashboard');
 

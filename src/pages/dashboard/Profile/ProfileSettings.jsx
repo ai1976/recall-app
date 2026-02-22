@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
-import { Save, Loader2, Plus, X, Star, GraduationCap } from 'lucide-react';
+import { Save, Loader2, Plus, X, Star, GraduationCap, Bell, BellOff, Smartphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import PageContainer from '@/components/layout/PageContainer';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const COURSE_LEVELS = [
   'CA Foundation',
@@ -46,6 +47,19 @@ function toTitleCase(str) {
 export default function ProfileSettings() {
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Push notification subscription management
+  const {
+    isSupported: pushSupported,
+    isSubscribed,
+    permission: pushPermission,
+    isLoading: pushLoading,
+    needsIOSInstall,
+    isIOS,
+    isStandalone,
+    subscribe: pushSubscribe,
+    unsubscribe: pushUnsubscribe,
+  } = usePushNotifications(user);
 
   // Course context (multi-course features for professors/admins/super_admins)
   const {
@@ -468,6 +482,79 @@ export default function ProfileSettings() {
           </CardContent>
         </Card>
       )}
+
+      {/* ── Push Notifications ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Bell className="h-4 w-4 text-indigo-600" />
+            Push Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!pushSupported ? (
+            <p className="text-sm text-gray-500">
+              Push notifications are not supported in this browser. Try Chrome or Edge on Android,
+              or Safari 16.4+ on iPhone.
+            </p>
+          ) : needsIOSInstall ? (
+            <div className="flex items-start gap-3 p-3 bg-indigo-50 rounded-lg text-sm text-indigo-800">
+              <Smartphone className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium">Install the app to enable push notifications</p>
+                <p className="text-indigo-600 mt-1">
+                  Tap <strong>Share</strong> →{' '}
+                  <strong>Add to Home Screen</strong> in Safari, then open the app from your home
+                  screen.
+                </p>
+              </div>
+            </div>
+          ) : pushPermission === 'denied' ? (
+            <div className="text-sm text-amber-700 bg-amber-50 p-3 rounded-lg">
+              Push notifications are blocked by your browser. To re-enable, open your browser
+              site settings for this page and allow notifications.
+            </div>
+          ) : isSubscribed ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-green-700">
+                <Bell className="h-4 w-4" />
+                <span>Push notifications are <strong>enabled</strong></span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-gray-600 border-gray-300 h-8"
+                onClick={pushUnsubscribe}
+                disabled={pushLoading}
+              >
+                {pushLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <BellOff className="h-3 w-3 mr-1" />}
+                Disable
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                Get notified when new content or friend requests arrive.
+              </p>
+              <Button
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white h-8"
+                onClick={async () => {
+                  const ok = await pushSubscribe();
+                  if (ok) toast({ title: 'Push notifications enabled!' });
+                  else if (Notification.permission === 'denied')
+                    toast({ title: 'Blocked by browser', description: 'Allow notifications in browser settings.', variant: 'destructive' });
+                }}
+                disabled={pushLoading}
+              >
+                {pushLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Bell className="h-3 w-3 mr-1" />}
+                Enable
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
     </PageContainer>
   );
 }

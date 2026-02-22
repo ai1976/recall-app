@@ -1,6 +1,75 @@
 # Changelog
 
 ---
+## [2026-02-22] Push Notifications — P1 PWA Foundation + P4 Frontend Wiring (COMPLETE)
+
+### Added
+- **`public/sw.js`** — Service worker. Handles `push` event (shows notification, respects `renotify`/`silent`), `notificationclick` (focuses open tab or opens `/dashboard`), minimal install/activate with `skipWaiting` + `clients.claim`.
+- **`src/lib/notifyEdge.js`** — Two fire-and-forget helpers: `notifyContentCreated(payload)` and `notifyFriendEvent(payload)`. Fetch the user's JWT from `supabase.auth.getSession()`, POST to the deployed Edge Functions. Errors silently logged; never throw.
+- **`src/hooks/usePushNotifications.js`** — Hook managing push subscription lifecycle. Detects support, iOS detection, standalone mode, current `Notification.permission`, existing subscription via `pushManager.getSubscription()`. Exports `subscribe()` (register SW → requestPermission → subscribe → POST push-subscribe), `unsubscribe()`, `needsIOSInstall`.
+- **`src/components/notifications/PushPermissionBanner.jsx`** — Dismissible banner on Dashboard. `localStorage` key `recall-push-banner-dismissed` prevents re-showing. States: default (Enable button), iOS-not-installed (Add to Home Screen guide), success (auto-dismissed after 2 s).
+
+### Changed
+- **`public/site.webmanifest`** — Fixed: `name`, `short_name`, `theme_color: #4f46e5`, `start_url: /dashboard`, `purpose: any maskable` on 512px icon.
+- **`src/main.jsx`** — Added SW registration on `window load` (non-blocking).
+- **`src/pages/Dashboard.jsx`** — Added `<PushPermissionBanner />` above main content grid.
+- **`src/pages/dashboard/Profile/ProfileSettings.jsx`** — Added "Push Notifications" card with enable/disable button, iOS install prompt, denied/unsupported states. Uses `usePushNotifications` hook.
+- **`src/pages/dashboard/Content/NoteUpload.jsx`** — Added `notifyContentCreated()` call after successful insert (visibility `public`/`friends` only). Fire-and-forget.
+- **`src/pages/dashboard/Content/FlashcardCreate.jsx`** — Same for flashcard deck creates.
+- **`src/pages/dashboard/Friends/FindFriends.jsx`** — Added `notifyFriendEvent('friend_request')` after successful send.
+- **`src/pages/dashboard/Profile/AuthorProfile.jsx`** — Same for Add Friend button.
+- **`src/pages/dashboard/Friends/FriendRequests.jsx`** — Added `notifyFriendEvent('friend_accepted')` after accept. Looks up `user_id` (sender) from `pendingRequests` state before the async call.
+- **`src/components/layout/FriendsDropdown.jsx`** — Same accept notification from nav quick-accept.
+
+### Files Changed
+- `public/site.webmanifest`
+- `public/sw.js` (NEW)
+- `src/main.jsx`
+- `src/lib/notifyEdge.js` (NEW)
+- `src/hooks/usePushNotifications.js` (NEW)
+- `src/components/notifications/PushPermissionBanner.jsx` (NEW)
+- `src/pages/Dashboard.jsx`
+- `src/pages/dashboard/Profile/ProfileSettings.jsx`
+- `src/pages/dashboard/Content/NoteUpload.jsx`
+- `src/pages/dashboard/Content/FlashcardCreate.jsx`
+- `src/pages/dashboard/Friends/FindFriends.jsx`
+- `src/pages/dashboard/Profile/AuthorProfile.jsx`
+- `src/pages/dashboard/Friends/FriendRequests.jsx`
+- `src/components/layout/FriendsDropdown.jsx`
+
+---
+## [2026-02-22] Push Notifications — Phase 3: Edge Functions + Phase 2/4 Prep
+
+### Added
+- **`supabase/functions/_shared/supabaseAdmin.ts`** — Shared service-role Supabase client (Deno) for all Edge Functions. `SUPABASE_SERVICE_ROLE_KEY` from Supabase secrets; bypasses RLS.
+- **`supabase/functions/_shared/sendPush.ts`** — VAPID web-push utility using `npm:web-push@3.6.7`. `sendPushToUsers(userIds[], payload)` fetches active subscriptions, sends concurrently with `Promise.allSettled`, auto-deactivates 410/404 expired subscriptions.
+- **`supabase/functions/push-subscribe/index.ts`** — Saves device push subscription (CORS + JWT auth + upsert on `(user_id, endpoint)`). Creates default `push_notification_preferences` row if missing.
+- **`supabase/functions/push-unsubscribe/index.ts`** — Soft-deletes subscription on permission revocation.
+- **`supabase/functions/notify-friend-event/index.ts`** — Instant push for `friend_request` / `friend_accepted`. No aggregation. Tag = `friend-{actor_id}`, `renotify: true`.
+- **`supabase/functions/notify-content-created/index.ts`** — Update-in-place aggregator. 4-hour window per `(creator_id, content_type)`. Professor public → `professor_content` → students with matching `course_level`. Student/friends → `friend_content` → accepted friends. Bulk INSERT for new users; individual UPDATE for existing (increments `metadata.count`). `renotify: true` for first push, `renotify: false` for silent updates. Push `tag = content-{creator_id}-{content_type}` replaces notifications on device.
+- **`push_subscriptions` table** — `(id, user_id, endpoint, p256dh, auth, browser, platform, is_active, created_at, last_used_at)`. UNIQUE(user_id, endpoint), RLS, partial index on `is_active = true`.
+- **`push_notification_preferences` table** — `(user_id PK, review_reminders, professor_content, friend_content, group_content, friend_requests, friend_accepted, updated_at)`. All defaults `true`. RLS.
+
+### Changed
+- **`notifications` table** — Added `actor_id UUID` (grouping key), `updated_at TIMESTAMPTZ` (sort key). Added trigger `trg_notifications_updated_at`. Rebuilt CHECK constraint to include `professor_content`, `friend_content`, `group_content`, `system_announcement`. New indexes: `idx_notifications_grouping` (partial, unread only), `idx_notifications_updated_at`.
+- **`get_recent_notifications` RPC** — Rebuilt (DROP + CREATE required due to new return columns). Added `actor_id`, `updated_at` to RETURNS TABLE. Changed `ORDER BY` from `created_at DESC` → `updated_at DESC`.
+- **`get_recent_activity_feed` RPC** — Rebuilt with SQL grouping by `(creator_id, creator_name, creator_role, content_type, DATE(created_at))`. Added `count INTEGER` and `subject TEXT` columns. Fixed missing subjects JOIN (subject was always NULL). Bug fixed: navigation for `flashcard_deck` type now works.
+- **`src/hooks/useNotifications.js`** — Added UPDATE Realtime subscription. On UPDATE: refetches notifications to re-sort by `updated_at DESC`. Does not increment `unreadCount`.
+- **`src/components/dashboard/ActivityFeed.jsx`** — Grouped rendering: `count > 1` shows "30 notes added" / "View 30". Fixed `content_type === 'deck'` → `'flashcard_deck'` navigation bug. Subject hidden for grouped rows. Author-filtered navigation for grouped clicks.
+- **`package.json`** — `"supabase": "^2.76.12"` added to devDependencies (CLI via npm).
+
+### Files Changed
+- `supabase/functions/_shared/supabaseAdmin.ts` (NEW)
+- `supabase/functions/_shared/sendPush.ts` (NEW)
+- `supabase/functions/push-subscribe/index.ts` (NEW)
+- `supabase/functions/push-unsubscribe/index.ts` (NEW)
+- `supabase/functions/notify-friend-event/index.ts` (NEW)
+- `supabase/functions/notify-content-created/index.ts` (NEW)
+- `src/hooks/useNotifications.js`
+- `src/components/dashboard/ActivityFeed.jsx`
+- `package.json`
+
+---
 ## [2026-02-21] Phase A: Professor Multi-Course — Teaching Areas + Course Context Switcher
 
 ### Added

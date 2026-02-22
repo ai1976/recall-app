@@ -12,6 +12,7 @@ import { Upload, ArrowLeft, Image as ImageIcon, Check, ChevronsUpDown, Plus } fr
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { notifyContentCreated } from '@/lib/notifyEdge';
 
 export default function NoteUpload() {
   const navigate = useNavigate();
@@ -340,6 +341,19 @@ export default function NoteUpload() {
           ? `Note uploaded and shared with ${selectedGroupIds.length} group(s)`
           : 'Note uploaded successfully',
       });
+
+      // Fire-and-forget push notification — never blocks the upload flow
+      if (insertedNote && ['public', 'friends'].includes(dbVisibility)) {
+        notifyContentCreated({
+          content_type: 'note',
+          content_id: insertedNote.id,
+          creator_id: user.id,
+          title: noteData.title,
+          subject_name: selectedSubject?.name || customSubject || null,
+          visibility: dbVisibility,
+          target_course: noteData.target_course,
+        });
+      }
 
       navigate('/dashboard');
 

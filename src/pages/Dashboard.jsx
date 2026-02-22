@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import AnonymousStats from '@/components/dashboard/AnonymousStats';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
+import PushPermissionBanner from '@/components/notifications/PushPermissionBanner';
 import { useBadges } from '@/hooks/useBadges';
 import { useToast } from '@/hooks/use-toast';
 import BadgeToast from '@/components/badges/BadgeToast';
@@ -503,8 +504,11 @@ export default function Dashboard() {
           </p>
         </div>
 
+        {/* Push notification permission prompt — shown once, dismissed to localStorage */}
+        <PushPermissionBanner />
+
         <div className="space-y-4 sm:space-y-6">
-          
+
           {/* ===== NEW USER ONBOARDING ===== */}
           {isNewUser && (
             <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">

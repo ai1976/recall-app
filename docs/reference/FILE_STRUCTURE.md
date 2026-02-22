@@ -1,6 +1,19 @@
 # RECALL APP - FILE STRUCTURE
-**Structure as on 17 Jan 2026**
+**Structure as on 22 Feb 2026** (last updated: Push Notifications Phase 3)
 recall-app
+├── supabase
+│   └── functions
+│       ├── _shared                        ← shared helpers (NOT deployed as functions)
+│       │   ├── supabaseAdmin.ts           ← service-role Supabase client
+│       │   └── sendPush.ts                ← VAPID web-push utility (sendPushToUsers)
+│       ├── push-subscribe
+│       │   └── index.ts                   ← save device push subscription
+│       ├── push-unsubscribe
+│       │   └── index.ts                   ← soft-delete push subscription
+│       ├── notify-friend-event
+│       │   └── index.ts                   ← instant push for friend_request/accepted
+│       └── notify-content-created
+│           └── index.ts                   ← update-in-place aggregation + push
 ├── .env.local
 ├── .gitignore
 ├── components.json

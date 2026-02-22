@@ -128,7 +128,7 @@ export function useNotifications(limit = 10) {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  // Subscribe to realtime INSERT events on notifications table
+  // Subscribe to realtime INSERT and UPDATE events on notifications table
   useEffect(() => {
     if (!user) return;
 
@@ -143,9 +143,25 @@ export function useNotifications(limit = 10) {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          // Add new notification to the top of the list
+          // New notification arrived — prepend to list and bump unread count
           setNotifications(prev => [payload.new, ...prev].slice(0, limit));
           setUnreadCount(prev => prev + 1);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          // An existing notification was updated in-place by the aggregation logic
+          // (e.g. "Prof added 1 note" → "Prof added 5 notes").
+          // Re-fetch so the list is re-sorted by updated_at DESC and shows the
+          // latest message. unreadCount stays unchanged — the row was already unread.
+          fetchNotifications();
         }
       )
       .subscribe();
@@ -154,6 +170,7 @@ export function useNotifications(limit = 10) {
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, limit]);
 
   return {

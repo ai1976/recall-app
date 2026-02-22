@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { notifyFriendEvent } from '@/lib/notifyEdge';
 
 export default function FriendsDropdown({ pendingCount }) {
   const { user } = useAuth();
@@ -64,6 +65,11 @@ export default function FriendsDropdown({ pendingCount }) {
   const handleAccept = async (friendshipId, e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Capture sender id before the async update
+    const request = pendingRequests.find((r) => r.id === friendshipId);
+    const senderId = request?.user_id;
+
     setActionLoading(friendshipId);
 
     try {
@@ -73,6 +79,11 @@ export default function FriendsDropdown({ pendingCount }) {
         .eq('id', friendshipId);
 
       if (error) throw error;
+
+      // Fire-and-forget: notify the original sender
+      if (senderId) {
+        notifyFriendEvent({ event_type: 'friend_accepted', actor_id: user.id, target_user_id: senderId });
+      }
 
       // Remove from local list
       setPendingRequests(prev => prev.filter(r => r.id !== friendshipId));

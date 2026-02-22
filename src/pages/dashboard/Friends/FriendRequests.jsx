@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { UserPlus, UserCheck, UserX, Clock, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import PageContainer from '@/components/layout/PageContainer';
+import { notifyFriendEvent } from '@/lib/notifyEdge';
 
 export default function FriendRequests() {
   const { user } = useAuth();
@@ -58,11 +59,15 @@ export default function FriendRequests() {
   };
 
   const handleAccept = async (friendshipId) => {
+    // Grab the original sender's id before the async update
+    const request = pendingRequests.find((r) => r.id === friendshipId);
+    const senderId = request?.user_id;
+
     setLoading(true);
     try {
       const { error } = await supabase
         .from('friendships')
-        .update({ 
+        .update({
           status: 'accepted',
           updated_at: new Date().toISOString()
         })
@@ -74,6 +79,11 @@ export default function FriendRequests() {
         title: "Friend request accepted!",
         description: "You are now friends.",
       });
+
+      // Fire-and-forget: notify the original sender that their request was accepted
+      if (senderId) {
+        notifyFriendEvent({ event_type: 'friend_accepted', actor_id: user.id, target_user_id: senderId });
+      }
 
       // Refresh list
       fetchPendingRequests();
