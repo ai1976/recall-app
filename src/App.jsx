@@ -58,6 +58,7 @@ import StudyMode from '@/pages/dashboard/Study/StudyMode'
 // Admin Pages
 import SuperAdminDashboard from '@/pages/admin/SuperAdminDashboard'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
+import MigrateNoteImages from '@/pages/admin/MigrateNoteImages' // TEMP — delete after migration
 
 
 // Professor Pages
@@ -293,6 +294,11 @@ function App() {
           <Route
             path="/admin/bulk-upload-topics"
             element={session ? <BulkUploadTopics /> : <Navigate to="/login" replace />}
+          />
+          {/* TEMP migration route — remove after use */}
+          <Route
+            path="/admin/migrate-note-images"
+            element={session ? <MigrateNoteImages /> : <Navigate to="/login" replace />}
           />
 
           {/* Professor Routes (legacy redirect) */}
