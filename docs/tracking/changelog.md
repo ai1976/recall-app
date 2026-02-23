@@ -1,6 +1,26 @@
 # Changelog
 
 ---
+## [2026-02-23] Docs: Data Migration Architecture Rules
+
+### Added
+- **`docs/active/context.md`** — New "Rule #7: Data Migration Architecture Rules" section under "Critical Rules & Patterns". Documents:
+  - Pre-migration checklist: measure data budget with `pg_size_pretty(SUM(pg_column_size(...)))` before writing any migration query.
+  - PostgreSQL TOAST storage behaviour table: `IS NOT NULL` = safe (reads null-flag only), `LIKE 'data:%'` = dangerous (decompresses every row).
+  - Two-phase fetch pattern: SELECT IDs first (`IS NOT NULL`, no TOAST load) → fetch one row at a time by primary key.
+  - React migration component pattern: `src/pages/admin/MigrateXxx.jsx` with `@/lib/supabase`, progress log, re-run safety (`upsert: true`), and self-deletion after success.
+  - Supabase free plan limits table: 500 MB DB, 5 GB egress/month, separate Disk IO Budget. Documents "EXCEEDING USAGE LIMITS" throttling behaviour and that no query tuning helps — only billing cycle reset unblocks.
+
+- **`docs/active/now.md`** — Added "2026-02-23 Session" notes: TOAST mechanics, two-phase fix, billing throttle diagnosis, Disk IO Budget behaviour, and the core lesson ("scale assumption failure" — quantify bytes before writing migrations).
+
+### Root Cause Documented
+The Feb 2026 flashcard migration required 3 iterations because neither the developer nor the AI assistant calculated data volume upfront. `LIKE 'data:%'` on a 167-row TOAST TEXT column triggered ~92 MB of decompression per query. Additionally, the project had exceeded the Supabase free plan 5 GB egress limit, causing DB throttling that made even simple COUNT queries time out. Both failure modes are now documented as architectural rules to prevent recurrence.
+
+### Files Changed
+- `docs/active/context.md`
+- `docs/active/now.md`
+
+---
 ## [2026-02-22] Egress Optimisation — Flashcard Image Storage Fix + Migration Tool
 
 ### Added

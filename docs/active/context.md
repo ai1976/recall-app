@@ -863,6 +863,61 @@ const profiles = await fetchProfiles(userIds);
 const merged = notes.map(n => ({...n, user: profiles.find(p => p.id === n.user_id)}));
 ```
 
+### 7. Data Migration Architecture Rules (CRITICAL — learned Feb 2026)
+
+These rules exist because a migration of 167 flashcard images (110 MB base64 → Storage) caused repeated timeouts and billing quota exhaustion before succeeding. Root cause: nobody quantified data volume before writing the migration query.
+
+#### Pre-Migration Checklist (run BEFORE writing any migration)
+
+**Step 1: Measure the data budget**
+```sql
+-- [DIAGNOSTIC] Data size before migration
+-- Run this FIRST. Know your numbers before writing the migration.
+SELECT
+  COUNT(*) AS row_count,
+  pg_size_pretty(SUM(pg_column_size(the_column))) AS total_column_size,
+  pg_size_pretty(AVG(pg_column_size(the_column))::BIGINT) AS avg_per_row
+FROM your_table
+WHERE the_column IS NOT NULL;
+```
+If `total_column_size > 10 MB`, treat the migration as high-risk — plan for one-row-at-a-time processing.
+
+**Step 2: Identify TOAST columns**
+Any TEXT or JSONB column where individual values exceed ~2 KB is stored in PostgreSQL TOAST (The Oversized-Attribute Storage Technique). TOAST values are:
+- Stored compressed in a separate internal table
+- **NOT** loaded unless the column is explicitly selected
+- **Fully decompressed** when used in a LIKE / regex pattern match — even for non-matching rows
+
+| Filter type | TOAST behaviour | Safe for large data? |
+|---|---|---|
+| `IS NOT NULL` | Reads null-flag only (heap tuple) — TOAST never touched | ✅ Yes |
+| `= 'exact_value'` | Decompresses only matching rows | ✅ Yes (if few matches) |
+| `LIKE 'data:%'` | Decompresses **every row** to scan content | ❌ No |
+| `SELECT *` | Decompresses all TOAST columns for every selected row | ❌ No for bulk |
+
+**Step 3: Plan a two-phase fetch — never one big query**
+```
+Phase 1: SELECT id WHERE column IS NOT NULL  ← returns UUID list only, zero TOAST loading
+Phase 2: For each id → fetch one row at a time  ← one TOAST decompression per round-trip
+```
+Never use `SELECT *` or `LIKE` patterns on TOAST columns in bulk. Always fetch IDs first, then rows individually.
+
+#### Migration Component Pattern (React)
+- ❌ **Never** run migrations from the browser console (Vite apps don't expose `supabase` as a global)
+- ✅ **Always** create a temporary `src/pages/admin/MigrateXxx.jsx` React component with `@/lib/supabase` import
+- ✅ Show a progress counter + per-item log (color-coded ✅/❌) so you can monitor without guessing
+- ✅ Make it safe to re-run (`upsert: true` on uploads, skip already-migrated rows)
+- ✅ Delete the component and its route from `App.jsx` immediately after migration is confirmed complete
+
+#### Supabase Free Plan Limits to Watch
+| Resource | Limit | Impact when exceeded |
+|---|---|---|
+| Database size | 500 MB | Writes blocked |
+| Egress (DB + Storage) | 5 GB / month | DB connections throttled |
+| Disk IO Budget | Separate quota | Queries slow/fail |
+
+If you see "EXCEEDING USAGE LIMITS" banner in Supabase Dashboard → billing cycle reset date is your unblock date. Do not retry large queries until the cycle resets.
+
 ---
 
 ## Environment Variables (Vercel)

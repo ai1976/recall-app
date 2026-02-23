@@ -1,6 +1,6 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-02-23
+**Last Updated:** 2026-02-23 (post-session documentation)
 **Current Phase:** Egress Optimisation — COMPLETE ✅
 
 ---
@@ -431,6 +431,16 @@ None currently.
 ---
 
 ## Session Notes
+
+### 2026-02-23 Session (Egress Optimisation — Architecture Learnings)
+- **Root cause of migration timeouts:** `LIKE 'data:%'` on TOAST TEXT columns forces PostgreSQL to fully decompress every stored value before scanning — 167 rows × 570 KB = ~92 MB of decompression per query, even if zero rows match. This caused SQL Editor timeouts and Supabase API 504s.
+- **Fix that worked:** Two-phase approach — `SELECT id WHERE column IS NOT NULL` (reads null-flag only, zero TOAST load) → loop and fetch one row at a time by primary key (one TOAST decompression per request).
+- **`IS NOT NULL` is fast because** it only reads the null-flag stored in the heap tuple; it never touches the TOAST table at all.
+- **Supabase billing cycle throttling:** When monthly egress (DB + Storage) exceeds 5 GB, Supabase throttles DB connections. Even `SELECT COUNT(*)` queries with `IS NOT NULL` hung while the project was over-limit (15.5 GB vs 5 GB). Unblock = wait for billing cycle reset. No query tuning can help once throttled.
+- **Disk IO Budget** is a separate Supabase quota from egress. Large failed LIKE queries that decompress 92 MB count against it. Expect warnings for ~1 hour after heavy failed queries; it self-recovers.
+- **Migration component pattern confirmed:** React component with `@/lib/supabase` is the correct approach — Vite apps don't expose `supabase` as a browser global; console scripts fail silently.
+- **Key lesson — "scale assumption failure":** We reasoned about operation *logic* correctly but never quantified bytes. Rule added: always run `pg_size_pretty(SUM(pg_column_size(col)))` before writing any migration. See `context.md` → "Data Migration Architecture Rules" for full checklist.
+- **DB size result:** 154 MB → 36 MB (76% reduction) after 167 base64 images migrated to `flashcard-images` Storage bucket.
 
 ### 2026-02-08 Session (Flashcard Text-to-Speech)
 - Created `useSpeech.js` hook using Web Speech API with sentence chunking to prevent Chrome/Edge 15-second TTS cutoff bug
