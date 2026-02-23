@@ -256,8 +256,8 @@ export default function NoteUpload() {
       setCompressing(true);
       try {
         const compressionOptions = {
-          maxSizeMB: 0.2,
-          maxWidthOrHeight: 1200,
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 1920,
           useWebWorker: true,
         };
         const compressedBlob = await imageCompression(selectedFile, compressionOptions);
@@ -720,7 +720,7 @@ export default function NoteUpload() {
                             {file ? file.name : 'Click to upload or drag and drop'}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            JPG, PNG (auto-compressed to ~200KB) or PDF (max 10MB)
+                            JPG, PNG (auto-compressed to ~500KB) or PDF (max 10MB)
                           </p>
                         </div>
                       )}

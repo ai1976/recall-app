@@ -1,6 +1,16 @@
 # Changelog
 
 ---
+## [2026-02-23] Fix: Note image compression limits raised for diagram readability
+
+### Changed
+- **`NoteUpload.jsx`** — Compression limits raised from `maxSizeMB: 0.2 / maxWidthOrHeight: 1200` to `maxSizeMB: 0.5 / maxWidthOrHeight: 1920`. Reason: at 1200px and 200KB, text-heavy mindmaps and complex diagrams could become illegible (small text nodes blurred by heavy JPEG compression). 1920px gives ~60% more pixels; 500KB budget allows ~70%+ quality at that resolution. PDFs remain the best option for extremely detailed diagrams. Flashcard image limits unchanged (simpler images, 0.2/1200 still appropriate).
+- **`NoteUpload.jsx`** — Upload hint text updated: "auto-compressed to ~200KB" → "auto-compressed to ~500KB".
+
+### Files Changed
+- `src/pages/dashboard/Content/NoteUpload.jsx`
+
+---
 ## [2026-02-23] Push Notifications — Daily Review Reminder Cron
 
 ### Added

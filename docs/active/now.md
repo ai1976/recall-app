@@ -23,9 +23,9 @@ Root cause: 14+ GB Supabase egress from 26 users — all note images loading at 
 - [x] **`BrowseNotes.jsx`** — Added `NOTES_PER_PAGE = 10` constant + `visibleCount` state. Render computes `flatFiltered` → slices → regroups via existing `groupNotesBySubject()`. Only 10 notes rendered in DOM on load.
 - [x] **`BrowseNotes.jsx`** — "Load More" button appends next 10 notes. `visibleCount` resets to 10 on any filter change. Groups remain intact (new notes tuck into existing headers — no fragmented group split across pages).
 - [x] **`NoteUpload.jsx`** — Imported `browser-image-compression` (already installed v2.0.2). Made `handleFileChange` async.
-- [x] **`NoteUpload.jsx`** — Images compressed client-side before upload: `maxSizeMB: 0.2`, `maxWidthOrHeight: 1200`, `useWebWorker: true`. Handles EXIF rotation automatically (iPhone portrait photos stay upright). Fallback to original file if compression throws.
+- [x] **`NoteUpload.jsx`** — Images compressed client-side before upload: `maxSizeMB: 0.5`, `maxWidthOrHeight: 1920`, `useWebWorker: true`. Handles EXIF rotation automatically (iPhone portrait photos stay upright). Fallback to original file if compression throws. (Limits raised from 0.2/1200 to preserve readability of text-heavy mindmaps and diagrams.)
 - [x] **`NoteUpload.jsx`** — `compressing` state: label gains `cursor-wait opacity-75` + `htmlFor` unlinked during compression (prevents double file picker open). Spinner shown in upload area with "Compressing image…" text.
-- [x] **`NoteUpload.jsx`** — Updated upload hint text: "JPG, PNG (auto-compressed to ~200KB) or PDF (max 10MB)".
+- [x] **`NoteUpload.jsx`** — Updated upload hint text: "JPG, PNG (auto-compressed to ~500KB) or PDF (max 10MB)".
 - [x] **Build verified clean** — 1974 modules, 5.42s, no errors.
 
 ### Push Notifications — Review Reminders Cron (Feb 23, 2026)
