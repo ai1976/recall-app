@@ -1,6 +1,17 @@
 # Changelog
 
 ---
+## [2026-02-23] Push Notifications — Daily Review Reminder Cron
+
+### Added
+- **`supabase/functions/cron-review-reminders/index.ts`** (NEW) — Scheduled Edge Function for daily 08:00 IST (02:30 UTC) review reminders. Queries `reviews` for cards due today (`status = 'active'`, `next_review_date <= today`, `skip_until IS NULL OR <= today`). Aggregates due count per user, checks `push_notification_preferences.review_reminders` preference, sends one push with fixed tag `review-reminder` (browser-level dedup). Secured via `x-cron-secret` header.
+- **`CRON_SECRET`** set as Supabase project secret (32-byte random hex). Deployed the function.
+- **pg_cron schedule** — SQL provided to register `daily-review-reminders` job (`cron.schedule` + `net.http_post`). Must be run in Supabase SQL Editor.
+
+### Files Changed
+- `supabase/functions/cron-review-reminders/index.ts` (NEW)
+
+---
 ## [2026-02-23] Docs: Data Migration Architecture Rules
 
 ### Added

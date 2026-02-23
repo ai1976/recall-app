@@ -28,6 +28,12 @@ Root cause: 14+ GB Supabase egress from 26 users — all note images loading at 
 - [x] **`NoteUpload.jsx`** — Updated upload hint text: "JPG, PNG (auto-compressed to ~200KB) or PDF (max 10MB)".
 - [x] **Build verified clean** — 1974 modules, 5.42s, no errors.
 
+### Push Notifications — Review Reminders Cron (Feb 23, 2026)
+- [x] **`supabase/functions/cron-review-reminders/index.ts`** (NEW) — Scheduled Edge Function that fires daily at 08:00 IST (02:30 UTC) via pg_cron. Queries `reviews` table for cards with `status = 'active'`, `next_review_date <= today`, and `skip_until IS NULL OR <= today` — exactly matching Dashboard.jsx due-card logic. Aggregates count per user, checks `push_notification_preferences.review_reminders`, sends one push per user. Fixed tag `review-reminder` (browser replaces instead of stacking). Auth via `x-cron-secret` header.
+- [x] **Deployed** to project `ztxguiujzirburxpjujf` via `npx supabase functions deploy cron-review-reminders`.
+- [x] **`CRON_SECRET`** set in Supabase secrets (32-byte random hex).
+- [x] **pg_cron SQL provided** — run in Supabase SQL Editor to register `daily-review-reminders` job at `30 2 * * *`.
+
 ### Push Notifications — P1 PWA Foundation + P4 Frontend Wiring (Feb 22, 2026)
 - [x] **`public/site.webmanifest`** — Fixed `name`, `short_name`, `theme_color` (#4f46e5), `start_url: /dashboard`, `purpose: maskable` on 512px icon.
 - [x] **`public/sw.js`** — Service worker: handles `push` event (shows notification, respects `renotify`/`silent` flags), `notificationclick` (focuses existing tab or opens `/dashboard`), `install`/`activate` with `skipWaiting` + `clients.claim`.
