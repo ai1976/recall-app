@@ -136,7 +136,6 @@ recall-app
 │   │   ├── admin
 │   │   │   ├── AdminDashboard.jsx
 │   │   │   ├── BulkUploadTopics.jsx
-│   │   │   ├── MigrateFlashcards.jsx  ← TEMP: delete after migration
 │   │   │   └── SuperAdminDashboard.jsx
 │   │   ├── auth
 │   │   │   ├── ForgotPassword.jsx
@@ -225,7 +224,6 @@ recall-app
 - `src/pages/admin/AdminDashboard.jsx` - Admin panel
 - `src/pages/admin/SuperAdminDashboard.jsx` - Super admin panel
 - `src/pages/admin/BulkUploadTopics.jsx` - Bulk upload subjects & topics (admin only)
-- `src/pages/admin/MigrateFlashcards.jsx` - **TEMPORARY** — one-time migration of base64 flashcard images to Storage (delete after use)
 
 ### **Bulk Upload:**
 - `src/pages/dashboard/BulkUploadFlashcards.jsx` - Bulk upload flashcards via CSV (all users)

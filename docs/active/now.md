@@ -1,22 +1,20 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-02-22
+**Last Updated:** 2026-02-23
 **Current Phase:** Egress Optimisation — COMPLETE ✅
 
 ---
 
 ## Just Completed ✅
 
-### Egress Optimisation: Flashcard Image Storage Fix + Migration Tool (Feb 22, 2026)
-Root cause: 162 flashcard images (110 MB) stored as raw base64 TEXT in DB columns — every study session downloaded the full blobs from the database.
+### Egress Optimisation: Flashcard Image Storage Fix + Migration (Feb 22–23, 2026)
+Root cause: 167 flashcard images (110 MB) stored as raw base64 TEXT in DB columns — every study session downloaded the full blobs from the database.
 - [x] **`FlashcardCreate.jsx`** — Replaced `FileReader.readAsDataURL` (base64 → DB) with async compress + Storage upload pipeline. `imageCompression` (same settings as NoteUpload: `maxSizeMB: 0.2, maxWidthOrHeight: 1200`) → upload to `flashcard-images` Storage bucket → store public URL in DB. EXIF-safe via `browser-image-compression`.
 - [x] **`FlashcardCreate.jsx`** — Card state shape changed: `frontImage/backImage` (base64) → `frontImageUrl/frontImagePreview/backImageUrl/backImagePreview` (URL + ObjectURL).
 - [x] **`FlashcardCreate.jsx`** — Per-card upload spinner (`uploadingImage` state tracks `{ index, side }`). Label shows "Change Image" after upload. ×-button on preview to remove image. ObjectURLs revoked on card removal (memory leak prevention).
-- [x] **`src/pages/admin/MigrateFlashcards.jsx`** (NEW) — Temporary admin page at `/admin/migrate-flashcards`. Migrates existing 162 base64 rows to `flashcard-images` Storage. Progress bar, per-card terminal log, batch processing (3 concurrent), `upsert: true` (safe to re-run). Success card prompts deletion of the page.
-- [x] **`App.jsx`** — Added `MigrateFlashcards` import + route at `/admin/migrate-flashcards`.
-- [x] **Build verified clean** — 1975 modules, 5.65s, no errors.
-
-**Pre-requisite (user must do):** Create `flashcard-images` bucket in Supabase Storage (Public ON) + run RLS SQL (provided in chat).
+- [x] **Migration completed 23 Feb 2026 06:55 AM** — 167 images migrated, 0 failed. All base64 blobs removed from DB and uploaded to `flashcard-images` Storage bucket under `migrated/` prefix.
+- [x] **`MigrateFlashcards.jsx` deleted** — temporary admin page removed after successful migration. Route removed from `App.jsx`.
+- [x] **Build verified clean** — 1975 modules, 5.64s, no errors.
 
 ### Egress Optimisation: Lazy Loading + Load More + Image Compression (Feb 22, 2026)
 Root cause: 14+ GB Supabase egress from 26 users — all note images loading at full resolution simultaneously.
