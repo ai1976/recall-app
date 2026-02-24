@@ -1,72 +1,71 @@
+import { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { Toaster } from '@/components/ui/toaster'
-import { AuthProvider } from '@/contexts/AuthContext'
+import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { CourseContextProvider } from '@/contexts/CourseContext'
 
-// Layout Components
+// Layout Components (not lazy — part of the app shell, needed immediately)
 import Navigation from '@/components/layout/Navigation'
 
 // Auth Pages
-import Login from '@/pages/auth/Login'
-import Signup from '@/pages/auth/Signup'
-import ForgotPassword from '@/pages/auth/ForgotPassword'
-import ResetPassword from '@/pages/auth/ResetPassword'
+const Login = lazy(() => import('@/pages/auth/Login'))
+const Signup = lazy(() => import('@/pages/auth/Signup'))
+const ForgotPassword = lazy(() => import('@/pages/auth/ForgotPassword'))
+const ResetPassword = lazy(() => import('@/pages/auth/ResetPassword'))
 
 // Main Pages
-import Home from '@/pages/Home'
-import Dashboard from '@/pages/Dashboard'
-import TermsOfService from '@/pages/TermsOfService'
-import PrivacyPolicy from '@/pages/PrivacyPolicy'
+const Home = lazy(() => import('@/pages/Home'))
+const Dashboard = lazy(() => import('@/pages/Dashboard'))
+const TermsOfService = lazy(() => import('@/pages/TermsOfService'))
+const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'))
 
 // Dashboard - Friends Pages
-import FindFriends from '@/pages/dashboard/Friends/FindFriends'
-import FriendRequests from '@/pages/dashboard/Friends/FriendRequests'
-import MyFriends from '@/pages/dashboard/Friends/MyFriends'
+const FindFriends = lazy(() => import('@/pages/dashboard/Friends/FindFriends'))
+const FriendRequests = lazy(() => import('@/pages/dashboard/Friends/FriendRequests'))
+const MyFriends = lazy(() => import('@/pages/dashboard/Friends/MyFriends'))
 
 // Dashboard - Groups Pages
-import MyGroups from '@/pages/dashboard/Groups/MyGroups'
-import GroupDetail from '@/pages/dashboard/Groups/GroupDetail'
-import CreateGroup from '@/pages/dashboard/Groups/CreateGroup'
+const MyGroups = lazy(() => import('@/pages/dashboard/Groups/MyGroups'))
+const GroupDetail = lazy(() => import('@/pages/dashboard/Groups/GroupDetail'))
+const CreateGroup = lazy(() => import('@/pages/dashboard/Groups/CreateGroup'))
 
 // Dashboard - Content Pages
-import MyNotes from '@/pages/dashboard/Content/MyNotes'
-import BrowseNotes from '@/pages/dashboard/Content/BrowseNotes'
-import MyContributions from '@/pages/dashboard/Content/MyContributions'
+const MyNotes = lazy(() => import('@/pages/dashboard/Content/MyNotes'))
+const BrowseNotes = lazy(() => import('@/pages/dashboard/Content/BrowseNotes'))
+const MyContributions = lazy(() => import('@/pages/dashboard/Content/MyContributions'))
+const NoteUpload = lazy(() => import('@/pages/dashboard/Content/NoteUpload'))
+const NoteDetail = lazy(() => import('@/pages/dashboard/Content/NoteDetail'))
+const NoteEdit = lazy(() => import('@/pages/dashboard/Content/NoteEdit'))
+const FlashcardCreate = lazy(() => import('@/pages/dashboard/Content/FlashcardCreate'))
+const MyFlashcards = lazy(() => import('@/pages/dashboard/Content/MyFlashcards'))
 
 // Dashboard - Study Pages
-import ReviewFlashcards from '@/pages/dashboard/Study/ReviewFlashcards'
-import ReviewSession from '@/pages/dashboard/Study/ReviewSession'
-import MyProgress from '@/pages/dashboard/Study/Progress'
-import MyAchievements from '@/pages/dashboard/Profile/MyAchievements';
-import AuthorProfile from '@/pages/dashboard/Profile/AuthorProfile';
-import ProfileSettings from '@/pages/dashboard/Profile/ProfileSettings';
-import Help from '@/pages/dashboard/Help';
-import ReviewBySubject from '@/pages/dashboard/Study/ReviewBySubject';
+const ReviewFlashcards = lazy(() => import('@/pages/dashboard/Study/ReviewFlashcards'))
+const ReviewSession = lazy(() => import('@/pages/dashboard/Study/ReviewSession'))
+const MyProgress = lazy(() => import('@/pages/dashboard/Study/Progress'))
+const ReviewBySubject = lazy(() => import('@/pages/dashboard/Study/ReviewBySubject'))
+const StudyMode = lazy(() => import('@/pages/dashboard/Study/StudyMode'))
 
-// Dashboard - Content Pages (Notes & Flashcards)
-import NoteUpload from '@/pages/dashboard/Content/NoteUpload'
-import NoteDetail from '@/pages/dashboard/Content/NoteDetail'
-import NoteEdit from '@/pages/dashboard/Content/NoteEdit'
-import FlashcardCreate from '@/pages/dashboard/Content/FlashcardCreate'
-import MyFlashcards from '@/pages/dashboard/Content/MyFlashcards'
+// Dashboard - Profile Pages
+const MyAchievements = lazy(() => import('@/pages/dashboard/Profile/MyAchievements'))
+const AuthorProfile = lazy(() => import('@/pages/dashboard/Profile/AuthorProfile'))
+const ProfileSettings = lazy(() => import('@/pages/dashboard/Profile/ProfileSettings'))
 
-// Dashboard - Study Pages (continued)
-import StudyMode from '@/pages/dashboard/Study/StudyMode'
+// Dashboard - Other
+const Help = lazy(() => import('@/pages/dashboard/Help'))
+const BulkUploadFlashcards = lazy(() => import('@/pages/dashboard/BulkUploadFlashcards'))
 
 // Admin Pages
-import SuperAdminDashboard from '@/pages/admin/SuperAdminDashboard'
-import AdminDashboard from '@/pages/admin/AdminDashboard'
-import MigrateNoteImages from '@/pages/admin/MigrateNoteImages' // TEMP — delete after migration
+const SuperAdminDashboard = lazy(() => import('@/pages/admin/SuperAdminDashboard'))
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'))
+const MigrateNoteImages = lazy(() => import('@/pages/admin/MigrateNoteImages')) // TEMP — delete after migration
+const BulkUploadTopics = lazy(() => import('@/pages/admin/BulkUploadTopics'))
 
-
-// Professor Pages
-import ProfessorTools from '@/pages/professor/ProfessorTools'
-
-// Bulk Upload Pages
-import BulkUploadFlashcards from '@/pages/dashboard/BulkUploadFlashcards'
-import BulkUploadTopics from '@/pages/admin/BulkUploadTopics'
+const PageLoader = () => (
+  <div className="h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+)
 
 // Legacy redirect: /notes/edit/:id → /dashboard/notes/edit/:id
 function LegacyNoteEditRedirect() {
@@ -74,38 +73,17 @@ function LegacyNoteEditRedirect() {
   return <Navigate to={`/dashboard/notes/edit/${id}`} replace />
 }
 
-function App() {
-  const [session, setSession] = useState(null)
-  const [loading, setLoading] = useState(true)
+// Routing lives inside AuthProvider so it can read auth state via useAuth()
+// This eliminates the duplicate getSession() call that was in the old App component
+function AppContent() {
+  const { user, loading } = useAuth()
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setLoading(false)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
+  if (loading) return <PageLoader />
 
   return (
-    <AuthProvider>
-      <CourseContextProvider>
-      <BrowserRouter>
-        {session && <Navigation />}
+    <>
+      {user && <Navigation />}
+      <Suspense fallback={<PageLoader />}>
         <Routes>
           {/*
             Route → File Mapping (for quick reference):
@@ -142,19 +120,19 @@ function App() {
           */}
 
           {/* Landing Page Route */}
-          <Route 
-            path="/" 
-            element={session ? <Navigate to="/dashboard" replace /> : <Home />} 
+          <Route
+            path="/"
+            element={user ? <Navigate to="/dashboard" replace /> : <Home />}
           />
-          
+
           {/* Auth Routes */}
-          <Route 
-            path="/signup" 
-            element={session ? <Navigate to="/dashboard" replace /> : <Signup />} 
+          <Route
+            path="/signup"
+            element={user ? <Navigate to="/dashboard" replace /> : <Signup />}
           />
-          <Route 
-            path="/login" 
-            element={session ? <Navigate to="/dashboard" replace /> : <Login />} 
+          <Route
+            path="/login"
+            element={user ? <Navigate to="/dashboard" replace /> : <Login />}
           />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
@@ -162,160 +140,171 @@ function App() {
           {/* Legal Pages */}
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          
+
           {/* Dashboard Route */}
           <Route
             path="/dashboard"
-            element={session ? <Dashboard /> : <Navigate to="/login" replace />}
+            element={user ? <Dashboard /> : <Navigate to="/login" replace />}
           />
-          
+
           {/* Notes Routes */}
           <Route
             path="/dashboard/notes/new"
-            element={session ? <NoteUpload /> : <Navigate to="/login" replace />}
+            element={user ? <NoteUpload /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/notes/:id"
-            element={session ? <NoteDetail /> : <Navigate to="/login" replace />}
+            element={user ? <NoteDetail /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/notes"
-            element={session ? <BrowseNotes /> : <Navigate to="/login" replace />}
+            element={user ? <BrowseNotes /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/my-notes"
-            element={session ? <MyNotes /> : <Navigate to="/login" replace />}
+            element={user ? <MyNotes /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/notes/edit/:id"
-            element={session ? <NoteEdit /> : <Navigate to="/login" replace />}
+            element={user ? <NoteEdit /> : <Navigate to="/login" replace />}
           />
           {/* Legacy redirect for old /notes/edit/:id bookmarks */}
           <Route
             path="/notes/edit/:id"
             element={<LegacyNoteEditRedirect />}
           />
-          
+
           {/* Flashcards Routes */}
           <Route
             path="/dashboard/flashcards/new"
-            element={session ? <FlashcardCreate /> : <Navigate to="/login" replace />}
+            element={user ? <FlashcardCreate /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/flashcards"
-            element={session ? <MyFlashcards /> : <Navigate to="/login" replace />}
+            element={user ? <MyFlashcards /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/review-flashcards"
-            element={session ? <ReviewFlashcards /> : <Navigate to="/login" replace />}
+            element={user ? <ReviewFlashcards /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/review-session"
-            element={session ? <ReviewSession /> : <Navigate to="/login" replace />}
+            element={user ? <ReviewSession /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/study"
-            element={session ? <StudyMode /> : <Navigate to="/login" replace />}
+            element={user ? <StudyMode /> : <Navigate to="/login" replace />}
           />
-          <Route 
-          path="/dashboard/review-by-subject" 
-          element={<ReviewBySubject />} 
+          <Route
+            path="/dashboard/review-by-subject"
+            element={<ReviewBySubject />}
           />
-          
+
           {/* Progress & Contributions Routes */}
           <Route
             path="/dashboard/progress"
-            element={session ? <MyProgress /> : <Navigate to="/login" replace />}
+            element={user ? <MyProgress /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/my-contributions"
-            element={session ? <MyContributions /> : <Navigate to="/login" replace />}
+            element={user ? <MyContributions /> : <Navigate to="/login" replace />}
           />
           <Route
-          path="/dashboard/achievements"
-          element={<MyAchievements />}
+            path="/dashboard/achievements"
+            element={<MyAchievements />}
           />
           <Route
             path="/dashboard/profile/:userId"
-            element={session ? <AuthorProfile /> : <Navigate to="/login" replace />}
+            element={user ? <AuthorProfile /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/settings"
-            element={session ? <ProfileSettings /> : <Navigate to="/login" replace />}
+            element={user ? <ProfileSettings /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/help"
-            element={session ? <Help /> : <Navigate to="/login" replace />}
+            element={user ? <Help /> : <Navigate to="/login" replace />}
           />
-          
+
           {/* Groups Routes */}
           <Route
             path="/dashboard/groups"
-            element={session ? <MyGroups /> : <Navigate to="/login" replace />}
+            element={user ? <MyGroups /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/groups/new"
-            element={session ? <CreateGroup /> : <Navigate to="/login" replace />}
+            element={user ? <CreateGroup /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/groups/:groupId"
-            element={session ? <GroupDetail /> : <Navigate to="/login" replace />}
+            element={user ? <GroupDetail /> : <Navigate to="/login" replace />}
           />
 
           {/* Friends Routes */}
           <Route
             path="/dashboard/find-friends"
-            element={session ? <FindFriends /> : <Navigate to="/login" replace />}
+            element={user ? <FindFriends /> : <Navigate to="/login" replace />}
           />
-          <Route 
-            path="/dashboard/friend-requests" 
-            element={session ? <FriendRequests /> : <Navigate to="/login" replace />} 
+          <Route
+            path="/dashboard/friend-requests"
+            element={user ? <FriendRequests /> : <Navigate to="/login" replace />}
           />
-          <Route 
-            path="/dashboard/my-friends" 
-            element={session ? <MyFriends /> : <Navigate to="/login" replace />} 
+          <Route
+            path="/dashboard/my-friends"
+            element={user ? <MyFriends /> : <Navigate to="/login" replace />}
           />
 
           {/* Admin Routes */}
           <Route
             path="/super-admin"
-            element={session ? <SuperAdminDashboard /> : <Navigate to="/login" replace />}
+            element={user ? <SuperAdminDashboard /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/admin"
-            element={session ? <AdminDashboard /> : <Navigate to="/login" replace />}
+            element={user ? <AdminDashboard /> : <Navigate to="/login" replace />}
           />
 
           {/* Bulk Upload Routes */}
           <Route
             path="/dashboard/bulk-upload"
-            element={session ? <BulkUploadFlashcards /> : <Navigate to="/login" replace />}
+            element={user ? <BulkUploadFlashcards /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/admin/bulk-upload-topics"
-            element={session ? <BulkUploadTopics /> : <Navigate to="/login" replace />}
+            element={user ? <BulkUploadTopics /> : <Navigate to="/login" replace />}
           />
           {/* TEMP migration route — remove after use */}
           <Route
             path="/admin/migrate-note-images"
-            element={session ? <MigrateNoteImages /> : <Navigate to="/login" replace />}
+            element={user ? <MigrateNoteImages /> : <Navigate to="/login" replace />}
           />
 
           {/* Professor Routes (legacy redirect) */}
           <Route
             path="/professor/tools"
-            element={session ? <Navigate to="/dashboard/bulk-upload" replace /> : <Navigate to="/login" replace />}
+            element={user ? <Navigate to="/dashboard/bulk-upload" replace /> : <Navigate to="/login" replace />}
           />
-          
+
           {/* Catch-all Route */}
-          <Route 
-            path="*" 
-            element={<Navigate to="/" replace />} 
+          <Route
+            path="*"
+            element={<Navigate to="/" replace />}
           />
         </Routes>
-        
-        <Toaster />
-      </BrowserRouter>
+      </Suspense>
+
+      <Toaster />
+    </>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <CourseContextProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
       </CourseContextProvider>
     </AuthProvider>
   )

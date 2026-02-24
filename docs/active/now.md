@@ -7,6 +7,18 @@
 
 ## Just Completed ✅
 
+### Performance: App Load Time Fix (Feb 24, 2026)
+Root cause: entire JS bundle (all 55 pages) downloaded on first load, plus two sequential Supabase auth calls blocking render.
+- [x] **`App.jsx`** — Converted all page imports to `React.lazy()`. Pages now download on-demand (only the current route).
+- [x] **`App.jsx`** — Extracted `AppContent` component that reads auth from `useAuth()`. Eliminated the duplicate `supabase.auth.getSession()` call that was running in parallel with AuthContext's own call.
+- [x] **`App.jsx`** — Wrapped `<Routes>` in `<Suspense>` with spinner fallback.
+- [x] **`AuthContext.jsx`** — Removed `{!loading && children}` blocking gate (AppContent now owns the loading spinner). Removed 30+ debug `console.log` statements from `signIn`.
+- [x] **`vite.config.js`** — Added `manualChunks` to split vendor-react, vendor-supabase, vendor-radix into separate cacheable chunks.
+- [x] **`index.html`** — Added `<link rel="preconnect">` for Supabase URL to reduce auth latency.
+- [x] **`src/hooks/useOCR.js`** — Deleted dead code (never imported anywhere, was pulling in tesseract.js).
+
+
+
 ### Egress Optimisation: Flashcard Image Storage Fix + Migration (Feb 22–23, 2026)
 Root cause: 167 flashcard images (110 MB) stored as raw base64 TEXT in DB columns — every study session downloaded the full blobs from the database.
 - [x] **`FlashcardCreate.jsx`** — Replaced `FileReader.readAsDataURL` (base64 → DB) with async compress + Storage upload pipeline. `imageCompression` (same settings as NoteUpload: `maxSizeMB: 0.2, maxWidthOrHeight: 1200`) → upload to `flashcard-images` Storage bucket → store public URL in DB. EXIF-safe via `browser-image-compression`.

@@ -1,6 +1,24 @@
 # Changelog
 
 ---
+## [2026-02-24] perf: lazy-load all pages to fix slow initial load
+
+### Changed
+- **`App.jsx`** — Converted all 35+ static page imports to `React.lazy()` / `Suspense`. Pages now load on-demand per route instead of all upfront.
+- **`App.jsx`** — Extracted `AppContent` component inside `AuthProvider` so it can use `useAuth()`. Removed duplicate `supabase.auth.getSession()` call (was running in both `App` and `AuthContext`, adding ~200ms latency).
+- **`AuthContext.jsx`** — Removed `{!loading && children}` blocking gate; `AppContent` now owns the auth loading spinner. Removed 30+ debug `console.log` statements from `signIn`.
+- **`vite.config.js`** — Added `manualChunks` for `vendor-react`, `vendor-supabase`, `vendor-radix` — browser can cache these separately between deploys.
+- **`index.html`** — Added `<link rel="preconnect">` for Supabase to reduce first-auth RTT.
+- **`src/hooks/useOCR.js`** — Deleted dead code (was never imported; referenced tesseract.js).
+
+### Files Changed
+- `src/App.jsx`
+- `src/contexts/AuthContext.jsx`
+- `vite.config.js`
+- `index.html`
+- `src/hooks/useOCR.js` (deleted)
+
+---
 ## [2026-02-24] feat: add WebP upload support for notes
 
 ### Changed
