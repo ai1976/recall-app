@@ -234,7 +234,7 @@ export default function NoteEdit() {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
     if (!validTypes.includes(selectedFile.type)) {
       toast({
         title: 'Invalid file type',
@@ -540,7 +540,7 @@ export default function NoteEdit() {
                     <input
                       id="file-replace"
                       type="file"
-                      accept="image/jpeg,image/png,image/jpg,application/pdf"
+                      accept=".jpg,.jpeg,.png,.webp,.pdf"
                       onChange={handleFileChange}
                       className="hidden"
                     />

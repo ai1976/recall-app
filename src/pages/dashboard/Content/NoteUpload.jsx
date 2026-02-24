@@ -727,7 +727,7 @@ export default function NoteUpload() {
                       <input
                         id="file-upload"
                         type="file"
-                        accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf"
+                        accept=".jpg,.jpeg,.png,.webp,.pdf"
                         onChange={handleFileChange}
                         className="hidden"
                       />
