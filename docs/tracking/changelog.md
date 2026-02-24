@@ -1,6 +1,16 @@
 # Changelog
 
 ---
+## [2026-02-24] feat: add WebP upload support for notes
+
+### Changed
+- **`NoteUpload.jsx`** — Added `image/webp` to `validTypes` array and `<input accept>` attribute. WebP files pass through the same `browser-image-compression` pipeline (maxSizeMB: 0.5, maxWidthOrHeight: 1920). Files already under 500KB and 1920px (e.g. pre-optimised professor mindmaps from XnConverter at WebP lossy 85%) are passed through untouched — no re-compression quality loss.
+- **`NoteUpload.jsx`** — Upload hint text updated to include WebP: "JPG, PNG, WebP (auto-compressed to ~500KB) or PDF (max 10MB)".
+
+### Files Changed
+- `src/pages/dashboard/Content/NoteUpload.jsx`
+
+---
 ## [2026-02-23] Fix: Note image compression limits raised for diagram readability
 
 ### Changed

@@ -233,7 +233,7 @@ export default function NoteUpload() {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
     if (!validTypes.includes(selectedFile.type)) {
       toast({
         title: 'Invalid file type',
@@ -720,14 +720,14 @@ export default function NoteUpload() {
                             {file ? file.name : 'Click to upload or drag and drop'}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            JPG, PNG (auto-compressed to ~500KB) or PDF (max 10MB)
+                            JPG, PNG, WebP (auto-compressed to ~500KB) or PDF (max 10MB)
                           </p>
                         </div>
                       )}
                       <input
                         id="file-upload"
                         type="file"
-                        accept="image/jpeg,image/png,image/jpg,application/pdf"
+                        accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf"
                         onChange={handleFileChange}
                         className="hidden"
                       />
