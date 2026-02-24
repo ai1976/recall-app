@@ -31,9 +31,12 @@ export default function Login() {
       
       navigate('/dashboard');
     } catch (error) {
+      const isNetworkError = error.message === 'Failed to fetch' || error.message?.includes('NetworkError');
       toast({
         title: 'Error',
-        description: error.message,
+        description: isNetworkError
+          ? 'Cannot reach the server. Check your internet connection and try again.'
+          : error.message,
         variant: 'destructive',
       });
     } finally {

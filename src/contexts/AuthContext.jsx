@@ -58,16 +58,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // Check active sessions
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-
-      // ✅ NEW: Sync timezone when session is established
-      if (session?.user) {
-        updateUserTimezone(session.user.id);
-      }
-    })
+    // Check active sessions — .catch() ensures loading resolves even if Supabase is unreachable
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setUser(session?.user ?? null)
+        setLoading(false)
+        if (session?.user) {
+          updateUserTimezone(session.user.id);
+        }
+      })
+      .catch(() => {
+        // Network error — treat as logged out so the app doesn't spin forever
+        setUser(null)
+        setLoading(false)
+      })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
