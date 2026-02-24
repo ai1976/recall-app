@@ -1,8 +1,70 @@
 # RECALL - Project Context (Source of Truth)
 
-**Last Updated:** January 26, 2026  
-**Live URL:** https://recall-app-omega.vercel.app  
+**Last Updated:** February 24, 2026
+**Live URL:** https://recall-app-omega.vercel.app
 **Repository:** https://github.com/ai1976/recall-app
+
+---
+
+## Bug Debugging Protocol
+
+### For any bug involving a DB column with a wrong value (count, total, status)
+
+**Phase 1 — Map all writers (do this BEFORE forming any hypothesis)**
+
+```sql
+-- 1. Who writes to this column directly?
+SELECT trigger_name, event_manipulation, action_timing
+FROM information_schema.triggers
+WHERE event_object_table = '<table_name>'
+ORDER BY trigger_name;
+
+-- 2. What functions reference this column?
+SELECT routine_name, routine_definition
+FROM information_schema.routines
+WHERE routine_definition ILIKE '%<column_name>%'
+  AND routine_type = 'FUNCTION';
+```
+
+Also grep the frontend codebase for the column name before assuming it's DB-only.
+
+**Phase 2 — Verify the data (confirm scope)**
+
+```sql
+-- Standard mismatch check pattern:
+SELECT d.id, d.<stored_column>, COUNT(f.id) AS actual,
+       d.<stored_column> - COUNT(f.id) AS discrepancy
+FROM <parent_table> d
+LEFT JOIN <child_table> f ON f.<fk> = d.id
+GROUP BY d.id, d.<stored_column>
+HAVING d.<stored_column> != COUNT(f.id)
+ORDER BY discrepancy DESC;
+```
+
+**Phase 3 — State hypothesis explicitly, then prove it**
+
+Write: *"Hypothesis: X is causing Y because Z. Proof needed: [specific query or test]."*
+Do NOT document a root cause as confirmed until you have run a query or test that proves it.
+
+**Phase 4 — Design fix with minimum new state**
+
+- Prefer removing the wrong thing over adding a new thing
+- If adding a DB object (trigger, function, index), re-run Phase 1 after to confirm no conflicts
+- The safest fix for a stale counter is always: `UPDATE table SET col = (SELECT COUNT(*) ...)`
+
+**Phase 5 — Verify after fix**
+
+Re-run the Phase 2 mismatch query. If result is empty → fixed. Do not skip this.
+
+---
+
+### Lesson learned (Feb 2026 — card_count bug)
+
+`trigger_update_deck_card_count` existed and was correct. Frontend was also incrementing `card_count` manually → 2x. First fix attempt removed frontend increment (correct) but added a second trigger (wrong) — still 2x. Issue recurred.
+
+**Failure mode:** Phase 1 was skipped. Trigger audit was only run after the bug recurred a second time.
+
+**Rule:** Never add a DB trigger without first running the trigger list query for that table.
 
 ---
 

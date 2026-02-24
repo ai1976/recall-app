@@ -9,15 +9,18 @@
 - **Solution:** Changed `activity.content_id` → `activity.id` in two places: the `handleActivityClick` navigate call and the `key` prop on the activity row.
 - **Status:** ✅ RESOLVED
 
-### [Feb 12, 2026] card_count Double-Counting in flashcard_decks
+### [Feb 24, 2026] card_count Double-Counting in flashcard_decks — FULLY RESOLVED
 - **Files:** `FlashcardCreate.jsx`, `flashcard_decks` table, `flashcards` table
-- **Issue:** Study mode showed ~2x the actual card count (e.g., 46 cards shown when student created 23). Affected multiple students across all their decks.
-- **Root Cause:** Frontend manually incremented `card_count` on every flashcard save. A prior code change caused the save handler to fire twice per submission, doubling the counter each time. ~46 decks affected across 6 students.
-- **Solution (3-part):**
-  1. SQL ran to recalculate `card_count` from actual `flashcards` rows (data fix)
-  2. DB trigger `flashcards_count_trigger` added — auto-maintains `card_count` on INSERT/DELETE
-  3. Manual `card_count` increment removed from `FlashcardCreate.jsx` — DB is now sole source of truth
-- **Status:** ✅ RESOLVED
+- **Issue:** Study mode showed ~2x actual card count (e.g., 46 shown when 23 created). Recurred after initial fix attempt.
+- **True Root Cause:** `trigger_update_deck_card_count` (existing DB trigger) was already correctly maintaining `card_count`. The frontend was ALSO manually incrementing it — double-counting on every save.
+- **Feb 12 mis-fix:** Removed frontend increment (correct) but added a second trigger `flashcards_count_trigger` (wrong) — replaced app+trigger with trigger+trigger. Issue recurred identically.
+- **Feb 24 final fix:**
+  1. Dropped `flashcards_count_trigger` (the duplicate added Feb 12)
+  2. SQL recalculated all `card_count` values from actual `flashcards` rows
+  3. `trigger_update_deck_card_count` remains as sole source of truth
+- **Frontend:** No `card_count` logic in `FlashcardCreate.jsx`. New decks insert with `card_count: 0`.
+- **Prevention rule:** Before adding any DB trigger, always run: `SELECT trigger_name FROM information_schema.triggers WHERE event_object_table = '<table>';`
+- **Status:** ✅ RESOLVED (final)
 
 ### [Feb 9, 2026] Flashcard Deck Names Missing in Share Content Dialog
 - **Files:** GroupDetail.jsx

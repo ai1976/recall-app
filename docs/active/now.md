@@ -157,13 +157,12 @@ Root cause: 14+ GB Supabase egress from 26 users — all note images loading at 
 - [x] **Fix:** Changed `activity.content_id` → `activity.id` in both the `handleActivityClick` navigate call and the React `key` prop
 - [x] No database changes — frontend-only fix in `ActivityFeed.jsx`
 
-### Fix: card_count Double-Counting Bug + DB Trigger (Feb 12, 2026)
-- [x] **Diagnosed:** `card_count` in `flashcard_decks` was ~2x actual flashcard count for multiple students
-- [x] **Root Cause:** Frontend was manually incrementing `card_count` on every save; a prior code change caused the save to fire twice, doubling the counter
-- [x] **Data Fix:** SQL ran to recalculate all `card_count` values from actual `flashcards` rows (ground truth)
-- [x] **Prevention:** Added DB trigger `flashcards_count_trigger` — auto-increments/decrements `card_count` on INSERT/DELETE to `flashcards` table
-- [x] **Frontend:** Removed manual `card_count` increment from `FlashcardCreate.jsx` (existing deck update + new deck insert). New decks start at `card_count: 0`; trigger maintains accuracy automatically
-- [x] `card_count` no longer fetched in existing deck lookup (was only needed for manual math)
+### Fix: card_count Double-Counting — Full Resolution (Feb 24, 2026)
+- [x] **True Root Cause (confirmed via trigger audit):** `trigger_update_deck_card_count` was already in the DB and correctly maintaining `card_count`. The frontend was ALSO manually incrementing it — so every card creation fired twice: once from the trigger, once from the app code. That was the original 2x bug.
+- [x] **Feb 12 mis-fix:** Removed frontend increment (correct) but added a second DB trigger `flashcards_count_trigger` (redundant) — simply replaced app+trigger with trigger+trigger. Still 2x.
+- [x] **Feb 24 final fix:** Dropped `flashcards_count_trigger`. Only `trigger_update_deck_card_count` remains — the original trigger that was always correct. Data recalculated via SQL.
+- [x] **Frontend state:** `FlashcardCreate.jsx` has no manual `card_count` logic (correct — stays as-is). New decks insert with `card_count: 0`; trigger maintains it automatically.
+- [x] **Lesson:** Always audit existing triggers before adding new ones (`SELECT trigger_name FROM information_schema.triggers WHERE event_object_table = 'flashcards'`).
 
 ### Fix: Flashcard Deck Names in Share Content Dialog (Feb 9, 2026)
 - [x] **Fixed:** Share Content dialog showed "Flashcard Deck" for all decks instead of actual subject/topic names

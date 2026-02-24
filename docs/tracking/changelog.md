@@ -1,6 +1,19 @@
 # Changelog
 
 ---
+## [2026-02-24] Fix: card_count double-counting — final resolution
+
+### Fixed
+- **DB** — Dropped `flashcards_count_trigger` (added Feb 12 in error). `trigger_update_deck_card_count` was already in the DB correctly maintaining `card_count`. Two triggers = 2x counting.
+- **DB (data fix)** — Recalculated all `card_count` values from actual `flashcards` rows.
+
+### Root Cause (corrected from Feb 12 entry)
+Original bug was frontend manual increment + existing trigger = 2x. Feb 12 fix removed the frontend increment (correct) but added a second trigger (wrong) — still 2x. Feb 24: dropped the duplicate trigger. `trigger_update_deck_card_count` is now the sole source of truth.
+
+### Files Changed
+- DB only
+
+---
 ## [2026-02-24] perf: lazy-load all pages to fix slow initial load
 
 ### Changed
