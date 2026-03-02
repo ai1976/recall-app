@@ -2,6 +2,15 @@
 
 ## Resolved Bugs
 
+### [Mar 2, 2026] CA Foundation Flashcards Invisible in Study Page and Author Profile
+- **Files:** DB only (`update_deck_card_count` trigger function)
+- **Symptom:** CA Foundation flashcards visible in My Contributions (flashcard count) but absent from Study Page course filter, deck list, and Author Profile flashcard counts/links. Notes for CA Foundation were unaffected.
+- **Root Cause:** `update_deck_card_count()` trigger only ran `UPDATE flashcard_decks SET card_count = card_count + 1 WHERE ...`. When flashcards were bulk-uploaded and no matching `flashcard_decks` row existed, the UPDATE matched 0 rows and silently did nothing — no deck row was ever created. Both `get_browsable_decks` RPC (Study Page) and `get_author_content_summary` RPC (Author Profile) query `flashcard_decks`, not the `flashcards` table directly. My Contributions used a direct `COUNT(*) FROM flashcards` query, which is why the count was visible there but nowhere else.
+- **Why notes were unaffected:** Notes don't use a separate aggregation table — they are queried directly from `notes` table in all contexts.
+- **Solution:** Changed trigger function to UPDATE-then-INSERT: attempts `UPDATE card_count + 1`; if `NOT FOUND` (no deck row yet), inserts a new `flashcard_decks` row with `card_count = 1`, `target_course`, and `visibility` from the new flashcard row. One-time backfill ran to create missing deck entries for already-uploaded CA Foundation flashcards.
+- **Prevention:** The trigger now self-heals for all future courses and all insertion paths (single card, bulk upload, professor tools). No manual SQL needed for new courses.
+- **Status:** ✅ RESOLVED
+
 ### [Feb 20, 2026] Activity Feed "View" Button — Invalid UUID Error
 - **Files:** `ActivityFeed.jsx`
 - **Issue:** Clicking "View" on any note in the Dashboard Recent Activity section showed "Page Not Found" with Supabase error "invalid input syntax for type uuid: 'undefined'"

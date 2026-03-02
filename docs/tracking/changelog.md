@@ -1,6 +1,19 @@
 # Changelog
 
 ---
+## [2026-03-02] fix: auto-create flashcard_decks on bulk upload (trigger UPSERT)
+
+### Fixed
+- **DB** — `update_deck_card_count()` trigger function now auto-creates a `flashcard_decks` row when a flashcard is inserted and no matching deck exists. Previously it only ran `UPDATE card_count`, which silently did nothing if no deck row was present — causing bulk-uploaded flashcards to be invisible in the Study Page, Course filter, and Author Profile.
+- **DB (data fix)** — Backfilled missing `flashcard_decks` entries for CA Foundation flashcards that were uploaded before this fix.
+
+### Root Cause
+Bulk upload inserts directly into `flashcards`. The trigger tried to `UPDATE card_count` on `flashcard_decks`, but if no deck row existed yet, the UPDATE matched 0 rows and did nothing. Fix: trigger now does UPDATE first; if `NOT FOUND`, it INSERTs the deck row with `card_count = 1`. Going forward, any course/subject/topic combination will get a deck entry automatically on the first flashcard insert.
+
+### Files Changed
+- DB only (`update_deck_card_count` function)
+
+---
 ## [2026-02-24] Fix: card_count double-counting — final resolution
 
 ### Fixed

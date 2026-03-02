@@ -1,11 +1,19 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-02-23 (post-session documentation)
-**Current Phase:** Egress Optimisation — COMPLETE ✅
+**Last Updated:** 2026-03-02
+**Current Phase:** Bug Fixes
 
 ---
 
 ## Just Completed ✅
+
+### DB Trigger Fix: flashcard_decks auto-creation on bulk upload (Mar 2, 2026)
+Root cause: `update_deck_card_count()` trigger only ran `UPDATE card_count` on existing deck rows. When flashcards were bulk-uploaded (or uploaded via any path that didn't pre-create a deck row), no deck row existed yet — the UPDATE matched 0 rows, silently did nothing, and no `flashcard_decks` entry was ever created. Result: flashcards were invisible in Study Page (Course filter, deck list) and Author Profile.
+- [x] **DB** — Replaced `UPDATE` in trigger with UPDATE-then-INSERT pattern: tries to increment existing deck; if `NOT FOUND`, inserts a new deck row with `card_count = 1`, `target_course`, and `visibility` copied from the flashcard. Permanent fix — covers all insertion paths for all future courses automatically.
+- [x] **DB (data fix)** — Backfilled missing `flashcard_decks` rows for CA Foundation flashcards already in `flashcards` table. Card counts set from actual row counts, visibility set to most permissive found among cards in each subject/topic group.
+- [x] **`docs/tracking/changelog.md`** — Entry added with root cause.
+- [x] **`docs/tracking/bugs.md`** — Bug entry added.
+- [x] **`docs/reference/DATABASE_SCHEMA.md`** — `update_deck_card_count` function doc updated.
 
 ### Performance: App Load Time Fix (Feb 24, 2026)
 Root cause: entire JS bundle (all 55 pages) downloaded on first load, plus two sequential Supabase auth calls blocking render.

@@ -1959,6 +1959,14 @@ Groups flashcards into logical decks by user/subject/topic. Enables upvoting at 
 - `idx_flashcard_decks_topic` (topic_id)
 - `idx_flashcard_decks_visibility` (visibility)
 
+**Trigger: `trigger_update_deck_card_count`** — fires AFTER INSERT, UPDATE, DELETE on `flashcards`
+Function: `update_deck_card_count()` (SECURITY DEFINER)
+- **INSERT:** Tries `UPDATE card_count + 1` on matching deck row. If `NOT FOUND` (no deck exists yet), inserts a new deck row with `card_count = 1`, copying `target_course` and `visibility` from the new flashcard. This means deck rows are **auto-created on first flashcard insert** — no application code or manual SQL needed for new courses or subjects.
+- **DELETE:** Decrements `card_count` (floor 0) on matching deck row.
+- **UPDATE:** No-op (card count unchanged).
+
+⚠️ **CRITICAL — do not add a second trigger on `flashcards`** — would cause double-counting. Always check existing triggers first: `SELECT trigger_name FROM information_schema.triggers WHERE event_object_table = 'flashcards';`
+
 ---
 
 ## upvotes (Modified 2026-01-24 - Polymorphic)
