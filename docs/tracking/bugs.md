@@ -2,6 +2,13 @@
 
 ## Resolved Bugs
 
+### [Mar 4, 2026] Subject Dropdown Not Filtered by Course in Study Section
+- **Files:** `ReviewFlashcards.jsx`, `BrowseNotes.jsx`
+- **Symptom:** Selecting "CA Foundation" in the Course filter still showed subjects from all courses (e.g., CA Intermediate subjects) in the Subject dropdown.
+- **Root Cause:** `availableSubjects` was built from all decks/notes at initial load and never recomputed when `filterCourse` changed. Topic dropdown cascaded correctly from Subject, but Course→Subject cascade was never implemented.
+- **Solution:** Added `allSubjectsFrom*` state storing `{name, course}` pairs. New `useEffect` (mirroring the existing topic cascade pattern) filters `availableSubjects` when `filterCourse` changes and auto-resets `filterSubject` if it's no longer valid (which then cascades to reset topics).
+- **Status:** ✅ RESOLVED
+
 ### [Mar 2, 2026] CA Foundation Flashcards Invisible in Study Page and Author Profile
 - **Files:** DB only (`update_deck_card_count` trigger function)
 - **Symptom:** CA Foundation flashcards visible in My Contributions (flashcard count) but absent from Study Page course filter, deck list, and Author Profile flashcard counts/links. Notes for CA Foundation were unaffected.

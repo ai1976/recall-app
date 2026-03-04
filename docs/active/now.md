@@ -7,6 +7,13 @@
 
 ## Just Completed ✅
 
+### Fix: Course→Subject cascade filter in Study section (Mar 4, 2026)
+Both Review Flashcards and Browse Notes pages showed all subjects in the Subject dropdown regardless of Course selection. Selecting "CA Foundation" showed subjects from all courses.
+- [x] **`ReviewFlashcards.jsx`** — Added `allSubjectsFromDecks` state (array of `{name, course}`) populated at fetch time. New `useEffect` filters `availableSubjects` when `filterCourse` changes; auto-resets `filterSubject` if selection no longer valid (which cascades to reset topics via existing effect).
+- [x] **`BrowseNotes.jsx`** — Same fix with `allSubjectsFromNotes`.
+- [x] **`docs/tracking/changelog.md`** — Entry added.
+- [x] **`docs/tracking/bugs.md`** — Bug entry added.
+
 ### DB Trigger Fix: flashcard_decks auto-creation on bulk upload (Mar 2, 2026)
 Root cause: `update_deck_card_count()` trigger only ran `UPDATE card_count` on existing deck rows. When flashcards were bulk-uploaded (or uploaded via any path that didn't pre-create a deck row), no deck row existed yet — the UPDATE matched 0 rows, silently did nothing, and no `flashcard_decks` entry was ever created. Result: flashcards were invisible in Study Page (Course filter, deck list) and Author Profile.
 - [x] **DB** — Replaced `UPDATE` in trigger with UPDATE-then-INSERT pattern: tries to increment existing deck; if `NOT FOUND`, inserts a new deck row with `card_count = 1`, `target_course`, and `visibility` copied from the flashcard. Permanent fix — covers all insertion paths for all future courses automatically.

@@ -1,6 +1,20 @@
 # Changelog
 
 ---
+## [2026-03-04] fix: cascade Subject dropdown from Course in Study section filters
+
+### Fixed
+- **`ReviewFlashcards.jsx`** — Subject dropdown now shows only subjects belonging to the selected Course. Previously showed all subjects regardless of Course selection. Auto-resets Subject (and cascades to reset Topic) when Course changes.
+- **`BrowseNotes.jsx`** — Same fix applied identically.
+
+### Root Cause
+`availableSubjects` was extracted from all decks/notes at load time and never updated when Course filter changed. Topic dropdown already cascaded from Subject correctly — Course→Subject link was simply missing.
+
+### Files Changed
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+
+---
 ## [2026-03-02] fix: auto-create flashcard_decks on bulk upload (trigger UPSERT)
 
 ### Fixed

@@ -31,6 +31,7 @@ export default function BrowseNotes() {
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [availableTopics, setAvailableTopics] = useState([]);
   const [allTopicsFromNotes, setAllTopicsFromNotes] = useState([]);
+  const [allSubjectsFromNotes, setAllSubjectsFromNotes] = useState([]);
   const [availableAuthors, setAvailableAuthors] = useState([]);
   const [loadingAuthors, setLoadingAuthors] = useState(false);
 
@@ -57,6 +58,21 @@ export default function BrowseNotes() {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, filterCourse, filterSubject, filterTopic, filterRole, filterAuthor, allGroupedNotes, allNotesFlat]);
+
+  // Dependent subject filtering when course changes
+  useEffect(() => {
+    if (filterCourse === 'all') {
+      setAvailableSubjects(allSubjectsFromNotes.map(s => s.name));
+    } else {
+      const filtered = allSubjectsFromNotes
+        .filter(s => s.course === filterCourse)
+        .map(s => s.name);
+      setAvailableSubjects(filtered);
+      if (filterSubject !== 'all' && !filtered.includes(filterSubject)) {
+        setFilterSubject('all');
+      }
+    }
+  }, [filterCourse, allSubjectsFromNotes, filterSubject]);
 
   // Dependent topic filtering when subject changes
   useEffect(() => {
@@ -156,6 +172,16 @@ export default function BrowseNotes() {
       const courses = [...new Set(notesWithDetails.map(n => n.target_course).filter(Boolean))];
       const subjects = [...new Set(notesWithDetails.map(n => n.subject?.name).filter(Boolean))];
       const topics = [...new Set(notesWithDetails.map(n => n.topic?.name).filter(Boolean))];
+
+      // Build subject→course mapping for cascading filter
+      const subjectCourseMap = {};
+      notesWithDetails.forEach(n => {
+        const name = n.subject?.name;
+        if (name && n.target_course && !subjectCourseMap[name]) {
+          subjectCourseMap[name] = n.target_course;
+        }
+      });
+      setAllSubjectsFromNotes(subjects.map(name => ({ name, course: subjectCourseMap[name] || null })));
 
       setAvailableCourses(courses);
       setAvailableSubjects(subjects);

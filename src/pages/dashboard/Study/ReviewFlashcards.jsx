@@ -29,6 +29,7 @@ export default function ReviewFlashcards() {
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [availableTopics, setAvailableTopics] = useState([]);
   const [allTopicsFromDecks, setAllTopicsFromDecks] = useState([]);
+  const [allSubjectsFromDecks, setAllSubjectsFromDecks] = useState([]);
   const [availableAuthors, setAvailableAuthors] = useState([]);
   const [loadingAuthors, setLoadingAuthors] = useState(false);
 
@@ -54,6 +55,21 @@ export default function ReviewFlashcards() {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterCourse, filterSubject, filterTopic, filterRole, filterAuthor, searchQuery, allSets, allDecksFlat]);
+
+  // Dependent subject filtering when course changes
+  useEffect(() => {
+    if (filterCourse === 'all') {
+      setAvailableSubjects(allSubjectsFromDecks.map(s => s.name));
+    } else {
+      const filtered = allSubjectsFromDecks
+        .filter(s => s.course === filterCourse)
+        .map(s => s.name);
+      setAvailableSubjects(filtered);
+      if (filterSubject !== 'all' && !filtered.includes(filterSubject)) {
+        setFilterSubject('all');
+      }
+    }
+  }, [filterCourse, allSubjectsFromDecks, filterSubject]);
 
   // Dependent topic filtering when subject changes
   useEffect(() => {
@@ -152,6 +168,15 @@ export default function ReviewFlashcards() {
       const courses = [...new Set(decksWithDetails.map(d => d.target_course).filter(Boolean))];
       const subjects = [...new Set(decksWithDetails.map(d => d.subjectName).filter(Boolean))];
       const topics = [...new Set(decksWithDetails.map(d => d.topicName).filter(Boolean))];
+
+      // Build subject→course mapping for cascading filter
+      const subjectCourseMap = {};
+      decksWithDetails.forEach(d => {
+        if (d.subjectName && d.target_course && !subjectCourseMap[d.subjectName]) {
+          subjectCourseMap[d.subjectName] = d.target_course;
+        }
+      });
+      setAllSubjectsFromDecks(subjects.map(name => ({ name, course: subjectCourseMap[name] || null })));
 
       setAvailableCourses(courses);
       setAvailableSubjects(subjects);
