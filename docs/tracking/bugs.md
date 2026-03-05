@@ -2,6 +2,14 @@
 
 ## Resolved Bugs
 
+### [Mar 5, 2026] Duplicate Friend Request/Accepted Notifications
+- **Location:** DB — triggers on `friendships` table
+- **Symptom:** Every friend request and acceptance generated two notification entries in the bell icon — one with no title (e.g. just "Aayodh Inamke sent you a friend request") and one with a proper title ("New Friend Request" / message). Affected all users.
+- **Root Cause:** Two undocumented DB triggers (`trg_notify_friend_request` on INSERT, `trg_notify_friend_accepted` on UPDATE) called `create_notification()` directly at the DB level, creating a null-title notification row ~1 second before the frontend's `notifyFriendEvent()` Edge Function call created the proper titled row. Both pathways active simultaneously.
+- **Why triggers didn't show initially:** First diagnostic query filtered `WHERE event_object_table = 'friendships'` but missed them; the broader `trigger_schema = 'public'` query revealed them.
+- **Solution:** Dropped both triggers (`DROP TRIGGER IF EXISTS trg_notify_friend_request ON friendships` and `trg_notify_friend_accepted ON friendships`). Deleted all existing null-title duplicate rows (`DELETE FROM notifications WHERE type IN ('friend_request','friend_accepted') AND title IS NULL`). Edge Function remains sole notification path.
+- **Status:** ✅ RESOLVED (DB-only fix, no code changes)
+
 ### [Mar 5, 2026] Student Cannot Filter to Study Only Own Cards
 - **File:** `ReviewFlashcards.jsx`
 - **Symptom:** A student with only private flashcard decks could not see their own name in the Author dropdown. Even switching the Role filter to "Student" did not surface them. Students had no way to study exclusively their own cards without professor cards mixing in.

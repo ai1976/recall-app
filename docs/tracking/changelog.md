@@ -1,6 +1,18 @@
 # Changelog
 
 ---
+## [2026-03-05] fix: duplicate friend notifications from undocumented DB triggers
+
+### Fixed
+- **DB** — Dropped `trg_notify_friend_request` (friendships AFTER INSERT) and `trg_notify_friend_accepted` (friendships AFTER UPDATE). Both triggers called `create_notification()` directly, creating a null-title notification row for every friend event. The `notify-friend-event` Edge Function (called from frontend) was also running, producing a second properly-titled row. Result: every friend request/accept showed twice in the notification bell.
+- **DB** — Deleted all existing duplicate null-title rows: `DELETE FROM notifications WHERE type IN ('friend_request','friend_accepted') AND title IS NULL`.
+
+### Root Cause
+Two triggers were created early in development before the Edge Function existed and were never removed. They ran in parallel with the Edge Function for every friend event.
+
+### No code changes — DB-only fix.
+
+---
 ## [2026-03-05] fix: add "My Cards" pinned option in Author dropdown
 
 ### Fixed
