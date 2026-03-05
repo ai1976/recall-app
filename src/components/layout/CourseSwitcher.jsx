@@ -24,17 +24,76 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useCourseContext } from '@/contexts/CourseContext';
 
+// Each entry is a full set of Tailwind classes for one color slot.
+// Written as complete strings so Tailwind's scanner picks them up at build time.
+// Cycles if a professor teaches more courses than there are entries.
+const COURSE_COLORS = [
+  {
+    pill:  'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 focus-visible:ring-indigo-400',
+    dot:   'bg-indigo-500',
+    label: 'text-indigo-700',
+    badge: 'text-indigo-600 bg-indigo-50',
+  },
+  {
+    pill:  'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 focus-visible:ring-emerald-400',
+    dot:   'bg-emerald-500',
+    label: 'text-emerald-700',
+    badge: 'text-emerald-600 bg-emerald-50',
+  },
+  {
+    pill:  'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 focus-visible:ring-amber-400',
+    dot:   'bg-amber-500',
+    label: 'text-amber-700',
+    badge: 'text-amber-600 bg-amber-50',
+  },
+  {
+    pill:  'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 focus-visible:ring-rose-400',
+    dot:   'bg-rose-500',
+    label: 'text-rose-700',
+    badge: 'text-rose-600 bg-rose-50',
+  },
+  {
+    pill:  'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 focus-visible:ring-violet-400',
+    dot:   'bg-violet-500',
+    label: 'text-violet-700',
+    badge: 'text-violet-600 bg-violet-50',
+  },
+  {
+    pill:  'bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100 focus-visible:ring-cyan-400',
+    dot:   'bg-cyan-500',
+    label: 'text-cyan-700',
+    badge: 'text-cyan-600 bg-cyan-50',
+  },
+  {
+    pill:  'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 focus-visible:ring-orange-400',
+    dot:   'bg-orange-500',
+    label: 'text-orange-700',
+    badge: 'text-orange-600 bg-orange-50',
+  },
+  {
+    pill:  'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 focus-visible:ring-pink-400',
+    dot:   'bg-pink-500',
+    label: 'text-pink-700',
+    badge: 'text-pink-600 bg-pink-50',
+  },
+];
+
 export default function CourseSwitcher() {
   const { teachingCourses, activeCourse, setActiveCourse, isContentCreator } = useCourseContext();
 
   // Don't render for students or when there's only one (or zero) teaching courses
   if (!isContentCreator || teachingCourses.length < 2) return null;
 
+  // Stable color per course — assigned by position, cycles if > 8 courses
+  const colorOf = (idx) => COURSE_COLORS[idx % COURSE_COLORS.length];
+  const activeIdx = teachingCourses.findIndex(c => c.disciplines.name === activeCourse);
+  const activeColor = colorOf(activeIdx >= 0 ? activeIdx : 0);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors border border-indigo-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors border focus:outline-none focus-visible:ring-2 ${activeColor.pill}`}
           title="Switch active course context (session only)"
         >
           <GraduationCap className="h-3.5 w-3.5 flex-shrink-0" />
@@ -52,10 +111,11 @@ export default function CourseSwitcher() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        {teachingCourses.map((course) => {
+        {teachingCourses.map((course, idx) => {
           const name      = course.disciplines.name;
           const isActive  = name === activeCourse;
           const isPrimary = course.is_primary;
+          const colors    = colorOf(idx);
 
           return (
             <DropdownMenuItem
@@ -63,21 +123,21 @@ export default function CourseSwitcher() {
               onClick={() => setActiveCourse(name)}
               className="flex items-center gap-2 cursor-pointer py-2"
             >
-              {/* Active indicator dot */}
+              {/* Color dot — filled with course color when active */}
               <span
                 className={`h-2 w-2 rounded-full flex-shrink-0 ${
-                  isActive ? 'bg-indigo-500' : 'bg-transparent border border-gray-300'
+                  isActive ? colors.dot : 'bg-transparent border border-gray-300'
                 }`}
               />
 
-              <span className={`flex-1 ${isActive ? 'font-medium text-indigo-700' : ''}`}>
+              <span className={`flex-1 ${isActive ? `font-medium ${colors.label}` : ''}`}>
                 {name}
               </span>
 
               {/* Labels */}
               <div className="flex items-center gap-1 flex-shrink-0">
                 {isActive && (
-                  <span className="text-[10px] font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${colors.badge}`}>
                     Active
                   </span>
                 )}
