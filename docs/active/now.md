@@ -1,11 +1,19 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-02
+**Last Updated:** 2026-03-05
 **Current Phase:** Bug Fixes
 
 ---
 
 ## Just Completed ✅
+
+### Fix: Author mixing + SRS-aware session in StudyMode (Mar 5, 2026)
+Student reported: studying a professor's deck also showed the student's own cards mixed in; no way to pause mid-session and resume sensibly.
+- [x] **`ReviewFlashcards.jsx`** — `startStudySession()` now passes `author` URL param when a specific author is selected in the filter. "Study All" and per-deck study both respect the active author filter.
+- [x] **`StudyMode.jsx`** — Reads `authorParam` from URL and filters cards client-side (`card.user_id === authorParam`), scoped on top of the existing visibility fetch.
+- [x] **`StudyMode.jsx`** — Added SRS-aware two-step query (LEFT JOIN equivalent): after fetching matching cards, fetches `reviews` records for this user and excludes cards where `status = 'suspended'`, `next_review_date > today`, or `skip_until > today`. First-time cards (no review record) pass through — no cold-start problem.
+- [x] **`docs/tracking/changelog.md`** — Entry added.
+- [x] **`docs/tracking/bugs.md`** — Bug entries added.
 
 ### Fix: Course→Subject cascade filter in Study section (Mar 4, 2026)
 Both Review Flashcards and Browse Notes pages showed all subjects in the Subject dropdown regardless of Course selection. Selecting "CA Foundation" showed subjects from all courses.

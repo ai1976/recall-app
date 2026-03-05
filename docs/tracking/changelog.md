@@ -1,6 +1,21 @@
 # Changelog
 
 ---
+## [2026-03-05] fix: author mixing and SRS cold-start in StudyMode
+
+### Fixed
+- **`ReviewFlashcards.jsx`** — `startStudySession()` now forwards the active `filterAuthor` as an `author` URL param. Previously the author filter was ignored when launching a session, causing all users' cards for the subject to appear regardless of who the student had filtered by.
+- **`StudyMode.jsx`** — Added `authorParam` URL read and client-side filter (`card.user_id === authorParam`) so only the selected author's cards appear in the session.
+- **`StudyMode.jsx`** — Added SRS-aware second query (LEFT JOIN equivalent in two steps): fetches the user's review records for the candidate card set and excludes any card where `status = 'suspended'`, `next_review_date > today`, or `skip_until > today`. Cards with no review record (new/cold-start) are always included. A student who exits mid-session and returns will only see unreviewed cards + any rated Hard (due tomorrow), not the full deck again.
+
+### Root Cause
+`startStudySession` never passed the author filter to the URL. `fetchFlashcards` in StudyMode used a broad OR filter (public + own + friends) with no author constraint and no awareness of the user's review history — every session reloaded the full visible card set from scratch.
+
+### Files Changed
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+- `src/pages/dashboard/Study/StudyMode.jsx`
+
+---
 ## [2026-03-05] Fix: cron-review-reminders returning 401 (JWT verification)
 
 ### Fixed

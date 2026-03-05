@@ -104,19 +104,18 @@ export default function StudyMode({
 
       const subjectParam = searchParams.get('subject');
       const topicParam = searchParams.get('topic');
+      const authorParam = searchParams.get('author');
 
-      const filterString = `is_public.eq.true,user_id.eq.${user.id},visibility.eq.friends`;
-
-      let query = supabase
+      // Step 1: Fetch all cards visible to this user
+      const { data, error } = await supabase
         .from('flashcards')
         .select(`
           *,
           subjects:subject_id (id, name),
           topics:topic_id (id, name)
         `)
-        .or(filterString);
-
-      const { data, error } = await query.order('created_at', { ascending: false });
+        .or(`is_public.eq.true,user_id.eq.${user.id},visibility.eq.friends`)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -127,21 +126,46 @@ export default function StudyMode({
         back_text: card.back_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || ''
       }));
 
-      // Filter by subject/topic
+      // Filter by subject / topic / author
       if (subjectParam) {
-        cleanedData = cleanedData.filter(card => {
-          const dbSubject = card.subjects?.name;
-          const customSubject = card.custom_subject;
-          return dbSubject === subjectParam || customSubject === subjectParam;
-        });
+        cleanedData = cleanedData.filter(card =>
+          card.subjects?.name === subjectParam || card.custom_subject === subjectParam
+        );
+      }
+      if (topicParam) {
+        cleanedData = cleanedData.filter(card =>
+          card.topics?.name === topicParam || card.custom_topic === topicParam
+        );
+      }
+      if (authorParam) {
+        cleanedData = cleanedData.filter(card => card.user_id === authorParam);
       }
 
-      if (topicParam) {
-        cleanedData = cleanedData.filter(card => {
-          const dbTopic = card.topics?.name;
-          const customTopic = card.custom_topic;
-          return dbTopic === topicParam || customTopic === topicParam;
-        });
+      // Step 2: SRS-aware filter — exclude cards already reviewed and not yet due.
+      // Logic: show card if (no review record) OR (review exists AND due today AND not suspended AND not skipped).
+      // Equivalent to LEFT JOIN reviews ON flashcard_id AND user_id WHERE r.id IS NULL OR next_review_date <= today.
+      if (cleanedData.length > 0) {
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+        const cardIds = cleanedData.map(c => c.id);
+        const { data: reviews } = await supabase
+          .from('reviews')
+          .select('flashcard_id, status, next_review_date, skip_until')
+          .eq('user_id', user.id)
+          .in('flashcard_id', cardIds);
+
+        const excludedIds = new Set(
+          (reviews || [])
+            .filter(r =>
+              r.status === 'suspended' ||
+              (r.next_review_date && r.next_review_date > todayStr) ||
+              (r.skip_until && r.skip_until > todayStr)
+            )
+            .map(r => r.flashcard_id)
+        );
+
+        cleanedData = cleanedData.filter(c => !excludedIds.has(c.id));
       }
 
       // Shuffle

@@ -317,9 +317,8 @@ export default function ReviewFlashcards() {
   const startStudySession = (subjectName, topicName = null) => {
     const params = new URLSearchParams();
     params.set('subject', subjectName);
-    if (topicName) {
-      params.set('topic', topicName);
-    }
+    if (topicName) params.set('topic', topicName);
+    if (filterAuthor !== 'all') params.set('author', filterAuthor);
     navigate(`/dashboard/study?${params.toString()}`);
   };
 

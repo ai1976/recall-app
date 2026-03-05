@@ -2,6 +2,16 @@
 
 ## Resolved Bugs
 
+### [Mar 5, 2026] StudyMode Mixes Cards from All Authors + Ignores Review History
+- **Files:** `ReviewFlashcards.jsx`, `StudyMode.jsx`
+- **Symptom (Bug 1):** When a student filtered by a specific professor in ReviewFlashcards and clicked "Study All", the session showed all visible cards for the subject — including the student's own cards — not just the professor's. Studying a professor's deck of ~30 cards would show 50+ cards.
+- **Root Cause (Bug 1):** `startStudySession()` built the URL with only `subject` and `topic` params; `filterAuthor` was never forwarded. `StudyMode.fetchFlashcards` had no author filter.
+- **Solution (Bug 1):** `startStudySession()` now appends `author=<userId>` when `filterAuthor !== 'all'`. `StudyMode` reads this param and filters `card.user_id === authorParam` after the visibility fetch.
+- **Symptom (Bug 2):** Exiting a session partway through and returning would reload all cards from scratch (including those already reviewed that session). No way to "continue from where you left off".
+- **Root Cause (Bug 2):** `fetchFlashcards` had no awareness of the user's `reviews` table — every session was stateless and returned the full matching card set.
+- **Solution (Bug 2):** Added a second query fetching `reviews` for the candidate card IDs. Cards are excluded if `status = 'suspended'`, `next_review_date > today`, or `skip_until > today`. Cards with no review record (first-time/new) are always included — no cold-start problem. Equivalent to LEFT JOIN WHERE r.id IS NULL OR next_review_date <= today.
+- **Status:** ✅ RESOLVED
+
 ### [Mar 4, 2026] Subject Dropdown Not Filtered by Course in Study Section
 - **Files:** `ReviewFlashcards.jsx`, `BrowseNotes.jsx`
 - **Symptom:** Selecting "CA Foundation" in the Course filter still showed subjects from all courses (e.g., CA Intermediate subjects) in the Subject dropdown.
