@@ -112,7 +112,8 @@ export default function ReviewFlashcards() {
       } else {
         setAvailableAuthors(data || []);
         // Reset author filter if current selection is no longer valid
-        if (filterAuthor !== 'all') {
+        // Skip reset for "My Cards" (user.id) — it's a hardcoded option, never in RPC results
+        if (filterAuthor !== 'all' && filterAuthor !== user?.id) {
           const authorStillValid = data?.some(a => a.id === filterAuthor);
           if (!authorStillValid) {
             setFilterAuthor('all');
