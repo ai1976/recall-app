@@ -7,6 +7,14 @@
 
 ## Just Completed ✅
 
+### Fix: "My Cards" pinned option in Author dropdown (Mar 5, 2026)
+Students with only private flashcard decks were invisible in the Author filter (the RPC `get_filtered_authors_for_flashcards` only returns authors with public decks). Added a hardcoded "My Cards (Private & Public)" option pinned at the top of the Author dropdown using `user.id` as the value. No DB changes required — compatible with existing StudyMode `authorParam` filter and SRS two-step query (student's own private cards are already fetched via the visibility `user_id.eq.${user.id}` OR clause).
+- [x] **`ReviewFlashcards.jsx`** — Added pinned `<SelectItem value={user.id}>My Cards (Private & Public)</SelectItem>` after "All Authors", before dynamic RPC-sourced authors list.
+- [x] **`StudyMode.jsx`** — No changes needed; `authorParam` filter already handles any UUID including the current user's ID.
+- [x] **Empty state** — Already handled: StudyMode shows "No flashcards to study" with "Choose Different Subject" button when card list is empty after all filters applied.
+- [x] **`docs/tracking/changelog.md`** — Entry added.
+- [x] **`docs/tracking/bugs.md`** — Bug entry added.
+
 ### Fix: Author mixing + SRS-aware session in StudyMode (Mar 5, 2026)
 Student reported: studying a professor's deck also showed the student's own cards mixed in; no way to pause mid-session and resume sensibly.
 - [x] **`ReviewFlashcards.jsx`** — `startStudySession()` now passes `author` URL param when a specific author is selected in the filter. "Study All" and per-deck study both respect the active author filter.

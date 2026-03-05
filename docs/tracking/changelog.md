@@ -1,6 +1,18 @@
 # Changelog
 
 ---
+## [2026-03-05] fix: add "My Cards" pinned option in Author dropdown
+
+### Fixed
+- **`ReviewFlashcards.jsx`** — Added a hardcoded "My Cards (Private & Public)" `SelectItem` pinned at the top of the Author dropdown (after "All Authors"). Uses `user.id` as value, bypassing the `get_filtered_authors_for_flashcards` RPC which only returns authors with public decks. Students with exclusively private decks were previously invisible in the dropdown and had no way to filter for their own cards.
+
+### Root Cause
+`get_filtered_authors_for_flashcards()` filters `fd.visibility = 'public'` — only authors with at least one public deck appear. A student who has only private/friends-visibility flashcards would never appear in the dropdown.
+
+### Files Changed
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+
+---
 ## [2026-03-05] fix: author mixing and SRS cold-start in StudyMode
 
 ### Fixed

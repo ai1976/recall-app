@@ -2,6 +2,13 @@
 
 ## Resolved Bugs
 
+### [Mar 5, 2026] Student Cannot Filter to Study Only Own Cards
+- **File:** `ReviewFlashcards.jsx`
+- **Symptom:** A student with only private flashcard decks could not see their own name in the Author dropdown. Even switching the Role filter to "Student" did not surface them. Students had no way to study exclusively their own cards without professor cards mixing in.
+- **Root Cause:** `get_filtered_authors_for_flashcards()` RPC inner-joins `flashcard_decks fd` and filters `fd.visibility = 'public'`. Authors with only private (`is_public = false`) decks are excluded from the result set entirely.
+- **Solution:** Added a hardcoded "My Cards (Private & Public)" `SelectItem` pinned at the top of the Author dropdown with `value={user.id}`. No DB changes needed — StudyMode already fetches the current user's private cards via the visibility OR clause (`user_id.eq.${user.id}`) and applies `card.user_id === authorParam` correctly for any UUID.
+- **Status:** ✅ RESOLVED
+
 ### [Mar 5, 2026] StudyMode Mixes Cards from All Authors + Ignores Review History
 - **Files:** `ReviewFlashcards.jsx`, `StudyMode.jsx`
 - **Symptom (Bug 1):** When a student filtered by a specific professor in ReviewFlashcards and clicked "Study All", the session showed all visible cards for the subject — including the student's own cards — not just the professor's. Studying a professor's deck of ~30 cards would show 50+ cards.

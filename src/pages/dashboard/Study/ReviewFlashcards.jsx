@@ -438,6 +438,9 @@ export default function ReviewFlashcards() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Authors</SelectItem>
+                      {user && (
+                        <SelectItem value={user.id}>My Cards (Private &amp; Public)</SelectItem>
+                      )}
                       {availableAuthors.map(author => (
                         <SelectItem key={author.id} value={author.id}>
                           {author.full_name} {author.role === 'professor' ? '(Prof)' : ''}
