@@ -1,6 +1,17 @@
 # Changelog
 
 ---
+## [2026-03-05] Fix: cron-review-reminders returning 401 (JWT verification)
+
+### Fixed
+- **Supabase Edge Function config** — `cron-review-reminders` had "Verify JWT with legacy secret" enabled by default. pg_cron sends no JWT token (only the `x-cron-secret` header), so every cron invocation was rejected with HTTP 401 before the function code ran. Disabled JWT verification in the Edge Function Details tab. Auth is handled internally by the `x-cron-secret` header check.
+
+### Root Cause
+Supabase enables JWT verification by default on all new Edge Functions. Cron-triggered functions called via `pg_net.http_post` cannot include a JWT (no user session exists), so this gate must be disabled. Custom header-based auth (`x-cron-secret`) is the correct pattern for cron functions.
+
+### No code changes — Supabase dashboard configuration only.
+
+---
 ## [2026-03-04] fix: cascade Subject dropdown from Course in Study section filters
 
 ### Fixed
