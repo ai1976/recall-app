@@ -1,6 +1,16 @@
 # Changelog
 
 ---
+## [2026-03-06] fix: Browse Notes back navigation after "View all" filtered view
+
+### Fixed
+- **Browser back now resets filters** — URL sync `useEffect` previously used `if (param)` guards, so navigating back to the clean URL left `filterSubject` and `filterTopic` stuck at their filtered values. Now sets both unconditionally (`|| 'all'`), so back navigation correctly resets to the full list.
+- **"← Back to all notes" button** — Added above the page title, visible only when `?topic=` URL param is present. Navigates to `/dashboard/notes` (clean URL), which triggers the filter reset via the URL sync effect.
+
+### Files Changed
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+
+---
 ## [2026-03-06] ux: Browse Notes subject-accordion layout with View All per topic
 
 ### Changed

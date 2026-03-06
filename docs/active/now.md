@@ -7,6 +7,16 @@
 
 ## Just Completed ✅
 
+### UX: Browse Notes — back navigation fix for "View all" (Mar 6, 2026)
+Fixed two issues with browser back navigation after clicking "View all X notes →":
+1. URL sync `useEffect` now unconditionally sets both filters (removes `if` guards), so navigating back to the clean URL correctly resets `filterSubject` and `filterTopic` to `'all'`.
+2. Added "← Back to all notes" button above the page title, visible only when `?topic=` URL param is present. Clicking it navigates to `/dashboard/notes` (clean URL), triggering the filter reset.
+
+**Files changed:**
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+
+---
+
 ### UX: Browse Notes pagination refactor — subject-first with View All (Mar 6, 2026)
 Replaced confusing note-count "Load More" with subject-accordion-first layout. All subjects collapse by default so users see the full subject list at a glance. Topics >6 notes show 6 inline + "View all X notes →" navigating to `?subject=X&topic=Y`. BrowseNotes now reads `topic` from URL params and syncs filter state on URL change (for within-page "View all" navigation).
 

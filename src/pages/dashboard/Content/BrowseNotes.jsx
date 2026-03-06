@@ -71,12 +71,12 @@ export default function BrowseNotes() {
     }
   }, [userProfile]);
 
-  // Sync URL params when navigating to a filtered view (e.g., from "View all X notes" button)
+  // Sync URL params when navigating to/from a filtered view (e.g., "View all X notes" button and browser back)
   useEffect(() => {
     const subjectParam = searchParams.get('subject');
     const topicParam = searchParams.get('topic');
-    if (subjectParam) setFilterSubject(subjectParam);
-    if (topicParam) setFilterTopic(topicParam);
+    setFilterSubject(subjectParam || 'all');
+    setFilterTopic(topicParam || 'all');
   }, [searchParams]);
 
   useEffect(() => {
@@ -398,6 +398,14 @@ export default function BrowseNotes() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
+          {searchParams.get('topic') && (
+            <button
+              onClick={() => navigate('/dashboard/notes')}
+              className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mb-3 font-medium"
+            >
+              ← Back to all notes
+            </button>
+          )}
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Browse Notes
           </h1>
