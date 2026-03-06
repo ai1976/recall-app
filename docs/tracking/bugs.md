@@ -2,6 +2,17 @@
 
 ## Resolved Bugs
 
+### [Mar 6, 2026] RPC Returns 0 Results — Ambiguous Column "id" (Error 42702)
+- **Files:** `get_browsable_decks` v3, `get_browsable_notes` v3
+- **Symptom:** After deploying the course-aware v3 RPCs, Review Flashcards and Browse Notes showed 0 results for all students despite correct data in the DB. Browser console showed HTTP 400 with `kode: "42702"`, `message: "column reference \"id\" is ambiguous"`, `details: "It could refer to either a PL/pgSQL variable or a table column."`
+- **Root Cause:** Both functions are declared as `RETURNS TABLE(id UUID, ...)`. PostgreSQL treats output column names as PL/pgSQL variables inside the function body. The profile lookup query `WHERE id = v_user_id` was ambiguous — PostgreSQL couldn't determine whether `id` referred to the `RETURNS TABLE` output variable or the `profiles.id` column.
+- **Why it wasn't caught at compile time:** `CREATE OR REPLACE FUNCTION` succeeded without error; PostgreSQL only raises 42702 at runtime when the ambiguous column reference is evaluated.
+- **Solution:** Qualify the column with the table name: `WHERE profiles.id = v_user_id` in both v3 functions.
+- **Lesson:** In PL/pgSQL functions using `RETURNS TABLE(id ...)`, always qualify any SQL column named `id` with its table alias/name to avoid runtime ambiguity.
+- **Status:** ✅ RESOLVED
+
+
+
 ### [Mar 5, 2026] Duplicate Friend Request/Accepted Notifications
 - **Location:** DB — triggers on `friendships` table
 - **Symptom:** Every friend request and acceptance generated two notification entries in the bell icon — one with no title (e.g. just "Aayodh Inamke sent you a friend request") and one with a proper title ("New Friend Request" / message). Affected all users.

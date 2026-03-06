@@ -7,6 +7,15 @@
 
 ## Just Completed ✅
 
+### Bug Fix: RPC ambiguous column "id" in course-aware browsing (Mar 6, 2026)
+Both `get_browsable_decks` v3 and `get_browsable_notes` v3 threw PostgreSQL error 42702 ("column reference 'id' is ambiguous") because both are declared as `RETURNS TABLE(id UUID, ...)` — making `id` both an output column (PL/pgSQL variable) and the column referenced in `WHERE id = v_user_id`. Fixed by qualifying as `WHERE profiles.id = v_user_id` in both functions.
+
+**Files changed:**
+- `docs/database/study-groups/29_FUNCTION_get_browsable_decks_v3.sql` — `WHERE profiles.id = v_user_id`
+- `docs/database/study-groups/30_FUNCTION_get_browsable_notes_v3.sql` — same fix
+
+---
+
 ### Feature: Course-aware browsing for students (Mar 6, 2026)
 Students were seeing content from all courses on the Review Flashcards and Browse Notes pages. The RPCs had no course gate — they only enforced visibility (public/friends/groups/own). Added a course gate to both RPCs and locked the Course filter dropdown for students.
 

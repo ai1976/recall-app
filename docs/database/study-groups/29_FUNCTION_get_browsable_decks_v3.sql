@@ -45,10 +45,12 @@ BEGIN
   END IF;
 
   -- Fetch the caller's role and enrolled course in one round-trip
+  -- NOTE: Must use profiles.id (not bare "id") because RETURNS TABLE declares
+  -- an output column also named "id", causing ambiguity error 42702.
   SELECT role, course_level
     INTO v_user_role, v_user_course
     FROM profiles
-   WHERE id = v_user_id;
+   WHERE profiles.id = v_user_id;
 
   RETURN QUERY
   SELECT DISTINCT
