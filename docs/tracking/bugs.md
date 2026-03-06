@@ -2,6 +2,19 @@
 
 ## Resolved Bugs
 
+### [Mar 6, 2026] Blank Study Screen for Student-Created Decks with No Topic
+- **Reported by:** CA Foundation student (Shriya Sundaram), Safari on iPhone
+- **Symptom:** Self-created flashcard deck visible in Review Flashcards browse page, but clicking it shows "No flashcards to study / No flashcards found for this selection". Cards accessible from My Contributions page.
+- **Affected users:** All students who created flashcards without selecting a topic (systemic, not user-specific).
+- **Root Cause (confirmed by DB query):** Topic is optional in `FlashcardCreate`. When skipped, both the `flashcard_decks` and `flashcards` rows get `topic_id = null`, `custom_topic = null`. The `get_browsable_decks` RPC returns `"General"` as a fallback `topic_name` for null-topic decks. `ReviewFlashcards.startStudySession` puts this label into the URL as `?topic=General`. `StudyMode` then filters ALL cards (including 78 professor cards) for `topics.name = "General"` OR `custom_topic = "General"` — matching nothing. Result: 0 cards for every user clicking such a deck.
+- **Why CA Intermediate student unaffected:** All his cards have `topic_id` properly set via FK. Topic string matching succeeds. He also has one latent null-topic deck (`cca04e35`, 2 cards) that would exhibit the same bug if clicked.
+- **Solution:**
+  1. Topic made mandatory in `FlashcardCreate` (validation + label)
+  2. Individual deck clicks now navigate with `?deck=<uuid>` instead of `?topic=<name>`; `StudyMode` filters by `card.deck_id` when `deck` param present
+  3. Null-topic nudge banner in `MyFlashcards` + `handleSaveGroupInfo` now updates `flashcard_decks` record
+  4. Topic made required in `MyFlashcards` Edit Info dialog
+- **Status:** ✅ RESOLVED
+
 ### [Mar 6, 2026] RPC Returns 0 Results — Ambiguous Column "id" (Error 42702)
 - **Files:** `get_browsable_decks` v3, `get_browsable_notes` v3
 - **Symptom:** After deploying the course-aware v3 RPCs, Review Flashcards and Browse Notes showed 0 results for all students despite correct data in the DB. Browser console showed HTTP 400 with `kode: "42702"`, `message: "column reference \"id\" is ambiguous"`, `details: "It could refer to either a PL/pgSQL variable or a table column."`

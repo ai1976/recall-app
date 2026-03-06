@@ -7,6 +7,20 @@
 
 ## Just Completed ✅
 
+### Bug Fix: Blank study screen for student decks with no topic (Mar 6, 2026)
+Three-part fix for a systemic bug affecting all students who created flashcards without selecting a topic:
+1. **Topic mandatory in FlashcardCreate** — validation added, label updated to "Topic *"
+2. **Deck-ID navigation** — `ReviewFlashcards` passes `?deck=<uuid>` for individual deck clicks; `StudyMode` filters by `card.deck_id` when present (immune to null/fallback topic names)
+3. **Null-topic nudge in MyFlashcards** — amber banner with "Fix Now →" for existing null-topic groups; Edit Info dialog now updates `flashcard_decks` record + topic made required
+
+**Files changed:**
+- `src/pages/dashboard/Content/FlashcardCreate.jsx`
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+- `src/pages/dashboard/Study/StudyMode.jsx`
+- `src/pages/dashboard/Content/MyFlashcards.jsx`
+
+---
+
 ### UX: Browse Notes — back navigation fix for "View all" (Mar 6, 2026)
 Fixed two issues with browser back navigation after clicking "View all X notes →":
 1. URL sync `useEffect` now unconditionally sets both filters (removes `if` guards), so navigating back to the clean URL correctly resets `filterSubject` and `filterTopic` to `'all'`.

@@ -47,6 +47,7 @@ export default function MyFlashcards() {
 
   // Edit Group Info states
   const [editingGroupBatchId, setEditingGroupBatchId] = useState(null);
+  const [editingGroupDeckId, setEditingGroupDeckId] = useState(null);
   const [showEditGroupDialog, setShowEditGroupDialog] = useState(false);
   const [editGroupForm, setEditGroupForm] = useState({
     course: '',
@@ -234,6 +235,7 @@ export default function MyFlashcards() {
       if (!grouped[key]) {
         grouped[key] = {
           batchId: batchId,
+          deckId: card.deck_id,
           batchDescription: card.batch_description || null,
           course,
           subject,
@@ -401,6 +403,7 @@ export default function MyFlashcards() {
     }
 
     setEditingGroupBatchId(group.batchId);
+    setEditingGroupDeckId(group.deckId || null);
     setEditGroupForm({
       course: group.course || '',
       subject: group.subject || '',
@@ -412,10 +415,10 @@ export default function MyFlashcards() {
 
   const handleSaveGroupInfo = async () => {
     try {
-      if (!editGroupForm.course.trim() || !editGroupForm.subject.trim()) {
+      if (!editGroupForm.course.trim() || !editGroupForm.subject.trim() || !editGroupForm.topic.trim()) {
         toast({
           title: "Validation Error",
-          description: "Course and Subject are required",
+          description: "Course, Subject, and Topic are required",
           variant: "destructive"
         });
         return;
@@ -440,6 +443,17 @@ export default function MyFlashcards() {
 
       if (error) throw error;
 
+      // Also update the flashcard_decks record so the browse view reflects the real topic
+      if (editingGroupDeckId) {
+        await supabase
+          .from('flashcard_decks')
+          .update({
+            topic_id: updates.topic_id,
+            custom_topic: updates.custom_topic,
+          })
+          .eq('id', editingGroupDeckId);
+      }
+
       toast({
         title: "Group updated",
         description: "All cards in this group have been updated"
@@ -447,6 +461,7 @@ export default function MyFlashcards() {
 
       setShowEditGroupDialog(false);
       setEditingGroupBatchId(null);
+      setEditingGroupDeckId(null);
       setEditGroupForm({ course: '', subject: '', topic: '', description: '' });
 
       fetchFlashcards();
@@ -922,6 +937,23 @@ export default function MyFlashcards() {
                       </div>
                     </div>
                   </CardHeader>
+
+                  {/* Null-topic nudge — shown for groups with no topic assigned */}
+                  {!group.topicId && !group.customTopic && (
+                    <div className="flex items-center justify-between px-4 py-2 mx-6 mt-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                      <span className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                        This deck has no topic assigned — it won&apos;t appear correctly in study sessions.
+                      </span>
+                      <button
+                        onClick={() => openEditGroupDialog(group)}
+                        className="ml-4 font-medium underline hover:text-amber-900 whitespace-nowrap"
+                      >
+                        Fix Now →
+                      </button>
+                    </div>
+                  )}
+
                   <CardContent className="pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {group.cards.map(card => (
@@ -1077,7 +1109,7 @@ export default function MyFlashcards() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">
-                  Topic (Optional)
+                  Topic <span className="text-red-500">*</span>
                 </label>
                 {allTopics.length > 0 ? (
                   <select
@@ -1085,7 +1117,7 @@ export default function MyFlashcards() {
                     onChange={(e) => setEditGroupForm(prev => ({ ...prev, topic: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="">No Topic</option>
+                    <option value="">Select a topic...</option>
                     {allTopics
                       .filter(topic => {
                         const selectedSubject = allSubjects.find(s => s.name === editGroupForm.subject);
@@ -1101,7 +1133,7 @@ export default function MyFlashcards() {
                   <Input
                     value={editGroupForm.topic || ''}
                     onChange={(e) => setEditGroupForm(prev => ({ ...prev, topic: e.target.value }))}
-                    placeholder="Enter topic (optional)..."
+                    placeholder="Enter topic..."
                   />
                 )}
               </div>

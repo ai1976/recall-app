@@ -1,6 +1,25 @@
 # Changelog
 
 ---
+## [2026-03-06] fix: Blank study screen for student-created decks with no topic
+
+### Fixed
+- **Root cause:** Students who created flashcards without selecting a topic got cards with `topic_id = null` and `custom_topic = null`. The `get_browsable_decks` RPC returned `"General"` as a fallback label for these decks. When clicked, the URL became `?topic=General` — a phantom label matching nothing in the DB. StudyMode returned 0 cards for all users of such decks (including the 78 professor cards alongside them).
+- **Topic is now mandatory in FlashcardCreate** — validation added alongside existing course/subject checks; label updated to show required indicator.
+- **Deck-ID navigation for individual deck clicks** — `ReviewFlashcards` now passes `?deck=<uuid>` instead of `?topic=<name>` when clicking a specific deck. `StudyMode` filters by `card.deck_id` when `deck` param is present, bypassing topic string matching entirely.
+- **Null-topic nudge in MyFlashcards** — existing users with null-topic cards see an amber warning banner with a "Fix Now →" link that opens the Edit Info dialog. Saving now also updates the `flashcard_decks` record so the browse view reflects the correct topic.
+- **Topic made required in MyFlashcards Edit Info dialog** — validation updated; label changed from "Topic (Optional)" to "Topic *".
+
+### Added
+- `deck` URL param support in `StudyMode` for precise deck-level filtering
+
+### Files Changed
+- `src/pages/dashboard/Content/FlashcardCreate.jsx`
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+- `src/pages/dashboard/Study/StudyMode.jsx`
+- `src/pages/dashboard/Content/MyFlashcards.jsx`
+
+---
 ## [2026-03-06] fix: Browse Notes back navigation after "View all" filtered view
 
 ### Fixed

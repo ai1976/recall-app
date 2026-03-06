@@ -105,6 +105,7 @@ export default function StudyMode({
       const subjectParam = searchParams.get('subject');
       const topicParam = searchParams.get('topic');
       const authorParam = searchParams.get('author');
+      const deckParam = searchParams.get('deck');
 
       // Step 1: Fetch all cards visible to this user
       const { data, error } = await supabase
@@ -126,19 +127,24 @@ export default function StudyMode({
         back_text: card.back_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || ''
       }));
 
-      // Filter by subject / topic / author
-      if (subjectParam) {
-        cleanedData = cleanedData.filter(card =>
-          card.subjects?.name === subjectParam || card.custom_subject === subjectParam
-        );
-      }
-      if (topicParam) {
-        cleanedData = cleanedData.filter(card =>
-          card.topics?.name === topicParam || card.custom_topic === topicParam
-        );
-      }
-      if (authorParam) {
-        cleanedData = cleanedData.filter(card => card.user_id === authorParam);
+      // Filter by deck_id (individual deck click) or subject/topic/author (Study All)
+      if (deckParam) {
+        // Precise deck filter: immune to null/fallback topic name issues
+        cleanedData = cleanedData.filter(card => card.deck_id === deckParam);
+      } else {
+        if (subjectParam) {
+          cleanedData = cleanedData.filter(card =>
+            card.subjects?.name === subjectParam || card.custom_subject === subjectParam
+          );
+        }
+        if (topicParam) {
+          cleanedData = cleanedData.filter(card =>
+            card.topics?.name === topicParam || card.custom_topic === topicParam
+          );
+        }
+        if (authorParam) {
+          cleanedData = cleanedData.filter(card => card.user_id === authorParam);
+        }
       }
 
       // Step 2: SRS-aware filter — exclude cards already reviewed and not yet due.

@@ -342,11 +342,17 @@ export default function ReviewFlashcards() {
     setFilterAuthor('all');
   };
 
-  const startStudySession = (subjectName, topicName = null) => {
+  const startStudySession = (subjectName, topicName = null, deckId = null) => {
     const params = new URLSearchParams();
-    params.set('subject', subjectName);
-    if (topicName) params.set('topic', topicName);
-    if (filterAuthor !== 'all') params.set('author', filterAuthor);
+    if (deckId) {
+      // Individual deck: filter precisely by deck ID (immune to null/fallback topic names)
+      params.set('deck', deckId);
+    } else {
+      // Study All: filter by subject (+ optional author)
+      params.set('subject', subjectName);
+      if (topicName) params.set('topic', topicName);
+      if (filterAuthor !== 'all') params.set('author', filterAuthor);
+    }
     navigate(`/dashboard/study?${params.toString()}`);
   };
 
@@ -584,7 +590,7 @@ export default function ReviewFlashcards() {
                           >
                             {/* Clickable Study Area */}
                             <button
-                              onClick={() => startStudySession(subject.name, deck.topicName)}
+                              onClick={() => startStudySession(subject.name, deck.topicName, deck.id)}
                               className="w-full text-left"
                             >
                               <div className="flex items-start justify-between mb-2">

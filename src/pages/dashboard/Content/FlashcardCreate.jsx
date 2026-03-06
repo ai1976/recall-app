@@ -310,6 +310,13 @@ export default function FlashcardCreate() {
         throw new Error('Please select or enter a subject');
       }
 
+      const topicId = selectedTopic?.id || null;
+      const customTopicValue = customTopic || null;
+
+      if (!topicId && !customTopicValue) {
+        throw new Error('Please select or enter a topic for these flashcards');
+      }
+
       for (let i = 0; i < flashcards.length; i++) {
         if (!flashcards[i].front.trim()) {
           throw new Error(`Flashcard ${i + 1}: Front side cannot be empty`);
@@ -645,7 +652,7 @@ export default function FlashcardCreate() {
               )}
 
               <div className="space-y-2">
-                <Label>Topic (Optional)</Label>
+                <Label>Topic <span className="text-red-500">*</span></Label>
                 <Popover open={topicOpen} onOpenChange={setTopicOpen}>
                   <PopoverTrigger asChild>
                     <Button
