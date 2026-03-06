@@ -1,6 +1,27 @@
 # Changelog
 
 ---
+## [2026-03-06] feat: course-aware browsing — students see only their enrolled course
+
+### Added
+- **`get_browsable_decks` RPC (v3)** — Added course gate: students see only `target_course = their course_level` OR their own authored content. Professors/admins/super_admins bypass the course gate entirely.
+- **`get_browsable_notes` RPC (v3)** — Same course gate applied.
+- **Composite DB indexes** — `idx_flashcard_decks_course_user (target_course, user_id)` and `idx_notes_course_user (target_course, user_id)` to optimise the course gate clause at scale.
+- **Course dropdown locked for students** — Disabled `<Select>` with label "(Current Syllabus)". Course initialises from `profiles.course_level` via a profile fetch on mount. "Clear All Filters" respects the lock (does not reset to "All Courses" for students).
+- **Dependent empty states** — "No content available for [course] yet / Check back soon" when no data exists; "No results match your filters / Try adjusting your selections" when filters hide results.
+
+### Changed
+- `hasActiveFilters` no longer counts the Course filter as active for students (it's locked).
+- Author exception: client-side course filter passes through subjects containing the student's own decks/notes from any course.
+
+### Files Changed
+- `docs/database/study-groups/28_SCHEMA_composite_course_user_indexes.sql` (NEW)
+- `docs/database/study-groups/29_FUNCTION_get_browsable_decks_v3.sql` (NEW)
+- `docs/database/study-groups/30_FUNCTION_get_browsable_notes_v3.sql` (NEW)
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+
+---
 ## [2026-03-05] fix: duplicate friend notifications from undocumented DB triggers
 
 ### Fixed

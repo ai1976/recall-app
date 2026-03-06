@@ -16,6 +16,7 @@ export default function BrowseNotes() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState(null);
   const [groupedNotes, setGroupedNotes] = useState([]);
   const [allGroupedNotes, setAllGroupedNotes] = useState([]);
   const [allNotesFlat, setAllNotesFlat] = useState([]);
@@ -53,6 +54,25 @@ export default function BrowseNotes() {
     fetchNotes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Fetch user profile to determine role and enrolled course
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('profiles')
+      .select('role, course_level')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => { if (data) setUserProfile(data); });
+  }, [user]);
+
+  // Lock course filter to student's enrolled course once profile loads
+  useEffect(() => {
+    if (!userProfile) return;
+    if (userProfile.role === 'student' && userProfile.course_level) {
+      setFilterCourse(userProfile.course_level);
+    }
+  }, [userProfile]);
 
   useEffect(() => {
     applyFilters();
@@ -242,7 +262,11 @@ export default function BrowseNotes() {
     let filtered = [...allGroupedNotes];
 
     if (filterCourse !== 'all') {
-      filtered = filtered.filter(subject => subject.course === filterCourse);
+      filtered = filtered.filter(subject =>
+        subject.course === filterCourse ||
+        // Author exception: always show subjects containing the user's own notes
+        subject.topics.some(topic => topic.notes.some(note => note.user_id === user?.id))
+      );
     }
 
     if (filterSubject !== 'all') {
@@ -321,7 +345,10 @@ export default function BrowseNotes() {
 
   const clearAllFilters = () => {
     setSearchQuery('');
-    setFilterCourse('all');
+    // Students: keep course locked to their enrolled course; don't reset to 'all'
+    if (!userProfile || userProfile.role !== 'student') {
+      setFilterCourse('all');
+    }
     setFilterSubject('all');
     setFilterTopic('all');
     setFilterRole('all');
@@ -357,11 +384,13 @@ export default function BrowseNotes() {
     );
   }
 
+  const isStudent = userProfile?.role === 'student';
   const totalNotes = groupedNotes.reduce((sum, subject) => sum + subject.totalNotes, 0);
   const flatFiltered = groupedNotes.flatMap(s => s.topics.flatMap(t => t.notes));
   const displayedGroupedNotes = groupNotesBySubject(flatFiltered.slice(0, visibleCount));
   const hasMore = flatFiltered.length > visibleCount;
-  const hasActiveFilters = searchQuery || filterCourse !== 'all' || filterSubject !== 'all' || filterTopic !== 'all' || filterRole !== 'all' || filterAuthor !== 'all';
+  // Course filter is locked for students, so don't count it as an "active" user filter
+  const hasActiveFilters = searchQuery || (!isStudent && filterCourse !== 'all') || filterSubject !== 'all' || filterTopic !== 'all' || filterRole !== 'all' || filterAuthor !== 'all';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -397,13 +426,16 @@ export default function BrowseNotes() {
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div>
-                  <label className="text-sm text-gray-600 mb-2 block">Course</label>
-                  <Select value={filterCourse} onValueChange={setFilterCourse}>
+                  <label className="text-sm text-gray-600 mb-2 block">
+                    Course
+                    {isStudent && <span className="ml-1 text-xs text-blue-500 font-normal">(Current Syllabus)</span>}
+                  </label>
+                  <Select value={filterCourse} onValueChange={setFilterCourse} disabled={isStudent}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Courses" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Courses</SelectItem>
+                      {!isStudent && <SelectItem value="all">All Courses</SelectItem>}
                       {availableCourses.map(course => (
                         <SelectItem key={course} value={course}>
                           {course}
@@ -503,11 +535,17 @@ export default function BrowseNotes() {
             <CardContent className="py-12 text-center">
               <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {allGroupedNotes.length === 0 ? 'No notes available' : 'No notes match your filters'}
+                {allGroupedNotes.length === 0
+                  ? isStudent
+                    ? `No notes available for ${userProfile?.course_level || 'your course'} yet`
+                    : 'No notes available'
+                  : 'No notes match your filters'}
               </h3>
               <p className="text-gray-600 mb-6">
                 {allGroupedNotes.length === 0
-                  ? 'Be the first to share your notes with the community'
+                  ? isStudent
+                    ? 'Check back soon — your professors are working on it!'
+                    : 'Be the first to share your notes with the community'
                   : 'Try adjusting your filters or search query'}
               </p>
               {allGroupedNotes.length === 0 ? (

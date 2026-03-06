@@ -1,11 +1,33 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-05
-**Current Phase:** Bug Fixes
+**Last Updated:** 2026-03-06
+**Current Phase:** Feature: Course-aware browsing
 
 ---
 
 ## Just Completed ✅
+
+### Feature: Course-aware browsing for students (Mar 6, 2026)
+Students were seeing content from all courses on the Review Flashcards and Browse Notes pages. The RPCs had no course gate — they only enforced visibility (public/friends/groups/own). Added a course gate to both RPCs and locked the Course filter dropdown for students.
+
+**SQL (run in Supabase SQL Editor in order):**
+- `28_SCHEMA_composite_course_user_indexes.sql` — composite indexes on `(target_course, user_id)` for both tables
+- `29_FUNCTION_get_browsable_decks_v3.sql` — updated RPC with course gate
+- `30_FUNCTION_get_browsable_notes_v3.sql` — updated RPC with course gate
+
+**Logic:**
+- Professors/admins/super_admins: bypass course gate, see all courses
+- Students: see content where `target_course = their course_level` OR they are the author
+- Course dropdown: locked (disabled) for students with label "(Current Syllabus)", free for professors
+- Empty states distinguish "no content for your course yet" vs "no results match your filters"
+- `clearAllFilters` does not reset the course for students
+
+**Files changed:**
+- [x] `docs/database/study-groups/28_SCHEMA_composite_course_user_indexes.sql` — NEW
+- [x] `docs/database/study-groups/29_FUNCTION_get_browsable_decks_v3.sql` — NEW
+- [x] `docs/database/study-groups/30_FUNCTION_get_browsable_notes_v3.sql` — NEW
+- [x] `src/pages/dashboard/Study/ReviewFlashcards.jsx` — profile fetch, locked dropdown, empty states
+- [x] `src/pages/dashboard/Content/BrowseNotes.jsx` — same
 
 ### Fix: "My Cards" pinned option in Author dropdown (Mar 5, 2026)
 Students with only private flashcard decks were invisible in the Author filter (the RPC `get_filtered_authors_for_flashcards` only returns authors with public decks). Added a hardcoded "My Cards (Private & Public)" option pinned at the top of the Author dropdown using `user.id` as the value. No DB changes required — compatible with existing StudyMode `authorParam` filter and SRS two-step query (student's own private cards are already fetched via the visibility `user_id.eq.${user.id}` OR clause).
