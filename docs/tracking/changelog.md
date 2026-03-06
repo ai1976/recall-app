@@ -1,6 +1,20 @@
 # Changelog
 
 ---
+## [2026-03-06] ux: Browse Notes subject-accordion layout with View All per topic
+
+### Changed
+- **All subject accordions collapsed by default** — users see the full subject list at a glance instead of a long scroll of expanded content
+- **Pagination replaced with View All** — removed `Load More` (note-count pagination). Topics with ≤6 notes render all inline; topics with >6 notes show 6 thumbnails + "View all X notes →" button
+- **"View all" navigates to filtered view** — navigates to `/dashboard/notes?subject=X&topic=Y`, reusing the existing BrowseNotes page with pre-set filters
+- **`topic` URL param support added** — BrowseNotes now reads `topic` from URL on mount and syncs filter state via `useEffect` when URL changes (for same-page "View all" navigation)
+- **Subject accordion auto-expands when subject filter is active** — navigating via "View all" link auto-expands the relevant subject
+
+### Files Changed
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+
+---
+
 ## [2026-03-06] fix: resolve ambiguous column "id" in course-aware RPC functions
 
 ### Fixed

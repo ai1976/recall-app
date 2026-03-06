@@ -7,6 +7,14 @@
 
 ## Just Completed ✅
 
+### UX: Browse Notes pagination refactor — subject-first with View All (Mar 6, 2026)
+Replaced confusing note-count "Load More" with subject-accordion-first layout. All subjects collapse by default so users see the full subject list at a glance. Topics >6 notes show 6 inline + "View all X notes →" navigating to `?subject=X&topic=Y`. BrowseNotes now reads `topic` from URL params and syncs filter state on URL change (for within-page "View all" navigation).
+
+**Files changed:**
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+
+---
+
 ### Bug Fix: RPC ambiguous column "id" in course-aware browsing (Mar 6, 2026)
 Both `get_browsable_decks` v3 and `get_browsable_notes` v3 threw PostgreSQL error 42702 ("column reference 'id' is ambiguous") because both are declared as `RETURNS TABLE(id UUID, ...)` — making `id` both an output column (PL/pgSQL variable) and the column referenced in `WHERE id = v_user_id`. Fixed by qualifying as `WHERE profiles.id = v_user_id` in both functions.
 

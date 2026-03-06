@@ -9,8 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import UpvoteButton from '@/components/ui/UpvoteButton';
 
-const NOTES_PER_PAGE = 10;
-
 export default function BrowseNotes() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -24,7 +22,7 @@ export default function BrowseNotes() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCourse, setFilterCourse] = useState('all');
   const [filterSubject, setFilterSubject] = useState(searchParams.get('subject') || 'all');
-  const [filterTopic, setFilterTopic] = useState('all');
+  const [filterTopic, setFilterTopic] = useState(searchParams.get('topic') || 'all');
   const [filterRole, setFilterRole] = useState('all');
   const [filterAuthor, setFilterAuthor] = useState(searchParams.get('author') || 'all');
   
@@ -41,7 +39,6 @@ export default function BrowseNotes() {
 
   // Collapsed groups state for collapsible sections
   const [collapsedGroups, setCollapsedGroups] = useState({});
-  const [visibleCount, setVisibleCount] = useState(NOTES_PER_PAGE);
 
   const toggleGroupCollapse = (groupKey) => {
     setCollapsedGroups(prev => ({
@@ -73,6 +70,14 @@ export default function BrowseNotes() {
       setFilterCourse(userProfile.course_level);
     }
   }, [userProfile]);
+
+  // Sync URL params when navigating to a filtered view (e.g., from "View all X notes" button)
+  useEffect(() => {
+    const subjectParam = searchParams.get('subject');
+    const topicParam = searchParams.get('topic');
+    if (subjectParam) setFilterSubject(subjectParam);
+    if (topicParam) setFilterTopic(topicParam);
+  }, [searchParams]);
 
   useEffect(() => {
     applyFilters();
@@ -339,7 +344,6 @@ export default function BrowseNotes() {
       })).filter(subject => subject.topics.length > 0);
     }
 
-    setVisibleCount(NOTES_PER_PAGE);
     setGroupedNotes(filtered);
   };
 
@@ -386,9 +390,7 @@ export default function BrowseNotes() {
 
   const isStudent = userProfile?.role === 'student';
   const totalNotes = groupedNotes.reduce((sum, subject) => sum + subject.totalNotes, 0);
-  const flatFiltered = groupedNotes.flatMap(s => s.topics.flatMap(t => t.notes));
-  const displayedGroupedNotes = groupNotesBySubject(flatFiltered.slice(0, visibleCount));
-  const hasMore = flatFiltered.length > visibleCount;
+  const displayedGroupedNotes = groupedNotes;
   // Course filter is locked for students, so don't count it as an "active" user filter
   const hasActiveFilters = searchQuery || (!isStudent && filterCourse !== 'all') || filterSubject !== 'all' || filterTopic !== 'all' || filterRole !== 'all' || filterAuthor !== 'all';
 
@@ -561,12 +563,14 @@ export default function BrowseNotes() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {displayedGroupedNotes.map((subject, idx) => {
-              const subjectKey = `subject-${idx}-${subject.name}`;
-              const isSubjectCollapsed = collapsedGroups[subjectKey];
+            {displayedGroupedNotes.map((subject) => {
+              // Stable key: use name so collapsed state survives filter changes
+              const subjectKey = `subject-${subject.name}`;
+              // Default collapsed; auto-expand when filtered to a specific subject
+              const isSubjectCollapsed = filterSubject !== 'all' ? false : !collapsedGroups[subjectKey];
 
               return (
-                <Card key={idx}>
+                <Card key={subject.name}>
                   {/* Collapsible Subject Header */}
                   <CardHeader
                     className="cursor-pointer select-none bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors"
@@ -595,12 +599,16 @@ export default function BrowseNotes() {
                   {/* Collapsible Subject Content */}
                   {!isSubjectCollapsed && (
                     <CardContent className="pt-4">
-                      {subject.topics.map((topic, topicIdx) => {
-                        const topicKey = `${subjectKey}-topic-${topicIdx}-${topic.name}`;
+                      {subject.topics.map((topic) => {
+                        const topicKey = `${subject.name}-topic-${topic.name}`;
                         const isTopicCollapsed = collapsedGroups[topicKey];
+                        const NOTES_CAP = 6;
+                        const isTopicFiltered = filterTopic === topic.name;
+                        const displayedNotes = isTopicFiltered ? topic.notes : topic.notes.slice(0, NOTES_CAP);
+                        const hasMoreNotes = !isTopicFiltered && topic.notes.length > NOTES_CAP;
 
                         return (
-                          <div key={topicIdx} className="mb-6 last:mb-0">
+                          <div key={topic.name} className="mb-6 last:mb-0">
                             {/* Collapsible Topic Header */}
                             <div
                               className="flex items-center gap-2 mb-3 cursor-pointer select-none group/topic"
@@ -621,8 +629,9 @@ export default function BrowseNotes() {
 
                             {/* Collapsible Topic Notes */}
                             {!isTopicCollapsed && (
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {topic.notes.map((note) => (
+                              <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {displayedNotes.map((note) => (
                                   <div
                                     key={note.id}
                                     className="text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all overflow-hidden group"
@@ -708,7 +717,20 @@ export default function BrowseNotes() {
                                     </div>
                                   </div>
                                 ))}
-                              </div>
+                                </div>
+                                {hasMoreNotes && (
+                                  <div className="mt-3">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-blue-600 hover:text-blue-800 text-sm font-medium px-0"
+                                      onClick={() => navigate(`/dashboard/notes?subject=${encodeURIComponent(subject.name)}&topic=${encodeURIComponent(topic.name)}`)}
+                                    >
+                                      View all {topic.notes.length} notes →
+                                    </Button>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         );
@@ -719,16 +741,6 @@ export default function BrowseNotes() {
               );
             })}
 
-            {hasMore && (
-              <div className="flex justify-center pt-2 pb-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setVisibleCount(prev => prev + NOTES_PER_PAGE)}
-                >
-                  Load More ({flatFiltered.length - visibleCount} more {flatFiltered.length - visibleCount === 1 ? 'note' : 'notes'})
-                </Button>
-              </div>
-            )}
           </div>
         )}
       </div>
