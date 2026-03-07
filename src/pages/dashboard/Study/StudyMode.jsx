@@ -129,8 +129,30 @@ export default function StudyMode({
 
       // Filter by deck_id (individual deck click) or subject/topic/author (Study All)
       if (deckParam) {
-        // Precise deck filter: immune to null/fallback topic name issues
-        cleanedData = cleanedData.filter(card => card.deck_id === deckParam);
+        // Try precise deck_id match first
+        const byDeckId = cleanedData.filter(card => card.deck_id === deckParam);
+        if (byDeckId.length > 0) {
+          cleanedData = byDeckId;
+        } else {
+          // Fallback for cards where deck_id is null (created before deck tracking):
+          // look up the deck record and match by user + subject + topic
+          const { data: deckInfo } = await supabase
+            .from('flashcard_decks')
+            .select('user_id, subject_id, topic_id, custom_subject, custom_topic')
+            .eq('id', deckParam)
+            .single();
+          if (deckInfo) {
+            cleanedData = cleanedData.filter(card =>
+              card.user_id === deckInfo.user_id &&
+              (deckInfo.subject_id
+                ? card.subject_id === deckInfo.subject_id
+                : card.custom_subject === deckInfo.custom_subject) &&
+              (deckInfo.topic_id
+                ? card.topic_id === deckInfo.topic_id
+                : card.custom_topic === deckInfo.custom_topic)
+            );
+          }
+        }
       } else {
         if (subjectParam) {
           cleanedData = cleanedData.filter(card =>
