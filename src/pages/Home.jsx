@@ -124,9 +124,15 @@ export default function Home() {
             </div>
 
             {/* Mobile Menu Button */}
-            <div className="md:hidden">
-              <Link 
-                to="/signup" 
+            <div className="md:hidden flex items-center space-x-3">
+              <Link
+                to="/login"
+                className="text-gray-700 hover:text-blue-600 text-sm font-medium transition"
+              >
+                Login
+              </Link>
+              <Link
+                to="/signup"
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg text-sm"
               >
                 Sign Up

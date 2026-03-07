@@ -522,7 +522,7 @@ export default function FlashcardCreate() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Label htmlFor="target-course">Target Course *</Label>
+                <Label htmlFor="target-course">Target Course <span className="text-red-500">*</span></Label>
                 {!showCustomCourse ? (
                   <>
                     <Select value={targetCourse} onValueChange={setTargetCourse} required={!showCustomCourse}>
@@ -584,7 +584,7 @@ export default function FlashcardCreate() {
             <CardContent className="space-y-4">
               
               <div className="space-y-2">
-                <Label>Subject *</Label>
+                <Label>Subject <span className="text-red-500">*</span></Label>
                 <Popover open={subjectOpen} onOpenChange={setSubjectOpen}>
                   <PopoverTrigger asChild>
                     <Button
