@@ -330,9 +330,7 @@ export default function FlashcardCreate() {
 
       // ✅ FIX: Check if deck already exists, reuse if found, create if not
       const subjectId = selectedSubject?.id || null;
-      const topicId = selectedTopic?.id || null;
       const customSubjectValue = customSubject || null;
-      const customTopicValue = customTopic || null;
 
       // Build query to find existing deck
       let existingDeckQuery = supabase
