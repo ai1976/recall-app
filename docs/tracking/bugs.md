@@ -2,6 +2,14 @@
 
 ## Resolved Bugs
 
+### [Mar 11, 2026] Bulk Upload Silently Created Custom Topics (Excel Drag-Fill Artefacts)
+- **Reported by:** Professor (bulk upload of Companies Act flashcards; Excel auto-incremented "The Companies Act, 2013" to 2014–2033 across rows)
+- **Symptom:** 20 variations of the topic name ("The Companies Act, 2014" … "2033") stored as `custom_topic`, bypassing the intended validation that bulk upload cannot create new topics.
+- **Root Cause:** `uploadFlashcards()` used `custom_topic: card.topic` as a fallback when a topic name wasn't found in the DB, instead of aborting with an error.
+- **Data Fix:** SQL `UPDATE flashcards SET topic_id = <correct_id>, custom_topic = NULL WHERE custom_topic LIKE 'The Companies Act, 20%' AND custom_topic != 'The Companies Act, 2013'`
+- **Code Fix:** Added a pre-insert validation loop that collects errors for every row with an unrecognised subject or topic, then aborts the upload and shows per-row error messages. `custom_subject` and `custom_topic` are now always `null` in bulk inserts.
+- **Status:** ✅ RESOLVED
+
 ### [Mar 6, 2026] Blank Study Screen for Student-Created Decks with No Topic
 - **Reported by:** CA Foundation student (Shriya Sundaram), Safari on iPhone
 - **Symptom:** Self-created flashcard deck visible in Review Flashcards browse page, but clicking it shows "No flashcards to study / No flashcards found for this selection". Cards accessible from My Contributions page.

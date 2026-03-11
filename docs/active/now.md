@@ -1,11 +1,21 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-03-11
 **Current Phase:** Feature: Course-aware browsing
 
 ---
 
 ## Just Completed ✅
+
+### Bug Fix: Bulk upload silently created custom topics (Mar 11, 2026)
+Two-part fix for professor bulk upload creating phantom deck entries via Excel drag-fill:
+1. **DB data fix** — SQL UPDATE reset all `custom_topic` values in the 2014–2033 series back to `topic_id` for "The Companies Act, 2013"; then 20 wrong `flashcard_decks` rows were deleted and the correct deck's `card_count` was recalculated.
+2. **Code fix in BulkUploadFlashcards** — added pre-insert validation loop that checks every row's subject and topic against the DB before allowing any insert. Unknown subject or topic → entire upload blocked with per-row error messages. `custom_subject` and `custom_topic` are now always `null` in bulk inserts.
+
+**Files changed:**
+- `src/pages/dashboard/BulkUploadFlashcards.jsx`
+
+---
 
 ### Bug Fix: Blank study screen for student decks with no topic (Mar 6, 2026)
 Three-part fix for a systemic bug affecting all students who created flashcards without selecting a topic:

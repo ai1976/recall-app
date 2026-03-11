@@ -1,6 +1,17 @@
 # Changelog
 
 ---
+## [2026-03-11] fix: Bulk upload no longer silently creates custom topics/subjects
+
+### Fixed
+- **Root cause:** `uploadFlashcards()` mapped unrecognised subject/topic names to `custom_subject`/`custom_topic` columns instead of rejecting the row. This allowed Excel drag-fill artefacts (e.g. "The Companies Act, 2014" through "The Companies Act, 2033") to be inserted as custom entries rather than being caught as errors.
+- **Validation step added** — after fetching subjects/topics from the DB, all rows are now checked before any insert. If any row references a subject that doesn't exist, or a topic that doesn't exist under that subject, the entire upload is aborted and each bad row is reported with an actionable error message.
+- `custom_subject` and `custom_topic` are now always `null` in bulk uploads (subject/topic must already exist in DB).
+
+### Files Changed
+- `src/pages/dashboard/BulkUploadFlashcards.jsx`
+
+---
 ## [2026-03-06] fix: Blank study screen for student-created decks with no topic
 
 ### Fixed

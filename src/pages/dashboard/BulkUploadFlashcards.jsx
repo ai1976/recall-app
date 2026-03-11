@@ -491,6 +491,40 @@ IMPORTANT:
         .from('topics')
         .select('id, name, subject_id');
 
+      // Validate all rows — bulk upload cannot create new subjects or topics
+      const validationErrors = [];
+      for (let i = 0; i < flashcards.length; i++) {
+        const card = flashcards[i];
+        const subject = subjects?.find(s =>
+          s.name.toLowerCase() === card.subject.toLowerCase()
+        );
+        if (!subject) {
+          validationErrors.push(`Row ${i + 1}: Subject "${card.subject}" not found. Create it via "Create Flashcard" first.`);
+          continue;
+        }
+        if (card.topic) {
+          const topic = topics?.find(t =>
+            t.name.toLowerCase() === card.topic.toLowerCase() &&
+            t.subject_id === subject.id
+          );
+          if (!topic) {
+            validationErrors.push(`Row ${i + 1}: Topic "${card.topic}" not found under "${card.subject}". Create it via "Create Flashcard" first.`);
+          }
+        }
+      }
+
+      if (validationErrors.length > 0) {
+        setErrors([
+          'Bulk upload cannot create new subjects or topics. The following rows reference entries that don\'t exist in Recall:',
+          '',
+          ...validationErrors,
+          '',
+          'To fix: create the missing subject/topic via "Create Flashcard" first, then re-download Valid Entries and re-upload.'
+        ]);
+        setIsUploading(false);
+        return;
+      }
+
       const batchId = crypto.randomUUID();
       const trimmedDescription = batchDescription.trim() || null;
 
@@ -499,19 +533,19 @@ IMPORTANT:
           s.name.toLowerCase() === card.subject.toLowerCase()
         );
 
-        const topic = topics?.find(t =>
-          t.name.toLowerCase() === (card.topic || '').toLowerCase() &&
-          (!subject || t.subject_id === subject.id)
-        );
+        const topic = card.topic ? topics?.find(t =>
+          t.name.toLowerCase() === card.topic.toLowerCase() &&
+          t.subject_id === subject.id
+        ) : null;
 
         return {
           user_id: user.id,
           contributed_by: user.id,
           target_course: card.target_course,
-          subject_id: subject?.id || null,
+          subject_id: subject.id,
           topic_id: topic?.id || null,
-          custom_subject: subject ? null : card.subject,
-          custom_topic: (topic || !card.topic) ? null : card.topic,
+          custom_subject: null,
+          custom_topic: null,
           front_text: card.front,
           back_text: card.back,
           tags: card.tags || [],
