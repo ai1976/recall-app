@@ -71,8 +71,13 @@ export default function MyProgress() {
 
       const studyStreak = await calculateStudyStreak(user.id);
 
-      const uniqueCards = new Set(reviews?.map(r => r.flashcard_id));
-      const totalMastered = uniqueCards.size;
+      // Lifetime mastered: all distinct items ever reviewed (not just last 7 days)
+      const { data: lifetimeReviews } = await supabase
+        .from('reviews')
+        .select('flashcard_id')
+        .eq('user_id', user.id)
+        .eq('status', 'active');
+      const totalMastered = new Set(lifetimeReviews?.map(r => r.flashcard_id)).size;
 
       setStats({
         studyStreak,

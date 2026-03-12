@@ -51,18 +51,25 @@ export default function AdminDashboard() {
         .from('flashcards')
         .select('is_public, created_at');
 
+      const { count: pendingReview } = await supabase
+        .from('notes')
+        .select('*', { count: 'exact', head: true })
+        .eq('visibility', 'public')
+        .eq('is_verified', false);
+
       const today = new Date();
       const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 
       setStats({
         totalUsers: profiles?.length || 0,
-        newUsersThisWeek: profiles?.filter(p => 
+        newUsersThisWeek: profiles?.filter(p =>
           new Date(p.created_at) > lastWeek
         ).length || 0,
         totalNotes: notes?.length || 0,
         publicNotes: notes?.filter(n => n.is_public).length || 0,
         totalFlashcards: flashcards?.length || 0,
-        publicFlashcards: flashcards?.filter(f => f.is_public).length || 0
+        publicFlashcards: flashcards?.filter(f => f.is_public).length || 0,
+        pendingReview: pendingReview || 0
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -239,11 +246,12 @@ export default function AdminDashboard() {
             <CardTitle className="text-sm font-medium text-gray-600">
               Pending Review
             </CardTitle>
+            <AlertCircle className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{stats?.pendingReview || 0}</div>
             <p className="text-xs text-gray-500 mt-1">
-              No pending items
+              {stats?.pendingReview === 1 ? 'public note unverified' : 'public notes unverified'}
             </p>
           </CardContent>
         </Card>

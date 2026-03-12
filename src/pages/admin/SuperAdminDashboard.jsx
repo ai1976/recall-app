@@ -41,6 +41,7 @@ export default function SuperAdminDashboard() {
   const [contentStats, setContentStats] = useState(null);
   const [engagementStats, setEngagementStats] = useState(null);
   const [retentionStats, setRetentionStats] = useState(null);
+  const [reportErrors, setReportErrors] = useState({});
 
   useEffect(() => {
     if (!roleLoading && isSuperAdmin) {
@@ -179,51 +180,45 @@ export default function SuperAdminDashboard() {
   async function fetchContentStats() {
     try {
       const { data, error } = await supabase.rpc('get_content_creation_stats');
-      
       if (error) {
         console.error('Error fetching content stats:', error);
+        setReportErrors(prev => ({ ...prev, content: true }));
         return;
       }
-
-      if (data && data.length > 0) {
-        setContentStats(data[0]);
-      }
+      if (data && data.length > 0) setContentStats(data[0]);
     } catch (error) {
       console.error('Error fetching content stats:', error);
+      setReportErrors(prev => ({ ...prev, content: true }));
     }
   }
 
   async function fetchEngagementStats() {
     try {
       const { data, error } = await supabase.rpc('get_study_engagement_stats');
-      
       if (error) {
         console.error('Error fetching engagement stats:', error);
+        setReportErrors(prev => ({ ...prev, engagement: true }));
         return;
       }
-
-      if (data && data.length > 0) {
-        setEngagementStats(data[0]);
-      }
+      if (data && data.length > 0) setEngagementStats(data[0]);
     } catch (error) {
       console.error('Error fetching engagement stats:', error);
+      setReportErrors(prev => ({ ...prev, engagement: true }));
     }
   }
 
   async function fetchRetentionStats() {
     try {
       const { data, error } = await supabase.rpc('get_user_retention_stats');
-      
       if (error) {
         console.error('Error fetching retention stats:', error);
+        setReportErrors(prev => ({ ...prev, retention: true }));
         return;
       }
-
-      if (data && data.length > 0) {
-        setRetentionStats(data[0]);
-      }
+      if (data && data.length > 0) setRetentionStats(data[0]);
     } catch (error) {
       console.error('Error fetching retention stats:', error);
+      setReportErrors(prev => ({ ...prev, retention: true }));
     }
   }
 
@@ -733,7 +728,14 @@ This will be automated in Phase 2 with Edge Functions.`);
           <Clock className="h-5 w-5 text-purple-600" />
           <h2 className="text-xl font-bold text-gray-900">User Growth & Retention</h2>
         </div>
-        
+        {reportErrors.retention && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>DB function not deployed:</strong> Run the <code>[FUNCTIONS] get_user_retention_stats</code> SQL script in Supabase to enable this report.
+            </AlertDescription>
+          </Alert>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card 
             className="cursor-pointer hover:shadow-lg transition-shadow"
@@ -947,6 +949,14 @@ This will be automated in Phase 2 with Edge Functions.`);
           <BookOpen className="h-5 w-5 text-indigo-600" />
           <h2 className="text-xl font-bold text-gray-900">Content Creation Report</h2>
         </div>
+        {reportErrors.content && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>DB function not deployed:</strong> Run the <code>[FUNCTIONS] get_content_creation_stats</code> SQL script in Supabase to enable this report.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
@@ -1039,6 +1049,14 @@ This will be automated in Phase 2 with Edge Functions.`);
           <CreditCard className="h-5 w-5 text-purple-600" />
           <h2 className="text-xl font-bold text-gray-900">Study Engagement Report</h2>
         </div>
+        {reportErrors.engagement && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>DB function not deployed:</strong> Run the <code>[FUNCTIONS] get_study_engagement_stats</code> SQL script in Supabase to enable this report.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
