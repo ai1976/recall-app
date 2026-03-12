@@ -1,6 +1,20 @@
 # Changelog
 
 ---
+## [2026-03-12] security: Enable RLS on all flagged tables + ghost deck auto-deletion
+
+### Fixed
+- **RLS enabled on 4 tables** — `profiles`, `subjects`, `topics`, `content_creators` now have Row Level Security enabled. Supabase Security Advisor shows 0 errors.
+- **Recursive RLS cascade** — 25 policies across 13 tables (`admin_audit_log`, `badge_definitions`, `content_creators`, `disciplines`, `flashcard_decks`, `flashcards`, `notes`, `notifications`, `profile_courses`, `profiles`, `reviews`, `role_change_log`, `role_permissions`) all directly queried `profiles` in their USING/WITH_CHECK clauses. Enabling RLS on `profiles` caused all these policies to error, cascading to: super admin "Access Denied", students seeing "new user" dashboard, professor contributions/progress showing zeros.
+- **Fix:** Created `is_super_admin()` and `is_admin()` SECURITY DEFINER functions that check roles without triggering RLS. Dropped and recreated all 25 affected policies using these functions.
+- **INSERT policy on profiles** — Added so that new signups (which call `profiles.insert()` from `AuthContext.jsx signUp()`) can create their own profile row.
+- **NULL `creator_id` backfill** — 335 flashcards had `creator_id = NULL` (uploaded before the column existed). Backfilled with `UPDATE flashcards SET creator_id = user_id WHERE creator_id IS NULL`.
+- **Ghost empty deck prevention** — `update_deck_card_count` trigger now auto-deletes `flashcard_decks` rows when `card_count` reaches 0 after a card deletion. Two pre-existing empty decks cleaned up manually.
+
+### Files Changed
+- DB only: `is_super_admin()` function, `is_admin()` function, 25 RLS policies, `update_deck_card_count` trigger
+
+---
 ## [2026-03-11] fix: Bulk upload no longer silently creates custom topics/subjects
 
 ### Fixed

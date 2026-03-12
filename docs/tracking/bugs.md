@@ -2,6 +2,22 @@
 
 ## Resolved Bugs
 
+### [Mar 12, 2026] Ghost Empty Flashcard Decks Accumulating
+- **Symptom:** `flashcard_decks` rows with `card_count = 0` visible to professors in Contributions view; appear as empty deck entries.
+- **Root Cause:** `update_deck_card_count` trigger decremented `card_count` with `GREATEST(card_count - 1, 0)` on DELETE but never deleted the deck row when count reached 0.
+- **Contributing factor:** Previous bug (Excel drag-fill) created many single-card decks with wrong topic names; when those cards were fixed/deleted, decks were left orphaned at 0.
+- **Fix:** Added `DELETE FROM flashcard_decks WHERE ... AND card_count = 0` after the UPDATE in the trigger's DELETE branch. Two pre-existing empty decks deleted manually.
+- **Status:** ✅ RESOLVED (DB trigger fix only)
+
+### [Mar 12, 2026] RLS Enabled on Profiles Broke Entire App (Recursive Policy Cascade)
+- **Symptom:** After enabling RLS on `profiles`, `subjects`, `topics`, `content_creators`: super admin saw "Access Denied", all students' dashboards showed "new user" state, professor contributions and progress showed zeros.
+- **Root Cause:** 25 policies across 13 tables all used `EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = ...)` or similar direct subqueries against `profiles`. When `profiles` itself gained RLS, these cross-table references evaluated under RLS context — the policies became recursive and errored. Cascading effects:
+  - `useRole.js`: on `profileError`, defaults role to `'student'` — everyone downgraded
+  - `Dashboard.jsx`: review/note/flashcard count queries error → undefined treated as 0 → "new user" state
+  - `Progress.jsx`: reviews query errors → 0 progress shown
+- **Fix:** Created `is_super_admin()` and `is_admin()` as `SECURITY DEFINER` functions (bypass RLS). Dropped and recreated all 25 affected policies using these functions instead of inline subqueries. Added INSERT policy on profiles for new signups.
+- **Status:** ✅ RESOLVED (DB-only fix)
+
 ### [Mar 11, 2026] Bulk Upload Silently Created Custom Topics (Excel Drag-Fill Artefacts)
 - **Reported by:** Professor (bulk upload of Companies Act flashcards; Excel auto-incremented "The Companies Act, 2013" to 2014–2033 across rows)
 - **Symptom:** 20 variations of the topic name ("The Companies Act, 2014" … "2033") stored as `custom_topic`, bypassing the intended validation that bulk upload cannot create new topics.

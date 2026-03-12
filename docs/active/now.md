@@ -1,11 +1,24 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-11
-**Current Phase:** Feature: Course-aware browsing
+**Last Updated:** 2026-03-12
+**Current Phase:** Security hardening + DB maintenance
 
 ---
 
 ## Just Completed ✅
+
+### Security Fix: RLS enabled on all flagged tables + ghost deck prevention (Mar 12, 2026)
+Resolved Supabase Security Advisor vulnerabilities and cleaned up ghost flashcard decks:
+
+1. **RLS enabled on 4 tables** — `profiles`, `subjects`, `topics`, `content_creators` now have Row Level Security enabled. Supabase Security Advisor shows 0 errors.
+2. **Recursive RLS policies fixed** — 25 policies across 13 tables all referenced `profiles` directly via subqueries. Enabling RLS on `profiles` cascaded failures everywhere (super admin "Access Denied", students saw "new user" state, professor contributions showed zeros). Fixed by creating two `SECURITY DEFINER` helper functions (`is_super_admin()`, `is_admin()`) that bypass RLS when checking roles, then dropped and recreated all 25 policies.
+3. **INSERT policy added on profiles** — frontend `signUp` inserts a profile row after auth signup; without an INSERT policy new signups silently failed to create their profile.
+4. **NULL `creator_id` backfill** — 335 flashcards uploaded before `creator_id` column existed had `NULL` values. Fixed with `UPDATE flashcards SET creator_id = user_id WHERE creator_id IS NULL`.
+5. **Ghost empty deck prevention** — `update_deck_card_count` trigger updated to auto-delete `flashcard_decks` rows when `card_count` reaches 0 after a card deletion. Two remaining empty decks also cleaned up manually.
+
+**DB changes only — no frontend files changed.**
+
+---
 
 ### Bug Fix: Bulk upload silently created custom topics (Mar 11, 2026)
 Two-part fix for professor bulk upload creating phantom deck entries via Excel drag-fill:
