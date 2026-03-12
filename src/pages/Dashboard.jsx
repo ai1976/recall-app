@@ -495,10 +495,10 @@ export default function Dashboard() {
             }
           </h1>
           <p className="text-muted-foreground mt-2">
-            {isNewUser 
+            {isNewUser
               ? "Let's get you started on your journey to mastering your subjects."
-              : reviewsDue > 0 
-                : `You have ${reviewsDue} item${reviewsDue > 1 ? 's' : ''} ready for review`
+              : reviewsDue > 0
+                ? `You have ${reviewsDue} item${reviewsDue > 1 ? 's' : ''} ready for review`
                 : "All caught up! Time to learn something new? 🎉"
             }
           </p>

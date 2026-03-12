@@ -43,6 +43,11 @@ export default function SuperAdminDashboard() {
   const [retentionStats, setRetentionStats] = useState(null);
   const [reportErrors, setReportErrors] = useState({});
 
+  // Retention card drill-down filter
+  const [activeFilter, setActiveFilter] = useState(null); // null | 'new_this_week' | 'inactive' | 'retained'
+  const [usersWithReviews, setUsersWithReviews] = useState(new Set());
+  const [usersWithContent, setUsersWithContent] = useState(new Set());
+
   useEffect(() => {
     if (!roleLoading && isSuperAdmin) {
       fetchDashboardData();
@@ -53,9 +58,10 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     filterUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, roleFilter, users]);
+  }, [searchTerm, roleFilter, users, activeFilter, usersWithReviews, usersWithContent]);
 
   function filterUsers() {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     let filtered = [...users];
 
     if (searchTerm) {
@@ -67,6 +73,24 @@ export default function SuperAdminDashboard() {
 
     if (roleFilter !== 'all') {
       filtered = filtered.filter(user => user.role === roleFilter);
+    }
+
+    if (activeFilter === 'new_this_week') {
+      filtered = filtered.filter(user =>
+        user.role === 'student' && new Date(user.created_at) >= weekAgo
+      );
+    } else if (activeFilter === 'inactive') {
+      filtered = filtered.filter(user =>
+        user.role === 'student' &&
+        !usersWithReviews.has(user.id) &&
+        !usersWithContent.has(user.id)
+      );
+    } else if (activeFilter === 'retained') {
+      filtered = filtered.filter(user =>
+        user.role === 'student' &&
+        new Date(user.created_at) >= weekAgo &&
+        usersWithReviews.has(user.id)
+      );
     }
 
     setFilteredUsers(filtered);
@@ -82,7 +106,8 @@ export default function SuperAdminDashboard() {
       fetchRecentAuditLogs(),
       fetchContentStats(),
       fetchEngagementStats(),
-      fetchRetentionStats()
+      fetchRetentionStats(),
+      fetchActivitySets()
     ]);
     setIsLoading(false);
     console.log('✅ Super Admin Dashboard: All data loaded');
@@ -219,6 +244,29 @@ export default function SuperAdminDashboard() {
     } catch (error) {
       console.error('Error fetching retention stats:', error);
       setReportErrors(prev => ({ ...prev, retention: true }));
+    }
+  }
+
+  // Loads cross-table activity sets used for retention card drill-down filters
+  async function fetchActivitySets() {
+    try {
+      // Users who have at least one review (any quality)
+      const { data: reviewers } = await supabase
+        .from('reviews')
+        .select('user_id');
+      setUsersWithReviews(new Set(reviewers?.map(r => r.user_id) || []));
+
+      // Users who have created at least one note OR flashcard
+      const [{ data: noteAuthors }, { data: cardAuthors }] = await Promise.all([
+        supabase.from('notes').select('user_id'),
+        supabase.from('flashcards').select('user_id')
+      ]);
+      setUsersWithContent(new Set([
+        ...(noteAuthors?.map(n => n.user_id) || []),
+        ...(cardAuthors?.map(c => c.user_id) || [])
+      ]));
+    } catch (error) {
+      console.error('Error fetching activity sets:', error);
     }
   }
 
@@ -543,54 +591,30 @@ This will be automated in Phase 2 with Edge Functions.`);
     }, 100);
   }
 
-  function handleNewUsersClick() {
-    const userManagementTab = document.querySelector('[value="users"]');
-    if (userManagementTab) {
-      userManagementTab.click();
-    }
-    
-    setRoleFilter('student');
-    
+  function scrollToUserManagement() {
+    const tab = document.querySelector('[value="users"]');
+    if (tab) tab.click();
     setTimeout(() => {
-      const userList = document.getElementById('user-management-section');
-      if (userList) {
-        userList.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      document.getElementById('user-management-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
+  }
+
+  function handleNewUsersClick() {
+    setRoleFilter('all');
+    setActiveFilter('new_this_week');
+    scrollToUserManagement();
   }
 
   function handleInactiveUsersClick() {
-    const userManagementTab = document.querySelector('[value="users"]');
-    if (userManagementTab) {
-      userManagementTab.click();
-    }
-    
-    setRoleFilter('student');
-    
-    setTimeout(() => {
-      const userList = document.getElementById('user-management-section');
-      if (userList) {
-        userList.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      alert('Filtering for inactive users (students with 0 notes, 0 flashcards, 0 reviews). This requires additional filtering logic.');
-    }, 100);
+    setRoleFilter('all');
+    setActiveFilter('inactive');
+    scrollToUserManagement();
   }
 
   function handleRetentionClick() {
-    const userManagementTab = document.querySelector('[value="users"]');
-    if (userManagementTab) {
-      userManagementTab.click();
-    }
-    
-    setRoleFilter('student');
-    
-    setTimeout(() => {
-      const userList = document.getElementById('user-management-section');
-      if (userList) {
-        userList.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      alert('Filtering for users who came back after signup (7-day retention). This requires additional filtering logic.');
-    }, 100);
+    setRoleFilter('all');
+    setActiveFilter('retained');
+    scrollToUserManagement();
   }
 
   if (roleLoading) {
@@ -1164,7 +1188,7 @@ This will be automated in Phase 2 with Edge Functions.`);
                       type="text"
                       placeholder="Search by name or email..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => { setSearchTerm(e.target.value); setActiveFilter(null); }}
                       className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <svg
@@ -1179,7 +1203,7 @@ This will be automated in Phase 2 with Edge Functions.`);
 
                   <select
                     value={roleFilter}
-                    onChange={(e) => setRoleFilter(e.target.value)}
+                    onChange={(e) => { setRoleFilter(e.target.value); setActiveFilter(null); }}
                     className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="all">All Roles</option>
@@ -1190,10 +1214,30 @@ This will be automated in Phase 2 with Edge Functions.`);
                   </select>
                 </div>
 
+                {activeFilter && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-gray-500">Active filter:</span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                      {activeFilter === 'new_this_week' && '🆕 New this week'}
+                      {activeFilter === 'inactive' && '💤 Never engaged (0 notes, 0 items, 0 reviews)'}
+                      {activeFilter === 'retained' && '✅ 7-day retained (signed up & reviewed this week)'}
+                      <button
+                        onClick={() => setActiveFilter(null)}
+                        className="ml-1 text-blue-600 hover:text-blue-900 font-bold leading-none"
+                        title="Clear filter"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  </div>
+                )}
                 <p className="text-sm text-gray-500">
                   Showing {filteredUsers.length} of {users.length} users
                   {searchTerm && ` matching "${searchTerm}"`}
-                  {roleFilter !== 'all' && ` filtered by ${roleFilter}`}
+                  {roleFilter !== 'all' && ` · role: ${roleFilter}`}
+                  {activeFilter === 'new_this_week' && ' · signed up in last 7 days'}
+                  {activeFilter === 'inactive' && ' · never created content or reviewed'}
+                  {activeFilter === 'retained' && ' · came back and reviewed within 7 days of signup'}
                 </p>
               </div>
 
