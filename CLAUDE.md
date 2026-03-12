@@ -1,23 +1,17 @@
 # Recall App - Claude Code Instructions
 
 ## Environment
-- **OS:** Windows 11 + PowerShell
+- **OS:** Windows 11
+- **Shell:** bash (NOT PowerShell — Claude Code runs in bash even on Windows)
 - **Stack:** React 18 + Vite, Supabase (PostgreSQL + Auth + RLS), TailwindCSS
 - **Live URL:** https://recall-app-omega.vercel.app
 
-## Git Commits (CRITICAL - PowerShell)
-PowerShell interprets hyphens at line starts as parameters. NEVER use HEREDOC or backtick syntax.
-ALWAYS use PowerShell Here-String variable syntax:
+## Git Commits (CRITICAL - bash)
+The shell is bash. NEVER use PowerShell Here-String syntax (`$msg = @"..."@`) — it will fail.
+ALWAYS use bash printf syntax:
 
-```powershell
-$msg = @"
-feat: Description here
-
-- Detail 1
-- Detail 2
-"@
-
-git commit -m $msg
+```bash
+git commit -m "$(printf 'feat: Description here\n\n- Detail 1\n- Detail 2')"
 ```
 
 Full git guide: `docs/active/git-guide.md`
