@@ -498,7 +498,7 @@ export default function Dashboard() {
             {isNewUser 
               ? "Let's get you started on your journey to mastering your subjects."
               : reviewsDue > 0 
-                ? `You have ${reviewsDue} card${reviewsDue > 1 ? 's' : ''} ready for review`
+                : `You have ${reviewsDue} item${reviewsDue > 1 ? 's' : ''} ready for review`
                 : "All caught up! Time to learn something new? 🎉"
             }
           </p>
@@ -550,7 +550,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <p className="text-lg sm:text-xl font-bold text-green-800">
-                        {reviewsDue} card{reviewsDue > 1 ? 's' : ''} ready
+                        {reviewsDue} item{reviewsDue > 1 ? 's' : ''} ready
                       </p>
                       <p className="text-sm text-green-600">
                         Keep your streak alive!
@@ -584,7 +584,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" onClick={() => navigate('/dashboard/review-flashcards')}>
-                      Study New Cards
+                      Browse Study Sets
                     </Button>
                     <Button onClick={() => navigate('/dashboard/notes')}>
                       Browse Notes
@@ -644,7 +644,7 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-xl sm:text-2xl font-bold">{cardsMastered}</div>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Unique cards</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Unique items</p>
                   </CardContent>
                 </Card>
               </div>

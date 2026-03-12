@@ -222,7 +222,7 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
-              Flashcards
+              Study Items
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-gray-400" />
           </CardHeader>

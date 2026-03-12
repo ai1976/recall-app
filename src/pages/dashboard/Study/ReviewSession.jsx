@@ -251,7 +251,7 @@ export default function ReviewSession() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Today's Reviews</h1>
             <p className="text-gray-600">
-              You have {dueCards.length} scheduled cards due
+              You have {dueCards.length} scheduled items due
             </p>
           </div>
           <Button variant="outline" onClick={() => navigate('/dashboard')}>
@@ -270,7 +270,7 @@ export default function ReviewSession() {
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{subject}</h3>
                     <p className="text-sm text-gray-500">
-                      {cards.length} cards due
+                      {cards.length} items due
                     </p>
                   </div>
                 </div>

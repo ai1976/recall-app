@@ -1101,7 +1101,7 @@ This will be automated in Phase 2 with Edge Functions.`);
               <Award className="h-5 w-5 text-yellow-600" />
               Review Completion Rate
             </CardTitle>
-            <CardDescription>Percentage of due cards reviewed today</CardDescription>
+            <CardDescription>Percentage of due items reviewed today</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
@@ -1116,7 +1116,7 @@ This will be automated in Phase 2 with Edge Functions.`);
               </span>
             </div>
             <p className="text-sm text-gray-600 mt-2">
-              Cards reviewed today out of total due today
+              Items reviewed today out of total due today
             </p>
           </CardContent>
         </Card>

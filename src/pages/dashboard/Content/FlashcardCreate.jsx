@@ -473,7 +473,7 @@ export default function FlashcardCreate() {
           content_type: 'flashcard_deck',
           content_id: deckId,
           creator_id: user.id,
-          title: selectedSubject?.name || customSubject || 'Flashcard Deck',
+          title: selectedSubject?.name || customSubject || 'Study Set',
           subject_name: selectedSubject?.name || customSubject || null,
           visibility: cardVisibility,
           target_course: finalTargetCourse,

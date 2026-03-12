@@ -164,7 +164,7 @@ export default function ActivityFeed({ limit = 5 }) {
                   <p className="font-medium text-sm sm:text-base truncate">
                     {activity.count > 1
                       // Grouped: show count + type label instead of individual title
-                      ? `${activity.count} ${activity.content_type === 'note' ? 'notes' : 'flashcard decks'} added`
+                      ? `${activity.count} ${activity.content_type === 'note' ? 'notes' : 'study sets'} added`
                       // Single item: show title in quotes (existing behaviour)
                       : `"${activity.title}"`
                     }

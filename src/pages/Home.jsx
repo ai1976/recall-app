@@ -229,7 +229,7 @@ export default function Home() {
               <div className="text-4xl font-bold text-green-600">
                 {stats.totalFlashcards}
               </div>
-              <div className="text-gray-600 mt-2">Flashcards Created</div>
+              <div className="text-gray-600 mt-2">Items Created</div>
             </div>
             <div>
               <div className="text-4xl font-bold text-orange-600">

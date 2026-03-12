@@ -273,7 +273,7 @@ export default function GroupDetail() {
       setUserDecks(
         (decks || []).map(d => ({
           ...d,
-          display_name: d.custom_subject || subjectsMap[d.subject_id] || 'Flashcard Deck',
+          display_name: d.custom_subject || subjectsMap[d.subject_id] || 'Study Set',
           display_topic: d.custom_topic || topicsMap[d.topic_id] || '',
         }))
       );
@@ -529,18 +529,18 @@ export default function GroupDetail() {
             </CardContent>
           </Card>
 
-          {/* Shared Flashcard Decks */}
+          {/* Shared Study Sets */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
-                Shared Flashcard Decks ({sharedContent.decks.length})
+                Shared Study Sets ({sharedContent.decks.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
               {sharedContent.decks.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">
-                  No flashcard decks shared with this group yet
+                  No study sets shared with this group yet
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -641,7 +641,7 @@ export default function GroupDetail() {
           <DialogHeader>
             <DialogTitle>Share Content with Group</DialogTitle>
             <DialogDescription>
-              Select notes or flashcard decks to share with &quot;{group.name}&quot;. Members can view but NOT edit.
+              Select notes or study sets to share with &quot;{group.name}&quot;. Members can view but NOT edit.
             </DialogDescription>
           </DialogHeader>
           {loadingUserContent ? (
@@ -693,7 +693,7 @@ export default function GroupDetail() {
                 <div>
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                     <CreditCard className="h-4 w-4" />
-                    Your Flashcard Decks
+                    Your Study Sets
                   </h4>
                   <div className="space-y-2">
                     {userDecks.map((deck) => {

@@ -276,7 +276,7 @@ export default function MyContributions() {
               </div>
               <div>
                 <p className="text-3xl font-bold text-gray-900">{stats.flashcardsCount}</p>
-                <p className="text-sm text-gray-600">Flashcards Created</p>
+                <p className="text-sm text-gray-600">Items Created</p>
               </div>
             </div>
           </CardContent>
@@ -290,7 +290,7 @@ export default function MyContributions() {
               </div>
               <div>
                 <p className="text-3xl font-bold text-gray-900">{stats.decksCount}</p>
-                <p className="text-sm text-gray-600">Flashcard Decks</p>
+                <p className="text-sm text-gray-600">Study Sets</p>
               </div>
             </div>
           </CardContent>
@@ -365,7 +365,7 @@ export default function MyContributions() {
                   <CreditCard className="h-6 w-6 text-purple-600" />
                   <div>
                     <p className="text-xl font-semibold text-gray-900">{stats.totalDeckUpvotes}</p>
-                    <p className="text-sm text-gray-600">Flashcard Deck Upvotes</p>
+                    <p className="text-sm text-gray-600">Study Set Upvotes</p>
                   </div>
                 </div>
               </div>
