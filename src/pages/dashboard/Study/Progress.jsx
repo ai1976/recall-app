@@ -25,6 +25,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useCourseContext } from '@/contexts/CourseContext';
 import PageContainer from '@/components/layout/PageContainer';
 import StudyHeatmap from '@/components/progress/StudyHeatmap';
 import SubjectMasteryTable from '@/components/progress/SubjectMasteryTable';
@@ -55,12 +56,16 @@ const qtLabel = (key) => QT_LABELS[key] ?? key;
 export default function MyProgress() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { teachingCourses } = useCourseContext();
 
   // ── Time-window selector ─────────────────────────────────────────────────
   const [window, setWindow] = useState('7d');
 
   // ── Content partition tab ────────────────────────────────────────────────
   const [tab, setTab] = useState('all');
+
+  // ── Selected course for the "By Course" tab ───────────────────────────────
+  const [selectedCourse, setSelectedCourse] = useState(null);
 
   // ── User profile (for course_level) ──────────────────────────────────────
   const [profile, setProfile] = useState(null);
@@ -95,7 +100,11 @@ export default function MyProgress() {
       .select('course_level')
       .eq('id', user.id)
       .single()
-      .then(({ data }) => setProfile(data));
+      .then(({ data }) => {
+        setProfile(data);
+        // Initialise selectedCourse to primary course on first load
+        if (data?.course_level) setSelectedCourse(data.course_level);
+      });
   }, [user]);
 
   // ─── Fetch lifetime stats once ────────────────────────────────────────────
@@ -164,10 +173,10 @@ export default function MyProgress() {
     load();
   }, [user]);
 
-  // ─── Fetch question-type performance when tab or profile changes ──────────
+  // ─── Fetch question-type performance when tab or selected course changes ───
   useEffect(() => {
     if (!user) return;
-    const courseLevel = tab === 'course' ? (profile?.course_level ?? null) : null;
+    const courseLevel = tab === 'course' ? selectedCourse : null;
     const load = async () => {
       setQtLoading(true);
       const { data } = await supabase.rpc('get_question_type_performance', {
@@ -178,7 +187,7 @@ export default function MyProgress() {
       setQtLoading(false);
     };
     load();
-  }, [user, tab, profile]);
+  }, [user, tab, selectedCourse]);
 
   // ─── Fetch suspended cards ────────────────────────────────────────────────
   useEffect(() => {
@@ -245,8 +254,12 @@ export default function MyProgress() {
   };
 
   // ─── Derived values ───────────────────────────────────────────────────────
-  const courseLabel   = profile?.course_level ?? 'My Course';
-  const activeCourseLevel = tab === 'course' ? (profile?.course_level ?? null) : null;
+  const courseLabel       = selectedCourse ?? profile?.course_level ?? 'By Course';
+  const activeCourseLevel = tab === 'course' ? selectedCourse : null;
+  // All courses available for the dropdown (professors have profile_courses; students fall back to primary)
+  const courseOptions = teachingCourses.length > 0
+    ? teachingCourses.map((c) => c.disciplines.name)
+    : (profile?.course_level ? [profile.course_level] : []);
   const groupedSuspended  = suspendedCards.reduce((acc, card) => {
     const subject = card.subject_name || 'General';
     (acc[subject] = acc[subject] || []).push(card);
@@ -326,15 +339,15 @@ export default function MyProgress() {
           </div>
         )}
 
-        {/* ── My Course tab ───────────────────────────────────────────────── */}
+        {/* ── By Course tab ───────────────────────────────────────────────── */}
         {tab === 'course' && (
           <div className="space-y-6">
-            {!profile?.course_level ? (
+            {courseOptions.length === 0 ? (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
                 <BookOpen className="h-8 w-8 text-blue-400 mx-auto mb-3" />
-                <p className="text-sm font-medium text-blue-800 mb-1">No Primary Course set</p>
+                <p className="text-sm font-medium text-blue-800 mb-1">No course set</p>
                 <p className="text-sm text-blue-700 mb-4">
-                  Select your Primary Course in Settings to see your academic progress.
+                  Select your course in Settings to see course-specific progress.
                 </p>
                 <Link to="/dashboard/settings">
                   <Button size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100">
@@ -343,24 +356,48 @@ export default function MyProgress() {
                 </Link>
               </div>
             ) : (
-              <ProgressBody
-                statsLoading={statsLoading}
-                windowStats={windowStats}
-                lifetimeStats={lifetimeStats}
-                window={window}
-                forecast={forecast}
-                forecastLoading={forecastLoading}
-                userId={user?.id}
-                courseLevel={activeCourseLevel}
-                qtPerf={qtPerf}
-                qtLoading={qtLoading}
-                suspendedCards={suspendedCards}
-                suspendedLoading={suspendedLoading}
-                suspendedExpanded={suspendedExpanded}
-                setSuspendedExpanded={setSuspendedExpanded}
-                groupedSuspended={groupedSuspended}
-                setUnsuspendDialog={setUnsuspendDialog}
-              />
+              <>
+                {/* Course selector — shown only when user has 2+ courses */}
+                {courseOptions.length > 1 && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-500 shrink-0">Viewing course:</span>
+                    <div className="flex flex-wrap gap-2">
+                      {courseOptions.map((name) => (
+                        <button
+                          key={name}
+                          onClick={() => setSelectedCourse(name)}
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                            selectedCourse === name
+                              ? 'bg-indigo-600 text-white border-indigo-600'
+                              : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600'
+                          }`}
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <ProgressBody
+                  statsLoading={statsLoading}
+                  windowStats={windowStats}
+                  lifetimeStats={lifetimeStats}
+                  window={window}
+                  forecast={forecast}
+                  forecastLoading={forecastLoading}
+                  userId={user?.id}
+                  courseLevel={activeCourseLevel}
+                  qtPerf={qtPerf}
+                  qtLoading={qtLoading}
+                  suspendedCards={suspendedCards}
+                  suspendedLoading={suspendedLoading}
+                  suspendedExpanded={suspendedExpanded}
+                  setSuspendedExpanded={setSuspendedExpanded}
+                  groupedSuspended={groupedSuspended}
+                  setUnsuspendDialog={setUnsuspendDialog}
+                />
+              </>
             )}
           </div>
         )}
