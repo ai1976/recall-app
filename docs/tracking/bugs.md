@@ -2,6 +2,15 @@
 
 ## Resolved Bugs
 
+### [Mar 13, 2026] Progress Page Tabs Broken — Both Tab Contents Always Visible
+- **Symptom:** Clicking "All My Content" / "Course: CA Intermediate" tabs had no effect (cursor changed to pointer but nothing happened). Full report appeared twice on the page — once for "All" and once for "Course".
+- **Root Cause:** `src/components/ui/tabs.jsx` is a custom stub — `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` are plain `<div>`/`<button>` elements with no `value`/`onValueChange` wiring and no show/hide logic. Both `TabsContent` elements always rendered. `TabsTrigger` click events were swallowed (no `onClick` passed through).
+- **Fix:** Removed `Tabs`/`TabsContent`/`TabsList`/`TabsTrigger` usage from `Progress.jsx`. Replaced with direct conditional rendering: `{tab === 'all' && <div>...</div>}` / `{tab === 'course' && <div>...</div>}`. Tab buttons call `setTab()` directly.
+- **Note:** `tabs.jsx` stub remains as-is (other pages may use it or not). The fix is isolated to `Progress.jsx`.
+- **Status:** ✅ RESOLVED — commit `eed55c0`
+
+
+
 ### [Mar 12, 2026] Ghost Empty Flashcard Decks Accumulating
 - **Symptom:** `flashcard_decks` rows with `card_count = 0` visible to professors in Contributions view; appear as empty deck entries.
 - **Root Cause:** `update_deck_card_count` trigger decremented `card_count` with `GREATEST(card_count - 1, 0)` on DELETE but never deleted the deck row when count reached 0.

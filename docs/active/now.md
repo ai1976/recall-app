@@ -7,6 +7,20 @@
 
 ## Just Completed ✅
 
+### Progress Page Bug Fixes + Multi-Course Selector (Mar 13, 2026)
+Post-Sprint-2 fixes to the Progress page discovered during live demo.
+
+**Bugs fixed:**
+1. **Tab switching broken** — `tabs.jsx` was a stub (plain divs, no show/hide logic). Both `TabsContent` divs always rendered simultaneously; clicking tabs did nothing. Fixed by replacing Tabs abstraction with direct conditional rendering (`{tab === 'all' && ...}`).
+2. **Content duplicated** — caused by same bug above; both "All My Content" and "Course" sections were always visible. Resolved with the conditional rendering fix.
+
+**Feature added:**
+3. **Multi-course selector on "By Course" tab** — Progress.jsx now reads `teachingCourses` from `CourseContext` (`profile_courses` table). When a user has 2+ courses (e.g. professor with CA Foundation + CA Intermediate + CA Final), pill buttons appear inside the "By Course" tab to switch between them. Subject Mastery table and Question Type Performance re-fetch automatically when course selection changes. Students with one course see no extra UI.
+
+**Commits:** `eed55c0` (tab fix), `84e6110` (multi-course selector)
+
+---
+
 ### Sprint 2 — Enhanced Student Progress Page (Mar 13, 2026)
 Full rebuild of `src/pages/dashboard/Study/Progress.jsx` with 6 new features.
 

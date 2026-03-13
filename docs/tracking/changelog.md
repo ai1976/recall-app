@@ -1,6 +1,25 @@
 # Changelog
 
 ---
+## [2026-03-13] feat: multi-course selector on Progress page + tab fix
+
+### Fixed
+- **Progress page tabs non-functional** — `tabs.jsx` was a plain-div stub with no show/hide or event logic. Both tab contents rendered simultaneously; clicking did nothing. Replaced Tabs abstraction with direct `{tab === 'all' && ...}` / `{tab === 'course' && ...}` conditional rendering.
+- **Content duplicated on Progress page** — consequence of the same tabs stub bug; resolved with conditional rendering fix.
+
+### Added
+- **Multi-course pill selector on "By Course" tab** — reads all enrolled courses from `CourseContext` (`profile_courses` table). Users with 2+ courses (e.g. professors) see pill buttons to switch between courses. Subject Mastery and Question Type Performance re-fetch on course change. Single-course users see no change.
+
+### Changed
+- **"Course: [primary]" tab label** — renamed to "By Course" to reflect that it now shows any enrolled course, not just the primary.
+- **`activeCourseLevel` derivation** — now uses `selectedCourse` state (initialised from `profiles.course_level`, overridable by pill picker) instead of always reading `profile.course_level`.
+
+### Files Changed
+- `src/pages/dashboard/Study/Progress.jsx`
+
+**Commits:** `eed55c0`, `84e6110`
+
+---
 ## [2026-03-13] feat: Sprint 2 — enhanced student Progress page
 
 ### Added
