@@ -79,6 +79,9 @@ recall-app
 │   │   │   ├── BadgeCard.jsx
 │   │   │   ├── BadgeIcon.jsx
 │   │   │   └── BadgeToast.jsx
+│   │   ├── progress
+│   │   │   ├── StudyHeatmap.jsx           ← 90-day activity heatmap (get_study_heatmap RPC)
+│   │   │   └── SubjectMasteryTable.jsx    ← per-subject mastery table (get_subject_mastery_v1 RPC)
 │   │   ├── dashboard
 │   │   │   ├── ActivityFeed.jsx
 │   │   │   └── AnonymousStats.jsx

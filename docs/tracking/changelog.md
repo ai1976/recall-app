@@ -1,6 +1,28 @@
 # Changelog
 
 ---
+## [2026-03-13] feat: Sprint 2 — enhanced student Progress page
+
+### Added
+- **Time-window selector** — Last 7 Days / Last 30 Days / All Time toggle on Progress page; drives Items Reviewed + Accuracy stat cards
+- **Content partition tabs** — "All My Content" and "Course: [level]" tabs; null `course_level` shows empty state with Settings link
+- **Due Items Forecast section** — Today / Next 7 Days / Next 30 Days using `get_due_forecast` RPC
+- **Study Calendar Heatmap** — 90-day GitHub-style grid via `StudyHeatmap.jsx`; uses `get_study_heatmap` RPC backed by `user_activity_log`
+- **Subject Mastery Table** — per-subject mastery % with progress bar via `SubjectMasteryTable.jsx`; uses `get_subject_mastery_v1` RPC
+- **Question Type Performance strip** — accuracy % bars per question type via `get_question_type_performance` RPC
+- **4 new Supabase RPCs:** `get_due_forecast`, `get_study_heatmap`, `get_subject_mastery_v1`, `get_question_type_performance`
+- **2 new components:** `src/components/progress/StudyHeatmap.jsx`, `src/components/progress/SubjectMasteryTable.jsx`
+
+### Changed
+- **`Progress.jsx`** — full rewrite; now uses `PageContainer`, tabs, window selector; suspended cards section preserved
+- **Stat cards** — Items Reviewed and Accuracy now reflect selected time window; Streak and Mastered remain lifetime metrics
+
+### Files Changed
+- `src/pages/dashboard/Study/Progress.jsx` (rewritten)
+- `src/components/progress/StudyHeatmap.jsx` (new)
+- `src/components/progress/SubjectMasteryTable.jsx` (new)
+
+---
 ## [2026-03-13] fix: align inactive users filter with DB function definition
 
 ### Fixed

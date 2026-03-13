@@ -1,11 +1,38 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-03-13
-**Current Phase:** Analytics & Reports — Sprint 1 complete, Sprint 2 queued
+**Current Phase:** Analytics & Reports — Sprint 2 complete
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 2 — Enhanced Student Progress Page (Mar 13, 2026)
+Full rebuild of `src/pages/dashboard/Study/Progress.jsx` with 6 new features.
+
+**Features delivered:**
+1. **Time-window selector** — Last 7 Days / Last 30 Days / All Time pill toggle; drives Items Reviewed + Accuracy stat cards
+2. **Content partition tabs** — "All My Content" vs "Course: [level]" (uses `profiles.course_level`); null course_level shows friendly empty state with Settings link
+3. **Subject Mastery Table** — per-subject: total items, reviewed count, mastery %, due count; uses `get_subject_mastery_v1` RPC
+4. **Question Type Performance strip** — accuracy % per question type bar chart; uses `get_question_type_performance` RPC
+5. **Study Calendar Heatmap** — 90-day GitHub-style contribution grid; uses `get_study_heatmap` RPC (backed by `user_activity_log`)
+6. **Due Items Forecast** — today / next 7 days / next 30 days counts; uses `get_due_forecast` RPC
+
+**New DB RPCs deployed (all SECURITY DEFINER, granted to authenticated):**
+- `get_due_forecast(p_user_id)` — 1-row forecast with 3 cumulative due counts
+- `get_study_heatmap(p_user_id, p_days)` — date × count rows using `user_activity_log`
+- `get_subject_mastery_v1(p_user_id, p_course_level)` — handles both FK subjects + custom_subject (COALESCE fix)
+- `get_question_type_performance(p_user_id, p_course_level)` — accuracy % per question type
+
+**New component files:**
+- `src/components/progress/StudyHeatmap.jsx` — self-contained 90-day heatmap
+- `src/components/progress/SubjectMasteryTable.jsx` — responsive table + mobile card list
+
+**Architecture note:** All new analytics sections use server-side RPCs (no raw row downloads to client). Stat cards still use bounded client queries (existing behaviour, acceptable). `calculateStudyStreak` preserved as-is.
+
+**Files:** `src/pages/dashboard/Study/Progress.jsx`, `src/components/progress/StudyHeatmap.jsx`, `src/components/progress/SubjectMasteryTable.jsx`
+
+---
 
 ### Inactive Users Filter Count Fix (Mar 13, 2026)
 Card showed 22, drill-down showed 50+. Root cause: client filter had no time restriction, showing all students with no activity regardless of signup date. DB function only counts students signed up >30 days ago with no reviews.
