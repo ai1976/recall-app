@@ -62,6 +62,7 @@ export default function SuperAdminDashboard() {
 
   function filterUsers() {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     let filtered = [...users];
 
     if (searchTerm) {
@@ -80,10 +81,11 @@ export default function SuperAdminDashboard() {
         user.role === 'student' && new Date(user.created_at) >= weekAgo
       );
     } else if (activeFilter === 'inactive') {
+      // Matches get_user_retention_stats: signed up >30 days ago, never reviewed
       filtered = filtered.filter(user =>
         user.role === 'student' &&
-        !usersWithReviews.has(user.id) &&
-        !usersWithContent.has(user.id)
+        new Date(user.created_at) < thirtyDaysAgo &&
+        !usersWithReviews.has(user.id)
       );
     } else if (activeFilter === 'retained') {
       filtered = filtered.filter(user =>
@@ -1219,7 +1221,7 @@ This will be automated in Phase 2 with Edge Functions.`);
                     <span className="text-sm text-gray-500">Active filter:</span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
                       {activeFilter === 'new_this_week' && '🆕 New this week'}
-                      {activeFilter === 'inactive' && '💤 Never engaged (0 notes, 0 items, 0 reviews)'}
+                      {activeFilter === 'inactive' && '💤 Inactive (signed up 30+ days ago, never reviewed)'}
                       {activeFilter === 'retained' && '✅ 7-day retained (signed up & reviewed this week)'}
                       <button
                         onClick={() => setActiveFilter(null)}
@@ -1236,7 +1238,7 @@ This will be automated in Phase 2 with Edge Functions.`);
                   {searchTerm && ` matching "${searchTerm}"`}
                   {roleFilter !== 'all' && ` · role: ${roleFilter}`}
                   {activeFilter === 'new_this_week' && ' · signed up in last 7 days'}
-                  {activeFilter === 'inactive' && ' · never created content or reviewed'}
+                  {activeFilter === 'inactive' && ' · signed up 30+ days ago, never reviewed'}
                   {activeFilter === 'retained' && ' · came back and reviewed within 7 days of signup'}
                 </p>
               </div>
