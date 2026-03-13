@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import {
   Dialog,
   DialogContent,
@@ -281,50 +281,30 @@ export default function MyProgress() {
       </div>
 
       {/* Content partition tabs */}
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="all">All My Content</TabsTrigger>
-          <TabsTrigger value="course">Course: {courseLabel}</TabsTrigger>
-        </TabsList>
+      <div>
+        {/* Tab buttons */}
+        <div className="inline-flex h-10 items-center justify-center rounded-md bg-gray-100 p-1 mb-6">
+          {[
+            { value: 'all', label: 'All My Content' },
+            { value: 'course', label: `Course: ${courseLabel}` },
+          ].map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => setTab(value)}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all ${
+                tab === value
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         {/* ── All Content tab ────────────────────────────────────────────── */}
-        <TabsContent value="all" className="space-y-6">
-          <ProgressBody
-            statsLoading={statsLoading}
-            windowStats={windowStats}
-            lifetimeStats={lifetimeStats}
-            window={window}
-            forecast={forecast}
-            forecastLoading={forecastLoading}
-            userId={user?.id}
-            courseLevel={null}
-            qtPerf={qtPerf}
-            qtLoading={qtLoading}
-            suspendedCards={suspendedCards}
-            suspendedLoading={suspendedLoading}
-            suspendedExpanded={suspendedExpanded}
-            setSuspendedExpanded={setSuspendedExpanded}
-            groupedSuspended={groupedSuspended}
-            setUnsuspendDialog={setUnsuspendDialog}
-          />
-        </TabsContent>
-
-        {/* ── My Course tab ───────────────────────────────────────────────── */}
-        <TabsContent value="course" className="space-y-6">
-          {!profile?.course_level ? (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-              <BookOpen className="h-8 w-8 text-blue-400 mx-auto mb-3" />
-              <p className="text-sm font-medium text-blue-800 mb-1">No Primary Course set</p>
-              <p className="text-sm text-blue-700 mb-4">
-                Select your Primary Course in Settings to see your academic progress.
-              </p>
-              <Link to="/dashboard/settings">
-                <Button size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100">
-                  Go to Settings
-                </Button>
-              </Link>
-            </div>
-          ) : (
+        {tab === 'all' && (
+          <div className="space-y-6">
             <ProgressBody
               statsLoading={statsLoading}
               windowStats={windowStats}
@@ -333,7 +313,7 @@ export default function MyProgress() {
               forecast={forecast}
               forecastLoading={forecastLoading}
               userId={user?.id}
-              courseLevel={activeCourseLevel}
+              courseLevel={null}
               qtPerf={qtPerf}
               qtLoading={qtLoading}
               suspendedCards={suspendedCards}
@@ -343,9 +323,48 @@ export default function MyProgress() {
               groupedSuspended={groupedSuspended}
               setUnsuspendDialog={setUnsuspendDialog}
             />
-          )}
-        </TabsContent>
-      </Tabs>
+          </div>
+        )}
+
+        {/* ── My Course tab ───────────────────────────────────────────────── */}
+        {tab === 'course' && (
+          <div className="space-y-6">
+            {!profile?.course_level ? (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                <BookOpen className="h-8 w-8 text-blue-400 mx-auto mb-3" />
+                <p className="text-sm font-medium text-blue-800 mb-1">No Primary Course set</p>
+                <p className="text-sm text-blue-700 mb-4">
+                  Select your Primary Course in Settings to see your academic progress.
+                </p>
+                <Link to="/dashboard/settings">
+                  <Button size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100">
+                    Go to Settings
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <ProgressBody
+                statsLoading={statsLoading}
+                windowStats={windowStats}
+                lifetimeStats={lifetimeStats}
+                window={window}
+                forecast={forecast}
+                forecastLoading={forecastLoading}
+                userId={user?.id}
+                courseLevel={activeCourseLevel}
+                qtPerf={qtPerf}
+                qtLoading={qtLoading}
+                suspendedCards={suspendedCards}
+                suspendedLoading={suspendedLoading}
+                suspendedExpanded={suspendedExpanded}
+                setSuspendedExpanded={setSuspendedExpanded}
+                groupedSuspended={groupedSuspended}
+                setUnsuspendDialog={setUnsuspendDialog}
+              />
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Unsuspend confirmation dialog */}
       <Dialog
