@@ -1,11 +1,61 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-12
-**Current Phase:** Security hardening + DB maintenance
+**Last Updated:** 2026-03-13
+**Current Phase:** Analytics & Reports — Sprint 1 complete, Sprint 2 queued
 
 ---
 
 ## Just Completed ✅
+
+### SuperAdmin Retention Card Drill-Down (Mar 13, 2026)
+Replaced three `alert()` placeholder stubs on the "User Growth & Retention" cards in SuperAdmin Dashboard with real filtering logic.
+
+**Three filter modes implemented:**
+1. **New this week** (🆕) — students whose `created_at >= 7 days ago`
+2. **Never engaged** (💤) — students with zero reviews AND zero notes/flashcards
+3. **7-day retained** (✅) — new students who also have at least 1 review
+
+**Implementation details:**
+- New `fetchActivitySets()` loads two Sets at page mount: `usersWithReviews` (from `reviews` table) and `usersWithContent` (from `notes` + `flashcards` tables)
+- `activeFilter` state (`null | 'new_this_week' | 'inactive' | 'retained'`) drives filter logic in `filterUsers()`
+- Clicking a card sets the filter and scrolls/switches to the Users tab (`scrollToUserManagement()`)
+- Filter pill rendered above user table with × to clear; changing the search box or role dropdown also clears the filter
+- Also fixed a pre-existing `Dashboard.jsx` nested ternary syntax error (double `:` instead of `? :`) that blocked the Vite build
+
+**Files:** `src/pages/admin/SuperAdminDashboard.jsx`, `src/pages/Dashboard.jsx`
+**Commit:** `df805b4`
+
+---
+
+### Analytics Blueprint: Sprint 1 — Foundation (Mar 12, 2026)
+Comprehensive analytics/reports overhaul across all four roles (Student, Professor, Admin, Super Admin). Sprint 1 covers nomenclature standardisation, frontend bug fixes, and DB schema/function scaffolding.
+
+**Nomenclature changes (10 files):**
+- "Cards" → "Items" and "Flashcard Decks" → "Study Sets" across all UI copy. DB column names, JS variable names, and RPC function names are unchanged.
+- Files: `Dashboard.jsx`, `Progress.jsx`, `ReviewSession.jsx`, `GroupDetail.jsx`, `MyContributions.jsx`, `Home.jsx`, `FlashcardCreate.jsx`, `ActivityFeed.jsx`, `AdminDashboard.jsx`, `SuperAdminDashboard.jsx`
+
+**Frontend bug fixes (3 bugs):**
+1. **Progress.jsx — `totalMastered` was scoped to 7-day window** — now uses a separate lifetime query (`SELECT flashcard_id FROM reviews WHERE user_id = X AND status = 'active'`) with no date filter. Unique flashcard_id count is now a true lifetime total.
+2. **AdminDashboard.jsx — Pending Review card was hardcoded to 0** — now queries `notes WHERE visibility='public' AND is_verified=false` with exact count; label uses singular/plural correctly.
+3. **SuperAdminDashboard.jsx — RPC calls failed silently** — `get_content_creation_stats`, `get_study_engagement_stats`, `get_user_retention_stats` returned no data when DB functions weren't deployed; UI showed zeros with no explanation. Fixed with `reportErrors` state and descriptive Alert banners per section, telling the admin exactly which SQL script to run.
+
+**6 SQL scripts written and ready to deploy in Supabase SQL Editor:**
+1. `[SCHEMA] Extend flashcards for multi-format question types` — adds `question_type`, `options_json`, `correct_answer`, `explanation`, `difficulty_level`, `estimated_time_seconds`, `source`, `portal_metadata` columns + constraints + indexes
+2. `[SCHEMA] Create vw_study_items safety view` — `WHERE question_type != 'concept_card'`; all review-based analytics must use this view, never raw `flashcards` table
+3. `[FUNCTIONS] get_user_retention_stats` — 30/60/90-day cohort retention (SECURITY DEFINER)
+4. `[FUNCTIONS] get_content_creation_stats` — creator activity trends (SECURITY DEFINER)
+5. `[FUNCTIONS] get_study_engagement_stats` — peak hours, session length, engagement (SECURITY DEFINER)
+6. `[FUNCTIONS] get_anonymous_class_stats (updated)` — partition fix: JOINs flashcards, filters to registered courses via `SELECT name FROM disciplines WHERE is_active = true` — no hardcoded course names
+
+**Architecture decisions locked:**
+- `vw_study_items` safety view is the mandatory layer for all analytics (no raw `flashcards` access)
+- Registered Course / My Course partition is automatic: if `target_course` exists in `disciplines (is_active=true)` → Registered Course; else → My Course
+- Concept Cards log views to `user_activity_log` with `activity_type = 'concept_card_read'` — no separate table
+- Dynamic partitioning: always query `disciplines WHERE is_active = true` — never hardcode course names
+
+**Commits:** `4f181e1` (bug fixes), `ba17f24` (nomenclature), `5e90edb` (CLAUDE.md bash fix)
+
+---
 
 ### Security Fix: RLS enabled on all flagged tables + ghost deck prevention (Mar 12, 2026)
 Resolved Supabase Security Advisor vulnerabilities and cleaned up ghost flashcard decks:

@@ -1,6 +1,72 @@
 # Changelog
 
 ---
+## [2026-03-13] fix: SuperAdmin retention card drill-down filters
+
+### Added
+- **`fetchActivitySets()`** — parallel fetch on SuperAdmin Dashboard mount; builds `usersWithReviews` Set (from `reviews` table) and `usersWithContent` Set (from `notes` + `flashcards` tables) for client-side filtering
+- **`activeFilter` state** (`null | 'new_this_week' | 'inactive' | 'retained'`) — drives three new filter modes in `filterUsers()`, integrates with existing `searchTerm` + `roleFilter` logic
+- **Filter pill UI** — shows active filter label with × to clear; appears above user table in User Management section
+- **`scrollToUserManagement()`** helper — clicks Users tab and smooth-scrolls to user management section
+
+### Changed
+- **Retention card click handlers** — replaced three `alert()` stubs (`handleNewUsersClick`, `handleInactiveUsersClick`, `handleRetentionClick`) with real filter setters + tab navigation
+- **Search and role dropdown** — both now call `setActiveFilter(null)` on change so manual filtering clears the card-driven filter
+- **`useEffect` for `filterUsers()`** — dependency array extended to include `activeFilter`, `usersWithReviews`, `usersWithContent`
+
+### Fixed
+- **SuperAdmin Dashboard — retention cards showed alert() placeholder** — "New This Week", "Inactive Users", "7-Day Retention" cards now apply real drill-down filters to the user list
+- **`Dashboard.jsx` — nested ternary syntax error** — double `:` (missing `?`) caused `npx vite build` to fail with "Expected } but found :". Corrected to `? ... ? ... :`
+
+### Files Changed
+- `src/pages/admin/SuperAdminDashboard.jsx`
+- `src/pages/Dashboard.jsx`
+
+---
+## [2026-03-12] feat: Analytics Blueprint Sprint 1 — nomenclature, bug fixes, DB scaffolding
+
+### Added
+- **`vw_study_items` safety view** (SQL ready to deploy) — `SELECT * FROM flashcards WHERE question_type != 'concept_card'`. All review-based analytics must use this view.
+- **`get_user_retention_stats()` DB function** (SQL ready to deploy) — 30/60/90-day cohort retention, SECURITY DEFINER.
+- **`get_content_creation_stats()` DB function** (SQL ready to deploy) — creator activity trends, SECURITY DEFINER.
+- **`get_study_engagement_stats()` DB function** (SQL ready to deploy) — peak hours, session length, SECURITY DEFINER.
+- **`get_anonymous_class_stats()` partition fix** (SQL ready to deploy) — JOINs flashcards, filters to registered courses via `SELECT name FROM disciplines WHERE is_active = true` (no hardcoded names).
+- **`flashcards` table schema extension** (SQL ready to deploy) — adds `question_type` (DEFAULT 'flashcard'), `options_json`, `correct_answer`, `explanation`, `difficulty_level`, `estimated_time_seconds`, `source`, `portal_metadata` columns + constraints + indexes.
+- **SuperAdminDashboard.jsx error banners** — `reportErrors` state now renders descriptive Alert per report section when an RPC function isn't deployed, with exact SQL script name to run.
+
+### Changed
+- **Nomenclature — "Cards" → "Items", "Flashcard Decks" → "Study Sets"** across all UI copy (DB names, JS variables, RPC names unchanged):
+  - `Dashboard.jsx` — "card/cards ready for review" → "item/items ready for review"; "Study New Cards" button → "Browse Study Sets"; "Unique cards" → "Unique items"
+  - `Progress.jsx` — "Cards Reviewed" → "Items Reviewed"; "Cards Mastered" → "Items Mastered"; "Unique cards reviewed" → "Unique items reviewed"
+  - `ReviewSession.jsx` — "scheduled cards due" → "scheduled items due"; "cards due" → "items due"
+  - `GroupDetail.jsx` — "Shared Flashcard Decks" → "Shared Study Sets" (header, empty state, modal label, fallback display_name)
+  - `MyContributions.jsx` — "Flashcards Created" → "Items Created"; "Flashcard Decks" → "Study Sets"; "Flashcard Deck Upvotes" → "Study Set Upvotes"
+  - `Home.jsx` — "Flashcards Created" → "Items Created"
+  - `FlashcardCreate.jsx` — default fallback title `'Flashcard Deck'` → `'Study Set'`
+  - `ActivityFeed.jsx` — `'flashcard decks'` → `'study sets'` in grouped activity label
+  - `AdminDashboard.jsx` — "Study Items" card (was "Flashcards")
+  - `SuperAdminDashboard.jsx` — "due items reviewed today"; "Items reviewed today..."
+
+### Fixed
+- **Progress.jsx — `totalMastered` was scoped to 7-day window** — was counting unique `flashcard_id` from the same 7-day review fetch. Now uses a separate lifetime query (no date filter) to count truly unique items ever reviewed.
+- **AdminDashboard.jsx — Pending Review card was hardcoded to 0** — now queries `notes WHERE visibility='public' AND is_verified=false` with exact count. Label uses singular/plural.
+- **SuperAdminDashboard.jsx — RPC calls failed silently** — when `get_content_creation_stats`, `get_study_engagement_stats`, `get_user_retention_stats` weren't deployed, the Reports section rendered zeros with no explanation. Now catches errors and renders descriptive Alert banners.
+
+### Files Changed
+- `src/pages/Dashboard.jsx`
+- `src/pages/dashboard/Study/Progress.jsx`
+- `src/pages/dashboard/Study/ReviewSession.jsx`
+- `src/pages/dashboard/Groups/GroupDetail.jsx`
+- `src/pages/dashboard/Content/MyContributions.jsx`
+- `src/pages/Home.jsx`
+- `src/pages/dashboard/Content/FlashcardCreate.jsx`
+- `src/components/dashboard/ActivityFeed.jsx`
+- `src/pages/admin/AdminDashboard.jsx`
+- `src/pages/admin/SuperAdminDashboard.jsx`
+- `CLAUDE.md` (bash git commit syntax fix)
+- DB only (SQL scripts ready to deploy): `vw_study_items` view, `flashcards` schema extension, 4 SECURITY DEFINER functions
+
+---
 ## [2026-03-12] security: Enable RLS on all flagged tables + ghost deck auto-deletion
 
 ### Fixed
