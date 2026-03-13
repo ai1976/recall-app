@@ -72,7 +72,7 @@ Re-run the Phase 2 mismatch query. If result is empty → fixed. Do not skip thi
 
 **App Name:** Recall  
 **Tagline:** "Remember Everything. Ace Every Exam."  
-**Target Users:** CA/CMA/CS students (India) - expanding to JEE/NEET, undergraduate and school section for state and central boards
+**Target Users:** Course-agnostic — any student preparing for any structured exam. Current beta users are CA/CMA/CS students via the founder's offline coaching class (convenient beta group with known exam cycles). Expanding to JEE/NEET, undergraduate, and school (state + central boards).
 **Current Phase:** Phase 1 Complete, Phase 0.5 (Professor Content Seeding) in progress  
 **Business Model:** Freemium (Free tier with limits → Premium ₹149/month)
 
