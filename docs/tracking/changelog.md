@@ -1,6 +1,18 @@
 # Changelog
 
 ---
+## [2026-03-13] fix: align inactive users filter with DB function definition
+
+### Fixed
+- **Inactive users card count mismatch** — card showed 22, drill-down showed 50+. Client filter had no time restriction; now matches `get_user_retention_stats`: students signed up >30 days ago with zero reviews only (content check removed)
+- **Filter pill label** — updated to "signed up 30+ days ago, never reviewed"
+
+### Files Changed
+- `src/pages/admin/SuperAdminDashboard.jsx`
+
+**Commit:** `140da52`
+
+---
 ## [2026-03-13] fix: SuperAdmin retention card drill-down filters
 
 ### Added

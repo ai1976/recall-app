@@ -7,16 +7,26 @@
 
 ## Just Completed ✅
 
+### Inactive Users Filter Count Fix (Mar 13, 2026)
+Card showed 22, drill-down showed 50+. Root cause: client filter had no time restriction, showing all students with no activity regardless of signup date. DB function only counts students signed up >30 days ago with no reviews.
+
+**Fix:** Added 30-day threshold to `filterUsers()` `inactive` branch; removed content check (DB only checks reviews, not notes/flashcards). Updated filter pill label to match.
+
+**Files:** `src/pages/admin/SuperAdminDashboard.jsx`
+**Commit:** `140da52`
+
+---
+
 ### SuperAdmin Retention Card Drill-Down (Mar 13, 2026)
 Replaced three `alert()` placeholder stubs on the "User Growth & Retention" cards in SuperAdmin Dashboard with real filtering logic.
 
 **Three filter modes implemented:**
 1. **New this week** (🆕) — students whose `created_at >= 7 days ago`
-2. **Never engaged** (💤) — students with zero reviews AND zero notes/flashcards
+2. **Inactive** (💤) — students signed up >30 days ago with zero reviews (matches `get_user_retention_stats`)
 3. **7-day retained** (✅) — new students who also have at least 1 review
 
 **Implementation details:**
-- New `fetchActivitySets()` loads two Sets at page mount: `usersWithReviews` (from `reviews` table) and `usersWithContent` (from `notes` + `flashcards` tables)
+- New `fetchActivitySets()` loads `usersWithReviews` Set at page mount (from `reviews` table); also loads `usersWithContent` for potential future use
 - `activeFilter` state (`null | 'new_this_week' | 'inactive' | 'retained'`) drives filter logic in `filterUsers()`
 - Clicking a card sets the filter and scrolls/switches to the Users tab (`scrollToUserManagement()`)
 - Filter pill rendered above user table with × to clear; changing the search box or role dropdown also clears the filter
