@@ -54,6 +54,7 @@ const ProfileSettings = lazy(() => import('@/pages/dashboard/Profile/ProfileSett
 // Dashboard - Other
 const Help = lazy(() => import('@/pages/dashboard/Help'))
 const BulkUploadFlashcards = lazy(() => import('@/pages/dashboard/BulkUploadFlashcards'))
+const ProfessorAnalytics = lazy(() => import('@/pages/dashboard/ProfessorAnalytics'))
 
 // Admin Pages
 const SuperAdminDashboard = lazy(() => import('@/pages/admin/SuperAdminDashboard'))
@@ -115,8 +116,9 @@ function AppContent() {
             /super-admin                   → pages/admin/SuperAdminDashboard.jsx
             /admin                         → pages/admin/AdminDashboard.jsx
             /professor/tools               → (redirects to /dashboard/bulk-upload)
-            /dashboard/bulk-upload         → pages/dashboard/BulkUploadFlashcards.jsx
-            /admin/bulk-upload-topics      → pages/admin/BulkUploadTopics.jsx
+            /dashboard/bulk-upload              → pages/dashboard/BulkUploadFlashcards.jsx
+            /dashboard/professor-analytics     → pages/dashboard/ProfessorAnalytics.jsx
+            /admin/bulk-upload-topics          → pages/admin/BulkUploadTopics.jsx
           */}
 
           {/* Landing Page Route */}
@@ -252,6 +254,12 @@ function AppContent() {
           <Route
             path="/dashboard/my-friends"
             element={user ? <MyFriends /> : <Navigate to="/login" replace />}
+          />
+
+          {/* Professor Routes */}
+          <Route
+            path="/dashboard/professor-analytics"
+            element={user ? <ProfessorAnalytics /> : <Navigate to="/login" replace />}
           />
 
           {/* Admin Routes */}

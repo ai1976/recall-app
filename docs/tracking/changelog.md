@@ -1,6 +1,30 @@
 # Changelog
 
 ---
+## [2026-03-14] feat: Sprint 3 — Professor Analytics page
+
+### Added
+- **`/dashboard/professor-analytics`** — new page for professors, admins, and super_admins to see content engagement data
+- **4-card stat strip** — Cards Published, Students Reached, Total Reviews, Avg Quality (all server-side via RPCs)
+- **Course selector pills** — visible when professor has 2+ courses via `profile_courses`; all 5 RPCs re-fetch on course change
+- **Subject Engagement table** — sortable by any column (client-side); amber row highlight for avg quality < 3; AlertTriangle icon on struggling subjects
+- **Weak Cards panel** — bottom 10 cards by avg quality, min 3 reviews noise filter, Copy ID button with toast
+- **Top Cards panel** — top 10 cards by total review count, shows avg quality alongside
+- **Weekly Reach bar chart** — Recharts `BarChart` with custom tooltip; 8 Monday-anchored weeks; "new students" = first-time reviewers only; guaranteed 8-bar spine via SQL `generate_series`
+- **Two-tier empty states** — (1) zero cards published → Bulk Upload prompt; (2) cards exist but zero reviews → amber notice; engagement sections hidden when no reviews
+- **5 Supabase RPCs:** `get_professor_overview`, `get_professor_subject_engagement`, `get_professor_weak_cards`, `get_professor_top_cards`, `get_professor_weekly_reach`
+- **Recharts** added to dependencies (`npm install recharts` — lazy-loaded with analytics page)
+- **NavDesktop** — Analytics link (BarChart3 icon) for professor / admin / super_admin, between Groups and Super Admin
+- **NavMobile** — "Professor" section in hamburger sheet with Analytics button, gated same way
+
+### Files Changed
+- `src/pages/dashboard/ProfessorAnalytics.jsx` (new)
+- `src/App.jsx` — lazy import + route for `/dashboard/professor-analytics`
+- `src/components/layout/NavDesktop.jsx` — BarChart3 import + Analytics link
+- `src/components/layout/NavMobile.jsx` — Professor section + Analytics button
+- `package.json` / `package-lock.json` — recharts added
+
+---
 ## [2026-03-13] feat: multi-course selector on Progress page + tab fix
 
 ### Fixed

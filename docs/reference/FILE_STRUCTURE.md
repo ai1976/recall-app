@@ -169,6 +169,7 @@ recall-app
 │   │   │   │   └── ProfileSettings.jsx
 │   │   │   ├── BulkUploadFlashcards.jsx
 │   │   │   ├── Help.jsx
+│   │   │   ├── ProfessorAnalytics.jsx     ← Sprint 3: professor content engagement analytics
 │   │   │   └── Study
 │   │   │       ├── Progress.jsx
 │   │   │       ├── ReviewBySubject.jsx

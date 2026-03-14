@@ -7,6 +7,28 @@
 
 ## Just Completed ✅
 
+### Sprint 3 — Professor Analytics Page (Mar 14, 2026)
+New dedicated analytics page for professors to understand how students engage with their content.
+
+**Delivered:**
+1. **5 Supabase RPCs deployed:**
+   - `get_professor_overview` — 4 header stats (cards, students, reviews, avg quality)
+   - `get_professor_subject_engagement` — per-subject breakdown, sortable
+   - `get_professor_weak_cards` — bottom 10 cards by avg quality (min 3 reviews noise filter)
+   - `get_professor_top_cards` — top 10 cards by review count
+   - `get_professor_weekly_reach` — 8-week new-student trend (3-CTE optimized, no correlated subqueries)
+2. **New page:** `src/pages/dashboard/ProfessorAnalytics.jsx`
+   - Role-gated to professor / admin / super_admin
+   - Course selector pills (multi-course professors via CourseContext)
+   - 4 stat cards · sortable subject table (amber highlight for avg quality < 3) · Weak + Top card panels with Copy ID · Recharts bar chart for weekly reach
+   - Two-tier empty states: zero cards → prompt to Bulk Upload; cards but zero reviews → notice
+3. **Nav updated:** Analytics link added to NavDesktop + NavMobile hamburger for professor/admin/super_admin
+4. **Recharts installed** (lazy-loaded with page, no impact on main student bundle)
+
+**Route:** `/dashboard/professor-analytics`
+
+---
+
 ### Progress Page Bug Fixes + Multi-Course Selector (Mar 13, 2026)
 Post-Sprint-2 fixes to the Progress page discovered during live demo.
 

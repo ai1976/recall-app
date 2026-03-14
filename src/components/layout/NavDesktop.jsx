@@ -9,6 +9,7 @@ import {
   FileText,
   Upload,
   Network,
+  BarChart3,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -170,6 +171,23 @@ export default function NavDesktop({
               <Network className="h-4 w-4" />
               Groups
             </Link>
+
+            {/* Professor Analytics — professor role only (admins/super_admins have their own dashboards) */}
+            {isProfessor && (
+              <Link
+                to="/dashboard/professor-analytics"
+                className={`
+                  px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
+                  ${isActive('/dashboard/professor-analytics')
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  }
+                `}
+              >
+                <BarChart3 className="h-4 w-4" />
+                Analytics
+              </Link>
+            )}
 
             {/* Super Admin Link */}
             {isSuperAdmin && (
