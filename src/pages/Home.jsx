@@ -46,13 +46,16 @@ export default function Home() {
           setEducators(educatorData);
         }
         
-        // Count ALL flashcards + notes via SECURITY DEFINER RPC (bypasses RLS)
-        // Direct table queries from unauthenticated context are RLS-filtered to public-only,
-        // so we use this function to get true platform-wide totals for the hero grid.
+        // Use SECURITY DEFINER RPC for all counts that need to bypass RLS.
+        // Direct table queries from unauthenticated context are RLS-filtered,
+        // so profiles (student/educator counts) and all-visibility totals must go through RPC.
         const { data: platformStats } = await supabase
           .rpc('get_platform_stats');
         const totalFlashcardCount = platformStats?.total_flashcards ?? 0;
         const totalNoteCount = platformStats?.total_notes ?? 0;
+        // student_count and educator_count now returned by the RPC (bypasses RLS for anon users)
+        const rpcStudentCount = platformStats?.student_count ?? studentCount ?? 0;
+        const rpcEducatorCount = platformStats?.educator_count ?? educatorCount ?? 0;
 
         // Count PUBLIC flashcards only (what new users can browse — for educator section)
         const { count: flashcardCount } = await supabase
@@ -67,8 +70,8 @@ export default function Home() {
           .eq('visibility', 'public');
 
         setStats({
-          students: studentCount || 0,
-          educators: educatorCount || 0,
+          students: rpcStudentCount,
+          educators: rpcEducatorCount,
           flashcards: flashcardCount || 0,
           notes: noteCount || 0,
           totalFlashcards: totalFlashcardCount || 0,
