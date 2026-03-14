@@ -73,3 +73,48 @@ When implementing features, consider:
 - Empty states and loading states
 - Multi-user scenarios (professor vs student)
 - Database RLS policy implications
+
+## Pre-Push Dependency Checklist (MANDATORY)
+Before committing or pushing ANY change, work through this checklist. Do not skip steps.
+
+### 1. Auth Context Check (for every DB query added or modified)
+Identify the auth context of the page/component being changed:
+- **Unauthenticated** = landing page, login, signup, public routes
+- **Authenticated** = anything inside `/dashboard` or behind auth guard
+
+Rule: **Unauthenticated pages MUST NOT query tables directly.** All data for public pages must come through a `SECURITY DEFINER` RPC function. Direct Supabase table queries are RLS-filtered and return 0 rows (silently) for anonymous visitors.
+
+### 2. RLS Impact Check (for every new or modified query)
+For each `.from('table')` call added or changed, answer:
+- Is this table RLS-protected? (All tables in this project are.)
+- Will this query ever run in an unauthenticated context?
+- Does the query rely on `auth.uid()` being set? If so, it will silently fail for logged-out users.
+
+If YES to unauthenticated context → route through an existing or new SECURITY DEFINER RPC.
+
+### 3. SQL Deployment Dependency Check (CRITICAL before push)
+If the frontend change depends on a new or updated SQL object (function, column, policy, index):
+- **STOP. Do not push the frontend yet.**
+- State explicitly: "This frontend change requires the following SQL to be deployed first in Supabase: [SQL name]"
+- Only push frontend after confirming the user has run the SQL.
+
+If you are unsure whether the SQL is already deployed, ASK before pushing.
+
+### 4. Bidirectional Field Tracing
+For any data field displayed in the UI, trace it end-to-end:
+- What Supabase table/column does it come from?
+- What query fetches it? (direct table query or RPC?)
+- What is the auth context of the page showing it?
+- Does the query correctly handle the auth context?
+
+### 5. New Column / New RPC Field
+If a fix requires a new column or a new field in an RPC response:
+- The SQL change is a **hard prerequisite** — frontend must not be pushed first
+- Provide the SQL with proper `[FOLDER] Name` format
+- Explicitly tell the user: "Run this SQL in Supabase before I push."
+
+### Deployment Order Rule (non-negotiable)
+```
+SQL changes in Supabase → THEN frontend push → THEN verify on live URL
+```
+Never reverse this order. If the SQL cannot be deployed yet, hold the frontend commit and say so.
