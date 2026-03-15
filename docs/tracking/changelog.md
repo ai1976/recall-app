@@ -1,10 +1,22 @@
 # Changelog
 
 ---
+## [2026-03-15] fix: Progress page cross-course bleed on All My Content tab
+
+### Fixed
+- **Cross-course subject bleed on "All My Content" tab** — students enrolled in one course (e.g. CA Intermediate) were seeing subjects from unrelated courses (e.g. Business Laws from CA Foundation). Root cause: `courseLevel={null}` was passed to `get_subject_mastery_v1` and `get_question_type_performance`, returning all public cards system-wide.
+
+### Changed
+- **`allTabCourseLevel` derived value** — for users with exactly 1 enrolled course, "All My Content" now scopes to that course. Professors with multiple teaching courses continue to see combined view (`null`). No SQL changes.
+
+### Files Changed
+- `src/pages/dashboard/Study/Progress.jsx`
+
+---
 ## [2026-03-14] feat: Sprint 3 — Professor Analytics page
 
 ### Added
-- **`/dashboard/professor-analytics`** — new page for professors, admins, and super_admins to see content engagement data
+- **`/dashboard/professor-analytics`** — new page for **professors only** to see content engagement data (admins/super_admins have their own dedicated dashboards)
 - **4-card stat strip** — Cards Published, Students Reached, Total Reviews, Avg Quality (all server-side via RPCs)
 - **Course selector pills** — visible when professor has 2+ courses via `profile_courses`; all 5 RPCs re-fetch on course change
 - **Subject Engagement table** — sortable by any column (client-side); amber row highlight for avg quality < 3; AlertTriangle icon on struggling subjects
@@ -14,8 +26,8 @@
 - **Two-tier empty states** — (1) zero cards published → Bulk Upload prompt; (2) cards exist but zero reviews → amber notice; engagement sections hidden when no reviews
 - **5 Supabase RPCs:** `get_professor_overview`, `get_professor_subject_engagement`, `get_professor_weak_cards`, `get_professor_top_cards`, `get_professor_weekly_reach`
 - **Recharts** added to dependencies (`npm install recharts` — lazy-loaded with analytics page)
-- **NavDesktop** — Analytics link (BarChart3 icon) for professor / admin / super_admin, between Groups and Super Admin
-- **NavMobile** — "Professor" section in hamburger sheet with Analytics button, gated same way
+- **NavDesktop** — Analytics link (BarChart3 icon) for **professor role only**, between Groups and Super Admin
+- **NavMobile** — "Professor" section in hamburger sheet with Analytics button, **professor role only**
 
 ### Files Changed
 - `src/pages/dashboard/ProfessorAnalytics.jsx` (new)

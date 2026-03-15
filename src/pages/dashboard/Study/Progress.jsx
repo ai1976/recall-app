@@ -176,7 +176,7 @@ export default function MyProgress() {
   // ─── Fetch question-type performance when tab or selected course changes ───
   useEffect(() => {
     if (!user) return;
-    const courseLevel = tab === 'course' ? selectedCourse : null;
+    const courseLevel = tab === 'course' ? selectedCourse : allTabCourseLevel;
     const load = async () => {
       setQtLoading(true);
       const { data } = await supabase.rpc('get_question_type_performance', {
@@ -187,7 +187,7 @@ export default function MyProgress() {
       setQtLoading(false);
     };
     load();
-  }, [user, tab, selectedCourse]);
+  }, [user, tab, selectedCourse, allTabCourseLevel]);
 
   // ─── Fetch suspended cards ────────────────────────────────────────────────
   useEffect(() => {
@@ -260,6 +260,10 @@ export default function MyProgress() {
   const courseOptions = teachingCourses.length > 0
     ? teachingCourses.map((c) => c.disciplines.name)
     : (profile?.course_level ? [profile.course_level] : []);
+  // For "All My Content" tab: scope to enrolled courses.
+  // Students with 1 course → filter to that course (prevents cross-course bleed).
+  // Professors with multiple courses → null (they own content across all courses).
+  const allTabCourseLevel = courseOptions.length === 1 ? courseOptions[0] : null;
   const groupedSuspended  = suspendedCards.reduce((acc, card) => {
     const subject = card.subject_name || 'General';
     (acc[subject] = acc[subject] || []).push(card);
@@ -326,7 +330,7 @@ export default function MyProgress() {
               forecast={forecast}
               forecastLoading={forecastLoading}
               userId={user?.id}
-              courseLevel={null}
+              courseLevel={allTabCourseLevel}
               qtPerf={qtPerf}
               qtLoading={qtLoading}
               suspendedCards={suspendedCards}

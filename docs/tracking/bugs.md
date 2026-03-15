@@ -2,6 +2,13 @@
 
 ## Resolved Bugs
 
+### [Mar 15, 2026] Progress Page "All My Content" Shows Subjects from Non-Enrolled Courses
+- **Symptom:** A student enrolled in CA Intermediate saw "Business Laws" (a CA Foundation subject) in their Subject Mastery table on the "All My Content" tab, with 0 reviews and 201 total cards. Similarly, a CA Foundation student saw CA Intermediate subjects.
+- **Root Cause:** "All My Content" tab passed `courseLevel={null}` to `get_subject_mastery_v1` and `get_question_type_performance`. The RPCs interpret `null` as "no course filter" → return all public cards across all courses. With 659 total public cards spread across CA Foundation, Intermediate, and Final, any student saw every subject in the system.
+- **Fix:** Added `allTabCourseLevel` computed value in `Progress.jsx`. Logic: if user has exactly 1 enrolled course (`courseOptions.length === 1`), scope "All My Content" to that course. Professors with 2+ teaching courses remain unscoped (`null`) — they legitimately own content across all courses.
+- **No SQL changes required** — frontend-only fix.
+- **Status:** ✅ RESOLVED — commit pending
+
 ### [Mar 13, 2026] Progress Page Tabs Broken — Both Tab Contents Always Visible
 - **Symptom:** Clicking "All My Content" / "Course: CA Intermediate" tabs had no effect (cursor changed to pointer but nothing happened). Full report appeared twice on the page — once for "All" and once for "Course".
 - **Root Cause:** `src/components/ui/tabs.jsx` is a custom stub — `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` are plain `<div>`/`<button>` elements with no `value`/`onValueChange` wiring and no show/hide logic. Both `TabsContent` elements always rendered. `TabsTrigger` click events were swallowed (no `onClick` passed through).
