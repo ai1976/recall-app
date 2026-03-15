@@ -528,6 +528,9 @@ IMPORTANT:
       const batchId = crypto.randomUUID();
       const trimmedDescription = batchDescription.trim() || null;
 
+      // ── Build card list + collect unique deck groups for naming ──────────────
+      const deckGroupMap = new Map();
+
       const flashcardsToInsert = flashcards.map(card => {
         const subject = subjects?.find(s =>
           s.name.toLowerCase() === card.subject.toLowerCase()
@@ -537,6 +540,22 @@ IMPORTANT:
           t.name.toLowerCase() === card.topic.toLowerCase() &&
           t.subject_id === subject.id
         ) : null;
+
+        // Track unique (subject_id, topic_id) combinations for post-insert naming
+        const groupKey = `${subject.id}::${topic?.id ?? 'null'}`;
+        if (!deckGroupMap.has(groupKey)) {
+          // Use user's batch label if provided, otherwise derive from subject/topic
+          const deckName = trimmedDescription
+            ? trimmedDescription
+            : topic
+              ? `${card.subject} — ${card.topic}`
+              : card.subject;
+          deckGroupMap.set(groupKey, {
+            subject_id: subject.id,
+            topic_id: topic?.id ?? null,
+            name: deckName,
+          });
+        }
 
         return {
           user_id: user.id,
@@ -564,6 +583,28 @@ IMPORTANT:
         .select();
 
       if (error) throw error;
+
+      // ── Name any decks that the trigger just created (trigger sets name=NULL) ─
+      // Only updates rows where name IS NULL — never overwrites an existing name.
+      for (const group of deckGroupMap.values()) {
+        let query = supabase
+          .from('flashcard_decks')
+          .update({ name: group.name })
+          .eq('user_id', user.id)
+          .is('custom_subject', null)
+          .is('custom_topic', null)
+          .is('name', null);
+
+        query = group.subject_id
+          ? query.eq('subject_id', group.subject_id)
+          : query.is('subject_id', null);
+
+        query = group.topic_id
+          ? query.eq('topic_id', group.topic_id)
+          : query.is('topic_id', null);
+
+        await query;
+      }
 
       setUploadResults({
         success: true,

@@ -1,11 +1,44 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-03-15
-**Current Phase:** Analytics & Reports — Sprint 3 complete
+**Current Phase:** Analytics & Reports — Sprint 4 complete
 
 ---
 
 ## Just Completed ✅
+
+### Deck Auto-Naming Fix (Mar 15, 2026)
+Fixed bulk-uploaded flashcard decks showing as untitled in AdminDashboard.
+
+**Delivered:**
+1. **Code fix (future uploads):** `BulkUploadFlashcards.jsx` — after inserting cards, loops over unique (subject_id, topic_id) groups found in the batch and runs `UPDATE flashcard_decks SET name = [derived] WHERE name IS NULL`. Name format: user's batch label if provided, otherwise `Subject — Topic` (or just `Subject` if no topic). Never overwrites an existing name.
+2. **SQL migration (historical data):** One-time `UPDATE flashcard_decks` run in Supabase SQL Editor — backfills `name` from first card's `subjects.name` + `topics.name`, with `COALESCE` for `custom_subject`/`custom_topic` edge cases. Idempotent (safe to re-run).
+3. **Admin Dashboard preview fix:** `togglePreview` was using `.eq('deck_id', deckId)` — `deck_id` column does not exist on `flashcards`. Corrected to match via `(user_id, subject_id, topic_id, custom_subject, custom_topic)` — the actual unique constraint. Added those columns to the deck select query.
+
+**Files:** `src/pages/dashboard/BulkUploadFlashcards.jsx`, `src/pages/admin/AdminDashboard.jsx`
+
+---
+
+### Sprint 4 — Admin Analytics Page (Mar 15, 2026)
+New dedicated analytics page for admins and super_admins at `/admin/analytics`.
+
+**Delivered:**
+1. **4 Supabase RPCs deployed:**
+   - `get_admin_platform_overview` — 4 header stats (total users, active this week, pending reviews, published items)
+   - `get_content_health_stats` — per-course: item counts, verified/unverified, pending note queue, avg quality
+   - `get_user_onboarding_stats` — student funnel: new this week/month, never studied, review coverage, incomplete profiles
+   - `get_weekly_platform_reviews` — 8-week rolling review count, Monday-anchored, generate_series date spine
+2. **New page:** `src/pages/admin/AdminAnalytics.jsx`
+   - Role-gated to admin + super_admin (professors have their own page)
+   - 4-card stat strip with amber border highlight for actionable items
+   - Content Health table (sortable, red/amber row highlights, pending notes badge)
+   - Student Onboarding funnel (5 cards — new users, never studied, coverage %, incomplete profiles)
+   - Weekly platform review BarChart (8-week, same Recharts pattern as Sprint 3)
+3. **Nav:** Analytics link for `isAdmin || isSuperAdmin` in NavDesktop + "Admin" section in NavMobile
+
+**Files:** `src/pages/admin/AdminAnalytics.jsx` *(new)*, `src/App.jsx`, `src/components/layout/NavDesktop.jsx`, `src/components/layout/NavMobile.jsx`
+
+---
 
 ### Progress Page — Cross-Course Bleed Fix (Mar 15, 2026)
 Students enrolled in one course were seeing subjects from other courses on the "All My Content" tab.

@@ -1,6 +1,57 @@
 # Changelog
 
 ---
+## [2026-03-15] fix: NoteDetail back button returns to Admin Dashboard when opened from /admin
+
+### Fixed
+- **Back button on NoteDetail went to `/dashboard` instead of `/admin`** — note links in AdminDashboard open in a new tab (`target="_blank"`), so `window.history.length` is always 1 in that tab. The `navigate(-1)` branch never ran; the hardcoded `/dashboard` fallback always fired.
+
+### Changed
+- **`AdminDashboard.jsx`** — note title `href` updated to `/dashboard/notes/:id?ref=admin`
+- **`NoteDetail.jsx`** — reads `?ref` search param via `useSearchParams`; if `ref=admin`, back button navigates to `/admin`. Falls back to `navigate(-1)` → `/dashboard` for all other entry points (unchanged behaviour).
+
+### Files Changed
+- `src/pages/admin/AdminDashboard.jsx`
+- `src/pages/dashboard/Content/NoteDetail.jsx`
+
+---
+## [2026-03-15] fix: Deck auto-naming — bulk upload sets name, historical data backfilled
+
+### Fixed
+- **Bulk-uploaded flashcard decks showing as untitled** — `flashcard_decks.name` is never set by the `update_deck_card_count` trigger that auto-creates deck rows. Admins could not identify decks in AdminDashboard without an inline preview.
+- **AdminDashboard preview broken** — `togglePreview` was querying `flashcards` with `.eq('deck_id', deckId)` but `flashcards` has no `deck_id` column. Preview always returned 0 cards.
+
+### Changed
+- **`BulkUploadFlashcards.jsx`** — during upload, collects unique (subject_id, topic_id) groups from the validated card set; after flashcards are inserted (trigger creates decks), runs `UPDATE flashcard_decks SET name = [derived] WHERE name IS NULL` per group. Name = user's batch label if provided, else `Subject — Topic` or `Subject`.
+- **`AdminDashboard.jsx`** — deck select now fetches `subject_id, topic_id, custom_subject, custom_topic` needed for preview; `togglePreview` now builds query using deck's `(user_id, subject_id, topic_id, custom_subject, custom_topic)` attributes with null-safe `.is()` calls.
+
+### SQL Deployed
+- `[DATA] Backfill flashcard_decks.name from first card subject/topic` — one-time UPDATE using subquery on flashcards → subjects/topics JOIN with `COALESCE` for custom fields; `IS NOT DISTINCT FROM` for null-safe matching; only touches rows where `name IS NULL OR name = ''`.
+
+### Files Changed
+- `src/pages/dashboard/BulkUploadFlashcards.jsx`
+- `src/pages/admin/AdminDashboard.jsx`
+
+---
+## [2026-03-15] feat: Sprint 4 — Admin Analytics page
+
+### Added
+- **`/admin/analytics`** — new page for **admin and super_admin** roles with platform-wide health metrics
+- **4-card overview stat strip** — Total Users, Active This Week, Pending Review (amber highlight when > 0), Published Items
+- **Content Health by Course table** — per-discipline: published item count, verified count, pending note review queue, avg student quality score; sortable by any column; red row highlight when pending notes > 0, amber when avg quality < 3; red AlertCircle icon on rows with pending reviews
+- **Student Onboarding section** — 5 funnel cards: New This Week, Never Studied (amber border when > 0), Review Coverage %, Total Students, Incomplete Profiles (amber border when > 0)
+- **Weekly Platform Reviews bar chart** — Recharts `BarChart`; 8-week Monday-anchored rolling window; `generate_series` date spine guarantees zero weeks show; custom tooltip; timezone-safe week labels (string-split, no Date constructor)
+- **4 Supabase RPCs deployed:** `get_admin_platform_overview`, `get_content_health_stats`, `get_user_onboarding_stats`, `get_weekly_platform_reviews`
+- **NavDesktop** — Analytics link (BarChart3 icon) for `isAdmin || isSuperAdmin`, below professor Analytics link
+- **NavMobile** — "Admin" section in hamburger sheet with Analytics + Manage Topics buttons
+
+### Files Changed
+- `src/pages/admin/AdminAnalytics.jsx` *(new)*
+- `src/App.jsx` — lazy import + `/admin/analytics` route
+- `src/components/layout/NavDesktop.jsx` — Admin Analytics nav link
+- `src/components/layout/NavMobile.jsx` — Admin section with Analytics button
+
+---
 ## [2026-03-15] fix: Progress page cross-course bleed on All My Content tab
 
 ### Fixed

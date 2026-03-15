@@ -59,6 +59,7 @@ const ProfessorAnalytics = lazy(() => import('@/pages/dashboard/ProfessorAnalyti
 // Admin Pages
 const SuperAdminDashboard = lazy(() => import('@/pages/admin/SuperAdminDashboard'))
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'))
+const AdminAnalytics = lazy(() => import('@/pages/admin/AdminAnalytics'))
 const MigrateNoteImages = lazy(() => import('@/pages/admin/MigrateNoteImages')) // TEMP — delete after migration
 const BulkUploadTopics = lazy(() => import('@/pages/admin/BulkUploadTopics'))
 
@@ -270,6 +271,10 @@ function AppContent() {
           <Route
             path="/admin"
             element={user ? <AdminDashboard /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/admin/analytics"
+            element={user ? <AdminAnalytics /> : <Navigate to="/login" replace />}
           />
 
           {/* Bulk Upload Routes */}

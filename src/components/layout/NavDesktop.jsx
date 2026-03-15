@@ -189,6 +189,23 @@ export default function NavDesktop({
               </Link>
             )}
 
+            {/* Admin Analytics — admin and super_admin only */}
+            {(isAdmin || isSuperAdmin) && (
+              <Link
+                to="/admin/analytics"
+                className={`
+                  px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
+                  ${isActive('/admin/analytics')
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  }
+                `}
+              >
+                <BarChart3 className="h-4 w-4" />
+                Analytics
+              </Link>
+            )}
+
             {/* Super Admin Link */}
             {isSuperAdmin && (
               <Link

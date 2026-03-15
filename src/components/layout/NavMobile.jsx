@@ -322,16 +322,29 @@ export default function NavMobile({
                         </>
                       )}
 
-                      {/* Admin: Manage Topics */}
+                      {/* Admin: Analytics + Manage Topics */}
                       {(isAdmin || isSuperAdmin) && (
                         <>
                           <div className="my-2 border-t border-gray-200" />
+                          <div className="px-4 py-2">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                              <BarChart3 className="h-4 w-4" />
+                              Admin
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleNavClick('/admin/analytics')}
+                            className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"
+                          >
+                            <BarChart3 className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-700">Analytics</span>
+                          </button>
                           <button
                             onClick={() => handleNavClick('/admin/bulk-upload-topics')}
-                            className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-50"
+                            className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"
                           >
-                            <Upload className="h-5 w-5 text-blue-500" />
-                            <span className="text-sm font-medium text-gray-900">Manage Topics</span>
+                            <Upload className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-700">Manage Topics</span>
                           </button>
                         </>
                       )}

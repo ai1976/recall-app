@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText, File, Calendar, Tag, Plus, Brain, Trash2, Edit, Users } from 'lucide-react';
@@ -10,6 +10,8 @@ import UpvoteButton from '@/components/ui/UpvoteButton';
 export default function NoteDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const backTo = searchParams.get('ref') === 'admin' ? '/admin' : null;
   const { toast } = useToast();
   const { user } = useAuth();
   const [note, setNote] = useState(null);
@@ -132,7 +134,9 @@ export default function NoteDetail() {
                         <Button
               variant="ghost"
               onClick={() => {
-                if (window.history.length > 1) {
+                if (backTo) {
+                  navigate(backTo);
+                } else if (window.history.length > 1) {
                   navigate(-1);
                 } else {
                   navigate('/dashboard');
