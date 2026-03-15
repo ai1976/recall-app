@@ -70,6 +70,16 @@ export default function MyProgress() {
   // ── User profile (for course_level) ──────────────────────────────────────
   const [profile, setProfile] = useState(null);
 
+  // ─── Derived values (must be declared before useEffects that reference them) ──
+  // All courses available for the dropdown (professors have profile_courses; students fall back to primary)
+  const courseOptions = teachingCourses.length > 0
+    ? teachingCourses.map((c) => c.disciplines.name)
+    : (profile?.course_level ? [profile.course_level] : []);
+  // For "All My Content" tab: scope to enrolled courses.
+  // Students with 1 course → filter to that course (prevents cross-course bleed).
+  // Professors with multiple courses → null (they own content across all courses).
+  const allTabCourseLevel = courseOptions.length === 1 ? courseOptions[0] : null;
+
   // ── Window-driven stat cards ──────────────────────────────────────────────
   const [windowStats, setWindowStats] = useState({ reviewed: 0, accuracy: 0 });
   const [windowLoading, setWindowLoading] = useState(true);
@@ -253,17 +263,9 @@ export default function MyProgress() {
     }
   };
 
-  // ─── Derived values ───────────────────────────────────────────────────────
+  // ─── Remaining derived values ─────────────────────────────────────────────
   const courseLabel       = selectedCourse ?? profile?.course_level ?? 'By Course';
   const activeCourseLevel = tab === 'course' ? selectedCourse : null;
-  // All courses available for the dropdown (professors have profile_courses; students fall back to primary)
-  const courseOptions = teachingCourses.length > 0
-    ? teachingCourses.map((c) => c.disciplines.name)
-    : (profile?.course_level ? [profile.course_level] : []);
-  // For "All My Content" tab: scope to enrolled courses.
-  // Students with 1 course → filter to that course (prevents cross-course bleed).
-  // Professors with multiple courses → null (they own content across all courses).
-  const allTabCourseLevel = courseOptions.length === 1 ? courseOptions[0] : null;
   const groupedSuspended  = suspendedCards.reduce((acc, card) => {
     const subject = card.subject_name || 'General';
     (acc[subject] = acc[subject] || []).push(card);
