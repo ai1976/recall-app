@@ -1,11 +1,35 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-15
-**Current Phase:** Analytics & Reports — Sprint 4 complete
+**Last Updated:** 2026-03-16
+**Current Phase:** Analytics & Reports — Sprint 5 complete
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 5 — Super Admin Analytics Page (Mar 16, 2026)
+New dedicated analytics page for super_admins at `/super-admin/analytics`, plus a fix for the broken tab stub in `SuperAdminDashboard`.
+
+**Delivered:**
+1. **Tabs bug fix — `SuperAdminDashboard.jsx`:** Replaced broken `<Tabs>` (stub with no state/logic) with `const [dashboardTab, setDashboardTab] = useState('users')` + conditional rendering. `scrollToUserManagement()` now calls `setDashboardTab('users')` directly instead of `document.querySelector('[value="users"]').click()`. Added `TabButton` component matching AdminDashboard styling.
+2. **4 Supabase RPCs deployed:**
+   - `get_super_admin_header_stats` — total users, content creators, reviews this month, active courses (1 row)
+   - `get_super_admin_cohort_comparison` — per active discipline: student count, published items, reviews this week, avg reviews/student, 7-day retention rate; fixed `LANGUAGE sql` to avoid 42702 ambiguous column error
+   - `get_creator_leaderboard` — top 20 creators by published public items; returns user_id only (no profile join in SQL); fixed `LANGUAGE sql` for same reason
+   - `get_platform_heatmap(p_days INT)` — platform-wide daily review counts via `generate_series` date spine; call with `p_days = 365`
+3. **`PlatformHeatmap.jsx`** (`src/components/progress/`): 52-week heatmap, blue color scale (platform-wide counts), separate from student `StudyHeatmap.jsx`
+4. **`SuperAdminAnalytics.jsx`** (`src/pages/admin/`): 5 sections — header strip, cohort comparison table (client-side sortable, amber rows for zero-review courses), creator leaderboard (Student Contributor vs Professor badge), platform heatmap, admin activity feed (bounded 20-row query + JS-side attribution)
+5. **Routing + nav:** Route `/super-admin/analytics` added to `App.jsx`; SA Analytics links added to `NavDesktop.jsx` and `NavMobile.jsx` (isSuperAdmin only)
+
+**Files:**
+- `src/pages/admin/SuperAdminDashboard.jsx` (tabs fix)
+- `src/pages/admin/SuperAdminAnalytics.jsx` (new)
+- `src/components/progress/PlatformHeatmap.jsx` (new)
+- `src/App.jsx`
+- `src/components/layout/NavDesktop.jsx`
+- `src/components/layout/NavMobile.jsx`
+
+---
 
 ### Deck Auto-Naming Fix (Mar 15, 2026)
 Fixed bulk-uploaded flashcard decks showing as untitled in AdminDashboard.

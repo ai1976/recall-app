@@ -1,6 +1,27 @@
 # Changelog
 
 ---
+## [2026-03-16] feat: Sprint 5 — Super Admin Analytics page + SuperAdminDashboard tab fix
+
+### Added
+- **`SuperAdminAnalytics.jsx`** — new page at `/super-admin/analytics` (super_admin only). 5 sections: header stat strip (4 cards), course cohort comparison table (sortable, amber rows for zero-review courses), creator leaderboard (top 20, Professor vs Student Contributor badges), 52-week platform activity heatmap, admin activity feed (last 20 audit log entries with JS-side attribution).
+- **`PlatformHeatmap.jsx`** — 52-week platform-wide heatmap component. Blue color scale. Separate from student `StudyHeatmap.jsx` (13-week, green). Fetches `get_platform_heatmap` RPC internally.
+- **4 Supabase RPCs:** `get_super_admin_header_stats`, `get_super_admin_cohort_comparison`, `get_creator_leaderboard`, `get_platform_heatmap(INT)`. All `LANGUAGE sql` (avoids 42702 plpgsql column ambiguity with RETURNS TABLE names).
+- **Route `/super-admin/analytics`** added to `App.jsx`.
+- **Nav links** — "SA Analytics" added for `isSuperAdmin` in `NavDesktop.jsx` and `NavMobile.jsx`.
+
+### Fixed
+- **`SuperAdminDashboard.jsx` broken tabs** — `<Tabs>` from `tabs.jsx` stub had no state, both panels always rendered, clicks did nothing. Replaced with `const [dashboardTab, setDashboardTab] = useState('users')` + `TabButton` component + conditional rendering. `scrollToUserManagement()` now calls `setDashboardTab('users')` directly instead of `document.querySelector('[value="users"]').click()`.
+
+### Files Changed
+- `src/pages/admin/SuperAdminAnalytics.jsx` (new)
+- `src/components/progress/PlatformHeatmap.jsx` (new)
+- `src/pages/admin/SuperAdminDashboard.jsx`
+- `src/App.jsx`
+- `src/components/layout/NavDesktop.jsx`
+- `src/components/layout/NavMobile.jsx`
+
+---
 ## [2026-03-15] fix: NoteDetail back button returns to Admin Dashboard when opened from /admin
 
 ### Fixed

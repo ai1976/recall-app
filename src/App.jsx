@@ -58,6 +58,7 @@ const ProfessorAnalytics = lazy(() => import('@/pages/dashboard/ProfessorAnalyti
 
 // Admin Pages
 const SuperAdminDashboard = lazy(() => import('@/pages/admin/SuperAdminDashboard'))
+const SuperAdminAnalytics = lazy(() => import('@/pages/admin/SuperAdminAnalytics'))
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'))
 const AdminAnalytics = lazy(() => import('@/pages/admin/AdminAnalytics'))
 const MigrateNoteImages = lazy(() => import('@/pages/admin/MigrateNoteImages')) // TEMP — delete after migration
@@ -115,6 +116,7 @@ function AppContent() {
             /dashboard/friend-requests     → pages/dashboard/Friends/FriendRequests.jsx
             /dashboard/my-friends          → pages/dashboard/Friends/MyFriends.jsx
             /super-admin                   → pages/admin/SuperAdminDashboard.jsx
+            /super-admin/analytics         → pages/admin/SuperAdminAnalytics.jsx
             /admin                         → pages/admin/AdminDashboard.jsx
             /professor/tools               → (redirects to /dashboard/bulk-upload)
             /dashboard/bulk-upload              → pages/dashboard/BulkUploadFlashcards.jsx
@@ -267,6 +269,10 @@ function AppContent() {
           <Route
             path="/super-admin"
             element={user ? <SuperAdminDashboard /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/super-admin/analytics"
+            element={user ? <SuperAdminAnalytics /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/admin"

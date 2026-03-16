@@ -353,12 +353,25 @@ export default function NavMobile({
                       {isSuperAdmin && (
                         <>
                           <div className="my-2 border-t border-gray-200" />
+                          <div className="px-4 py-2">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                              <Shield className="h-4 w-4" />
+                              Super Admin
+                            </p>
+                          </div>
                           <button
                             onClick={() => handleNavClick('/super-admin')}
-                            className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-50"
+                            className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"
                           >
-                            <Shield className="h-5 w-5 text-purple-500" />
-                            <span className="text-sm font-medium text-gray-900">Super Admin</span>
+                            <Shield className="h-4 w-4 text-purple-400" />
+                            <span className="text-sm text-gray-700">Dashboard</span>
+                          </button>
+                          <button
+                            onClick={() => handleNavClick('/super-admin/analytics')}
+                            className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"
+                          >
+                            <BarChart3 className="h-4 w-4 text-purple-400" />
+                            <span className="text-sm text-gray-700">SA Analytics</span>
                           </button>
                         </>
                       )}

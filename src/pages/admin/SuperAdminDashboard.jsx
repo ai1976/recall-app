@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useRole } from '@/hooks/useRole';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Users, 
@@ -42,6 +42,9 @@ export default function SuperAdminDashboard() {
   const [engagementStats, setEngagementStats] = useState(null);
   const [retentionStats, setRetentionStats] = useState(null);
   const [reportErrors, setReportErrors] = useState({});
+
+  // Tab state — tabs.jsx is a broken stub, never use it; use direct conditional rendering
+  const [dashboardTab, setDashboardTab] = useState('users');
 
   // Retention card drill-down filter
   const [activeFilter, setActiveFilter] = useState(null); // null | 'new_this_week' | 'inactive' | 'retained'
@@ -578,24 +581,15 @@ This will be automated in Phase 2 with Edge Functions.`);
   }
 
   function handleStatCardClick(role) {
-    const userManagementTab = document.querySelector('[value="users"]');
-    if (userManagementTab) {
-      userManagementTab.click();
-    }
-    
+    setDashboardTab('users');
     setRoleFilter(role);
-    
     setTimeout(() => {
-      const userList = document.getElementById('user-management-section');
-      if (userList) {
-        userList.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      document.getElementById('user-management-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
   }
 
   function scrollToUserManagement() {
-    const tab = document.querySelector('[value="users"]');
-    if (tab) tab.click();
+    setDashboardTab('users');
     setTimeout(() => {
       document.getElementById('user-management-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
@@ -1166,15 +1160,15 @@ This will be automated in Phase 2 with Edge Functions.`);
         </Card>
       </div>
 
-      {/* Tabs Section */}
-      <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="users">User Management</TabsTrigger>
-          <TabsTrigger value="admins">Admin Team</TabsTrigger>
-          <TabsTrigger value="audit">Audit Log</TabsTrigger>
-        </TabsList>
+      {/* Tab bar — custom implementation (tabs.jsx is a broken stub) */}
+      <div className="flex border-b border-gray-200 mb-6">
+        <TabButton label="User Management" active={dashboardTab === 'users'}  onClick={() => setDashboardTab('users')} />
+        <TabButton label="Admin Team"      active={dashboardTab === 'admins'} onClick={() => setDashboardTab('admins')} />
+        <TabButton label="Audit Log"       active={dashboardTab === 'audit'}  onClick={() => setDashboardTab('audit')} />
+      </div>
 
-        <TabsContent value="users" className="space-y-4" id="user-management-section">
+      {dashboardTab === 'users' && (
+        <div id="user-management-section" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>All Users</CardTitle>
@@ -1383,9 +1377,11 @@ This will be automated in Phase 2 with Edge Functions.`);
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="admins" className="space-y-4">
+      {dashboardTab === 'admins' && (
+        <div className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Admin Team</CardTitle>
@@ -1430,9 +1426,11 @@ This will be automated in Phase 2 with Edge Functions.`);
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="audit" className="space-y-4">
+      {dashboardTab === 'audit' && (
+        <div className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Audit Log</CardTitle>
@@ -1484,8 +1482,23 @@ This will be automated in Phase 2 with Edge Functions.`);
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
+  );
+}
+
+function TabButton({ label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+        active
+          ? 'border-indigo-600 text-indigo-600'
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+      }`}
+    >
+      {label}
+    </button>
   );
 }

@@ -206,21 +206,36 @@ export default function NavDesktop({
               </Link>
             )}
 
-            {/* Super Admin Link */}
+            {/* Super Admin Links */}
             {isSuperAdmin && (
-              <Link
-                to="/super-admin"
-                className={`
-                  px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
-                  ${isActive('/super-admin')
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                  }
-                `}
-              >
-                <Shield className="h-4 w-4" />
-                Super Admin
-              </Link>
+              <>
+                <Link
+                  to="/super-admin"
+                  className={`
+                    px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
+                    ${isActive('/super-admin')
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    }
+                  `}
+                >
+                  <Shield className="h-4 w-4" />
+                  Super Admin
+                </Link>
+                <Link
+                  to="/super-admin/analytics"
+                  className={`
+                    px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
+                    ${isActive('/super-admin/analytics')
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    }
+                  `}
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  SA Analytics
+                </Link>
+              </>
             )}
 
             {/* Admin Bulk Upload Topics */}

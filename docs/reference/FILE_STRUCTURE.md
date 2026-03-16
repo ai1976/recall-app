@@ -80,7 +80,8 @@ recall-app
 │   │   │   ├── BadgeIcon.jsx
 │   │   │   └── BadgeToast.jsx
 │   │   ├── progress
-│   │   │   ├── StudyHeatmap.jsx           ← 90-day activity heatmap (get_study_heatmap RPC)
+│   │   │   ├── StudyHeatmap.jsx           ← 90-day per-user heatmap (get_study_heatmap RPC)
+│   │   │   ├── PlatformHeatmap.jsx        ← 52-week platform-wide heatmap (get_platform_heatmap RPC, super_admin only)
 │   │   │   └── SubjectMasteryTable.jsx    ← per-subject mastery table (get_subject_mastery_v1 RPC)
 │   │   ├── dashboard
 │   │   │   ├── ActivityFeed.jsx
@@ -139,7 +140,8 @@ recall-app
 │   │   ├── admin
 │   │   │   ├── AdminDashboard.jsx
 │   │   │   ├── BulkUploadTopics.jsx
-│   │   │   └── SuperAdminDashboard.jsx
+│   │   │   ├── SuperAdminDashboard.jsx
+│   │   │   └── SuperAdminAnalytics.jsx    ← super_admin analytics (Sprint 5)
 │   │   ├── auth
 │   │   │   ├── ForgotPassword.jsx
 │   │   │   ├── Login.jsx
@@ -227,6 +229,7 @@ recall-app
 ### **Admin:**
 - `src/pages/admin/AdminDashboard.jsx` - Admin panel
 - `src/pages/admin/SuperAdminDashboard.jsx` - Super admin panel
+- `src/pages/admin/SuperAdminAnalytics.jsx` - Super admin analytics page (Sprint 5)
 - `src/pages/admin/BulkUploadTopics.jsx` - Bulk upload subjects & topics (admin only)
 
 ### **Bulk Upload:**
