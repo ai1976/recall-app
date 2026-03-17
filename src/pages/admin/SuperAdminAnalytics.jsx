@@ -15,7 +15,6 @@ import {
   ChevronUp,
   ChevronDown,
   Trophy,
-  Activity,
   Shield,
 } from 'lucide-react';
 
@@ -77,10 +76,6 @@ export default function SuperAdminAnalytics() {
   const [leaderboard,     setLeaderboard]     = useState([]);
   const [leaderboardError, setLeaderboardError] = useState(null);
 
-  // ── Section 5: admin activity feed
-  const [activityFeed,    setActivityFeed]    = useState([]);
-  const [activityError,   setActivityError]   = useState(null);
-
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -96,7 +91,6 @@ export default function SuperAdminAnalytics() {
       fetchHeaderStats(),
       fetchCohortComparison(),
       fetchLeaderboard(),
-      fetchActivityFeed(),
     ]);
     setIsLoading(false);
   }
@@ -156,47 +150,6 @@ export default function SuperAdminAnalytics() {
       profile: profileMap.get(row.user_id) ?? null,
     }));
     setLeaderboard(merged);
-  }
-
-  // ── Section 5 ───────────────────────────────────────────────────────────────
-  async function fetchActivityFeed() {
-    const { data: logs, error: logsError } = await supabase
-      .from('admin_audit_log')
-      .select('id, action, admin_id, target_user_id, details, created_at')
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (logsError) {
-      console.error('admin_audit_log:', logsError);
-      setActivityError(logsError.message);
-      return;
-    }
-
-    if (!logs || logs.length === 0) {
-      setActivityFeed([]);
-      return;
-    }
-
-    // User attribution pattern: collect all user IDs, single .in() query
-    const adminIds  = [...new Set(logs.map((l) => l.admin_id).filter(Boolean))];
-    const targetIds = [...new Set(logs.map((l) => l.target_user_id).filter(Boolean))];
-    const allIds    = [...new Set([...adminIds, ...targetIds])];
-
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .in('id', allIds);
-
-    const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name ?? 'Unknown']));
-
-    const enriched = logs.map((log) => ({
-      ...log,
-      admin_name:       profileMap.get(log.admin_id)       ?? 'Unknown admin',
-      target_user_name: log.target_user_id
-        ? (profileMap.get(log.target_user_id) ?? 'Unknown user')
-        : null,
-    }));
-    setActivityFeed(enriched);
   }
 
   // ── Cohort sort ──────────────────────────────────────────────────────────────
@@ -453,57 +406,6 @@ export default function SuperAdminAnalytics() {
           <span className="text-sm font-normal text-gray-400">(all users, last 12 months)</span>
         </h2>
         <PlatformHeatmap />
-      </div>
-
-      {/* ── Section 5: Admin Activity Feed ───────────────────────────────────── */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <Activity className="h-5 w-5 text-gray-500" />
-          Admin Activity Feed
-          <span className="text-sm font-normal text-gray-400">(last 20 actions)</span>
-        </h2>
-        <Card>
-          <CardContent className="pt-4">
-            {isLoading ? (
-              <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
-                ))}
-              </div>
-            ) : activityError ? (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>Activity feed unavailable: {activityError}</AlertDescription>
-              </Alert>
-            ) : activityFeed.length === 0 ? (
-              <p className="text-sm text-gray-500 py-4 text-center">No admin actions recorded yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {activityFeed.map((log) => (
-                  <div key={log.id} className="flex items-start justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
-                        {log.action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        <span className="font-medium text-gray-600">{log.admin_name}</span>
-                        {log.target_user_name && (
-                          <> → <span className="font-medium text-gray-600">{log.target_user_name}</span></>
-                        )}
-                        {log.details?.reason && (
-                          <span className="text-gray-400"> · {log.details.reason}</span>
-                        )}
-                      </p>
-                    </div>
-                    <span className="text-xs text-gray-400 whitespace-nowrap ml-4 mt-0.5">
-                      {new Date(log.created_at).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
     </div>

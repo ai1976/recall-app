@@ -1,6 +1,15 @@
 # Changelog
 
 ---
+## [2026-03-17] fix: Remove duplicate Admin Activity Feed from SuperAdminAnalytics
+
+### Changed
+- **`SuperAdminAnalytics.jsx`** — removed Section 5 (Admin Activity Feed). Full audit log already exists as a dedicated tab in `SuperAdminDashboard.jsx`. Analytics page is now pure strategic insight (cohort health, creator growth, platform heatmap). Removed `fetchActivityFeed()`, `activityFeed`/`activityError` state, and `Activity` icon import.
+
+### Files Changed
+- `src/pages/admin/SuperAdminAnalytics.jsx`
+
+---
 ## [2026-03-16] feat: Sprint 5 — Super Admin Analytics page + SuperAdminDashboard tab fix
 
 ### Added
