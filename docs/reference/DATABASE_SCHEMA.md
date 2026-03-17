@@ -158,10 +158,10 @@
 
 ### 2.3 flashcards
 
-**Purpose:** Spaced repetition flashcards with batch tracking  
-**Created:** December 2025  
-**Last Updated:** January 11, 2026 (Added visibility system)  
-**Columns:** 24 (was 23, replaced is_public with visibility)
+**Purpose:** Spaced repetition flashcards with batch tracking
+**Created:** December 2025
+**Last Updated:** 2026-03-16 (Sprint 6 — added 10 undocumented content-type columns)
+**Columns:** 34 (was 24; +10 content-type columns now documented)
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -183,8 +183,18 @@
 | content_creator_id | uuid | YES | NULL | Foreign key to content_creators.id (who gets paid) |
 | is_verified | boolean | NO | false | Professor-verified badge |
 | difficulty | text | YES | NULL | easy/medium/hard |
-| visibility | text | NO | 'private' | Three-tier visibility system ⭐ NEW |
+| visibility | text | NO | 'private' | Three-tier visibility system |
 | created_at | timestamp | NO | NOW() | Creation timestamp |
+| custom_subject | text | YES | NULL | Free-text subject for custom/personal courses. Mutually exclusive with subject_id — exactly one should be set. |
+| custom_topic | text | YES | NULL | Free-text topic for custom/personal courses. Mutually exclusive with topic_id. |
+| question_type | text | NO | 'flashcard' | Type of study item. Values: 'flashcard', 'mcq', 'true_false', 'correct_incorrect', 'theory', 'test_your_understanding', 'case_study_mcq', 'integrated_case', 'match_the_following', 'fill_in_the_blanks', 'concept_card'. |
+| options | jsonb | YES | NULL | Answer options for MCQ and similar types. |
+| correct_answer | text | YES | NULL | Correct answer identifier for question types that need it. |
+| hints | jsonb | YES | NULL | Optional hints array. |
+| points_to_remember | jsonb | YES | NULL | Key takeaways, displayed post-answer. |
+| scenario | text | YES | NULL | Case study / scenario text for case-based question types. |
+| subtype | text | YES | NULL | Sub-classification within a question_type. |
+| source | text | NO | 'manual' | How the card was created: 'manual', 'bulk_upload', 'gemini_import'. |
 
 **Visibility System (NEW - January 11, 2026):**
 - `visibility` column replaces old `is_public` boolean
@@ -194,6 +204,11 @@
   - **'public'**: Everyone can see
 - Constraint: `CHECK (visibility IN ('private', 'friends', 'public'))`
 - Index: `idx_flashcards_visibility` for fast filtering
+
+**Concept Card Exclusion Rule:**
+- `concept_card` items are **excluded from all review metrics** (Items Reviewed, Items Mastered, accuracy, streak). They are reference material only.
+- All analytics RPCs must use `WHERE question_type != 'concept_card'` or the `vw_study_items` safety view.
+- This applies to every RPC that counts reviews, calculates accuracy, or computes streaks.
 
 **Why This Structure:**
 - `batch_id` provides permanent grouping (solves issue where toggling public/private merged batches)

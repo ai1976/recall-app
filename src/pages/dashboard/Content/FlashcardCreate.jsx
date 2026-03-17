@@ -22,7 +22,6 @@ export default function FlashcardCreate() {
   const [targetCourse, setTargetCourse] = useState('');
   const [showCustomCourse, setShowCustomCourse] = useState(false);
   const [customCourse, setCustomCourse] = useState('');
-  const [allCourses, setAllCourses] = useState([]);
   const [disciplines, setDisciplines] = useState([]);
 
   const [subjects, setSubjects] = useState([]);
@@ -49,7 +48,6 @@ export default function FlashcardCreate() {
 
   useEffect(() => {
     fetchDisciplines();
-    fetchAllCourses();
     fetchUserGroups();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -64,10 +62,14 @@ export default function FlashcardCreate() {
     } else if (!targetCourse && !showCustomCourse) {
       setSubjects([]);
     }
-    // Reset subject & topic when course changes
+    // Reset subject & topic (and any stale custom text) when course changes
     setSelectedSubject(null);
     setSelectedTopic(null);
     setTopics([]);
+    setShowCustomSubject(false);
+    setCustomSubject('');
+    setShowCustomTopic(false);
+    setCustomTopic('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetCourse, disciplines]);
 
@@ -127,72 +129,6 @@ export default function FlashcardCreate() {
         description: 'Failed to load subjects',
         variant: 'destructive',
       });
-    }
-  };
-
-  const fetchAllCourses = async () => {
-    try {
-      const { data: noteCourses, error: noteError } = await supabase
-        .from('notes')
-        .select('target_course')
-        .not('target_course', 'is', null);
-
-      const { data: flashcardCourses, error: flashError } = await supabase
-        .from('flashcards')
-        .select('target_course')
-        .not('target_course', 'is', null);
-
-      const { data: profileCourses, error: profileError } = await supabase
-        .from('profiles')
-        .select('course_level')
-        .not('course_level', 'is', null);
-
-      if (noteError) throw noteError;
-      if (flashError) throw flashError;
-      if (profileError) throw profileError;
-
-      const predefinedCourses = [
-        'CA Foundation',
-        'CA Intermediate',
-        'CA Final',
-        'CMA Foundation',
-        'CMA Intermediate',
-        'CMA Final',
-        'CS Foundation',
-        'CS Executive',
-        'CS Professional'
-      ];
-
-      const customFromNotes = noteCourses?.map(n => n.target_course) || [];
-      const customFromFlashcards = flashcardCourses?.map(f => f.target_course) || [];
-      const customFromProfiles = profileCourses?.map(p => p.course_level) || [];
-      
-      const allCustomCourses = [...new Set([
-        ...customFromNotes, 
-        ...customFromFlashcards,
-        ...customFromProfiles
-      ])];
-
-      const uniqueCustomCourses = allCustomCourses.filter(
-        course => !predefinedCourses.includes(course)
-      );
-
-      const mergedCourses = [...predefinedCourses, ...uniqueCustomCourses].sort();
-
-      setAllCourses(mergedCourses);
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-      setAllCourses([
-        'CA Foundation',
-        'CA Intermediate',
-        'CA Final',
-        'CMA Foundation',
-        'CMA Intermediate',
-        'CMA Final',
-        'CS Foundation',
-        'CS Executive',
-        'CS Professional'
-      ]);
     }
   };
 
@@ -306,15 +242,25 @@ export default function FlashcardCreate() {
         throw new Error('Please select or enter which course these flashcards are for');
       }
 
-      if (!selectedSubject && !customSubject) {
-        throw new Error('Please select or enter a subject');
-      }
+      // Derive isSystemCourse inside submit (disciplines already loaded)
+      const _isSystemCourse = !showCustomCourse &&
+        disciplines.some(d => d.name.toLowerCase() === (targetCourse || '').toLowerCase());
 
-      const topicId = selectedTopic?.id || null;
-      const customTopicValue = customTopic || null;
+      let subjectId, customSubjectValue, topicId, customTopicValue;
 
-      if (!topicId && !customTopicValue) {
-        throw new Error('Please select or enter a topic for these flashcards');
+      if (_isSystemCourse) {
+        if (!selectedSubject) throw new Error('Please select a subject from the official syllabus');
+        if (!selectedTopic)   throw new Error('Please select a topic from the official syllabus');
+        subjectId          = selectedSubject.id;
+        customSubjectValue = null;
+        topicId            = selectedTopic.id;
+        customTopicValue   = null;
+      } else {
+        if (!customSubject.trim()) throw new Error('Please enter a subject name');
+        subjectId          = null;
+        customSubjectValue = customSubject.trim();
+        topicId            = null;
+        customTopicValue   = customTopic.trim() || null;
       }
 
       for (let i = 0; i < flashcards.length; i++) {
@@ -327,10 +273,6 @@ export default function FlashcardCreate() {
       }
 
       const finalTargetCourse = customCourse || targetCourse;
-
-      // ✅ FIX: Check if deck already exists, reuse if found, create if not
-      const subjectId = selectedSubject?.id || null;
-      const customSubjectValue = customSubject || null;
 
       // Build query to find existing deck
       let existingDeckQuery = supabase
@@ -494,6 +436,9 @@ export default function FlashcardCreate() {
     }
   };
 
+  const isSystemCourse = !showCustomCourse &&
+    disciplines.some(d => d.name.toLowerCase() === (targetCourse || '').toLowerCase());
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -530,9 +475,9 @@ export default function FlashcardCreate() {
                         <SelectValue placeholder="Select course..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {allCourses.map((course) => (
-                          <SelectItem key={course} value={course}>
-                            {course}
+                        {disciplines.map((d) => (
+                          <SelectItem key={d.id} value={d.name}>
+                            {d.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -583,63 +528,63 @@ export default function FlashcardCreate() {
             </CardHeader>
             <CardContent className="space-y-4">
               
-              <div className="space-y-2">
-                <Label>Subject <span className="text-red-500">*</span></Label>
-                <Popover open={subjectOpen} onOpenChange={setSubjectOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={subjectOpen}
-                      className="w-full justify-between"
-                    >
-                      {selectedSubject ? selectedSubject.name : "Select a subject..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Search subjects..." />
-                      <CommandEmpty>No subject found.</CommandEmpty>
-                      <CommandGroup>
-                        {subjects.map((subject) => (
-                          <CommandItem
-                            key={subject.id}
-                            value={subject.name}
-                            onSelect={() => {
-                              setSelectedSubject(subject);
-                              setSubjectOpen(false);
-                              setShowCustomSubject(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedSubject?.id === subject.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {subject.name}
-                          </CommandItem>
-                        ))}
-                        <CommandItem
-                          onSelect={() => {
-                            setShowCustomSubject(true);
-                            setSelectedSubject(null);
-                            setSubjectOpen(false);
-                          }}
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Add custom subject
-                        </CommandItem>
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {showCustomSubject && (
+              {/* Subject — FK dropdown for system courses, free text for custom courses */}
+              {isSystemCourse ? (
                 <div className="space-y-2">
-                  <Label htmlFor="custom-subject">Custom Subject</Label>
+                  <Label>Subject <span className="text-red-500">*</span></Label>
+                  <Popover open={subjectOpen} onOpenChange={setSubjectOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={subjectOpen}
+                        className="w-full justify-between"
+                      >
+                        {selectedSubject ? selectedSubject.name : "Select a subject..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search subjects..." />
+                        <CommandEmpty>No subject found.</CommandEmpty>
+                        <CommandGroup>
+                          {subjects.map((subject) => (
+                            <CommandItem
+                              key={subject.id}
+                              value={subject.name}
+                              onSelect={() => {
+                                setSelectedSubject(subject);
+                                setSubjectOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedSubject?.id === subject.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {subject.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <p className="text-xs text-muted-foreground">
+                    Subject must match the official syllabus. Can't find yours?{' '}
+                    <button
+                      type="button"
+                      className="text-blue-600 hover:underline"
+                      onClick={() => { setShowCustomCourse(true); setTargetCourse(''); }}
+                    >
+                      Switch to custom course →
+                    </button>
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="custom-subject">Subject <span className="text-red-500">*</span></Label>
                   <Input
                     id="custom-subject"
                     value={customSubject}
@@ -649,69 +594,59 @@ export default function FlashcardCreate() {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label>Topic <span className="text-red-500">*</span></Label>
-                <Popover open={topicOpen} onOpenChange={setTopicOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={topicOpen}
-                      className="w-full justify-between"
-                      disabled={!selectedSubject}
-                    >
-                      {selectedTopic ? selectedTopic.name : "Select a topic..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0 max-h-60 overflow-y-auto">
-                    <Command>
-                      <CommandInput placeholder="Search topics..." />
-                      <CommandEmpty>No topic found.</CommandEmpty>
-                      <CommandGroup>
-                        {topics.map((topic) => (
-                          <CommandItem
-                            key={topic.id}
-                            value={topic.name}
-                            onSelect={() => {
-                              setSelectedTopic(topic);
-                              setTopicOpen(false);
-                              setShowCustomTopic(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedTopic?.id === topic.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {topic.name}
-                          </CommandItem>
-                        ))}
-                        <CommandItem
-                          onSelect={() => {
-                            setShowCustomTopic(true);
-                            setSelectedTopic(null);
-                            setTopicOpen(false);
-                          }}
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Add custom topic
-                        </CommandItem>
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {showCustomTopic && (
+              {/* Topic — FK dropdown for system courses, free text for custom courses */}
+              {isSystemCourse ? (
                 <div className="space-y-2">
-                  <Label htmlFor="custom-topic">Custom Topic</Label>
+                  <Label>Topic <span className="text-red-500">*</span></Label>
+                  <Popover open={topicOpen} onOpenChange={setTopicOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={topicOpen}
+                        className="w-full justify-between"
+                        disabled={!selectedSubject}
+                      >
+                        {selectedTopic ? selectedTopic.name : "Select a topic..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0 max-h-60 overflow-y-auto">
+                      <Command>
+                        <CommandInput placeholder="Search topics..." />
+                        <CommandEmpty>No topic found.</CommandEmpty>
+                        <CommandGroup>
+                          {topics.map((topic) => (
+                            <CommandItem
+                              key={topic.id}
+                              value={topic.name}
+                              onSelect={() => {
+                                setSelectedTopic(topic);
+                                setTopicOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedTopic?.id === topic.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {topic.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="custom-topic">Topic (Optional)</Label>
                   <Input
                     id="custom-topic"
                     value={customTopic}
                     onChange={(e) => setCustomTopic(e.target.value)}
-                    placeholder="Enter topic name"
+                    placeholder="Enter topic name (optional)"
                   />
                 </div>
               )}

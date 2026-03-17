@@ -1,11 +1,32 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-16
-**Current Phase:** Analytics & Reports — Sprint 5 complete
+**Last Updated:** 2026-03-17
+**Current Phase:** Data Quality — Sprint 6 complete
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 6 — Data Contract UI Enforcement + Schema Documentation (Mar 17, 2026)
+Enforced the data contract in `FlashcardCreate.jsx`: system course → FK-only subject/topic dropdowns; custom course → free-text only. Removed the raw-row-download `fetchAllCourses()` function. Updated `DATABASE_SCHEMA.md` with 10 previously undocumented columns.
+
+**Delivered:**
+1. **`FlashcardCreate.jsx` — data contract enforcement:**
+   - Removed `fetchAllCourses()` (was downloading all notes + flashcards + profiles rows for client-side dedup). Course dropdown now sources directly from the `disciplines` state already loaded by `fetchDisciplines()`.
+   - Removed `allCourses` state.
+   - Added `isSystemCourse` derived const (no new state).
+   - System course selected → FK subject combobox only (no "Add custom subject" option); helper text with "Switch to custom course →" escape hatch.
+   - Custom course selected → plain text inputs for subject (required) and topic (optional).
+   - Extended targetCourse `useEffect` to reset `showCustomSubject`, `customSubject`, `showCustomTopic`, `customTopic` on course switch.
+   - `handleSubmit` split into two paths: system course enforces FK fields + nulls out free-text; custom course enforces free-text + nulls out FK fields. Defense in depth at both UI and submit layers.
+2. **3 SQL scripts provided for dirty data backfill** (user deploys at own discretion):
+   - `[DIAGNOSTIC] custom_subject rows that match a system subject`
+   - `[FIX] Backfill subject_id from custom_subject where match exists`
+   - `[DIAGNOSTIC] custom_subject rows with no subject match (manual review needed)`
+3. **`docs/reference/DATABASE_SCHEMA.md`** — flashcards table updated:
+   - 10 undocumented columns added: `custom_subject`, `custom_topic`, `question_type`, `options`, `correct_answer`, `hints`, `points_to_remember`, `scenario`, `subtype`, `source`.
+   - Column count updated: 24 → 34.
+   - Concept Card exclusion rule documented.
 
 ### Sprint 5 — Super Admin Analytics Page (Mar 16, 2026)
 New dedicated analytics page for super_admins at `/super-admin/analytics`, plus a fix for the broken tab stub in `SuperAdminDashboard`.

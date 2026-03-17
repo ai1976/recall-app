@@ -1,6 +1,30 @@
 # Changelog
 
 ---
+## [2026-03-17] feat: Sprint 6 — Data contract UI enforcement + schema documentation
+
+### Added
+- **`isSystemCourse` derived boolean** in `FlashcardCreate.jsx` — computed from `disciplines` state, no new React state.
+- **System course path:** FK subject combobox (no "Add custom subject" option) + FK topic combobox. Helper text below subject with "Switch to custom course →" escape hatch.
+- **Custom course path:** Plain text inputs for subject (required) and topic (optional, labeled "Topic (Optional)" per QA review).
+- **Defense-in-depth submit logic:** `handleSubmit` explicitly nulls out the opposite field type on each path — system course clears `customSubject`/`customTopic`; custom course clears `subjectId`/`topicId`.
+- **10 undocumented flashcards columns documented** in `DATABASE_SCHEMA.md`: `custom_subject`, `custom_topic`, `question_type`, `options`, `correct_answer`, `hints`, `points_to_remember`, `scenario`, `subtype`, `source`.
+- **Concept Card exclusion rule** added to `DATABASE_SCHEMA.md`.
+- **3 SQL backfill scripts** provided for existing dirty data (user-deployed): diagnostic + fix + manual-review-needed.
+
+### Changed
+- **`fetchAllCourses()` removed** — was downloading all rows from notes, flashcards, and profiles for client-side dedup. Course dropdown now reads from `disciplines` (already loaded by `fetchDisciplines()`).
+- **`allCourses` state removed** — no longer needed.
+- **targetCourse `useEffect`** now also resets `showCustomSubject`, `customSubject`, `showCustomTopic`, `customTopic` when course changes.
+- **`DATABASE_SCHEMA.md` flashcards table**: column count 24 → 34, last updated date updated to 2026-03-17.
+
+### Files Changed
+- `src/pages/dashboard/Content/FlashcardCreate.jsx`
+- `docs/reference/DATABASE_SCHEMA.md`
+- `docs/active/now.md`
+- `docs/tracking/changelog.md`
+
+---
 ## [2026-03-17] fix: Remove duplicate Admin Activity Feed from SuperAdminAnalytics
 
 ### Changed
