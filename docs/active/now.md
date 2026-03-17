@@ -7,6 +7,35 @@
 
 ## Just Completed ✅
 
+### Sprint 7 — Content Access Tiers, Flagging, WhatsApp Lead Capture + Preview Bug Fixes (Mar 17, 2026)
+Implemented Tier A/B access control for professor content, content flagging ("Report" button), and WhatsApp lead capture form. Fixed three Tier B flashcard preview bugs: deck tile count, progress bar visual, and ContentPreviewWall not appearing after 10 cards.
+
+**Delivered:**
+1. **Content Access Tiers:** `self_registered` (Tier B) users see first 10 cards of professor decks (preview mode), then hit ContentPreviewWall lead capture. Full access for `enrolled` (Tier A) users.
+2. **ContentPreviewWall component:** Name/WhatsApp/course lead capture form; submits to `access_requests` table.
+3. **FlagButton component:** "Report" button with reason dropdown (Content error / Inappropriate / Other); calls `submit_content_flag` RPC.
+4. **Admin Dashboard — Access Requests tab:** Full table with status dropdown (pending/contacted/enrolled/dismissed).
+5. **Admin nav links:** Added Admin Dashboard link to NavDesktop and NavMobile.
+6. **Admin stat fix:** Switched `fetchStats` to use `get_platform_stats` SECURITY DEFINER RPC — matches landing page counts.
+7. **Preview bug fixes:**
+   - Deck tile shows "Preview: first 10 of N items" (was "Preview only (first 10 items)")
+   - Progress bar fills proportionally (10/total) leaving grey remainder as visual cue — denominator passed via `totalCards` URL param
+   - ContentPreviewWall now correctly appears after all 10 preview cards are rated (handleRating + advanceOrFinish now set `currentIndex = flashcards.length` instead of calling onExit when previewModeParam is true)
+   - Preview mode banner shows "PREVIEW MODE — first 10 of N items"
+
+**Files changed:**
+- `src/pages/dashboard/Study/StudyMode.jsx`
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+- `src/pages/dashboard/Content/NoteDetail.jsx`
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+- `src/pages/admin/AdminDashboard.jsx`
+- `src/components/ui/ContentPreviewWall.jsx` (new)
+- `src/components/ui/FlagButton.jsx` (new)
+- `src/components/layout/NavDesktop.jsx`
+- `src/components/layout/NavMobile.jsx`
+
+---
+
 ### Sprint 6 — Data Contract UI Enforcement + Schema Documentation (Mar 17, 2026)
 Enforced the data contract in `FlashcardCreate.jsx`: system course → FK-only subject/topic dropdowns; custom course → free-text only. Removed the raw-row-download `fetchAllCourses()` function. Updated `DATABASE_SCHEMA.md` with 10 previously undocumented columns.
 

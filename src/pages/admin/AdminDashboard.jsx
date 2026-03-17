@@ -23,6 +23,10 @@ export default function AdminDashboard() {
   // ── State-based tab switching (tabs.jsx is a broken stub — never use it)
   const [activeTab, setActiveTab] = useState('content');
 
+  // ── Access Requests state
+  const [accessRequests, setAccessRequests] = useState([]);
+  const [accessRequestsLoading, setAccessRequestsLoading] = useState(false);
+
   // ── Load-more limits
   const [notesLimit, setNotesLimit] = useState(10);
   const [decksLimit, setDecksLimit] = useState(10);
@@ -62,29 +66,29 @@ export default function AdminDashboard() {
 
   async function fetchStats() {
     try {
-      const [profilesRes, notesRes, flashcardsRes, pendingRes] = await Promise.all([
-        supabase.from('profiles').select('role, created_at'),
-        supabase.from('notes').select('is_public, created_at'),
-        supabase.from('flashcards').select('is_public, created_at'),
+      // Use get_platform_stats RPC (SECURITY DEFINER) for accurate totals — bypasses RLS
+      // Direct table queries are RLS-limited and undercount (e.g. flashcards shows only public)
+      const [platformRes, profilesRes, pendingRes] = await Promise.all([
+        supabase.rpc('get_platform_stats'),
+        supabase.from('profiles').select('created_at'),
         supabase.from('notes').select('*', { count: 'exact', head: true })
           .eq('visibility', 'public'),
       ]);
 
-      const profiles    = profilesRes.data  ?? [];
-      const notesData   = notesRes.data     ?? [];
-      const flashcards  = flashcardsRes.data ?? [];
+      const platform    = platformRes.data ?? {};
+      const profiles    = profilesRes.data ?? [];
       const pendingCount = pendingRes.count ?? 0;
 
       const lastWeek = new Date();
       lastWeek.setDate(lastWeek.getDate() - 7);
 
       setStats({
-        totalUsers:       profiles.length,
+        totalUsers:       (platform.student_count ?? 0) + (platform.educator_count ?? 0),
         newUsersThisWeek: profiles.filter(p => new Date(p.created_at) > lastWeek).length,
-        totalNotes:       notesData.length,
-        publicNotes:      notesData.filter(n => n.is_public).length,
-        totalFlashcards:  flashcards.length,
-        publicFlashcards: flashcards.filter(f => f.is_public).length,
+        totalNotes:       platform.total_notes ?? 0,
+        publicNotes:      pendingCount,
+        totalFlashcards:  platform.total_flashcards ?? 0,
+        publicFlashcards: 0, // not shown in stat cards
         pendingReview:    pendingCount,
       });
     } catch (err) {
@@ -139,12 +143,44 @@ export default function AdminDashboard() {
     try {
       const { data } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role, status, created_at')
+        .select('id, full_name, email, role, status, account_type, created_at')
         .order('created_at', { ascending: false })
         .limit(usersLimit);
       setRecentUsers(data ?? []);
     } catch (err) {
       console.error('AdminDashboard fetchUsers:', err);
+    }
+  }
+
+  async function fetchAccessRequests() {
+    setAccessRequestsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('access_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setAccessRequests(data ?? []);
+    } catch (err) {
+      console.error('AdminDashboard fetchAccessRequests:', err);
+    } finally {
+      setAccessRequestsLoading(false);
+    }
+  }
+
+  async function updateAccessRequestStatus(requestId, newStatus) {
+    try {
+      const { error } = await supabase
+        .from('access_requests')
+        .update({ status: newStatus })
+        .eq('id', requestId);
+      if (error) throw error;
+      setAccessRequests(prev =>
+        prev.map(r => r.id === requestId ? { ...r, status: newStatus } : r)
+      );
+    } catch (err) {
+      console.error('updateAccessRequestStatus:', err);
+      alert('Failed to update status');
     }
   }
 
@@ -290,6 +326,7 @@ export default function AdminDashboard() {
       <div className="flex border-b border-gray-200 mb-6">
         <TabButton label="Content Moderation" active={activeTab === 'content'} onClick={() => setActiveTab('content')} />
         <TabButton label="User Management"    active={activeTab === 'users'}   onClick={() => setActiveTab('users')} />
+        <TabButton label="Access Requests"    active={activeTab === 'access'}  onClick={() => { setActiveTab('access'); fetchAccessRequests(); }} />
       </div>
 
       {/* ── Content Moderation ── */}
@@ -484,6 +521,15 @@ export default function AdminDashboard() {
                           <p className="text-xs text-gray-500 truncate">{u.email}</p>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <RoleBadge role={u.role} />
+                            {u.account_type === 'self_registered' ? (
+                              <span className="px-2 py-0.5 text-xs rounded-full bg-orange-100 text-orange-700">
+                                Tier B
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">
+                                Enrolled
+                              </span>
+                            )}
                             {u.status === 'suspended' && (
                               <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
                                 Suspended
@@ -521,6 +567,69 @@ export default function AdminDashboard() {
               To promote users to Professor or Admin roles, contact the Super Administrator.
             </AlertDescription>
           </Alert>
+        </div>
+      )}
+
+      {/* ── Access Requests ── */}
+      {activeTab === 'access' && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Access Requests</CardTitle>
+              <p className="text-xs text-gray-400 mt-1">
+                Self-registered users who submitted a WhatsApp lead capture form requesting full access.
+              </p>
+            </CardHeader>
+            <CardContent>
+              {accessRequestsLoading ? (
+                <p className="text-center text-gray-400 py-8 text-sm">Loading…</p>
+              ) : accessRequests.length === 0 ? (
+                <p className="text-center text-gray-400 py-8 text-sm">No access requests yet</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-gray-500 border-b">
+                        <th className="pb-2 pr-4 font-medium">Name</th>
+                        <th className="pb-2 pr-4 font-medium">WhatsApp</th>
+                        <th className="pb-2 pr-4 font-medium">Course</th>
+                        <th className="pb-2 pr-4 font-medium">Content Seen</th>
+                        <th className="pb-2 pr-4 font-medium">Date</th>
+                        <th className="pb-2 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {accessRequests.map((req) => (
+                        <tr key={req.id} className="hover:bg-gray-50">
+                          <td className="py-3 pr-4 font-medium text-gray-900">{req.name || '—'}</td>
+                          <td className="py-3 pr-4 text-gray-700">{req.whatsapp_number || '—'}</td>
+                          <td className="py-3 pr-4 text-gray-700">{req.course || '—'}</td>
+                          <td className="py-3 pr-4 text-gray-500 max-w-xs truncate">
+                            {req.content_name || req.content_type || '—'}
+                          </td>
+                          <td className="py-3 pr-4 text-gray-400 text-xs">
+                            {new Date(req.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="py-3">
+                            <select
+                              value={req.status || 'pending'}
+                              onChange={(e) => updateAccessRequestStatus(req.id, e.target.value)}
+                              className="text-xs border border-gray-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="contacted">Contacted</option>
+                              <option value="enrolled">Enrolled</option>
+                              <option value="dismissed">Dismissed</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 

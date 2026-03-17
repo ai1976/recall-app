@@ -189,6 +189,23 @@ export default function NavDesktop({
               </Link>
             )}
 
+            {/* Admin Dashboard — admin and super_admin only */}
+            {(isAdmin || isSuperAdmin) && (
+              <Link
+                to="/admin"
+                className={`
+                  px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
+                  ${isActive('/admin')
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  }
+                `}
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
+
             {/* Admin Analytics — admin and super_admin only */}
             {(isAdmin || isSuperAdmin) && (
               <Link

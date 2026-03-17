@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import ContentPreviewWall from '@/components/ui/ContentPreviewWall';
+import FlagButton from '@/components/ui/FlagButton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +37,8 @@ import { useSpeech } from '@/hooks/useSpeech';
 import SpeakButton from '@/components/flashcards/SpeakButton';
 import SpeechSettings from '@/components/flashcards/SpeechSettings';
 
+const PREVIEW_LIMIT = 10;
+
 export default function StudyMode({
   flashcards: propFlashcards = null,
   onComplete = null,
@@ -41,7 +46,10 @@ export default function StudyMode({
 }) {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const previewModeParam = searchParams.get('previewMode') === 'true';
+  const totalCardsParam = previewModeParam ? (parseInt(searchParams.get('totalCards')) || 0) : 0;
 
   const [flashcards, setFlashcards] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -198,7 +206,8 @@ export default function StudyMode({
 
       // Shuffle
       const shuffled = [...cleanedData].sort(() => Math.random() - 0.5);
-      setFlashcards(shuffled);
+      // Preview mode: Tier B users only see the first PREVIEW_LIMIT cards of professor decks
+      setFlashcards(previewModeParam ? shuffled.slice(0, PREVIEW_LIMIT) : shuffled);
     } catch (error) {
       console.error('Error fetching flashcards:', error);
       toast({
@@ -315,6 +324,10 @@ export default function StudyMode({
     // 4. Advance to Next Card
     if (currentIndex < flashcards.length - 1) {
       setCurrentIndex(currentIndex + 1);
+      setShowAnswer(false);
+    } else if (previewModeParam) {
+      // Preview mode: trigger ContentPreviewWall instead of navigating away
+      setCurrentIndex(flashcards.length);
       setShowAnswer(false);
     } else {
       if (onComplete) {
@@ -492,6 +505,9 @@ export default function StudyMode({
     if (currentIndex < flashcards.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setShowAnswer(false);
+    } else if (previewModeParam) {
+      setCurrentIndex(flashcards.length);
+      setShowAnswer(false);
     } else {
       finishSession();
     }
@@ -600,7 +616,10 @@ export default function StudyMode({
 
   const currentCard = flashcards[currentIndex];
   const isComplete = currentIndex >= flashcards.length;
-  const progress = ((currentIndex + 1) / flashcards.length) * 100;
+  const progressDenominator = (previewModeParam && totalCardsParam > flashcards.length)
+    ? totalCardsParam
+    : flashcards.length;
+  const progress = ((currentIndex + 1) / progressDenominator) * 100;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
@@ -626,6 +645,13 @@ export default function StudyMode({
 
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          {previewModeParam && (
+            <div className="flex items-center justify-center mb-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold rounded-full">
+                PREVIEW MODE — first {PREVIEW_LIMIT} of {totalCardsParam || PREVIEW_LIMIT} items
+              </span>
+            </div>
+          )}
           <div className="relative">
             <div className="overflow-hidden h-2 text-xs flex rounded-full bg-gray-200">
               <div
@@ -653,6 +679,29 @@ export default function StudyMode({
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {isComplete ? (
+          previewModeParam ? (
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="p-8 text-center border-b border-gray-100">
+                <Brain className="h-12 w-12 text-purple-400 mx-auto mb-3" />
+                <h2 className="text-xl font-bold text-gray-900 mb-1">
+                  You&apos;ve previewed {PREVIEW_LIMIT} items
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Get full access to study the complete set
+                </p>
+              </div>
+              <ContentPreviewWall
+                contentId={searchParams.get('deck')}
+                contentType="flashcard_deck"
+                contentName={null}
+              />
+              <div className="p-6 text-center border-t border-gray-100">
+                <Button variant="outline" onClick={handleExit}>
+                  Back to Study Sets
+                </Button>
+              </div>
+            </div>
+          ) : (
           <div className="bg-white rounded-xl shadow-lg p-12 text-center">
             <div className="mb-6">
               <Brain className="h-20 w-20 text-purple-600 mx-auto mb-4" />
@@ -692,6 +741,7 @@ export default function StudyMode({
               </Button>
             </div>
           </div>
+          )
         ) : (
           <div>
             {(currentCard.subjects || currentCard.custom_subject) && (
@@ -783,6 +833,10 @@ export default function StudyMode({
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+
+                    {currentCard.user_id !== user?.id && (
+                      <FlagButton contentType="flashcard" contentId={currentCard.id} />
+                    )}
                   </div>
                 </div>
               ) : (
@@ -912,6 +966,10 @@ export default function StudyMode({
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+
+                      {currentCard.user_id !== user?.id && (
+                        <FlagButton contentType="flashcard" contentId={currentCard.id} />
+                      )}
                     </div>
                   </div>
                 </div>

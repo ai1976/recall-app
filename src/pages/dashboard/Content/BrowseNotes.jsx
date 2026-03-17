@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import UpvoteButton from '@/components/ui/UpvoteButton';
+import FlagButton from '@/components/ui/FlagButton';
 
 export default function BrowseNotes() {
   const navigate = useNavigate();
@@ -720,6 +721,11 @@ export default function BrowseNotes() {
                                             ownerId={note.user_id}
                                             size="sm"
                                           />
+
+                                          {/* Flag Button (non-owners only) */}
+                                          {note.user_id !== user?.id && (
+                                            <FlagButton contentType="note" contentId={note.id} />
+                                          )}
                                         </div>
                                       </div>
                                     </div>

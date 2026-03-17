@@ -1,6 +1,41 @@
 # Changelog
 
 ---
+## [2026-03-17] feat: Sprint 7 — Content access tiers, flagging, lead capture + preview bug fixes
+
+### Added
+- **`ContentPreviewWall.jsx`** (new) — WhatsApp lead capture form (name/WhatsApp/course) shown to Tier B users after 10-card preview or on professor note detail. Submits to `access_requests` table.
+- **`FlagButton.jsx`** (new) — "Report" button with reason select (Content error / Inappropriate / Other); calls `submit_content_flag` RPC. Shown on note tiles, note detail, and flashcard study view (non-owner only).
+- **Admin Dashboard — "Access Requests" tab** — table with Name, WhatsApp, Course, Content Seen, Date, Status; inline status dropdown (pending/contacted/enrolled/dismissed).
+- **Admin nav link** — "Admin" link to `/admin` added to NavDesktop and "Dashboard" button added to NavMobile admin section.
+
+### Changed
+- **`ReviewFlashcards.jsx`** — Tier B users see "Preview: first 10 of N items" on professor deck tiles; `startStudySession` passes `previewMode=true` and `totalCards=N` URL params for professor content.
+- **`StudyMode.jsx`** — Preview mode: slices cards to 10, shows proportional progress bar (10/total fills purple, remainder grey), amber banner "PREVIEW MODE — first 10 of N items"; `handleRating` and `advanceOrFinish` now set `currentIndex = flashcards.length` on last preview card (triggers ContentPreviewWall) instead of calling `onExit`.
+- **`NoteDetail.jsx`** — Tier B viewers of professor notes see ContentPreviewWall instead of note image/text/flashcards; FlagButton shown for non-owners.
+- **`BrowseNotes.jsx`** — FlagButton added to non-owner note tiles.
+- **`AdminDashboard.jsx`** — `fetchStats` now uses `get_platform_stats` SECURITY DEFINER RPC (fixes undercounting vs landing page); users table shows Tier A/B badges; Access Requests tab added.
+
+### Fixed
+- **Admin stat cards** showed ~1000 flashcards vs landing page 1913 — RLS was filtering direct table queries even for admins. Fixed by routing through `get_platform_stats` RPC.
+- **Preview deck tile** showed "Preview only (first 10 items)" with no total — now shows "Preview: first 10 of N items".
+- **Preview progress bar** filled 100% at card 10 — now fills proportionally (e.g. 22% for a 45-card deck) using `totalCards` URL param as denominator.
+- **ContentPreviewWall never appeared** after 10 preview cards — `handleRating` was calling `onExit()` on last card, navigating away before `isComplete` could render the wall. Fixed in both `handleRating` and `advanceOrFinish`.
+
+### Files Changed
+- `src/pages/dashboard/Study/StudyMode.jsx`
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+- `src/pages/dashboard/Content/NoteDetail.jsx`
+- `src/pages/dashboard/Content/BrowseNotes.jsx`
+- `src/pages/admin/AdminDashboard.jsx`
+- `src/components/ui/ContentPreviewWall.jsx` (new)
+- `src/components/ui/FlagButton.jsx` (new)
+- `src/components/layout/NavDesktop.jsx`
+- `src/components/layout/NavMobile.jsx`
+- `docs/active/now.md`
+- `docs/tracking/changelog.md`
+
+---
 ## [2026-03-17] feat: Sprint 6 — Data contract UI enforcement + schema documentation
 
 ### Added

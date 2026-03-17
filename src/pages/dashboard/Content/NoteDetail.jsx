@@ -6,6 +6,8 @@ import { ArrowLeft, FileText, File, Calendar, Tag, Plus, Brain, Trash2, Edit, Us
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import UpvoteButton from '@/components/ui/UpvoteButton';
+import ContentPreviewWall from '@/components/ui/ContentPreviewWall';
+import FlagButton from '@/components/ui/FlagButton';
 
 export default function NoteDetail() {
   const { id } = useParams();
@@ -18,6 +20,7 @@ export default function NoteDetail() {
   const [flashcards, setFlashcards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [authorProfile, setAuthorProfile] = useState(null);
+  const [userAccountType, setUserAccountType] = useState(null);
 
   useEffect(() => {
     fetchNote();
@@ -47,8 +50,18 @@ export default function NoteDetail() {
           .select('id, full_name, role')
           .eq('id', data.user_id)
           .single();
-        
+
         setAuthorProfile(profileData);
+      }
+
+      // Fetch current user's account_type for tier gating
+      if (user?.id) {
+        const { data: myProfile } = await supabase
+          .from('profiles')
+          .select('account_type')
+          .eq('id', user.id)
+          .single();
+        if (myProfile) setUserAccountType(myProfile.account_type);
       }
 
       // Fetch linked flashcards
@@ -120,6 +133,7 @@ export default function NoteDetail() {
 
   const isPDF = note.image_url?.toLowerCase().endsWith('.pdf');
   const isOwner = user?.id === note.user_id;
+  const isTierBViewer = userAccountType === 'self_registered' && !isOwner && authorProfile?.role === 'professor';
 
   // Get display names for subject and topic
   const displaySubject = note.custom_subject || note.subject?.name || 'No subject';
@@ -157,7 +171,11 @@ export default function NoteDetail() {
                 ownerId={note.user_id}
                 size="md"
               />
-              
+
+              {!isOwner && (
+                <FlagButton contentType="note" contentId={note.id} />
+              )}
+
               {isOwner && (
                 <>
                   <Button
@@ -251,52 +269,62 @@ export default function NoteDetail() {
             )}
           </div>
 
-          {/* Note Image/PDF */}
-          <div className="p-6 border-b border-gray-200 bg-gray-50">
-            {isPDF ? (
-              <div className="text-center py-8">
-                <File className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-                <p className="text-gray-700 font-medium mb-4">{note.title}.pdf</p>
-                <Button
-                  onClick={() => window.open(note.image_url, '_blank')}
-                  className="gap-2"
-                >
-                  <File className="h-4 w-4" />
-                  Open PDF
-                </Button>
+          {/* Note Image/PDF — locked for Tier B viewers of professor notes */}
+          {isTierBViewer ? (
+            <ContentPreviewWall
+              contentId={note.id}
+              contentType="note"
+              contentName={note.title}
+            />
+          ) : (
+            <>
+              <div className="p-6 border-b border-gray-200 bg-gray-50">
+                {isPDF ? (
+                  <div className="text-center py-8">
+                    <File className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+                    <p className="text-gray-700 font-medium mb-4">{note.title}.pdf</p>
+                    <Button
+                      onClick={() => window.open(note.image_url, '_blank')}
+                      className="gap-2"
+                    >
+                      <File className="h-4 w-4" />
+                      Open PDF
+                    </Button>
+                  </div>
+                ) : (
+                  <img
+                    src={note.image_url}
+                    alt={note.title}
+                    className="w-full h-auto rounded-lg shadow-sm"
+                  />
+                )}
               </div>
-            ) : (
-              <img
-                src={note.image_url}
-                alt={note.title}
-                className="w-full h-auto rounded-lg shadow-sm"
-              />
-            )}
-          </div>
 
-          {/* Extracted Text */}
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Extracted Text</h2>
-            {note.extracted_text ? (
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-gray-800 whitespace-pre-wrap font-mono text-sm">
-                  {note.extracted_text}
-                </p>
+              {/* Extracted Text */}
+              <div className="p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">Extracted Text</h2>
+                {note.extracted_text ? (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-800 whitespace-pre-wrap font-mono text-sm">
+                      {note.extracted_text}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-yellow-800 text-sm">
+                      {isPDF
+                        ? "PDF text extraction is not yet available. You can manually create flashcards from this note."
+                        : "No text was extracted from this image. You can manually create flashcards from this note."}
+                    </p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-yellow-800 text-sm">
-                  {isPDF 
-                    ? "PDF text extraction is not yet available. You can manually create flashcards from this note."
-                    : "No text was extracted from this image. You can manually create flashcards from this note."}
-                </p>
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
-        {/* Linked Flashcards Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        {/* Linked Flashcards Section — hidden for Tier B viewers of professor notes */}
+        {!isTierBViewer && <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6 border-b border-gray-200 bg-gray-50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -391,7 +419,7 @@ export default function NoteDetail() {
               </div>
             )}
           </div>
-        </div>
+        </div>}
       </main>
     </div>
   );

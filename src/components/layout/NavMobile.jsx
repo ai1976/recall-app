@@ -333,6 +333,13 @@ export default function NavMobile({
                             </p>
                           </div>
                           <button
+                            onClick={() => handleNavClick('/admin')}
+                            className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"
+                          >
+                            <Shield className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-700">Dashboard</span>
+                          </button>
+                          <button
                             onClick={() => handleNavClick('/admin/analytics')}
                             className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"
                           >

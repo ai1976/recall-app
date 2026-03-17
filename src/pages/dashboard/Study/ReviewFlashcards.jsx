@@ -57,7 +57,7 @@ export default function ReviewFlashcards() {
     if (!user) return;
     supabase
       .from('profiles')
-      .select('role, course_level')
+      .select('role, course_level, account_type')
       .eq('id', user.id)
       .single()
       .then(({ data }) => { if (data) setUserProfile(data); });
@@ -342,7 +342,7 @@ export default function ReviewFlashcards() {
     setFilterAuthor('all');
   };
 
-  const startStudySession = (subjectName, topicName = null, deckId = null) => {
+  const startStudySession = (subjectName, topicName = null, deckId = null, isProfessorContent = false) => {
     const params = new URLSearchParams();
     if (deckId) {
       // Individual deck: filter precisely by deck ID (immune to null/fallback topic names)
@@ -352,6 +352,13 @@ export default function ReviewFlashcards() {
       params.set('subject', subjectName);
       if (topicName) params.set('topic', topicName);
       if (filterAuthor !== 'all') params.set('author', filterAuthor);
+    }
+    // Tier B users get preview mode for professor content
+    if (isProfessorContent && userProfile?.account_type === 'self_registered') {
+      params.set('previewMode', 'true');
+      // Pass deck's total card count so progress bar shows proportional fill
+      const deck = allDecksFlat.find(d => d.id === deckId);
+      if (deck?.card_count) params.set('totalCards', deck.card_count);
     }
     navigate(`/dashboard/study?${params.toString()}`);
   };
@@ -365,6 +372,7 @@ export default function ReviewFlashcards() {
   }
 
   const isStudent = userProfile?.role === 'student';
+  const isTierB = userProfile?.account_type === 'self_registered';
   const totalCards = flashcardSets.reduce((sum, subject) => sum + subject.totalCards, 0);
   // Course filter is locked for students, so don't count it as an "active" user filter
   const hasActiveFilters = searchQuery || (!isStudent && filterCourse !== 'all') || filterSubject !== 'all' || filterTopic !== 'all' || filterRole !== 'all' || filterAuthor !== 'all';
@@ -590,7 +598,7 @@ export default function ReviewFlashcards() {
                           >
                             {/* Clickable Study Area */}
                             <button
-                              onClick={() => startStudySession(subject.name, deck.topicName, deck.id)}
+                              onClick={() => startStudySession(subject.name, deck.topicName, deck.id, deck.owner?.role === 'professor')}
                               className="w-full text-left"
                             >
                               <div className="flex items-start justify-between mb-2">
@@ -599,7 +607,9 @@ export default function ReviewFlashcards() {
                                     {deck.topicName}
                                   </h4>
                                   <p className="text-sm text-gray-600 mt-1">
-                                    {deck.card_count} cards
+                                    {isTierB && deck.owner?.role === 'professor'
+                                      ? `Preview: first 10 of ${deck.card_count} items`
+                                      : `${deck.card_count} cards`}
                                   </p>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 flex-shrink-0" />
