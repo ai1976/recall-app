@@ -1,6 +1,25 @@
 # Changelog
 
 ---
+## [2026-03-19c] fix: Public deck preview + groups course filter + DeckPreview CTA redesign
+
+### Changed
+- **`DeckPreview.jsx`** — removed `ContentPreviewWall` (WhatsApp lead capture); anonymous visitors shown "Sign up free" CTA instead; CTA copy does not promise full card access (would be misleading for professor decks where Tier B students only get 10-card preview); `showWall` state removed; `ContentPreviewWall` import removed
+- **`CLAUDE.md`** — added critical database rule: `deck_id` on `flashcards` is never populated; always join on 5 grouping columns `(user_id, subject_id, topic_id, custom_subject, custom_topic)` to fetch flashcards for a deck
+- **`DATABASE_SCHEMA.md`** — added explicit warning + exact join SQL pattern in flashcard_decks section; documents that `deck_id` FK exists but is never set, and that `batch_id` is for client-side upload grouping only — not a deck FK
+
+### Fixed
+- **Groups page — professor course switching** — `get_my_batch_groups` professor path previously returned only the primary course's batch group (likely filtered by `batch_course IN (teaching courses)` which had a matching issue); rebuilt to return ALL batch groups for professors; client-side `activeCourse` filter in `MyGroups.jsx` correctly handles per-course display
+- **DeckPreview showing 0 of N items** — `get_public_deck_preview` fetched preview flashcards via `WHERE deck_id = p_deck_id` which always returns 0 rows because `deck_id` on `flashcards` is never populated; fixed to join on the 5 grouping columns that `update_deck_card_count` trigger uses; root cause documented in CLAUDE.md and DATABASE_SCHEMA.md to prevent recurrence
+
+### SQL Deployed
+- `DROP FUNCTION IF EXISTS get_my_batch_groups()` + rebuilt (return type changed)
+- `CREATE OR REPLACE FUNCTION get_public_deck_preview(p_deck_id uuid)` — fixed flashcard join logic
+
+### Files Changed
+`src/pages/public/DeckPreview.jsx`, `CLAUDE.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md`
+
+---
 ## [2026-03-19b] fix: Admin role management + batch group enrolment + super admin delete
 
 ### Added

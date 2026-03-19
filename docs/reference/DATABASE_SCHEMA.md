@@ -2025,6 +2025,23 @@ Groups flashcards into logical decks by user/subject/topic. Enables upvoting at 
 
 **Unique Constraint:** `(user_id, subject_id, topic_id, custom_subject, custom_topic)` NULLS NOT DISTINCT
 
+⚠️ **CRITICAL — How to join flashcards → flashcard_decks (READ THIS BEFORE WRITING ANY RPC)**
+- The `deck_id` column on the `flashcards` table EXISTS as a FK to `flashcard_decks.id` but is **NEVER POPULATED**. Do NOT use `WHERE fc.deck_id = p_deck_id` — it will always return 0 rows.
+- The `batch_id` column on `flashcards` is for grouping cards from the same upload session — it is **NOT** the deck ID and does **NOT** link to `flashcard_decks.id`.
+- **The only correct way to fetch flashcards for a deck** is to join on the 5 grouping columns, exactly as the trigger does:
+```sql
+SELECT fc.*
+FROM flashcards fc
+JOIN flashcard_decks fd ON
+    fc.user_id = fd.user_id
+  AND (fc.subject_id     IS NOT DISTINCT FROM fd.subject_id)
+  AND (fc.topic_id       IS NOT DISTINCT FROM fd.topic_id)
+  AND (fc.custom_subject IS NOT DISTINCT FROM fd.custom_subject)
+  AND (fc.custom_topic   IS NOT DISTINCT FROM fd.custom_topic)
+WHERE fd.id = p_deck_id
+```
+This pattern is used in `get_public_deck_preview` and must be used in any future RPC that reads flashcards by deck.
+
 **Indexes:**
 - `idx_flashcard_decks_user` (user_id)
 - `idx_flashcard_decks_subject` (subject_id)

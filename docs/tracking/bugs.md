@@ -2,6 +2,26 @@
 
 ## Resolved Bugs
 
+### [Mar 19, 2026] DeckPreview Public Page Shows "Preview (0 of N items)"
+- **Symptom:** Public deck URL shared via WhatsApp showed correct deck metadata but 0 preview cards ("Preview (0 of 21 items)"). The ContentPreviewWall appeared but no question cards were visible.
+- **Root Cause:** `get_public_deck_preview` fetched flashcards using `WHERE fc.deck_id = p_deck_id`. The `deck_id` column on the `flashcards` table exists as a FK to `flashcard_decks.id` but is **never populated** by any write path. The `update_deck_card_count` trigger (which correctly maintains `card_count`) matches flashcards to decks via 5 grouping columns `(user_id, subject_id, topic_id, custom_subject, custom_topic)` — not by `deck_id`.
+- **Fix:** Rebuilt `get_public_deck_preview` to join flashcards to the deck using the same 5 grouping columns the trigger uses.
+- **Documentation:** Added critical rule to CLAUDE.md and DATABASE_SCHEMA.md — `deck_id` on flashcards is never populated; always join on grouping columns.
+- **Why it wasn't caught earlier:** Was tested in localhost with a different (newer) deck whose creation flow happened to populate `deck_id`; or tested while logged in where the ContentPreviewWall appearing masked the 0-card count.
+- **Status:** ✅ RESOLVED
+
+### [Mar 19, 2026] Groups Page — Professor Course Switch Does Not Update Batch Groups
+- **Symptom:** Professor with 3 teaching courses (CA Intermediate primary, CA Foundation + CA Final secondary) saw only the CA Intermediate batch group regardless of which course was selected in the top menu.
+- **Root Cause:** `get_my_batch_groups` professor path was returning only batch groups for the professor's primary/teaching courses via a course-name match that had an issue (likely matched only primary). All 3 batch groups were confirmed to exist with correct `batch_course` values matching discipline names exactly.
+- **Fix:** Rebuilt professor path in `get_my_batch_groups` to return ALL batch groups. Client-side `activeCourse` filter in `MyGroups.jsx` already correctly handles per-course display — no frontend change needed.
+- **Status:** ✅ RESOLVED
+
+### [Mar 19, 2026] DeckPreview CTA Misleading for Professor Decks
+- **Symptom:** CTA on public DeckPreview page said "Sign up free to study all 21 cards." For professor-created decks, Tier B students after signup only get a 10-card preview — the CTA was a false promise.
+- **Root Cause:** CTA copy assumed signup = full access, which is true only for student-created public decks.
+- **Fix:** CTA changed to "Start studying on Recall — it's free" with subtext about spaced repetition and progress tracking. Card count no longer mentioned in CTA (it's already visible in the deck header). Accurate for both professor and student decks.
+- **Status:** ✅ RESOLVED
+
 ### [Mar 19, 2026] Groups Page Shows No Batch Groups for Admin / Super Admin
 - **Symptom:** After creating batch groups, admin and super_admin logins showed no batch groups on the Groups page. Personal groups were visible. Batch groups only visible in Admin Dashboard.
 - **Root Cause:** Admin/super_admin accounts had `profile_courses` entries left over from when they were originally created as students and later promoted. `CourseContext` reads `profile_courses` and sets `activeCourse` to the primary teaching course. `MyGroups.jsx` filter: `groups.filter(g => !g.is_batch_group || g.batch_course === activeCourse)` then hid all batch groups whose `batch_course` didn't match that stale `activeCourse`. `get_my_batch_groups` RPC was correctly returning all batch groups server-side, but the client-side filter discarded them.

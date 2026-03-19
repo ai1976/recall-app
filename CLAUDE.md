@@ -41,8 +41,10 @@ Always update these docs:
 - **Supabase client:** `src/lib/supabase.js`
 - Reviews table is single source of truth for student progress
 - NEVER use `toISOString()` for date calculations
-- Group flashcards by `batch_id`, NEVER by timestamp
+- Group flashcards by `batch_id`, NEVER by timestamp (client-side display grouping only)
 - Column is `created_at` in reviews table, NOT `reviewed_at`
+- **`deck_id` on `flashcards` is NEVER populated** — do NOT use `WHERE fc.deck_id = p_deck_id` to fetch flashcards for a deck; it always returns 0 rows
+- **To fetch flashcards for a deck**, join on the 5 grouping columns (same logic as the trigger): `fc.user_id = fd.user_id AND (fc.subject_id IS NOT DISTINCT FROM fd.subject_id) AND (fc.topic_id IS NOT DISTINCT FROM fd.topic_id) AND (fc.custom_subject IS NOT DISTINCT FROM fd.custom_subject) AND (fc.custom_topic IS NOT DISTINCT FROM fd.custom_topic)` — see DATABASE_SCHEMA.md flashcard_decks section
 
 ## SQL Query Naming (Supabase SQL Editor)
 When providing SQL queries, ALWAYS include:

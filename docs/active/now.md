@@ -1,11 +1,30 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-19 (session 2)
-**Current Phase:** All batch group + admin role fixes complete — ready for commit + deploy
+**Last Updated:** 2026-03-19 (session 3)
+**Current Phase:** Post-deploy bug fixes complete — ready for commit + deploy
 
 ---
 
 ## Just Completed ✅
+
+### Post-Deploy Bug Fixes — Public Deck Preview + Groups Page (Mar 19, 2026 — session 3)
+
+**Bugs fixed (SQL):**
+- `get_my_batch_groups` RPC — professor path was only returning primary course batch group; rebuilt to return ALL batch groups for professors; client-side `activeCourse` filter in MyGroups already handles per-course display correctly
+- `get_public_deck_preview` RPC — was fetching preview flashcards via `WHERE deck_id = p_deck_id` which always returns 0 rows (`deck_id` on flashcards is never populated); fixed to join on `(user_id, subject_id, topic_id, custom_subject, custom_topic)` — same logic as `update_deck_card_count` trigger
+
+**Bugs fixed (frontend):**
+- `DeckPreview.jsx` — removed `ContentPreviewWall` (WhatsApp lead capture form); anonymous visitors should be shown a "Sign up free" CTA, not a WhatsApp form — signing up is free and immediately available, not "coming soon"; CTA updated to honest copy that doesn't promise full access (misleading for professor decks where Tier B students only get 10 card preview)
+
+**Documentation updated:**
+- `CLAUDE.md` — added critical rule: `deck_id` on `flashcards` is never populated; always join on 5 grouping columns to fetch flashcards for a deck
+- `DATABASE_SCHEMA.md` — added warning + exact join SQL pattern under flashcard_decks section
+
+**Sprint backlog added:**
+- WhatsApp share button for notes — requires public `/note/:noteId` page first (same pattern as DeckPreview); without it, sharing `/dashboard/notes/:noteId` only works for logged-in users
+
+**Pending before deploy:**
+- Commit and push this session's changes
 
 ### Admin Role Fixes + Batch Group Enrolment (Mar 19, 2026 — session 2)
 Continued from Sprint 2 QA session. All batch groups created and students enrolled. Admin/super_admin role management finalised.

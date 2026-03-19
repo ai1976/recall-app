@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import ContentPreviewWall from '@/components/ui/ContentPreviewWall';
 import { CreditCard, BookOpen, LogIn, User } from 'lucide-react';
 
 export default function DeckPreview() {
@@ -15,7 +14,6 @@ export default function DeckPreview() {
   const [preview, setPreview] = useState(null); // { deck, preview_items }
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [showWall, setShowWall] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -26,10 +24,6 @@ export default function DeckPreview() {
           setNotFound(true);
         } else {
           setPreview(data);
-          // Show wall if there are more items than the preview
-          if ((data.deck.card_count ?? 0) > (data.preview_items ?? []).length) {
-            setShowWall(true);
-          }
         }
       } catch (err) {
         console.error('DeckPreview load:', err);
@@ -133,17 +127,31 @@ export default function DeckPreview() {
           </CardContent>
         </Card>
 
-        {/* Lead capture wall */}
-        {showWall && (
-          <ContentPreviewWall
-            contentId={deckId}
-            contentType="flashcard_deck"
-            contentName={deck.name}
-          />
+        {/* CTA — sign up to study full deck */}
+        {!user && (
+          <div className="text-center py-8 px-6 bg-white rounded-xl border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Start studying on Recall — it&apos;s free
+            </h3>
+            <p className="text-sm text-gray-500 mb-5">
+              Create a free account to study with spaced repetition and track your progress.
+            </p>
+            <Link to="/signup">
+              <Button className="w-full sm:w-auto px-8">
+                Sign up free
+              </Button>
+            </Link>
+            <p className="text-xs text-gray-400 mt-3">
+              Already on Recall?{' '}
+              <Link to="/login" className="text-indigo-600 hover:underline">
+                Sign in
+              </Link>
+            </p>
+          </div>
         )}
 
         {/* CTA for logged-in users */}
-        {user && !showWall && (
+        {user && (
           <div className="text-center py-6">
             <Button onClick={() => navigate('/dashboard/review-flashcards')}>
               Study All Sets on Recall
