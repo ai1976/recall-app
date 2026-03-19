@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCourseContext } from '@/contexts/CourseContext';
 import { useToast } from '@/hooks/use-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Plus, Crown, LogOut, Trash2, Check, X, Mail } from 'lucide-react';
+import { Users, Plus, Crown, LogOut, Trash2, Check, X, Mail, Shield } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ export default function MyGroups() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { activeCourse } = useCourseContext();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [leaveDialog, setLeaveDialog] = useState({ open: false, group: null });
@@ -39,9 +41,22 @@ export default function MyGroups() {
 
   const fetchGroups = async () => {
     try {
-      const { data, error } = await supabase.rpc('get_user_groups');
-      if (error) throw error;
-      setGroups(data || []);
+      const [userGroupsRes, batchGroupsRes] = await Promise.all([
+        supabase.rpc('get_user_groups'),
+        supabase.rpc('get_my_batch_groups'),
+      ]);
+
+      if (userGroupsRes.error) throw userGroupsRes.error;
+
+      // Merge batch groups, deduplicating by ID
+      // (students who are members of a batch group get it from get_user_groups already)
+      const merged = [...(userGroupsRes.data ?? [])];
+      const existingIds = new Set(merged.map(g => g.id));
+      (batchGroupsRes.data ?? []).forEach(g => {
+        if (!existingIds.has(g.id)) merged.push(g);
+      });
+
+      setGroups(merged);
     } catch (error) {
       console.error('Error fetching groups:', error);
       toast({
@@ -239,7 +254,12 @@ export default function MyGroups() {
         </div>
       )}
 
-      {groups.length === 0 ? (
+      {/* Filter: batch groups scoped to activeCourse; personal groups always shown */}
+      {(() => {
+        const visibleGroups = activeCourse
+          ? groups.filter(g => !g.is_batch_group || g.batch_course === activeCourse)
+          : groups;
+        return visibleGroups.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -255,22 +275,33 @@ export default function MyGroups() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {groups.map((group) => (
+          {visibleGroups.map((group) => (
             <Card
               key={group.id}
               className="hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
               onClick={() => navigate(`/dashboard/groups/${group.id}`)}
             >
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-lg line-clamp-1">{group.name}</CardTitle>
-                  {group.user_role === 'admin' && (
-                    <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-medium rounded-full shrink-0">
-                      <Crown className="h-3 w-3" />
-                      Admin
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {group.is_batch_group && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                        <Shield className="h-3 w-3" />
+                        Official
+                      </span>
+                    )}
+                    {group.user_role === 'admin' && !group.is_batch_group && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-medium rounded-full">
+                        <Crown className="h-3 w-3" />
+                        Admin
+                      </span>
+                    )}
+                  </div>
                 </div>
+                {group.is_batch_group && group.batch_course && (
+                  <p className="text-xs text-blue-600 font-medium mt-1">{group.batch_course}</p>
+                )}
               </CardHeader>
               <CardContent>
                 {group.description && (
@@ -285,40 +316,43 @@ export default function MyGroups() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2 mt-3 pt-3 border-t">
-                  {group.user_role === 'admin' && group.created_by === user.id ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteDialog({ open: true, group });
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-gray-600 hover:text-gray-700"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLeaveDialog({ open: true, group });
-                      }}
-                    >
-                      <LogOut className="h-4 w-4 mr-1" />
-                      Leave
-                    </Button>
-                  )}
-                </div>
+                {!group.is_batch_group && (
+                  <div className="flex gap-2 mt-3 pt-3 border-t">
+                    {group.user_role === 'admin' && group.created_by === user.id ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteDialog({ open: true, group });
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-600 hover:text-gray-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLeaveDialog({ open: true, group });
+                        }}
+                      >
+                        <LogOut className="h-4 w-4 mr-1" />
+                        Leave
+                      </Button>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
-      )}
+        );
+      })()}
 
       {/* Leave Group Dialog */}
       <Dialog open={leaveDialog.open} onOpenChange={(open) => !open && setLeaveDialog({ open: false, group: null })}>

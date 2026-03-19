@@ -29,6 +29,8 @@ import {
   X,
   Share2,
   Clock,
+  Link2,
+  MessageCircle,
 } from 'lucide-react';
 
 export default function GroupDetail() {
@@ -209,11 +211,10 @@ export default function GroupDetail() {
     if (!removeDialog.member) return;
     setActionLoading(true);
     try {
-      const { error } = await supabase
-        .from('study_group_members')
-        .delete()
-        .eq('group_id', groupId)
-        .eq('user_id', removeDialog.member.user_id);
+      const { error } = await supabase.rpc('remove_group_member', {
+        p_group_id: groupId,
+        p_user_id: removeDialog.member.user_id,
+      });
       if (error) throw error;
       toast({ title: 'Member removed' });
       setRemoveDialog({ open: false, member: null });
@@ -463,6 +464,47 @@ export default function GroupDetail() {
                       </Button>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+            {/* Invite via Link (self-selected groups only) */}
+            {!group.is_batch_group && isAdmin && (
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1">
+                  <Link2 className="h-3 w-3" />
+                  Invite via Link
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      const link = `${window.location.origin}/join/${group.invite_token}`;
+                      navigator.clipboard.writeText(link).then(() => {
+                        toast({ title: 'Link copied!', description: 'Share it with anyone you want to invite.' });
+                      });
+                    }}
+                  >
+                    <Link2 className="h-3.5 w-3.5 mr-1" />
+                    Copy Link
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => {
+                      const link = `${window.location.origin}/join/${group.invite_token}`;
+                      const text = `Join our study group "${group.name}" on Recall: ${link}`;
+                      if (navigator.share) {
+                        navigator.share({ title: group.name, text, url: link }).catch(() => {});
+                      } else {
+                        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                      }
+                    }}
+                  >
+                    <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                    WhatsApp
+                  </Button>
                 </div>
               </div>
             )}

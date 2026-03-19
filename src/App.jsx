@@ -56,6 +56,10 @@ const Help = lazy(() => import('@/pages/dashboard/Help'))
 const BulkUploadFlashcards = lazy(() => import('@/pages/dashboard/BulkUploadFlashcards'))
 const ProfessorAnalytics = lazy(() => import('@/pages/dashboard/ProfessorAnalytics'))
 
+// Public Pages (no auth required)
+const GroupJoin = lazy(() => import('@/pages/public/GroupJoin'))
+const DeckPreview = lazy(() => import('@/pages/public/DeckPreview'))
+
 // Admin Pages
 const SuperAdminDashboard = lazy(() => import('@/pages/admin/SuperAdminDashboard'))
 const SuperAdminAnalytics = lazy(() => import('@/pages/admin/SuperAdminAnalytics'))
@@ -145,6 +149,10 @@ function AppContent() {
           {/* Legal Pages */}
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+
+          {/* Public Pages — no auth guard */}
+          <Route path="/join/:token" element={<GroupJoin />} />
+          <Route path="/deck/:deckId" element={<DeckPreview />} />
 
           {/* Dashboard Route */}
           <Route

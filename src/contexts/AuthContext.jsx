@@ -166,7 +166,8 @@ export const AuthProvider = ({ children }) => {
               course_level: courseLevel,
               institution: 'In-house',
               role: 'student',
-              timezone: browserTimezone // ✅ NEW: Set timezone on signup
+              timezone: browserTimezone,
+              account_type: 'self_registered',
             });
 
           // If profile creation fails, log warning but don't throw

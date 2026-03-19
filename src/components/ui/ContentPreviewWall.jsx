@@ -31,25 +31,47 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
   const { user } = useAuth();
   const { toast } = useToast();
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [whatsappWarning, setWhatsappWarning] = useState('');
   const [course, setCourse] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  const normalizeWhatsapp = (raw) => {
+    const digits = raw.replace(/\D/g, '');
+    if (raw.startsWith('+')) return raw; // already has country code
+    if (digits.length === 10) return '+91' + digits; // assume India
+    if (digits.startsWith('0') && digits.length === 11) return '+91' + digits.slice(1);
+    return raw;
+  };
+
+  const handleWhatsappChange = (e) => {
+    const val = e.target.value;
+    setWhatsapp(val);
+    if (val && !val.startsWith('+')) {
+      setWhatsappWarning('No country code detected — we\'ll assume +91 (India) on submit.');
+    } else {
+      setWhatsappWarning('');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !whatsapp.trim() || !course) return;
+    const normalizedWhatsapp = normalizeWhatsapp(whatsapp.trim());
+    if (!name.trim() || !email.trim() || !normalizedWhatsapp || !course) return;
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('access_requests').insert({
-        name: name.trim(),
-        whatsapp_number: whatsapp.trim(),
-        course,
-        content_id: contentId || null,
-        content_type: contentType || null,
-        content_name: contentName || null,
-        requester_user_id: user?.id || null,
+      const { error } = await supabase.rpc('submit_access_request', {
+        p_name: name.trim(),
+        p_whatsapp_number: normalizedWhatsapp,
+        p_course: course,
+        p_email: email.trim() || null,
+        p_content_id: contentId || null,
+        p_content_type: contentType || null,
+        p_content_name: contentName || null,
+        p_requester_user_id: user?.id || null,
       });
 
       if (error) throw error;
@@ -95,15 +117,31 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
             />
           </div>
           <div className="space-y-1">
+            <Label htmlFor="preview-email">Email</Label>
+            <Input
+              id="preview-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+          <div className="space-y-1">
             <Label htmlFor="preview-whatsapp">WhatsApp Number</Label>
             <Input
               id="preview-whatsapp"
               type="tel"
               value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
+              onChange={handleWhatsappChange}
               placeholder="+91 98765 43210"
               required
             />
+            {whatsappWarning ? (
+              <p className="text-xs text-amber-600">{whatsappWarning}</p>
+            ) : (
+              <p className="text-xs text-gray-400">Include country code, e.g. +91 for India</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label>Course preparing for</Label>
@@ -122,7 +160,7 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
           </div>
           <Button
             type="submit"
-            disabled={loading || !name.trim() || !whatsapp.trim() || !course}
+            disabled={loading || !name.trim() || !email.trim() || !whatsapp.trim() || !course}
             className="w-full"
           >
             {loading ? 'Submitting...' : 'Notify me when available'}

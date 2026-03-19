@@ -2,6 +2,73 @@
 
 ## Resolved Bugs
 
+### [Mar 19, 2026] Groups Page Shows No Batch Groups for Admin / Super Admin
+- **Symptom:** After creating batch groups, admin and super_admin logins showed no batch groups on the Groups page. Personal groups were visible. Batch groups only visible in Admin Dashboard.
+- **Root Cause:** Admin/super_admin accounts had `profile_courses` entries left over from when they were originally created as students and later promoted. `CourseContext` reads `profile_courses` and sets `activeCourse` to the primary teaching course. `MyGroups.jsx` filter: `groups.filter(g => !g.is_batch_group || g.batch_course === activeCourse)` then hid all batch groups whose `batch_course` didn't match that stale `activeCourse`. `get_my_batch_groups` RPC was correctly returning all batch groups server-side, but the client-side filter discarded them.
+- **Fix:**
+  1. SQL: `DELETE FROM profile_courses WHERE user_id IN (SELECT id FROM profiles WHERE role IN ('admin', 'super_admin'))` — clears stale entries → `activeCourse` falls back to `null` → filter skipped → all batch groups visible
+  2. Also nulled `course_level` for admin/super_admin since student course data is irrelevant to their role
+- **Status:** ✅ RESOLVED
+
+### [Mar 19, 2026] Super Admin User Hard Delete — Profile Silently Not Deleted, Auth Deletion Blocked
+- **Symptom:** When super_admin clicked Delete on a user in SuperAdminDashboard, the confirmation completed with no error. But going to Supabase Auth dashboard and trying to delete the auth user showed "Database error deleting user". User remained in the system.
+- **Root Cause (stage 1):** `deleteUser` called direct `.delete()` on `profiles` from the client. RLS on profiles has no DELETE policy for super_admin → delete was silently blocked (Supabase returns success with 0 rows affected, no error). Profile was never actually deleted.
+- **Root Cause (stage 2):** `admin_audit_log.target_user_id` FK referenced `profiles(id)` with `ON DELETE NO ACTION`. Retained audit log entries (from the deletion attempt itself) prevented the profile row from being deleted even when tried manually. And without the profile being deleted, auth user deletion failed due to `profiles.id → auth.users(id)` FK.
+- **Fix:**
+  1. `ALTER TABLE admin_audit_log` FK changed to `ON DELETE SET NULL` — audit records retained with `target_user_id = null`; user details preserved in `details` JSONB
+  2. Created `admin_delete_user_data(p_user_id uuid)` SECURITY DEFINER RPC — bypasses RLS; deletes all related rows (study_group_members, profile_courses, reviews, flashcards, flashcard_decks, notes, profiles) in correct order
+  3. `SuperAdminDashboard.jsx` `deleteUser` — replaced direct cascade deletes with single `rpc('admin_delete_user_data')` call
+- **Note:** Auth record (`auth.users`) still requires manual deletion from Supabase dashboard. Automating this requires a service-role Edge Function (planned future sprint).
+- **Status:** ✅ RESOLVED
+
+### [Mar 19, 2026] Profile Creation Silently Fails for All New Signups (9 Orphaned Accounts)
+- **Symptom:** Auth users existed in `auth.users` but had no corresponding row in `profiles`. These users could not log in or use the app. 9 affected accounts discovered via `SELECT u.id FROM auth.users u LEFT JOIN profiles p ON p.id = u.id WHERE p.id IS NULL`.
+- **Root Cause:** `signUp()` with Supabase email confirmation ON returns no session (user must verify email first). `AuthContext.jsx` then attempted `supabase.from('profiles').insert()` with `auth.uid() = null` → RLS INSERT policy requires `id = auth.uid()` → INSERT silently blocked. No error thrown (code used `console.warn` and continued). Auth user was created; profile was not.
+- **Why earlier users were unaffected:** Email confirmation was ON from Day 1. Investigation ongoing — likely a code path change in AuthContext around mid-March caused the direct insert to be reached after the RLS policy was added (Mar 12 RLS sprint).
+- **Fix:**
+  1. Created `handle_new_user()` SECURITY DEFINER trigger on `auth.users` AFTER INSERT — creates profile from `raw_user_meta_data` at DB level regardless of session state
+  2. Bulk backfill: `INSERT INTO profiles SELECT ... FROM auth.users LEFT JOIN profiles WHERE profiles.id IS NULL`
+- **Lesson added to CLAUDE.md:** When enabling RLS on a table, audit every existing INSERT path. Any write that must succeed without a client session (signup, email confirmation flows) MUST use a SECURITY DEFINER trigger or RPC.
+- **Status:** ✅ RESOLVED
+
+### [Mar 19, 2026] ContentPreviewWall Form Submission — HTTP 400 (Two Separate Causes)
+- **Symptom:** Submitting the WhatsApp lead capture form returned HTTP 400. Form appeared to submit but nothing was saved.
+- **Root Cause 1:** `access_requests.status` and `requested_at` columns had no DEFAULT values. NOT NULL constraint with no DEFAULT → INSERT from RPC failed.
+- **Fix 1:** `ALTER TABLE access_requests ALTER COLUMN status SET DEFAULT 'pending', ALTER COLUMN requested_at SET DEFAULT now()`
+- **Root Cause 2:** `anon` role lacked EXECUTE permission on `submit_access_request` RPC. SECURITY DEFINER bypasses RLS inside the function but the `anon` role still needs explicit GRANT to call it at all.
+- **Fix 2:** `GRANT EXECUTE ON FUNCTION submit_access_request(...) TO anon`
+- **Status:** ✅ RESOLVED
+
+### [Mar 19, 2026] DeckPreview Access Request — content_type Check Constraint Violation
+- **Symptom:** Submitting the ContentPreviewWall form from a deck preview page returned a check constraint violation error.
+- **Root Cause:** `DeckPreview.jsx` passed `contentType = 'deck'` but `access_requests.content_type` CHECK constraint only allows `'flashcard_deck'` and `'note'`.
+- **Fix:** Changed `contentType` prop in `DeckPreview.jsx` to `'flashcard_deck'`.
+- **Status:** ✅ RESOLVED
+
+### [Mar 19, 2026] Admin/Super Admin Not Receiving Access Request Notifications
+- **Symptom:** When a student submitted an access request form, no notification appeared in admin/super admin accounts.
+- **Root Cause:** `notify_access_request` function filtered with `WHERE account_type IN ('admin', 'super_admin')`. All profiles have `account_type = 'enrolled'` (or `'self_registered'`). Admin/super admin distinction is stored in the separate `role` column.
+- **Fix:** Changed WHERE clause to `WHERE role IN ('admin', 'super_admin')`.
+- **Status:** ✅ RESOLVED
+
+### [Mar 19, 2026] Notification INSERT Failing — notifications_type_check Constraint
+- **Symptom:** `submit_access_request` RPC failed when trying to insert a notification of type `'access_request'`.
+- **Root Cause:** `notifications_type_check` constraint did not include `'access_request'` as an allowed type.
+- **Fix:** Dropped and recreated constraint adding `'access_request'` to the allowed values array.
+- **Status:** ✅ RESOLVED
+
+### [Mar 19, 2026] User Management Tab Shows Empty List
+- **Symptom:** Admin Dashboard → User Management tab showed no users despite 141+ accounts existing.
+- **Root Cause:** `fetchUsers` query selected `status` column which did not exist on the `profiles` table. Supabase returned an error which was caught silently → empty list rendered.
+- **Fix:** `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','suspended'))`
+- **Status:** ✅ RESOLVED
+
+### [Mar 19, 2026] Blank Course Dropdown in ReviewFlashcards + BrowseNotes
+- **Symptom:** For users enrolled in a course that has no public content yet (e.g. CA Final student Aaryaman More), the Course filter dropdown showed a blank selected value instead of "All Courses".
+- **Root Cause:** Filter defaulted to the user's `course_level` but no content existed for that course, so the dropdown option was never populated — blank option was selected.
+- **Fix:** Frontend fix to default to "All Courses" when the user's course has no content in the available options.
+- **Status:** ✅ RESOLVED
+
 ### [Mar 15, 2026] Progress Page "All My Content" Shows Subjects from Non-Enrolled Courses
 - **Symptom:** A student enrolled in CA Intermediate saw "Business Laws" (a CA Foundation subject) in their Subject Mastery table on the "All My Content" tab, with 0 reviews and 201 total cards. Similarly, a CA Foundation student saw CA Intermediate subjects.
 - **Root Cause:** "All My Content" tab passed `courseLevel={null}` to `get_subject_mastery_v1` and `get_question_type_performance`. The RPCs interpret `null` as "no course filter" → return all public cards across all courses. With 659 total public cards spread across CA Foundation, Intermediate, and Final, any student saw every subject in the system.

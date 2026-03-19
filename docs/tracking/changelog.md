@@ -1,6 +1,108 @@
 # Changelog
 
 ---
+## [2026-03-19b] fix: Admin role management + batch group enrolment + super admin delete
+
+### Added
+- **`admin_delete_user_data(p_user_id uuid)` RPC** — SECURITY DEFINER; super_admin-only; deletes study_group_members, profile_courses, reviews, flashcards, flashcard_decks, notes, profiles in correct cascade order; bypasses RLS which was silently blocking client-side profile deletion
+- **`remove_group_member` SQL function** — allows group admin to remove a member from a group via GroupDetail UI
+- **CA Foundation batch group** — created by super_admin; all enrolled Foundation students bulk-enrolled
+- **CA Intermediate batch group** — created by admin; all enrolled Intermediate students bulk-enrolled
+
+### Changed
+- **`SuperAdminDashboard.jsx` — `deleteUser`** — replaced direct `.delete()` cascade (silently failed due to RLS) with `rpc('admin_delete_user_data')`; profile deletion now works correctly; success alert simplified; manual auth record deletion step retained (requires service role)
+- **`Dashboard.jsx`** — profile completion modal now skipped for admin/super_admin roles; `role` field added to profile fetch; `isAdminRole` check prevents modal loop after `course_level` was nulled for those accounts
+- **`MyGroups.jsx`** — `fetchGroups` now calls `get_user_groups` and `get_my_batch_groups` in parallel; results merged with deduplication by ID; `useEffect` dependency simplified to `[]`; activeCourse filter preserved for student batch groups; server-side role resolution in `get_my_batch_groups` eliminates all frontend timing issues with `isAdmin`/`isSuperAdmin`
+
+### Fixed
+- **Groups page blank for admin/super_admin** — admin/super_admin accounts had leftover `profile_courses` entries from when they were students; CourseContext set `activeCourse` from those entries → MyGroups filter hid all batch groups not matching that course; fixed by deleting `profile_courses` for admin/super_admin (SQL) → `activeCourse` falls back to null → no filter applied → all batch groups visible
+- **Super admin hard delete silently failing** — `deleteUser` called direct `.delete()` on profiles which RLS blocked silently; profile was never deleted; going to Supabase Auth dashboard to delete auth user then failed due to FK constraint from profiles; fixed via `admin_delete_user_data` SECURITY DEFINER RPC
+- **Audit log blocking profile deletion** — `admin_audit_log.target_user_id` FK was `NO ACTION`; retained audit log entries prevented profile deletion; fixed by altering FK to `ON DELETE SET NULL` — audit records are kept with `target_user_id = null` and user details preserved in `details` JSONB
+
+### SQL Deployed
+- `DELETE FROM profile_courses WHERE user_id IN (SELECT id FROM profiles WHERE role IN ('admin', 'super_admin'))`
+- `UPDATE profiles SET course_level = NULL WHERE role IN ('admin', 'super_admin')`
+- `ALTER TABLE admin_audit_log DROP CONSTRAINT admin_audit_log_target_user_id_fkey`
+- `ALTER TABLE admin_audit_log ADD CONSTRAINT admin_audit_log_target_user_id_fkey FOREIGN KEY (target_user_id) REFERENCES profiles(id) ON DELETE SET NULL`
+- `CREATE OR REPLACE FUNCTION admin_delete_user_data(p_user_id uuid)` — SECURITY DEFINER cascade delete
+- `CREATE OR REPLACE FUNCTION remove_group_member(...)` — group admin member removal
+- Bulk enrolment: `INSERT INTO study_group_members ... WHERE p.course_level = sg.batch_course AND sg.batch_course IN ('CA Foundation', 'CA Intermediate')`
+
+### Files Changed
+`src/pages/admin/SuperAdminDashboard.jsx`, `src/pages/Dashboard.jsx`, `src/pages/dashboard/Groups/MyGroups.jsx`
+
+---
+## [2026-03-19] fix: Sprint 2 QA — bug fixes + batch group institution isolation
+
+### Added
+- **`profiles.status`** (new column) — `TEXT NOT NULL DEFAULT 'active'` with CHECK `('active','suspended')`; required for User Management tab to load
+- **`profiles.has_seen_onboarding`** (new column) — `BOOLEAN NOT NULL DEFAULT false`; controls first-login OnboardingModal display
+- **`access_requests.email`** (new column) — `TEXT`; enables admin to match access requests to signed-up profiles by email; Grant Access button shown in Access Requests tab
+- **`study_groups.batch_institution`** (new column) — `TEXT`; isolates batch groups per institution so multiple B2B clients don't share a group
+- **`handle_new_user()` trigger** — `SECURITY DEFINER` trigger on `auth.users` AFTER INSERT; creates profile from `raw_user_meta_data`; permanent fix for profile creation failing when email confirmation is ON (RLS blocks client-side insert when session is null)
+- **`enroll_user_in_batch_group(p_user_id uuid)` RPC** — called on Grant Access; adds newly enrolled student to batch group matching their `course_level` + `institution`
+- **`AdminDashboard.jsx` — Access Requests "Account" column** — matches requests to profiles by email; shows "Grant Access" / "Enrolled ✓" / "Not signed up"
+
+### Changed
+- **`submit_access_request` RPC** — rebuilt with `email` parameter; fixed missing DEFAULT on `status` and `requested_at` (INSERT was failing with HTTP 400)
+- **`create_batch_group` RPC** — now accepts `p_institution`; auto-enrolls enrolled students matching course + institution (not course alone)
+- **`notify_access_request` function** — fixed WHERE clause: `account_type IN ('admin','super_admin')` → `role IN ('admin','super_admin')` (admins were not receiving notifications)
+- **`notifications_type_check` constraint** — added `'access_request'` to allowed types
+- **`AdminDashboard.jsx` — `grantAccess`** — now calls `enroll_user_in_batch_group` after setting `account_type = 'enrolled'`
+- **`AdminDashboard.jsx` — Create Batch form** — Course Level and Institution changed from free-text inputs to dropdowns; Course populated from `disciplines` table; Institution populated from distinct `profiles.institution` values; `fetchBatchFormOptions()` loads both lists lazily when Batch Groups tab is opened; prevents data integrity issues from typos/mismatches
+- **`DeckPreview.jsx`** — `contentType` changed `'deck'` → `'flashcard_deck'` (was violating `access_requests.content_type` CHECK constraint)
+
+### Fixed
+- **ContentPreviewWall form — HTTP 400 (missing DEFAULTs)** — `access_requests.status` and `requested_at` had no DEFAULT; INSERT from RPC failed
+- **ContentPreviewWall form — HTTP 400 (anon permissions)** — `anon` role lacked EXECUTE on `submit_access_request`, `get_public_deck_preview`, `get_group_preview`, `join_group_by_token`
+- **Access request notifications not delivered** — `notify_access_request` was filtering by `account_type` instead of `role`; all admin/super_admin profiles have `account_type = 'enrolled'`, not `'admin'`
+- **User Management empty list** — `fetchUsers` selected `status` column which didn't exist; Supabase returned error caught silently
+- **9 orphaned accounts** — auth users existed but profiles were never created; root cause: `signUp()` with email confirmation ON returns no session → `auth.uid() = null` → profile INSERT blocked by RLS silently; fixed permanently via `handle_new_user` trigger; bulk backfill run for existing 9 orphaned accounts
+- **Blank Course dropdown** — `ReviewFlashcards.jsx` + `BrowseNotes.jsx` showed blank selected value for users enrolled in a course with no content yet
+- **Access Requests date "Invalid Date"** — query was selecting `created_at` (doesn't exist); correct column is `requested_at`
+
+### SQL Deployed
+- `ALTER TABLE access_requests ALTER COLUMN status SET DEFAULT 'pending', ALTER COLUMN requested_at SET DEFAULT now()`
+- `ALTER TABLE access_requests ADD COLUMN IF NOT EXISTS email text`
+- `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','suspended'))`
+- `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS has_seen_onboarding BOOLEAN NOT NULL DEFAULT false`
+- `ALTER TABLE study_groups ADD COLUMN IF NOT EXISTS batch_institution TEXT`
+- `UPDATE study_groups SET batch_institution = 'More Classes Commerce' WHERE is_batch_group = true`
+- `UPDATE profiles SET institution = 'More Classes Commerce' WHERE account_type = 'enrolled' AND (institution IS NULL OR institution = '')`
+- `GRANT EXECUTE ON FUNCTION submit_access_request(...) TO anon` + `TO authenticated`
+- `GRANT EXECUTE ON FUNCTION get_public_deck_preview(uuid), get_group_preview(uuid), join_group_by_token(uuid) TO anon`
+- Rebuilt `notifications_type_check` constraint (added `'access_request'`)
+- Rebuilt `submit_access_request` RPC with email param
+- Rebuilt `create_batch_group` RPC with institution param
+- Created `enroll_user_in_batch_group` RPC
+- Created `handle_new_user()` trigger on `auth.users`
+- Bulk backfill: 9 orphaned profiles inserted from `auth.users`
+
+### Files Changed
+`src/pages/admin/AdminDashboard.jsx`, `src/pages/public/DeckPreview.jsx`, `src/pages/dashboard/Study/ReviewFlashcards.jsx`, `src/pages/dashboard/Content/BrowseNotes.jsx`
+
+---
+## [2026-03-18] feat: Sprint 2 — Batch groups, WhatsApp invite links, public deck preview, onboarding modal
+
+### Added
+- **`src/pages/public/GroupJoin.jsx`** (new) — Public `/join/:token` page; shows group preview stats via `get_group_preview` RPC; logged-in users can join via `join_group_by_token` RPC; logged-out users see sign-in CTA
+- **`src/pages/public/DeckPreview.jsx`** (new) — Public `/deck/:deckId` page; shows deck metadata + first 5 questions via `get_public_deck_preview` RPC; ContentPreviewWall after preview for non-members
+- **`src/components/dashboard/OnboardingModal.jsx`** (new) — 3-step onboarding modal (batch groups → create group → share study set); triggered on Dashboard when `has_seen_onboarding = false`; dismissal sets flag in DB
+- **`middleware.js`** (new, project root) — Vercel Edge Middleware; intercepts bot requests to `/deck/:deckId`; injects OG meta tags from `get_public_deck_preview`; `Cache-Control: public, s-maxage=86400, stale-while-revalidate=43200`
+- **Admin Dashboard — Batch Groups tab** — lists existing batch groups per course; create form (course level, name, description) calls `create_batch_group` RPC; backfills all matching students
+
+### Changed
+- **`MyGroups.jsx`** — Batch groups shown with "Official" badge (Shield icon, blue) + course label; Leave/Delete buttons hidden for batch groups; batch groups sorted to top by RPC
+- **`GroupDetail.jsx`** — Added WhatsApp invite link section inside Members panel (Copy Link + WhatsApp share button) for admins of self-selected groups; hidden for batch groups
+- **`ReviewFlashcards.jsx`** — Share button (Share2 icon) on public deck tiles; Web Share API primary, `wa.me` fallback with pre-filled message
+- **`Dashboard.jsx`** — Profile fetch now includes `has_seen_onboarding`; shows OnboardingModal when profile is complete but onboarding not seen
+- **`ContentPreviewWall.jsx`** — Fixed anon-insert RLS bug: replaced direct `.from('access_requests').insert()` with `.rpc('submit_access_request', {...})` SECURITY DEFINER call
+- **`App.jsx`** — Added public routes `/join/:token` (GroupJoin) and `/deck/:deckId` (DeckPreview) without auth guard
+
+### Files Changed
+`src/pages/dashboard/Groups/MyGroups.jsx`, `src/pages/admin/AdminDashboard.jsx`, `src/pages/dashboard/Groups/GroupDetail.jsx`, `src/pages/public/GroupJoin.jsx` (new), `src/pages/public/DeckPreview.jsx` (new), `src/components/dashboard/OnboardingModal.jsx` (new), `src/App.jsx`, `src/pages/dashboard/Study/ReviewFlashcards.jsx`, `src/components/ui/ContentPreviewWall.jsx`, `src/pages/Dashboard.jsx`, `middleware.js` (new)
+
+---
 ## [2026-03-17] feat: Sprint 7 — Content access tiers, flagging, lead capture + preview bug fixes
 
 ### Added

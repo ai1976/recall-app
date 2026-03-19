@@ -113,6 +113,15 @@ If a fix requires a new column or a new field in an RPC response:
 - Provide the SQL with proper `[FOLDER] Name` format
 - Explicitly tell the user: "Run this SQL in Supabase before I push."
 
+### 6. Enabling RLS on an Existing Table (CRITICAL)
+When enabling RLS on any table that already has data or active write paths:
+- **Audit every existing INSERT/UPDATE/DELETE path to that table** — grep the codebase for `.from('table_name')`
+- For each write path, ask: **does a valid session (`auth.uid()`) exist at the exact moment this runs?**
+- Signup flows, email-confirmation flows, and any server-side trigger run WITHOUT a client session — `auth.uid()` is null
+- **Profile creation during signup is the highest-risk path**: `signUp()` with email confirmation ON returns no session → any client-side profile INSERT will be silently blocked by RLS
+- Rule: **Any write that must succeed without a client session MUST use a SECURITY DEFINER trigger or RPC** — never a direct client insert
+- After enabling RLS, **immediately test the signup flow** with a real new account before pushing
+
 ### Deployment Order Rule (non-negotiable)
 ```
 SQL changes in Supabase → THEN frontend push → THEN verify on live URL

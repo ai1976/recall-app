@@ -447,6 +447,9 @@ export default function BrowseNotes() {
                     </SelectTrigger>
                     <SelectContent>
                       {!isStudent && <SelectItem value="all">All Courses</SelectItem>}
+                      {isStudent && userProfile?.course_level && !availableCourses.includes(userProfile.course_level) && (
+                        <SelectItem value={userProfile.course_level}>{userProfile.course_level}</SelectItem>
+                      )}
                       {availableCourses.map(course => (
                         <SelectItem key={course} value={course}>
                           {course}

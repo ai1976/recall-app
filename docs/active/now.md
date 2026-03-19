@@ -1,11 +1,88 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-17
-**Current Phase:** Data Quality — Sprint 6 complete
+**Last Updated:** 2026-03-19 (session 2)
+**Current Phase:** All batch group + admin role fixes complete — ready for commit + deploy
 
 ---
 
 ## Just Completed ✅
+
+### Admin Role Fixes + Batch Group Enrolment (Mar 19, 2026 — session 2)
+Continued from Sprint 2 QA session. All batch groups created and students enrolled. Admin/super_admin role management finalised.
+
+**Bugs fixed (SQL):**
+- `profile_courses` — deleted entries for admin/super_admin; was causing CourseContext to set `activeCourse` → MyGroups filter hid all batch groups not matching that course
+- `admin_audit_log` FK on `target_user_id` — changed from `NO ACTION` to `ON DELETE SET NULL`; retains audit records when a user profile is deleted
+- Created `admin_delete_user_data` SECURITY DEFINER RPC — super_admin user hard delete was silently failing (direct `.delete()` on profiles blocked by RLS → profile remained → FK blocked auth user deletion from Supabase dashboard)
+- Created `remove_group_member` SQL function — allows group admins to remove members from GroupDetail
+
+**Bugs fixed (frontend):**
+- `SuperAdminDashboard.jsx` — `deleteUser` replaced broken direct delete cascade with `rpc('admin_delete_user_data')`; deletion now works correctly; auth record still requires manual deletion from Supabase dashboard (service role required)
+- `Dashboard.jsx` — profile completion modal no longer loops for admin/super_admin after `course_level` was nulled; modal skipped when role is admin or super_admin
+- `MyGroups.jsx` — parallel fetch of `get_user_groups` + `get_my_batch_groups`; server-side role logic in `get_my_batch_groups` replaces fragile client-side `isAdmin` timing check; activeCourse filter scoped correctly (batch groups from server not re-filtered)
+
+**Data deployed:**
+- CA Foundation batch group created
+- CA Intermediate batch group created
+- All enrolled students bulk-enrolled into matching batch groups (CA Foundation + CA Intermediate in single SQL pass)
+- `course_level` nulled for all admin/super_admin profiles
+- `profile_courses` cleared for all admin/super_admin profiles
+
+**Role management design finalised:**
+- Super Admin: hard delete + promote/demote all roles (Professor, Admin)
+- Admin: suspend + grant/revoke access only — no role changes, no hard delete
+- Professor promotion: stays in SuperAdminDashboard (student self-registers → super admin promotes via ↑ Prof button)
+- Admin creation: future invite-only route via SuperAdminDashboard (separate sprint)
+
+**Pending before deploy:**
+- Commit all changes (Sprint 2 + QA session 1 + session 2)
+- Push to Vercel + verify on live URL
+- Set env vars in Vercel Dashboard: `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (for middleware)
+
+### Sprint 2 QA + Batch Group Institution Logic (Mar 19, 2026)
+Full end-to-end testing of Sprint 2 features. Multiple bugs found and fixed. Batch group isolation by institution added.
+
+**Bugs fixed (SQL):**
+- `access_requests` — added DEFAULT `'pending'` on `status`, `now()` on `requested_at` (INSERT was failing)
+- `access_requests` — added `email` column; rebuilt `submit_access_request` RPC with email param
+- Granted `anon` EXECUTE on `submit_access_request`, `get_public_deck_preview`, `get_group_preview`, `join_group_by_token`
+- `notifications_type_check` constraint — added `'access_request'` type
+- `notify_access_request` function — fixed WHERE clause (`account_type` → `role`) so admins actually receive notifications
+- `profiles` — added `status TEXT NOT NULL DEFAULT 'active'` column (User Management was showing empty list)
+- `profiles` — added `has_seen_onboarding BOOLEAN NOT NULL DEFAULT false` column
+- Created `handle_new_user()` SECURITY DEFINER trigger on `auth.users` — permanent fix for profile creation with email confirmation ON
+- Bulk-fixed 9 orphaned accounts (auth users with no profile row)
+
+**Bugs fixed (frontend):**
+- `DeckPreview.jsx` — `contentType` changed from `'deck'` to `'flashcard_deck'` (check constraint violation)
+- `ReviewFlashcards.jsx` + `BrowseNotes.jsx` — blank Course dropdown fixed for users with no content in their registered course
+
+**Batch group institution logic (new):**
+- Added `batch_institution` column to `study_groups`; backfilled existing batch groups with `'More Classes Commerce'`
+- Rebuilt `create_batch_group` RPC — now accepts `p_institution`; auto-enrolls enrolled students matching course + institution
+- Created `enroll_user_in_batch_group` RPC — called when Grant Access is clicked; adds student to matching batch group
+- Backfilled `institution = 'More Classes Commerce'` for all enrolled students
+- `AdminDashboard.jsx` — create batch form now includes Institution field (required, pre-filled)
+- `AdminDashboard.jsx` — `grantAccess` now calls `enroll_user_in_batch_group` after setting `account_type = 'enrolled'`
+
+**Pending before deploy:**
+- Create CA Foundation + CA Intermediate batch groups in local/prod (user doing this now)
+- Commit all Sprint 2 + QA changes
+- Push to Vercel + verify on live URL
+- Set env vars in Vercel Dashboard: `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (for middleware)
+
+### Sprint 2 — Batch Groups, WhatsApp Invite Links, Public Deck Preview, Onboarding Modal (Mar 18, 2026)
+All SQL deployed in previous session. Frontend complete this session:
+- **MyGroups.jsx** — "Official" badge + course label for batch groups; Leave/Delete hidden for batch groups
+- **AdminDashboard.jsx** — Batch Groups tab with list + create form (calls `create_batch_group` RPC)
+- **GroupDetail.jsx** — WhatsApp invite link section (Copy Link + WhatsApp share); hidden for batch groups
+- **GroupJoin.jsx** (new) — Public `/join/:token` page with group stats from `get_group_preview` RPC
+- **DeckPreview.jsx** (new) — Public `/deck/:deckId` page with first 5 items from `get_public_deck_preview` RPC
+- **ReviewFlashcards.jsx** — Share button on public deck tiles (Web Share API + wa.me fallback)
+- **ContentPreviewWall.jsx** — Fixed anon-insert RLS bug (now calls `submit_access_request` RPC)
+- **Dashboard.jsx + OnboardingModal.jsx** — 3-step onboarding modal on first login
+- **middleware.js** (new) — Vercel Edge Middleware for OG tag injection on `/deck/:deckId` bot requests
+- **App.jsx** — Public routes `/join/:token` and `/deck/:deckId` added without auth guard
 
 ### Sprint 7 — Content Access Tiers, Flagging, WhatsApp Lead Capture + Preview Bug Fixes (Mar 17, 2026)
 Implemented Tier A/B access control for professor content, content flagging ("Report" button), and WhatsApp lead capture form. Fixed three Tier B flashcard preview bugs: deck tile count, progress bar visual, and ContentPreviewWall not appearing after 10 cards.

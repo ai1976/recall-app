@@ -18,7 +18,8 @@
 7. [Migration History](#migration-history)
 8. [Common Issues & Troubleshooting](#common-issues--troubleshooting)
 9. [Query Reference](#query-reference)
-10. [Maintenance Checklist](#maintenance-checklist)
+10. [Schema Roadmap](#schema-roadmap)
+11. [Maintenance Checklist](#maintenance-checklist)
 
 ---
 
@@ -67,9 +68,10 @@
 
 ### 2.1 profiles
 
-**Purpose:** User accounts with 4-tier role system (student/professor/admin/super_admin)  
-**Created:** December 2025 (Phase 0.5)  
-**Columns:** 8
+**Purpose:** User accounts with 4-tier role system (student/professor/admin/super_admin)
+**Created:** December 2025 (Phase 0.5)
+**Last Updated:** March 19, 2026 (added account_type, has_seen_onboarding)
+**Columns:** 11
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -78,17 +80,26 @@
 | email | text | NO | - | Unique, from Supabase auth |
 | role | text | NO | 'student' | student/professor/admin/super_admin |
 | course_level | text | YES | NULL | User's primary enrollment (CA Foundation/Inter/Final) |
-| institution | text | YES | NULL | In-house vs External |
+| institution | text | YES | NULL | Student's coaching institute name |
+| account_type | text | NO | 'self_registered' | B2C=self_registered / B2B=enrolled. Controls public content access. |
 | status | text | NO | 'active' | active/suspended |
+| has_seen_onboarding | boolean | NO | false | Set to true when user dismisses OnboardingModal. Controls first-login modal. |
 | created_at | timestamp | NO | NOW() | Account creation timestamp |
 | timezone | text | YES | 'Asia/Kolkata' | IANA timezone identifier (e.g., 'Asia/Kolkata', 'America/New_York'). Auto-detected from browser. |
 
+**Key distinction — role vs account_type:**
+- `role` = permission level (student/professor/admin/super_admin)
+- `account_type` = business relationship (self_registered=B2C / enrolled=B2B). All users have role=student by default. Admins have role=admin but account_type=enrolled.
 
 **Why This Structure:**
 - `role` column enables 4-tier permission system (critical for security)
+- `account_type` gates public content access — self_registered users see infrastructure only; enrolled users see public professor content
 - `course_level` is user's enrollment, separate from content `target_course` (two-tier model)
 - Foreign key to `auth.users` for Supabase authentication integration
 - `status` allows suspending users without deletion
+- `has_seen_onboarding` prevents repeat display of first-login modal
+
+**Profile creation:** Handled by `handle_new_user()` SECURITY DEFINER trigger on `auth.users`. Never via direct client INSERT (would fail when email confirmation is ON and session is null).
 
 **Related Tables:** notes, flashcards, reviews, admin_audit_log  
 **Key Indexes:** email (unique), role, created_at  
@@ -572,11 +583,12 @@ Prevents: User A sending multiple requests to User B
 
 ---
 
-### 2.14 study_groups ⭐ NEW
+### 2.14 study_groups ⭐ UPDATED
 
 **Purpose:** Study group metadata (name, description, creator)
 **Created:** February 6, 2026
-**Columns:** 6
+**Last Updated:** March 19, 2026 (added is_batch_group, batch_course, batch_institution)
+**Columns:** 9
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -584,8 +596,13 @@ Prevents: User A sending multiple requests to User B
 | name | text | NO | - | Group name |
 | description | text | YES | - | Optional description |
 | created_by | uuid | NO | - | FK to profiles.id, ON DELETE CASCADE |
+| is_batch_group | boolean | NO | false | True = official batch group created by admin; hides Leave/Delete for members |
+| batch_course | text | YES | NULL | Course level this batch group belongs to (e.g. 'CA Foundation') |
+| batch_institution | text | YES | NULL | Institution this batch group belongs to (e.g. 'More Classes Commerce'). Isolates groups per B2B client. |
 | created_at | timestamptz | NO | NOW() | When created |
 | updated_at | timestamptz | NO | NOW() | When last updated |
+
+**Batch group isolation:** `batch_course` + `batch_institution` together uniquely identify a batch. `create_batch_group` RPC auto-enrolls enrolled students matching both fields. Prevents students from different institutes sharing the same batch group.
 
 **Key Indexes:** created_by, created_at
 **RLS Policies:** Members can read, creator can update/delete, authenticated can insert own
@@ -1210,20 +1227,30 @@ CREATE INDEX idx_role_change_created_at ON role_change_log(created_at);
 
 ## 6. TRIGGERS
 
-**Total Triggers:** 0 (currently)
+**Active Triggers (as of March 2026):**
 
-**Why No Triggers Yet:**
-- Phase 1 MVP prioritizes simplicity
-- Application logic handles most updates
-- Will add triggers in Phase 2 for:
-  - Auto-updating `updated_at` timestamps
-  - Auto-incrementing view/upvote counts
-  - Cascade operations on delete
+### `on_auth_user_created` → `handle_new_user()`
+- **Table:** `auth.users` AFTER INSERT
+- **Function:** `handle_new_user()` SECURITY DEFINER
+- **Purpose:** Creates a `profiles` row for every new auth user. Uses `raw_user_meta_data` for `full_name` and `course_level`. Defaults: `role='student'`, `account_type='self_registered'`, `status='active'`.
+- **Why trigger instead of client INSERT:** With email confirmation ON, `signUp()` returns no session. `auth.uid()` is null. Any client-side `profiles.insert()` is silently blocked by RLS. The trigger fires at the DB level regardless of session state.
+- **ON CONFLICT DO NOTHING** — safe to re-run; won't overwrite existing profiles.
+- **Added:** March 19, 2026
 
-**Planned Triggers (Phase 2):**
-1. `update_updated_at_timestamp` - Auto-update updated_at on UPDATE
-2. `increment_view_count` - Auto-increment notes.view_count
-3. `update_upvote_count` - Sync upvotes table with notes.upvote_count
+### `trigger_update_deck_card_count` → `update_deck_card_count()`
+- **Table:** `flashcards` AFTER INSERT, UPDATE, DELETE
+- **Purpose:** Maintains `card_count` on `flashcard_decks`. On INSERT: increments or creates deck row. On DELETE: decrements; deletes deck row if count reaches 0.
+- **⚠️ CRITICAL:** Do NOT add a second trigger on `flashcards` — causes double-counting. Always check first: `SELECT trigger_name FROM information_schema.triggers WHERE trigger_schema='public' AND event_object_table='flashcards'`
+
+### `trg_aaa_counter_notes/flashcards/reviews/upvotes/friendships`
+- **Purpose:** Maintain `user_stats` integer counters for O(1) badge eligibility checks. Named `trg_aaa_*` to fire before `trg_badge_*` alphabetically.
+
+### `trg_badge_*` (multiple)
+- **Purpose:** Award badges on milestone events (deck_builder, social_learner, etc.). Read from `user_stats` counters, not COUNT(*).
+
+### `trg_badge_new_profile`
+- **Table:** `profiles` AFTER INSERT
+- **Purpose:** Initializes `user_stats` row for new user + awards pioneer badge.
 
 ---
 
@@ -1620,7 +1647,37 @@ LIMIT 10;
 
 ---
 
-## 10. MAINTENANCE CHECKLIST
+## 10. SCHEMA ROADMAP
+
+### Planned Tables (not yet built)
+
+#### `institutions` table — **Priority: Before second B2B client**
+- **Why needed:** Currently, institution names are stored as free text in `profiles.institution` and `study_groups.batch_institution`. The Create Batch Group form populates the Institution dropdown from distinct `profiles.institution` values — functional for a single client but fragile at scale.
+- **Risk without it:** A typo in institution name during onboarding creates a ghost institution that won't match any batch group. A new B2B client must have at least one enrolled student before their institution appears in the dropdown.
+- **Proposed schema:**
+  ```
+  institutions
+  ├── id          uuid  PK
+  ├── name        text  NOT NULL UNIQUE
+  ├── slug        text  NOT NULL UNIQUE  (URL-safe identifier)
+  ├── is_active   bool  DEFAULT true
+  └── created_at  timestamptz DEFAULT now()
+  ```
+- **Migration path when built:**
+  1. Create table, insert existing institution names
+  2. Add `institution_id` FK to `profiles` and `study_groups`
+  3. Backfill FKs by name match
+  4. Update `fetchBatchFormOptions()` in AdminDashboard to query `institutions` table instead of distinct profiles
+  5. Optionally keep `institution` text column for legacy compatibility or drop it
+
+#### `b2b_clients` table — **Priority: Before first paying B2B client**
+- **Why needed:** Tracks B2B deals, contract status, admin contacts, and billing. Currently no table separates institutional clients from individual users.
+- **Proposed schema:** `id, institution_id (FK), contact_name, contact_email, contract_start, contract_end, status (active/trial/expired), razorpay_subscription_id`
+- **Depends on:** `institutions` table
+
+---
+
+## 11. MAINTENANCE CHECKLIST
 
 ### Daily
 - [ ] No critical errors in Supabase logs

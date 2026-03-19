@@ -29,6 +29,10 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
         return <MessageSquare className="h-4 w-4 text-purple-500" />;
       case 'group_invite':
         return <Users className="h-4 w-4 text-indigo-500" />;
+      case 'access_request':
+        return <UserPlus className="h-4 w-4 text-orange-500" />;
+      case 'access_granted':
+        return <CheckCheck className="h-4 w-4 text-green-500" />;
       default:
         return <Bell className="h-4 w-4 text-gray-500" />;
     }
@@ -47,6 +51,10 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
         return '/dashboard/my-contributions';
       case 'group_invite':
         return '/dashboard/groups';
+      case 'access_request':
+        return '/admin?tab=access-requests';
+      case 'access_granted':
+        return '/dashboard/review-flashcards';
       default:
         return '/dashboard';
     }

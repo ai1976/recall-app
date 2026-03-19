@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
@@ -14,9 +14,13 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     fetchAllCourses();
+    // Preserve ref token from invite link so Dashboard can link it after login
+    const ref = searchParams.get('ref');
+    if (ref) localStorage.setItem('recall_access_ref', ref);
   }, []);
 
   const fetchAllCourses = async () => {

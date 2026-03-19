@@ -506,44 +506,25 @@ Are you ABSOLUTELY SURE?`;
       console.log('✅ Deletion logged successfully BEFORE deleting user');
     }
 
-    // Step 6: Delete user content (cascade)
-    console.log('Deleting user content...');
-    await supabase.from('reviews').delete().eq('user_id', userId);
-    await supabase.from('flashcards').delete().eq('user_id', userId);
-    await supabase.from('notes').delete().eq('user_id', userId);
+    // Step 6+7: Delete all user data via SECURITY DEFINER RPC (bypasses RLS)
+    console.log('Deleting user data via RPC...');
+    const { error: deleteError } = await supabase
+      .rpc('admin_delete_user_data', { p_user_id: userId });
 
-    // Step 7: Delete user profile (NOW it's safe)
-    console.log('Deleting user profile...');
-    const { error: deleteProfileError } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', userId);
+    if (deleteError) throw deleteError;
 
-    if (deleteProfileError) throw deleteProfileError;
+    // Step 8: Success — remind to delete auth record manually
+    alert(`✅ USER DATA DELETED SUCCESSFULLY
 
-    // Step 8: Success message with manual auth deletion instructions
-    alert(`✅ USER PROFILE & CONTENT DELETED SUCCESSFULLY!
-
-Deleted User: ${targetUser.full_name || targetUser.email}
+Deleted: ${targetUser.full_name || targetUser.email}
 Email: ${targetUser.email}
-Content Removed: ${totalContent} items (notes + flashcards)
+Content removed: ${totalContent} items
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️ MANUAL STEP REQUIRED - COMPLETE DELETION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ ONE MANUAL STEP REMAINING:
+Go to Supabase → Authentication → Users
+Search "${targetUser.email}" and delete the auth record.
+(Auth deletion requires service-role access — not available in browser.)`);
 
-The authentication account still exists.
-To complete deletion:
-
-1. Open Supabase Dashboard
-2. Go to: Authentication → Users
-3. Search for: ${targetUser.email}
-4. Click the trash icon (🗑️) to delete
-
-Why manual? 
-Auth deletion requires service role access (not available in browser for security).
-
-This will be automated in Phase 2 with Edge Functions.`);
     
    
       // Step 9: Refresh dashboard data

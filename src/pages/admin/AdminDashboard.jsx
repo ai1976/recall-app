@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useRole } from '@/hooks/useRole';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Users, FileText, AlertCircle, TrendingUp, XCircle, CreditCard,
-  ChevronDown, ChevronUp, ExternalLink,
+  ChevronDown, ChevronUp, ExternalLink, Shield, Plus, X,
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -21,11 +21,23 @@ export default function AdminDashboard() {
   const [isLoading,   setIsLoading]   = useState(true);
 
   // ── State-based tab switching (tabs.jsx is a broken stub — never use it)
-  const [activeTab, setActiveTab] = useState('content');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(
+    searchParams.get('tab') === 'access-requests' ? 'requests' : 'content'
+  );
 
   // ── Access Requests state
   const [accessRequests, setAccessRequests] = useState([]);
   const [accessRequestsLoading, setAccessRequestsLoading] = useState(false);
+  const [matchedProfiles, setMatchedProfiles] = useState([]);  // profiles whose email matches a request
+
+  // ── Batch Groups state
+  const [batchGroups, setBatchGroups] = useState([]);
+  const [batchGroupsLoading, setBatchGroupsLoading] = useState(false);
+  const [createBatchForm, setCreateBatchForm] = useState(null); // null | { course, name, description, institution }
+  const [createBatchLoading, setCreateBatchLoading] = useState(false);
+  const [availableCourses, setAvailableCourses] = useState([]);     // from disciplines table
+  const [availableInstitutions, setAvailableInstitutions] = useState([]); // distinct from profiles
 
   // ── Load-more limits
   const [notesLimit, setNotesLimit] = useState(10);
@@ -158,9 +170,30 @@ export default function AdminDashboard() {
       const { data, error } = await supabase
         .from('access_requests')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('requested_at', { ascending: false });
       if (error) throw error;
       setAccessRequests(data ?? []);
+
+      // Auto-match profiles by email OR by ref_token (more reliable)
+      const emails    = (data ?? []).map(r => r.email).filter(Boolean);
+      const refTokens = (data ?? []).map(r => r.ref_token).filter(Boolean);
+      const merged = new Map();
+
+      if (emails.length > 0) {
+        const { data: byEmail } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, account_type, access_request_ref')
+          .in('email', emails);
+        (byEmail ?? []).forEach(p => merged.set(p.id, p));
+      }
+      if (refTokens.length > 0) {
+        const { data: byRef } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, account_type, access_request_ref')
+          .in('access_request_ref', refTokens);
+        (byRef ?? []).forEach(p => merged.set(p.id, p));
+      }
+      setMatchedProfiles([...merged.values()]);
     } catch (err) {
       console.error('AdminDashboard fetchAccessRequests:', err);
     } finally {
@@ -258,6 +291,29 @@ export default function AdminDashboard() {
     }
   }
 
+  async function grantAccess(userId) {
+    if (!confirm('Grant full content access to this user?')) return;
+    try {
+      const { error } = await supabase
+        .from('profiles').update({ account_type: 'enrolled' }).eq('id', userId);
+      if (error) throw error;
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('admin_audit_log').insert({
+        action: 'grant_access', admin_id: user.id, target_user_id: userId,
+        details: { account_type: 'enrolled' },
+      });
+      setRecentUsers(prev => prev.map(u => u.id === userId ? { ...u, account_type: 'enrolled' } : u));
+      setMatchedProfiles(prev => prev.map(p => p.id === userId ? { ...p, account_type: 'enrolled' } : p));
+      // Auto-enroll in matching batch group (course + institution)
+      await supabase.rpc('enroll_user_in_batch_group', { p_user_id: userId });
+      // Notify the user that access has been granted
+      await supabase.rpc('notify_access_granted', { p_user_id: userId });
+    } catch (err) {
+      console.error('grantAccess:', err);
+      alert('Failed to grant access');
+    }
+  }
+
   async function suspendUser(userId) {
     if (!confirm('Suspend this user?')) return;
     try {
@@ -274,6 +330,54 @@ export default function AdminDashboard() {
       console.error('suspendUser:', err);
       alert('Failed to suspend user');
     }
+  }
+
+  // ── Batch Groups ──────────────────────────────────────────────────────────
+  async function fetchBatchGroups() {
+    setBatchGroupsLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_admin_batch_groups');
+      if (error) throw error;
+      setBatchGroups(data ?? []);
+    } catch (err) {
+      console.error('fetchBatchGroups:', err);
+    } finally {
+      setBatchGroupsLoading(false);
+    }
+  }
+
+  async function handleCreateBatchGroup() {
+    if (!createBatchForm) return;
+    const { course, name, description, institution } = createBatchForm;
+    if (!course.trim() || !name.trim() || !institution.trim()) return;
+    setCreateBatchLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('create_batch_group', {
+        p_course_level: course.trim(),
+        p_name: name.trim(),
+        p_description: description.trim(),
+        p_institution: institution.trim(),
+      });
+      if (error) throw error;
+      alert(`Batch group created! ${data ? `Group ID: ${data}` : ''}`);
+      setCreateBatchForm(null);
+      fetchBatchGroups();
+    } catch (err) {
+      console.error('handleCreateBatchGroup:', err);
+      alert(err.message || 'Failed to create batch group');
+    } finally {
+      setCreateBatchLoading(false);
+    }
+  }
+
+  async function fetchBatchFormOptions() {
+    const [{ data: courses }, { data: profiles }] = await Promise.all([
+      supabase.from('disciplines').select('name').order('name'),
+      supabase.from('profiles').select('institution').not('institution', 'is', null).neq('institution', ''),
+    ]);
+    setAvailableCourses((courses ?? []).map(c => c.name));
+    const unique = [...new Set((profiles ?? []).map(p => p.institution))].sort();
+    setAvailableInstitutions(unique);
   }
 
   // ── Guards ────────────────────────────────────────────────────────────────
@@ -327,6 +431,7 @@ export default function AdminDashboard() {
         <TabButton label="Content Moderation" active={activeTab === 'content'} onClick={() => setActiveTab('content')} />
         <TabButton label="User Management"    active={activeTab === 'users'}   onClick={() => setActiveTab('users')} />
         <TabButton label="Access Requests"    active={activeTab === 'access'}  onClick={() => { setActiveTab('access'); fetchAccessRequests(); }} />
+        <TabButton label="Batch Groups"       active={activeTab === 'batch'}   onClick={() => { setActiveTab('batch'); fetchBatchGroups(); fetchBatchFormOptions(); }} />
       </div>
 
       {/* ── Content Moderation ── */}
@@ -540,13 +645,22 @@ export default function AdminDashboard() {
                             </span>
                           </div>
                         </div>
-                        {u.status !== 'suspended' && (
-                          <Button size="sm" variant="outline"
-                            className="text-red-600 ml-3 shrink-0"
-                            onClick={() => suspendUser(u.id)}>
-                            Suspend
-                          </Button>
-                        )}
+                        <div className="flex gap-2 ml-3 shrink-0">
+                          {u.account_type === 'self_registered' && (
+                            <Button size="sm" variant="outline"
+                              className="text-green-600 border-green-300"
+                              onClick={() => grantAccess(u.id)}>
+                              Grant Access
+                            </Button>
+                          )}
+                          {u.status !== 'suspended' && (
+                            <Button size="sm" variant="outline"
+                              className="text-red-600"
+                              onClick={() => suspendUser(u.id)}>
+                              Suspend
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -591,26 +705,29 @@ export default function AdminDashboard() {
                     <thead>
                       <tr className="text-left text-xs text-gray-500 border-b">
                         <th className="pb-2 pr-4 font-medium">Name</th>
+                        <th className="pb-2 pr-4 font-medium">Email</th>
                         <th className="pb-2 pr-4 font-medium">WhatsApp</th>
                         <th className="pb-2 pr-4 font-medium">Course</th>
                         <th className="pb-2 pr-4 font-medium">Content Seen</th>
                         <th className="pb-2 pr-4 font-medium">Date</th>
-                        <th className="pb-2 font-medium">Status</th>
+                        <th className="pb-2 pr-4 font-medium">Status</th>
+                        <th className="pb-2 font-medium">Account</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {accessRequests.map((req) => (
                         <tr key={req.id} className="hover:bg-gray-50">
                           <td className="py-3 pr-4 font-medium text-gray-900">{req.name || '—'}</td>
+                          <td className="py-3 pr-4 text-gray-700">{req.email || '—'}</td>
                           <td className="py-3 pr-4 text-gray-700">{req.whatsapp_number || '—'}</td>
                           <td className="py-3 pr-4 text-gray-700">{req.course || '—'}</td>
                           <td className="py-3 pr-4 text-gray-500 max-w-xs truncate">
                             {req.content_name || req.content_type || '—'}
                           </td>
                           <td className="py-3 pr-4 text-gray-400 text-xs">
-                            {new Date(req.created_at).toLocaleDateString()}
+                            {req.requested_at ? new Date(req.requested_at).toLocaleDateString('en-IN') : '—'}
                           </td>
-                          <td className="py-3">
+                          <td className="py-3 pr-4">
                             <select
                               value={req.status || 'pending'}
                               onChange={(e) => updateAccessRequestStatus(req.id, e.target.value)}
@@ -622,10 +739,167 @@ export default function AdminDashboard() {
                               <option value="dismissed">Dismissed</option>
                             </select>
                           </td>
+                          <td className="py-3">
+                            {(() => {
+                              const match = matchedProfiles.find(p =>
+                                (req.email && p.email === req.email) ||
+                                (req.ref_token && p.access_request_ref === req.ref_token)
+                              );
+                              const signupUrl = `${window.location.origin}/signup?ref=${req.ref_token}`;
+                              if (!match) return (
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-xs text-gray-400">Not signed up</span>
+                                  <button
+                                    className="text-xs text-indigo-500 underline text-left"
+                                    onClick={() => { navigator.clipboard.writeText(signupUrl); alert('Signup link copied!'); }}>
+                                    Copy signup link
+                                  </button>
+                                </div>
+                              );
+                              if (match.account_type !== 'self_registered') return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Enrolled ✓</span>;
+                              return (
+                                <Button size="sm" variant="outline"
+                                  className="text-green-600 border-green-300 text-xs h-7 px-2"
+                                  onClick={() => grantAccess(match.id)}>
+                                  Grant Access
+                                </Button>
+                              );
+                            })()}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ── Batch Groups ── */}
+      {activeTab === 'batch' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Batch Groups</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Official course groups. Students are auto-enrolled when they set a matching course level.
+              </p>
+            </div>
+            <Button size="sm" onClick={() => setCreateBatchForm({ course: '', name: '', description: '', institution: 'More Classes Commerce' })}>
+              <Plus className="h-4 w-4 mr-1" />
+              Create Batch Group
+            </Button>
+          </div>
+
+          {/* Create form */}
+          {createBatchForm && (
+            <Card className="border-blue-200 bg-blue-50/40">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">New Batch Group</CardTitle>
+                  <button onClick={() => setCreateBatchForm(null)} className="text-gray-400 hover:text-gray-600">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Course Level <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={createBatchForm.course}
+                    onChange={(e) => setCreateBatchForm(f => ({ ...f, course: e.target.value, name: f.name || `${e.target.value} Batch` }))}
+                    className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
+                  >
+                    <option value="">Select course…</option>
+                    {availableCourses.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Group Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Group name shown to students"
+                    value={createBatchForm.name}
+                    onChange={(e) => setCreateBatchForm(f => ({ ...f, name: e.target.value }))}
+                    className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Description (optional)</label>
+                  <input
+                    type="text"
+                    placeholder="Brief description"
+                    value={createBatchForm.description}
+                    onChange={(e) => setCreateBatchForm(f => ({ ...f, description: e.target.value }))}
+                    className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Institution <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={createBatchForm.institution}
+                    onChange={(e) => setCreateBatchForm(f => ({ ...f, institution: e.target.value }))}
+                    className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
+                  >
+                    <option value="">Select institution…</option>
+                    {availableInstitutions.map(i => (
+                      <option key={i} value={i}>{i}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button size="sm" onClick={handleCreateBatchGroup} disabled={createBatchLoading || !createBatchForm.course.trim() || !createBatchForm.name.trim() || !createBatchForm.institution.trim()}>
+                    {createBatchLoading ? 'Creating…' : 'Create Group'}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setCreateBatchForm(null)}>Cancel</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Existing batch groups */}
+          <Card>
+            <CardContent className="pt-4">
+              {batchGroupsLoading ? (
+                <p className="text-center text-gray-400 py-8 text-sm">Loading…</p>
+              ) : batchGroups.length === 0 ? (
+                <div className="text-center py-12">
+                  <Shield className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm text-gray-500 mb-1">No batch groups yet</p>
+                  <p className="text-xs text-gray-400">Create a batch group to auto-enroll students by course level.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {batchGroups.map((group) => (
+                    <div key={group.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4 text-blue-600 shrink-0" />
+                          <p className="font-medium text-gray-900 text-sm">{group.name}</p>
+                        </div>
+                        {group.description && (
+                          <p className="text-xs text-gray-500 mt-0.5 ml-6">{group.description}</p>
+                        )}
+                        <div className="flex items-center gap-3 mt-1 ml-6 text-xs text-gray-400">
+                          <span className="font-medium text-blue-700">{group.batch_course}</span>
+                          <span>·</span>
+                          <span>{group.member_count} {group.member_count === 1 ? 'member' : 'members'}</span>
+                          <span>·</span>
+                          <span>Created {new Date(group.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

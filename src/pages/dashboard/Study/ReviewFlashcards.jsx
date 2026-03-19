@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Brain, Play, ChevronRight, ChevronDown, User, Users, Filter, Search } from 'lucide-react';
+import { Brain, Play, ChevronRight, ChevronDown, User, Users, Filter, Search, Share2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import UpvoteButton from '@/components/ui/UpvoteButton';
 
@@ -420,6 +420,9 @@ export default function ReviewFlashcards() {
                     </SelectTrigger>
                     <SelectContent>
                       {!isStudent && <SelectItem value="all">All Courses</SelectItem>}
+                      {isStudent && userProfile?.course_level && !availableCourses.includes(userProfile.course_level) && (
+                        <SelectItem value={userProfile.course_level}>{userProfile.course_level}</SelectItem>
+                      )}
                       {availableCourses.map(course => (
                         <SelectItem key={course} value={course}>
                           {course}
@@ -655,6 +658,26 @@ export default function ReviewFlashcards() {
                                 ownerId={deck.user_id}
                                 size="sm"
                               />
+
+                              {/* Share button — public decks only */}
+                              {deck.visibility === 'public' && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const link = `${window.location.origin}/deck/${deck.id}`;
+                                    const text = `Check out this Study Set on ${subject.name} — ${deck.name || deck.topicName} on Recall: ${link}`;
+                                    if (navigator.share) {
+                                      navigator.share({ title: deck.name || deck.topicName, text, url: link }).catch(() => {});
+                                    } else {
+                                      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                                    }
+                                  }}
+                                  className="p-1.5 rounded hover:bg-green-100 text-gray-400 hover:text-green-600 transition-colors"
+                                  title="Share via WhatsApp"
+                                >
+                                  <Share2 className="h-4 w-4" />
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}

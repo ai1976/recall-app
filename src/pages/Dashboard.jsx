@@ -16,6 +16,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import AnonymousStats from '@/components/dashboard/AnonymousStats';
+import OnboardingModal from '@/components/dashboard/OnboardingModal';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
 import PushPermissionBanner from '@/components/notifications/PushPermissionBanner';
 import { useBadges } from '@/hooks/useBadges';
@@ -111,6 +112,9 @@ export default function Dashboard() {
   const [isNewUser, setIsNewUser] = useState(false);
   const [hasUserActivity, setHasUserActivity] = useState(false);
 
+  // Onboarding modal state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
   // Profile completion modal state
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [modalCourseLevel, setModalCourseLevel] = useState('');
@@ -161,18 +165,21 @@ export default function Dashboard() {
         return;
       }
 
-      // Fetch profile for name, course level, and institution
+      // Fetch profile for name, course level, institution, onboarding flag, and role
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, course_level, institution')
+        .select('full_name, course_level, institution, has_seen_onboarding, role')
         .eq('id', authUser.id)
         .single();
 
       if (profile) {
         setUserName(profile.full_name || '');
 
+        const isAdminRole = ['admin', 'super_admin'].includes(profile.role);
+
         // Show profile completion modal if course_level or institution is missing
-        if (!profile.course_level || !profile.institution) {
+        // Admins/super_admins intentionally have no course_level — skip modal for them
+        if (!isAdminRole && (!profile.course_level || !profile.institution)) {
           setModalCourseLevel(profile.course_level || '');
           // Pre-fill institution dropdown if they have one
           if (profile.institution) {
@@ -183,7 +190,17 @@ export default function Dashboard() {
             if (!presetMatch) setModalCustomInstitution(profile.institution);
           }
           setShowProfileModal(true);
+        } else if (!profile.has_seen_onboarding) {
+          // Profile complete but hasn't seen onboarding yet
+          setShowOnboarding(true);
         }
+      }
+
+      // Link access request ref token if stranger signed up via invite link
+      const accessRef = localStorage.getItem('recall_access_ref');
+      if (accessRef) {
+        localStorage.removeItem('recall_access_ref');
+        supabase.rpc('link_access_request', { p_ref_token: accessRef }).catch(() => {});
       }
 
       // Fetch all data in parallel
@@ -409,6 +426,21 @@ export default function Dashboard() {
     }
   };
 
+  const handleDismissOnboarding = async () => {
+    setShowOnboarding(false);
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        await supabase
+          .from('profiles')
+          .update({ has_seen_onboarding: true })
+          .eq('id', authUser.id);
+      }
+    } catch (err) {
+      console.error('Error dismissing onboarding:', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -419,6 +451,9 @@ export default function Dashboard() {
 
   return (
     <PageContainer width="full">
+
+        {/* ===== ONBOARDING MODAL ===== */}
+        <OnboardingModal open={showOnboarding} onDismiss={handleDismissOnboarding} />
 
         {/* ===== PROFILE COMPLETION MODAL (non-dismissible) ===== */}
         <Dialog open={showProfileModal} onOpenChange={() => {}}>
