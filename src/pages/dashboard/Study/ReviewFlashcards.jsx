@@ -19,6 +19,8 @@ export default function ReviewFlashcards() {
   const [allSets, setAllSets] = useState([]);
   const [allDecksFlat, setAllDecksFlat] = useState([]);
 
+  const targetDeckId = searchParams.get('deck') || null;
+
   const [filterCourse, setFilterCourse] = useState('all');
   const [filterSubject, setFilterSubject] = useState(searchParams.get('subject') || 'all');
   const [filterTopic, setFilterTopic] = useState('all');
@@ -152,6 +154,17 @@ export default function ReviewFlashcards() {
   useEffect(() => {
     fetchFilteredAuthors();
   }, [fetchFilteredAuthors]);
+
+  // Deep-link from DeckPreview: if ?deck=:id is present, auto-launch study session
+  // once decks are loaded. Falls through silently if deck not found (private/inaccessible).
+  useEffect(() => {
+    if (!targetDeckId || allDecksFlat.length === 0) return;
+    const deck = allDecksFlat.find(d => d.id === targetDeckId);
+    if (deck) {
+      startStudySession(deck.subjectName, deck.topicName, deck.id, deck.owner?.role === 'professor');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetDeckId, allDecksFlat]);
 
   const fetchFlashcardSets = async () => {
     try {

@@ -150,11 +150,11 @@ export default function DeckPreview() {
           </div>
         )}
 
-        {/* CTA for logged-in users */}
+        {/* CTA for logged-in users — deep-link directly to this deck's study session */}
         {user && (
           <div className="text-center py-6">
-            <Button onClick={() => navigate('/dashboard/review-flashcards')}>
-              Study All Sets on Recall
+            <Button onClick={() => navigate(`/dashboard/review-flashcards?deck=${deckId}`)}>
+              Study this set on Recall
             </Button>
           </div>
         )}

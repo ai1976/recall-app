@@ -1,6 +1,13 @@
 # Changelog
 
 ---
+## [2026-03-19d] feat: DeckPreview deep-link — logged-in users go directly to study session
+
+### Changed
+- **`DeckPreview.jsx`** — logged-in user CTA changed from "Study All Sets on Recall" (generic) to "Study this set on Recall" (deep-linked); navigates to `/dashboard/review-flashcards?deck=:deckId`
+- **`ReviewFlashcards.jsx`** — reads `?deck=:deckId` query param; once decks are loaded, auto-launches `startStudySession` for the matching deck; falls through silently if deck is not accessible (private/wrong course); `targetDeckId` const extracted from `searchParams`
+
+---
 ## [2026-03-19c] fix: Public deck preview + groups course filter + DeckPreview CTA redesign
 
 ### Changed
