@@ -2,6 +2,19 @@
 
 ## Resolved Bugs
 
+### [Mar 19, 2026] Group Invite Links Return "Link not found" for Batch Groups
+- **Symptom:** Visiting `/join/:token` for a batch group token showed "This invite link is invalid or the group no longer exists."
+- **Root Cause:** `get_group_preview` had `AND is_batch_group = false` in the token lookup query. Batch group tokens always returned `{ group: null, stats: null }`. GroupJoin set `notFound = true` and showed the error screen.
+- **Fix:** Removed `is_batch_group = false` filter from both `get_group_preview` and `join_group_by_token` RPCs. Also fixed two bugs in `get_group_preview` stats query: (1) `p.current_streak` column doesn't exist anywhere in the DB — hardcoded `0` for avg_streak; (2) `badges` table doesn't exist — corrected to `badge_definitions`.
+- **Status:** ✅ RESOLVED
+
+### [Mar 19, 2026] postAuthRedirect Race Condition — Always Lands on /dashboard Instead of Join Page
+- **Symptom:** User visits `/join/:token` → clicks "Sign in" → logs in → lands at `/dashboard` instead of back at the join page. `localStorage` was confirmed to be set correctly before login, but was `null` by the time Login.jsx or AppContent read it post-login.
+- **Root Cause:** Supabase's `onAuthStateChange` fires synchronously inside `signIn()` (before the Promise resolves). This triggers React's auth state update, which fires AppContent's `useEffect([user, loading])`. That effect reads AND removes `localStorage.postAuthRedirect`, then navigates to `/join/:token`. Then `signIn()` Promise resolves and Login.jsx's code continues — reads localStorage (now null) — navigates to `/dashboard`, overriding AppContent's navigation. Last `navigate()` wins.
+- **Secondary issue:** PostAuthRedirect component (tried as intermediate solution) suffered from React 18 StrictMode double-invocation: effects run twice in development. First run navigated correctly; second run found empty localStorage and navigated to `/dashboard`.
+- **Fix:** Read and remove `localStorage.postAuthRedirect` BEFORE calling `signIn()` in Login.jsx. Store in a local variable. AppContent's useEffect fires during signIn() but finds nothing (already cleared) and does nothing. After signIn() resolves, Login.jsx navigates using the local variable. On error, key is restored to localStorage.
+- **Status:** ✅ RESOLVED
+
 ### [Mar 19, 2026] DeckPreview Public Page Shows "Preview (0 of N items)"
 - **Symptom:** Public deck URL shared via WhatsApp showed correct deck metadata but 0 preview cards ("Preview (0 of 21 items)"). The ContentPreviewWall appeared but no question cards were visible.
 - **Root Cause:** `get_public_deck_preview` fetched flashcards using `WHERE fc.deck_id = p_deck_id`. The `deck_id` column on the `flashcards` table exists as a FK to `flashcard_decks.id` but is **never populated** by any write path. The `update_deck_card_count` trigger (which correctly maintains `card_count`) matches flashcards to decks via 5 grouping columns `(user_id, subject_id, topic_id, custom_subject, custom_topic)` — not by `deck_id`.

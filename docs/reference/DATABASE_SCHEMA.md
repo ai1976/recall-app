@@ -587,8 +587,8 @@ Prevents: User A sending multiple requests to User B
 
 **Purpose:** Study group metadata (name, description, creator)
 **Created:** February 6, 2026
-**Last Updated:** March 19, 2026 (added is_batch_group, batch_course, batch_institution)
-**Columns:** 9
+**Last Updated:** March 19, 2026 (added invite_token, group_type, linked_course)
+**Columns:** 12
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -599,10 +599,15 @@ Prevents: User A sending multiple requests to User B
 | is_batch_group | boolean | NO | false | True = official batch group created by admin; hides Leave/Delete for members |
 | batch_course | text | YES | NULL | Course level this batch group belongs to (e.g. 'CA Foundation') |
 | batch_institution | text | YES | NULL | Institution this batch group belongs to (e.g. 'More Classes Commerce'). Isolates groups per B2B client. |
+| invite_token | uuid | YES | gen_random_uuid() | Shareable join link token — used in `/join/:token` public URL |
+| group_type | text | NO | 'custom' | CHECK: 'batch' \| 'system_course' \| 'custom'. 'batch' = official B2B group; 'system_course' = linked to user's enrolled course; 'custom' = free-form group |
+| linked_course | text | YES | NULL | For group_type='system_course': the course level the group is linked to (e.g. 'CA Inter') |
 | created_at | timestamptz | NO | NOW() | When created |
 | updated_at | timestamptz | NO | NOW() | When last updated |
 
 **Batch group isolation:** `batch_course` + `batch_institution` together uniquely identify a batch. `create_batch_group` RPC auto-enrolls enrolled students matching both fields. Prevents students from different institutes sharing the same batch group.
+
+**Join links:** Any group (batch or personal) can be joined via `/join/:invite_token`. `get_group_preview` and `join_group_by_token` RPCs both work for all group types — the old `is_batch_group = false` filter has been removed.
 
 **Key Indexes:** created_by, created_at
 **RLS Policies:** Members can read, creator can update/delete, authenticated can insert own

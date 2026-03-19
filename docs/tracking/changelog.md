@@ -1,6 +1,31 @@
 # Changelog
 
 ---
+## [2026-03-19f] feat: Sprint 2.3 — group invite links, auto-batch trigger, group types
+
+### Added
+- **`study_groups.invite_token`** — uuid, gen_random_uuid(); used in `/join/:token` public URL
+- **`study_groups.group_type`** — text CHECK ('batch'|'system_course'|'custom'); backfilled 'batch' for existing batch groups
+- **`study_groups.linked_course`** — nullable text; stores enrolled course for 'system_course' groups
+- **`create_study_group` RPC** — updated signature: `p_group_type` and `p_linked_course` params
+- **`CreateGroup.jsx`** — group type selector card: fetches user's `course_level`, radio options for system course vs custom; passes new params to RPC
+- **`fn_auto_enroll_batch_group` trigger** — fixed 3 bugs: role exclusion, account_type exclusion, institution matching
+
+### Changed
+- **`get_group_preview` RPC** — removed `is_batch_group = false` filter; fixed broken `p.current_streak` ref (column doesn't exist); fixed `badges` → `badge_definitions` table name
+- **`join_group_by_token` RPC** — removed `is_batch_group = false` filter; batch group invite links now work
+- **`GroupJoin.jsx`** — postAuthRedirect: replaced URL params with `localStorage` pattern
+- **`Login.jsx`** — postAuthRedirect: reads+removes localStorage BEFORE `signIn()` to prevent AppContent useEffect race condition; navigates to redirect or `/dashboard`; restores key on error
+- **`App.jsx`** — added AppContent `useEffect` for email-confirmation postAuthRedirect path
+
+### Fixed
+- **Group join links returning "not found" for batch groups** — `get_group_preview` and `join_group_by_token` both had `AND is_batch_group = false`; removed
+- **postAuthRedirect race condition** — Supabase `onAuthStateChange` fires synchronously inside `signIn()` before the Promise resolves; AppContent useEffect was consuming `localStorage` before Login.jsx could read it; fixed by capturing the value before `signIn()`
+
+### Files Changed
+`src/pages/auth/Login.jsx`, `src/App.jsx`, `src/pages/public/GroupJoin.jsx`, `src/pages/dashboard/Groups/CreateGroup.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md`, `docs/reference/DATABASE_SCHEMA.md`
+
+---
 ## [2026-03-19e] feat: postAuthRedirect — login after DeckPreview share deep-links to target deck
 
 ### Added

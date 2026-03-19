@@ -1,5 +1,5 @@
-import { Suspense, lazy } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
+import { Suspense, lazy, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { CourseContextProvider } from '@/contexts/CourseContext'
@@ -80,10 +80,23 @@ function LegacyNoteEditRedirect() {
   return <Navigate to={`/dashboard/notes/edit/${id}`} replace />
 }
 
+
 // Routing lives inside AuthProvider so it can read auth state via useAuth()
 // This eliminates the duplicate getSession() call that was in the old App component
 function AppContent() {
   const { user, loading } = useAuth()
+  const navigate = useNavigate()
+
+  // Handles postAuthRedirect for ALL auth paths: direct login, email confirmation link,
+  // or any other flow that results in user becoming authenticated.
+  useEffect(() => {
+if (!user || loading) return
+    const redirect = localStorage.getItem('postAuthRedirect')
+    if (redirect) {
+      localStorage.removeItem('postAuthRedirect')
+      navigate(redirect, { replace: true })
+    }
+  }, [user, loading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <PageLoader />
 

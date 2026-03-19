@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
@@ -12,10 +13,34 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function CreateGroup() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Group type state
+  const [userCourseLevel, setUserCourseLevel] = useState(null);
+  const [selectedOption, setSelectedOption] = useState(null); // 'system_course' | 'custom'
+  const [customCourseName, setCustomCourseName] = useState('');
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const { data } = await supabase
+        .from('profiles')
+        .select('course_level')
+        .eq('id', user.id)
+        .single();
+      if (data?.course_level) {
+        setUserCourseLevel(data.course_level);
+        setSelectedOption('system_course');
+      } else {
+        setSelectedOption('custom');
+      }
+    }
+    fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,6 +58,8 @@ export default function CreateGroup() {
       const { data: groupId, error } = await supabase.rpc('create_study_group', {
         p_name: name.trim(),
         p_description: description.trim() || null,
+        p_group_type: selectedOption === 'system_course' ? 'system_course' : 'custom',
+        p_linked_course: selectedOption === 'system_course' ? userCourseLevel : null,
       });
       if (error) throw error;
 
@@ -93,6 +120,58 @@ export default function CreateGroup() {
                   maxLength={500}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Group type selector */}
+          <Card>
+            <CardHeader>
+              <CardTitle>This group is for</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {userCourseLevel && (
+                <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:border-blue-400 transition-colors"
+                  style={{ borderColor: selectedOption === 'system_course' ? '#3b82f6' : undefined,
+                           background: selectedOption === 'system_course' ? '#eff6ff' : undefined }}>
+                  <input
+                    type="radio"
+                    name="groupType"
+                    value="system_course"
+                    checked={selectedOption === 'system_course'}
+                    onChange={() => setSelectedOption('system_course')}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <p className="font-medium text-sm">{userCourseLevel}</p>
+                    <p className="text-xs text-gray-500">Group linked to your course</p>
+                  </div>
+                </label>
+              )}
+              <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:border-blue-400 transition-colors"
+                style={{ borderColor: selectedOption === 'custom' ? '#3b82f6' : undefined,
+                         background: selectedOption === 'custom' ? '#eff6ff' : undefined }}>
+                <input
+                  type="radio"
+                  name="groupType"
+                  value="custom"
+                  checked={selectedOption === 'custom'}
+                  onChange={() => setSelectedOption('custom')}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <p className="font-medium text-sm">Custom / Other</p>
+                  <p className="text-xs text-gray-500">Any topic, language, or exam</p>
+                  {selectedOption === 'custom' && (
+                    <Input
+                      className="mt-2"
+                      placeholder="e.g. French language, UPSC Polity, Photography"
+                      value={customCourseName}
+                      onChange={(e) => setCustomCourseName(e.target.value)}
+                      maxLength={100}
+                    />
+                  )}
+                </div>
+              </label>
             </CardContent>
           </Card>
 

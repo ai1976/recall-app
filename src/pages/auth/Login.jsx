@@ -21,18 +21,23 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
+    // Capture redirect before signIn — AppContent's useEffect fires during the async
+    // signIn call and would consume localStorage first, leaving us with null.
+    const redirect = localStorage.getItem('postAuthRedirect');
+    if (redirect) localStorage.removeItem('postAuthRedirect');
+
     try {
       await signIn(email, password);
-      
+
       toast({
         title: 'Welcome back!',
         description: 'Successfully signed in.',
       });
-      
-      const redirect = localStorage.getItem('postAuthRedirect');
-      localStorage.removeItem('postAuthRedirect');
-      navigate(redirect || '/dashboard');
+
+      navigate(redirect || '/dashboard', { replace: true });
     } catch (error) {
+      // Restore redirect so the user can try again without re-clicking the join link
+      if (redirect) localStorage.setItem('postAuthRedirect', redirect);
       const isNetworkError = error.message === 'Failed to fetch' || error.message?.includes('NetworkError');
       toast({
         title: 'Error',

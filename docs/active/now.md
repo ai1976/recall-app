@@ -1,11 +1,36 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-19 (session 4)
-**Current Phase:** postAuthRedirect complete — deployed
+**Last Updated:** 2026-03-19 (session 5)
+**Current Phase:** Sprint 2.3 complete — Group Invite Infrastructure + Auto-Batch Trigger + Group Types
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 2.3 — Group Invite Infrastructure, Auto-Batch Trigger, Group Types (Mar 19, 2026 — session 5)
+
+**SQL deployed:**
+- `study_groups` table: added `invite_token` (uuid, gen_random_uuid()), `group_type` (text CHECK 'batch'|'system_course'|'custom'), `linked_course` (text nullable); backfilled `group_type = 'batch'` for existing batch groups
+- `create_study_group` RPC: updated signature with `p_group_type` and `p_linked_course` params
+- `fn_auto_enroll_batch_group` trigger: fixed 3 bugs — role exclusion (admin/super_admin/professor skip), account_type exclusion (self_registered skips), institution matching added
+- `get_group_preview` RPC: removed `is_batch_group = false` filter (batch group tokens now work); fixed `p.current_streak` (column doesn't exist — hardcoded 0); fixed `badges` table name → `badge_definitions`
+- `join_group_by_token` RPC: removed `is_batch_group = false` filter
+
+**Frontend changes:**
+- `CreateGroup.jsx` — added group type selector: fetches user's `course_level`, shows radio options (system course or custom); passes `p_group_type` and `p_linked_course` to RPC
+- `GroupJoin.jsx` — postAuthRedirect: replaced URL params (`?redirect=`) with `localStorage` pattern matching DeckPreview
+- `App.jsx` — postAuthRedirect architecture: added `AppContent` useEffect for email confirmation path; PostAuthRedirect component tried and removed (React 18 StrictMode double-invocation bug)
+- `Login.jsx` — postAuthRedirect: reads and removes `localStorage.getItem('postAuthRedirect')` BEFORE `signIn()` call (prevents AppContent useEffect race); navigates to redirect or `/dashboard` after success; restores key on error
+
+**postAuthRedirect flow (confirmed working end-to-end):**
+1. Unauthenticated user visits `/join/:token` → sees group preview
+2. Clicks "Sign in" → `localStorage.setItem('postAuthRedirect', '/join/:token')` → `/login`
+3. Logs in → Login.jsx reads redirect (captured before signIn to beat AppContent race) → navigate to `/join/:token`
+4. GroupJoin loads again, user authenticated → "Join Group" button → `join_group_by_token` RPC → navigate to `/dashboard/groups/:groupId`
+
+**Root cause of postAuthRedirect race (documented for future reference):**
+- AppContent `useEffect` fires during `await signIn()` (Supabase triggers onAuthStateChange synchronously before the Promise resolves)
+- Reading localStorage BEFORE `signIn()` prevents the race — AppContent finds nothing and does nothing; Login.jsx holds the redirect value in a local variable
 
 ### postAuthRedirect — Login deep-link after signup/login from DeckPreview (Mar 19, 2026 — session 4)
 

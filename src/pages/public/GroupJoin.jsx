@@ -39,7 +39,8 @@ export default function GroupJoin() {
 
   async function handleJoin() {
     if (!user) {
-      navigate(`/login?redirect=/join/${token}`);
+      localStorage.setItem('postAuthRedirect', `/join/${token}`);
+      navigate('/login');
       return;
     }
     setJoining(true);
@@ -142,15 +143,27 @@ export default function GroupJoin() {
               </Button>
             ) : (
               <div className="space-y-3">
-                <Link to={`/signup?redirect=/join/${token}`} className="block">
-                  <Button className="w-full">Sign up free — it&apos;s free</Button>
-                </Link>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    localStorage.setItem('postAuthRedirect', `/join/${token}`);
+                    navigate('/signup');
+                  }}
+                >
+                  Sign up free to join
+                </Button>
                 <p className="text-center text-xs text-gray-400">
                   Already on Recall?{' '}
-                  <Link to={`/login?redirect=/join/${token}`} className="text-indigo-600 hover:underline inline-flex items-center gap-1">
+                  <button
+                    className="text-indigo-600 hover:underline inline-flex items-center gap-1"
+                    onClick={() => {
+                      localStorage.setItem('postAuthRedirect', `/join/${token}`);
+                      navigate('/login');
+                    }}
+                  >
                     <LogIn className="h-3 w-3" />
                     Sign in
-                  </Link>
+                  </button>
                 </p>
               </div>
             )}
