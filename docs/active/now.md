@@ -1,11 +1,27 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-19 (session 3)
-**Current Phase:** Post-deploy bug fixes complete — ready for commit + deploy
+**Last Updated:** 2026-03-19 (session 4)
+**Current Phase:** postAuthRedirect complete — deployed
 
 ---
 
 ## Just Completed ✅
+
+### postAuthRedirect — Login deep-link after signup/login from DeckPreview (Mar 19, 2026 — session 4)
+
+**Feature complete:**
+- `DeckPreview.jsx` (already done) — "Sign up free" and "Sign in" buttons store `postAuthRedirect` key in `localStorage` pointing to `/dashboard/review-flashcards?deck=:deckId`
+- `Login.jsx` — after successful `signIn`, reads `localStorage.getItem('postAuthRedirect')`, clears it, and navigates to that URL (or `/dashboard` as fallback)
+
+**Full user flow (WhatsApp share → signup → study session):**
+1. Professor/student shares deck URL (`/deck/:deckId`) on WhatsApp
+2. Anonymous visitor opens link → sees `DeckPreview` page with front-side preview + "Sign up free" CTA
+3. Clicks "Sign up free" → redirect target stored in `localStorage`
+4. Completes signup → email confirmation → returns to app, logs in
+5. `Login.jsx` reads redirect from `localStorage` → navigates to `/dashboard/review-flashcards?deck=:deckId`
+6. `ReviewFlashcards.jsx` reads `?deck` param → auto-launches study session for that specific deck
+
+**Note:** For professor decks, Tier B students land on the study session but only access the 10-card preview (same as dashboard experience). The deep-link is honest — it takes the user to the right place; access tier governs what they see.
 
 ### Post-Deploy Bug Fixes — Public Deck Preview + Groups Page (Mar 19, 2026 — session 3)
 

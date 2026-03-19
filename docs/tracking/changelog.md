@@ -1,6 +1,21 @@
 # Changelog
 
 ---
+## [2026-03-19e] feat: postAuthRedirect — login after DeckPreview share deep-links to target deck
+
+### Added
+- **`Login.jsx`** — reads `localStorage.getItem('postAuthRedirect')` after successful `signIn`; clears key; navigates to stored URL or `/dashboard` as fallback; enables the WhatsApp share → signup → study session flow end-to-end
+
+### Changed
+- **`DeckPreview.jsx`** (already in 2026-03-19d) — "Sign up free" and "Sign in" links set `localStorage.postAuthRedirect` to `/dashboard/review-flashcards?deck=:deckId` on click
+
+### User Flow
+WhatsApp share link → DeckPreview (anonymous) → "Sign up free" → localStorage stores redirect → signup → email confirm → login → Login.jsx reads redirect → ReviewFlashcards auto-launches study session for that deck
+
+### Files Changed
+`src/pages/auth/Login.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 ## [2026-03-19d] feat: DeckPreview deep-link — logged-in users go directly to study session
 
 ### Changed

@@ -29,7 +29,9 @@ export default function Login() {
         description: 'Successfully signed in.',
       });
       
-      navigate('/dashboard');
+      const redirect = localStorage.getItem('postAuthRedirect');
+      localStorage.removeItem('postAuthRedirect');
+      navigate(redirect || '/dashboard');
     } catch (error) {
       const isNetworkError = error.message === 'Failed to fetch' || error.message?.includes('NetworkError');
       toast({

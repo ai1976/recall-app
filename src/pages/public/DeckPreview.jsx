@@ -136,14 +136,21 @@ export default function DeckPreview() {
             <p className="text-sm text-gray-500 mb-5">
               Create a free account to study with spaced repetition and track your progress.
             </p>
-            <Link to="/signup">
+            <Link
+              to="/signup"
+              onClick={() => localStorage.setItem('postAuthRedirect', `/dashboard/review-flashcards?deck=${deckId}`)}
+            >
               <Button className="w-full sm:w-auto px-8">
                 Sign up free
               </Button>
             </Link>
             <p className="text-xs text-gray-400 mt-3">
               Already on Recall?{' '}
-              <Link to="/login" className="text-indigo-600 hover:underline">
+              <Link
+                to="/login"
+                className="text-indigo-600 hover:underline"
+                onClick={() => localStorage.setItem('postAuthRedirect', `/dashboard/review-flashcards?deck=${deckId}`)}
+              >
                 Sign in
               </Link>
             </p>
