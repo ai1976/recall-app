@@ -1,11 +1,46 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-20 (Sprint 2.4)
-**Current Phase:** Sprint 2.4 complete — Middleware /join OG tags + AuthContext signup cleanup
+**Last Updated:** 2026-03-20 (Sprint 2.5 + post-sprint refinements)
+**Current Phase:** Sprint 2.5 complete — Landing page redesign with iterative UX refinements
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 2.5 + Refinements — Landing Page (Mar 20, 2026)
+
+**All changes in `src/pages/Home.jsx` — no SQL, no new files.**
+
+**Sprint 2.5 (initial):**
+- Hero headline: "Remember Everything. Ace Every Exam." → "The Revision Operating System."
+- Hero subheadline: updated to institute/spaced-repetition positioning
+- Hero pill 2: "Upload unlimited notes" → "SM-2 spaced repetition"
+- Hero CTAs: single button → dual CTA (B2B + B2C); educator link → "Already a student? Log in"
+- How It Works: renamed, reordered 4 steps, TrendingUp replaces Share2 in step 4
+- Features: renamed section, SM-2 card moved to position 1 with updated copy
+- Educator Content: repositioned as institute pitch
+- For Educators: renamed to For Institutes & Educators, all 4 bullets rewritten
+- Final CTA: heading/body/buttons updated; footer tagline updated
+- Email: all 7 occurrences replaced with hello@recallapp.co.in
+
+**Post-sprint refinements:**
+- Stats: hero pill 3 → "flashcards & notes" (not "items created"); grid labels → "Flashcards" / "Notes"
+- Hero CTAs: B2C "Start free" promoted to primary gradient button; B2B demoted to text link below stats with horizontal divider separator
+- Blue section: reframed as browseable library ("Free to Browse" badge, B2C-neutral description, simplified stat labels, updated quote)
+- For Institutes right panel: replaced misleading stat cards with 3 benefit statements (Ready in 48 Hours / Students Auto-Enrolled / Content Pre-loaded); "When your institute is on Recall..." pitch moved here
+- Hero branding: "Recall" promoted to h1 (text-7xl); "The Revision Operating System." demoted to gradient subtitle — product name now leads
+- How It Works step 1: heading shortened to "Start Reviewing Now"; description made B2C-agnostic (removed "your institute" framing)
+- How It Works step 4: heading shortened to "Never Forget Again" (fits one line)
+- Features: renamed section, SM-2 card moved to position 1 with updated copy
+- Educator Content section: repositioned as institute pitch ("For Institutes & Coaching Classes")
+- For Educators section: renamed "For Institutes & Educators", all 4 bullets updated, CTA updated
+- Final CTA: new heading, new body, "Start free" button, footer note updated
+- Footer tagline: updated to revision OS positioning
+- Email: all 7 occurrences of `recall@moreclassescommerce.com` replaced with `hello@recallapp.co.in`
+
+**RLS note (diagnostic, not fixed):** Lines 37–47 fetch educator profiles via direct `.from('profiles')` query in an unauthenticated context. This silently returns 0 rows for anonymous users due to RLS. The educator list in the right panel of the "For Institutes & Educators" section will not display — it falls back to the static "Growing Community" / "Quality Platform" cards. Not fixed in Sprint 2.5.
+
+**Email used:** `hello@recallapp.co.in` (Google Workspace, domain verification in progress)
 
 ### Sprint 2.4 — Middleware Extension + AuthContext Cleanup (Mar 20, 2026)
 

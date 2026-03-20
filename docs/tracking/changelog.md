@@ -1,6 +1,16 @@
 # Changelog
 
 ---
+## [2026-03-20] feat: Sprint 2.5 + refinements — Landing page redesign: The Revision Operating System
+
+### Changed
+- **`src/pages/Home.jsx`** (Sprint 2.5) — complete copy and structure overhaul; hero headline/subheadline/pills updated; dual CTA replaces single button; How It Works reordered (Review First, Upload, Create, Daily Review); Features reordered (SM-2 first) with updated copy; Educator Content repositioned as institute pitch; For Educators renamed to For Institutes & Educators with all 4 bullets rewritten; Final CTA heading/body/buttons updated; footer tagline updated; all 7 email occurrences replaced with hello@recallapp.co.in
+- **`src/pages/Home.jsx`** (refinements) — B2C/B2B CTA hierarchy fixed (Start free primary, institute CTA text link below stats with divider); stat labels clarified (Flashcards/Notes); blue section reframed as browseable library; For Institutes right panel replaced with benefit statements; hero branding fixed (Recall as h1, tagline as subtitle); step 1 heading shortened + made B2C-agnostic; step 4 heading shortened to "Never Forget Again"
+
+### Files Changed
+`src/pages/Home.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 ## [2026-03-20] feat: Sprint 2.4 — middleware /join OG tags + AuthContext signup cleanup
 
 ### Changed
