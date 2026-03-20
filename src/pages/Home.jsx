@@ -193,7 +193,7 @@ export default function Home() {
           </div>
 
           {/* Primary B2C CTA */}
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-3">
             <Link
               to="/signup"
               className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-10 py-4 rounded-lg text-lg font-semibold hover:shadow-xl transition transform hover:-translate-y-1"
@@ -202,22 +202,15 @@ export default function Home() {
             </Link>
           </div>
 
-          <p className="text-gray-600 text-sm">
+          <p className="text-gray-500 text-sm">
             Already a student?{' '}
             <Link to="/login" className="text-blue-600 hover:underline font-medium">
               Log in
             </Link>
-            {' '}·{' '}
-            <a
-              href="mailto:hello@recallapp.co.in?subject=Get My Institute on Recall&body=Hi, I'd like to get my institute on Recall. Please send me more details.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
-              className="text-blue-600 hover:underline font-medium"
-            >
-              Get your institute on Recall →
-            </a>
           </p>
 
           {/* Real-time Stats */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
+          <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
             <div>
               <div className="text-4xl font-bold text-blue-600">
                 {stats.students}
@@ -242,6 +235,19 @@ export default function Home() {
               </div>
               <div className="text-gray-600 mt-2">Notes</div>
             </div>
+          </div>
+
+          {/* Institute CTA — separated from student flow */}
+          <div className="mt-8 pt-6 border-t border-gray-200 max-w-3xl mx-auto">
+            <p className="text-gray-500 text-sm">
+              Are you an institute or coaching class?{' '}
+              <a
+                href="mailto:hello@recallapp.co.in?subject=Get My Institute on Recall&body=Hi, I'd like to get my institute on Recall. Please send me more details.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
+                className="text-blue-600 hover:underline font-medium"
+              >
+                Get your institute on Recall
+              </a>
+            </p>
           </div>
         </div>
       </section>
