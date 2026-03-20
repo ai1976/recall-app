@@ -162,17 +162,16 @@ export default function Home() {
 
           {/* Main Headline - Catchy + Platform-first */}
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            Remember Everything.
+            The Revision
             <br />
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Ace Every Exam.
+              Operating System.
             </span>
           </h1>
 
           {/* Subheadline - Better sequencing */}
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Upload your handwritten notes. Create flashcards. Review with spaced repetition. 
-            Build your personal study library. Share with peers.
+            Your institute's content, your own notes, and peer study sets — all reviewed with spaced repetition so nothing is forgotten before exam day.
           </p>
 
           {/* Social Proof - Platform activity */}
@@ -183,7 +182,7 @@ export default function Home() {
             </div>
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="text-gray-700">Upload unlimited notes</span>
+              <span className="text-gray-700">SM-2 spaced repetition</span>
             </div>
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
@@ -193,25 +192,27 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Single CTA Button */}
-          <div className="flex justify-center mb-4">
-            <Link 
-              to="/signup" 
+          {/* Dual CTA Buttons */}
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-4">
+            <a
+              href="mailto:hello@recallapp.co.in?subject=Get My Institute on Recall&body=Hi, I'd like to get my institute on Recall. Please send me more details.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
               className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-xl transition transform hover:-translate-y-1"
             >
-              Start Building Your Library
+              Get your institute on Recall
+            </a>
+            <Link
+              to="/signup"
+              className="bg-white border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-50 transition transform hover:-translate-y-1"
+            >
+              Start free
             </Link>
           </div>
 
-          {/* Educator contact link below CTA */}
           <p className="text-gray-600 text-sm">
-            Are you an educator?{' '}
-            <a 
-              href="mailto:recall@moreclassescommerce.com?subject=Interested in Contributing to Recall&body=Hi, I'm interested in becoming a contributing educator for Recall. Please send me more details.%0D%0A%0D%0AMy name: %0D%0AMy subject expertise: %0D%0AMy institution: %0D%0AMy contact number: "
-              className="text-blue-600 hover:underline font-medium"
-            >
-              Join as a contributor
-            </a>
+            Already a student?{' '}
+            <Link to="/login" className="text-blue-600 hover:underline font-medium">
+              Log in
+            </Link>
           </p>
 
           {/* Real-time Stats */}
@@ -249,64 +250,64 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Get Started in 4 Simple Steps
+              How Recall Works
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Your personal study library in under 10 minutes
+              From your first session to exam day — one continuous system
             </p>
           </div>
 
           <div className="grid md:grid-cols-4 gap-8">
-            {/* Step 1 - Upload */}
+            {/* Step 1 - Review First */}
             <div className="text-center">
               <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mb-6 mx-auto">
+                <Brain className="h-8 w-8" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                1. Start Reviewing Immediately
+              </h3>
+              <p className="text-gray-600">
+                Your institute's study sets are already waiting. Browse educator-curated flashcards and start your first spaced repetition session in under 2 minutes.
+              </p>
+            </div>
+
+            {/* Step 2 - Upload Notes */}
+            <div className="text-center">
+              <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mb-6 mx-auto">
                 <Camera className="h-8 w-8" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                1. Upload Your Notes
+                2. Upload Your Notes
               </h3>
               <p className="text-gray-600">
                 Scan handwritten notes with your phone camera. We'll digitize them automatically.
               </p>
             </div>
 
-            {/* Step 2 - Create (IMPROVED WORDING) */}
+            {/* Step 3 - Create Flashcards */}
             <div className="text-center">
-              <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mb-6 mx-auto">
+              <div className="bg-gradient-to-r from-green-600 to-green-500 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mb-6 mx-auto">
                 <BookOpen className="h-8 w-8" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                2. Create Flashcards
+                3. Create Flashcards
               </h3>
               <p className="text-gray-600">
-                Create flashcards from your uploaded notes, or make standalone topic-specific cards. 
+                Create flashcards from your uploaded notes, or make standalone topic-specific cards.
                 Manual creation or bulk CSV upload.
               </p>
             </div>
 
-            {/* Step 3 - Review */}
-            <div className="text-center">
-              <div className="bg-gradient-to-r from-green-600 to-green-500 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mb-6 mx-auto">
-                <Brain className="h-8 w-8" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">
-                3. Smart Reviews
-              </h3>
-              <p className="text-gray-600">
-                Review with spaced repetition. 5-10 minutes daily. Never forget what you learned.
-              </p>
-            </div>
-
-            {/* Step 4 - Share (moved to last) */}
+            {/* Step 4 - Daily Review */}
             <div className="text-center">
               <div className="bg-gradient-to-r from-orange-600 to-orange-500 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mb-6 mx-auto">
-                <Share2 className="h-8 w-8" />
+                <TrendingUp className="h-8 w-8" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                4. Share with Peers
+                4. Review Daily — Never Forget
               </h3>
               <p className="text-gray-600">
-                Make your notes public or keep them private. Help classmates while you study.
+                5–10 minutes daily. SM-2 algorithm schedules each card at the exact moment before you'd forget it. Permanent recall, not last-minute cramming.
               </p>
             </div>
           </div>
@@ -318,7 +319,7 @@ export default function Home() {
               className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-xl transition transform hover:-translate-y-1"
             >
               <Zap className="h-5 w-5" />
-              <span>Create Your First Flashcard</span>
+              <span>Start Reviewing Now</span>
             </Link>
             <p className="text-gray-600 mt-3">Start free • Upgrade anytime</p>
           </div>
@@ -330,17 +331,44 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Everything You Need to Build Your Library
+              Built on the Science of Permanent Memory
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Powerful tools for creating, organizing, and sharing your study materials
+              Every feature is designed around one goal: make sure you remember on exam day, not just today
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Feature 1 - Note Upload */}
+            {/* Feature 1 - Spaced Repetition (moved to position 1) */}
             <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-xl hover:shadow-lg transition">
               <div className="bg-blue-600 text-white p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                <Brain className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                SM-2 Spaced Repetition
+              </h3>
+              <p className="text-gray-600 mb-4">
+                The gold standard algorithm used by top memory athletes. Recall schedules each item at the exact optimal interval — not too soon, not too late.
+              </p>
+              <ul className="space-y-2">
+                <li className="flex items-start space-x-2">
+                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700">SuperMemo SM-2 algorithm</span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700">Daily review queue, auto-scheduled</span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700">Streak tracking + progress badges</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Feature 2 - Note Upload */}
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-8 rounded-xl hover:shadow-lg transition">
+              <div className="bg-purple-600 text-white p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
                 <Upload className="h-6 w-6" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
@@ -365,9 +393,9 @@ export default function Home() {
               </ul>
             </div>
 
-            {/* Feature 2 - Flashcard Creation */}
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-8 rounded-xl hover:shadow-lg transition">
-              <div className="bg-purple-600 text-white p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+            {/* Feature 3 - Flashcard Creation */}
+            <div className="bg-gradient-to-br from-green-50 to-teal-50 p-8 rounded-xl hover:shadow-lg transition">
+              <div className="bg-green-600 text-white p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
                 <BookOpen className="h-6 w-6" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
@@ -391,33 +419,6 @@ export default function Home() {
                 </li>
               </ul>
             </div>
-
-            {/* Feature 3 - Spaced Repetition */}
-            <div className="bg-gradient-to-br from-green-50 to-teal-50 p-8 rounded-xl hover:shadow-lg transition">
-              <div className="bg-green-600 text-white p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
-                <Brain className="h-6 w-6" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">
-                Smart Spaced Repetition
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Review at optimal intervals. Boost retention by 80% with proven science.
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-start space-x-2">
-                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700">SuperMemo-2 algorithm</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700">Auto review scheduling</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700">Track study streaks</span>
-                </li>
-              </ul>
-            </div>
           </div>
         </div>
       </section>
@@ -428,15 +429,14 @@ export default function Home() {
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center space-x-2 bg-blue-200 text-blue-900 px-4 py-2 rounded-full mb-6">
               <Award className="h-4 w-4" />
-              <span className="text-sm font-semibold">Bonus: Get Started Faster</span>
+              <span className="text-sm font-semibold">For Institutes & Coaching Classes</span>
             </div>
             
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Don't Have Notes Yet?
+              Your Institute's Content, Ready to Study
             </h2>
             <p className="text-xl text-gray-600 mb-8">
-              Start reviewing {stats.flashcards > 0 ? stats.flashcards : 'expert'} educator-verified flashcards 
-              while you build your own library. Quality content from Day 1.
+              When your institute is on Recall, all study sets are pre-loaded into your account. No setup. No waiting. Just open the app and your batch's content is there — ready to review with spaced repetition.
             </p>
             
             <div className="bg-white p-8 rounded-xl shadow-sm">
@@ -462,8 +462,7 @@ export default function Home() {
               </div>
               
               <p className="text-gray-600 italic">
-                "Review educator content → Get inspired → Upload your own notes → 
-                Become a contributor → Help peers learn"
+                "Your batch group auto-enrolls you. Your content is pre-loaded. Your revision schedule starts Day 1."
               </p>
             </div>
           </div>
@@ -475,10 +474,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4">
-              For Educators & Subject Experts
+              For Institutes & Educators
             </h2>
             <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-              Share your expertise. Build your profile. Help students succeed.
+              Bring your institute onto Recall. Auto-enrol your batch. Curate content once — every student benefits.
             </p>
           </div>
 
@@ -490,29 +489,29 @@ export default function Home() {
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="h-6 w-6 text-green-300 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="font-semibold">Featured Profile</div>
-                    <div className="text-blue-100 text-sm">Showcase expertise to thousands of students</div>
+                    <div className="font-semibold">Dedicated Institute Setup</div>
+                    <div className="text-blue-100 text-sm">Batch groups auto-created, students auto-enrolled on registration</div>
                   </div>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="h-6 w-6 text-green-300 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="font-semibold">Free Premium Access</div>
-                    <div className="text-blue-100 text-sm">Lifetime premium account</div>
+                    <div className="font-semibold">Free for Students</div>
+                    <div className="text-blue-100 text-sm">Social features, batch groups, and review tools are free for all enrolled students</div>
                   </div>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="h-6 w-6 text-green-300 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="font-semibold">Recognition</div>
-                    <div className="text-blue-100 text-sm">Your content reaches {stats.students || 'hundreds of'} students</div>
+                    <div className="font-semibold">Curated Content Control</div>
+                    <div className="text-blue-100 text-sm">You control which flashcards and notes are visible to your batch</div>
                   </div>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="h-6 w-6 text-green-300 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="font-semibold">Easy Upload</div>
-                    <div className="text-blue-100 text-sm">Bulk CSV upload (3-4 hours one-time)</div>
+                    <div className="font-semibold">Bulk Upload or CSV</div>
+                    <div className="text-blue-100 text-sm">Upload your complete study material once via CSV — we handle the rest</div>
                   </div>
                 </li>
               </ul>
@@ -522,9 +521,9 @@ export default function Home() {
             <div className="bg-white/10 backdrop-blur-sm p-8 rounded-xl">
               <h3 className="text-2xl font-bold mb-6">
                 {!stats.isLoading && educators.length > 0 ? (
-                  `Join Our Expert Contributors`
+                  `Who Is Already on Recall`
                 ) : (
-                  `Join ${stats.educators} Expert Educator${stats.educators !== 1 ? 's' : ''}`
+                  `Who Is Already on Recall`
                 )}
               </h3>
               
@@ -576,14 +575,14 @@ export default function Home() {
               )}
 
               <div className="mt-8 pt-8 border-t border-white/20">
-                <a 
-                  href="mailto:recall@moreclassescommerce.com?subject=Interested in Contributing as Educator&body=Hi, I'm interested in becoming a contributing educator for Recall. Please send me more details.%0D%0A%0D%0AMy name: %0D%0AMy subject expertise: %0D%0AMy institution: %0D%0AMy contact number: " 
+                <a
+                  href="mailto:hello@recallapp.co.in?subject=Get My Institute on Recall&body=Hi, I'd like to get my institute on Recall.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
                   className="block w-full bg-white text-blue-600 text-center px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition"
                 >
-                  Become a Contributing Expert
+                  Get My Institute on Recall
                 </a>
                 <p className="text-center text-blue-100 text-sm mt-3">
-                  Email: recall@moreclassescommerce.com
+                  Email: hello@recallapp.co.in
                 </p>
               </div>
             </div>
@@ -641,27 +640,27 @@ export default function Home() {
       <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Ready to Build Your Study Library?
+            Ready to Never Forget Again?
           </h2>
           <p className="text-xl text-blue-100 mb-10">
-            Join {stats.students} students • {stats.educators} educators • Start free
+            Join {stats.students} students already using spaced repetition • Start free today
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <Link 
-              to="/signup" 
+            <Link
+              to="/signup"
               className="bg-white text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-xl transition transform hover:-translate-y-1"
             >
-              Create Your First Flashcard
+              Start free
             </Link>
-            <a 
-              href="mailto:recall@moreclassescommerce.com?subject=Questions About Recall&body=Hi, I have a question about Recall:%0D%0A%0D%0A"
+            <a
+              href="mailto:hello@recallapp.co.in?subject=Questions About Recall&body=Hi, I have a question about Recall:%0D%0A%0D%0A"
               className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white/10 transition"
             >
               Contact Us
             </a>
           </div>
           <p className="mt-6 text-blue-100">
-            Start free • Upgrade for unlimited access
+            Free for students • Institute plans available
           </p>
         </div>
       </section>
@@ -679,7 +678,7 @@ export default function Home() {
                 <span className="text-xl font-bold text-white">Recall</span>
               </div>
               <p className="text-sm">
-                Turn your notes into smart flashcards. Build your study library. Ace every exam.
+                The revision operating system for serious exam preparation.
               </p>
             </div>
 
@@ -698,9 +697,9 @@ export default function Home() {
             <div>
               <h3 className="text-white font-semibold mb-4">For Educators</h3>
               <ul className="space-y-2 text-sm">
-                <li><a href="mailto:recall@moreclassescommerce.com?subject=Become an Educator" className="hover:text-white transition">Become a Contributor</a></li>
+                <li><a href="mailto:hello@recallapp.co.in?subject=Get My Institute on Recall" className="hover:text-white transition">Get My Institute on Recall</a></li>
                 <li><a href="#educators" className="hover:text-white transition">Benefits</a></li>
-                <li><a href="mailto:recall@moreclassescommerce.com" className="hover:text-white transition">Contact</a></li>
+                <li><a href="mailto:hello@recallapp.co.in" className="hover:text-white transition">Contact</a></li>
               </ul>
             </div>
 
@@ -710,7 +709,7 @@ export default function Home() {
               <ul className="space-y-2 text-sm">
                 <li><Link to="/privacy-policy" className="hover:text-white transition">Privacy Policy</Link></li>
                 <li><Link to="/terms-of-service" className="hover:text-white transition">Terms of Service</Link></li>
-                <li><a href="mailto:recall@moreclassescommerce.com" className="hover:text-white transition">Support</a></li>
+                <li><a href="mailto:hello@recallapp.co.in" className="hover:text-white transition">Support</a></li>
               </ul>
             </div>
           </div>
