@@ -136,7 +136,14 @@ export default function Signup() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-indigo-600 mb-2">Recall</h1>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
+              <span className="text-white font-bold text-2xl">R</span>
+            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Recall
+            </h1>
+          </div>
           <p className="text-gray-600">Create your account</p>
         </div>
 

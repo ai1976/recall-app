@@ -89,7 +89,12 @@ export default function GroupJoin() {
       <div className="w-full max-w-md">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-indigo-700">Recall</h2>
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
+              <span className="text-white font-bold text-lg">R</span>
+            </div>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Recall</h2>
+          </div>
           <p className="text-sm text-gray-500 mt-1">Spaced repetition, done together</p>
         </div>
 
