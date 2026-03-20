@@ -1,11 +1,24 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-19 (session 5)
-**Current Phase:** Sprint 2.3 complete — Group Invite Infrastructure + Auto-Batch Trigger + Group Types
+**Last Updated:** 2026-03-20 (Sprint 2.4)
+**Current Phase:** Sprint 2.4 complete — Middleware /join OG tags + AuthContext signup cleanup
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 2.4 — Middleware Extension + AuthContext Cleanup (Mar 20, 2026)
+
+**SQL deployed:**
+- `fn_create_profile_on_signup` + `trg_create_profile_on_signup` — SECURITY DEFINER trigger on `auth.users` INSERT; creates profile row from `raw_user_meta_data`; replaces broken client-side insert; timezone defaults to `Asia/Kolkata` and is synced on first login
+
+**Frontend changes:**
+- `middleware.js` — extended to handle `/join/:token` OG tags alongside existing `/deck/:deckId`; matcher updated to `['/deck/:path*', '/join/:path*']`; calls `get_group_preview` RPC (the only join preview RPC that exists); parses nested `{ group, stats }` response; `buildOgResponse()` helper extracted to eliminate duplication; all deck logic unchanged
+- `AuthContext.jsx` — removed client-side `profiles.insert()` from `signUp()` and the 100ms delay; DB trigger is now the authoritative profile creation path
+
+**Key diagnostic finding (Sprint 2.4 pre-flight):**
+- Sprint prompt stated a profile-creation trigger was deployed in a prior sprint — this was incorrect. Pre-flight Diagnostic 1 confirmed no such trigger existed. The client-side insert was the only profile creation mechanism and was silently failing for email-confirmation signups. Trigger was created fresh in this sprint before removing the client-side insert.
+- `get_group_join_preview` RPC mentioned in sprint spec does not exist — only `get_group_preview` exists; middleware updated accordingly.
 
 ### Sprint 2.3 — Group Invite Infrastructure, Auto-Batch Trigger, Group Types (Mar 19, 2026 — session 5)
 

@@ -135,10 +135,10 @@ export const AuthProvider = ({ children }) => {
 },
     signUp: async (email, password, fullName, courseLevel) => {
       try {
-        // Get browser timezone for new user
-        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
-
-        // Step 1: Create auth user
+        // Profile is created by DB trigger (trg_create_profile_on_signup) on auth.users INSERT.
+        // Client-side insert was removed — it always fails during email-confirmation flow
+        // (no session = auth.uid() is null, so RLS blocks it silently).
+        // Timezone is synced on first login via updateUserTimezone().
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -151,34 +151,6 @@ export const AuthProvider = ({ children }) => {
         });
 
         if (error) throw error;
-
-        // Step 2: Wait for auth.users to be created (100ms delay)
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Step 3: Create profile (with error handling)
-        if (data.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: data.user.id,
-              email: email,
-              full_name: fullName,
-              course_level: courseLevel,
-              institution: 'In-house',
-              role: 'student',
-              timezone: browserTimezone,
-              account_type: 'self_registered',
-            });
-
-          // If profile creation fails, log warning but don't throw
-          if (profileError) {
-            console.warn('Profile creation warning:', profileError);
-            // Don't throw - continue with signup
-          } else {
-            console.log(`⏰ New user timezone set: ${browserTimezone}`);
-          }
-        }
-
         return data;
       } catch (error) {
         console.error('Signup error:', error);

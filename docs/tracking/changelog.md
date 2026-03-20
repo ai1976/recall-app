@@ -1,6 +1,22 @@
 # Changelog
 
 ---
+## [2026-03-20] feat: Sprint 2.4 — middleware /join OG tags + AuthContext signup cleanup
+
+### Changed
+- **`middleware.js`** — extended to handle `/join/:token` in addition to `/deck/:deckId`; config.matcher now covers both routes; join handler calls `get_group_preview` RPC and builds OG tags from `group.name`, `group.member_count`, `stats.total_weekly_reviews`; shared `buildOgResponse()` helper extracted; all deck logic, bot detection, and cache headers unchanged
+- **`AuthContext.jsx`** — removed redundant client-side `profiles` INSERT from `signUp()`; removed 100ms delay that preceded it; profile creation is now handled exclusively by `trg_create_profile_on_signup` DB trigger
+
+### Fixed
+- **AuthContext signUp 401** — client-side `profiles.insert()` always failed during email-confirmation flow because `signUp()` returns a user object but no session; `auth.uid()` is null so RLS silently blocked the insert; new users sometimes had no profile row depending on timing
+
+### SQL Deployed
+- `fn_create_profile_on_signup` + `trg_create_profile_on_signup` — SECURITY DEFINER trigger on `auth.users` INSERT; reads `full_name` and `course_level` from `raw_user_meta_data`; timezone defaults to `Asia/Kolkata` and is synced on first login by `updateUserTimezone()`
+
+### Files Changed
+`middleware.js`, `src/contexts/AuthContext.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md`
+
+---
 ## [2026-03-19f] feat: Sprint 2.3 — group invite links, auto-batch trigger, group types
 
 ### Added

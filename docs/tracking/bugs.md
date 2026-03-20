@@ -2,6 +2,13 @@
 
 ## Resolved Bugs
 
+### [Mar 20, 2026] AuthContext signUp — profile INSERT fails with 401 (no session during email-confirmation flow)
+- **Symptom:** New user signs up → email confirmed → logs in → intermittent missing profile rows; browser console showed 401 on `profiles` INSERT during signup.
+- **Root Cause:** `AuthContext.signUp()` called `supabase.from('profiles').insert(...)` client-side immediately after `supabase.auth.signUp()`. With email confirmation ON, `signUp()` returns a `user` object but **no session** — `auth.uid()` is null. RLS blocked the insert silently (returned a `profileError` but the code only logged a warning and continued). Users who signed up could sometimes land in a state with no profile row.
+- **Discovery:** Pre-flight diagnostic in Sprint 2.4 confirmed no `auth.users` trigger existed for profile creation — the client-side insert was the only write path, and it was unreliable.
+- **Fix:** Deployed `trg_create_profile_on_signup` — a SECURITY DEFINER trigger on `auth.users` INSERT that creates the profile row server-side using `raw_user_meta_data`. Removed the client-side insert and the 100ms delay from `AuthContext.signUp()`. Timezone defaults to `Asia/Kolkata` and is overwritten on first login by `updateUserTimezone()`.
+- **Status:** ✅ RESOLVED
+
 ### [Mar 19, 2026] Group Invite Links Return "Link not found" for Batch Groups
 - **Symptom:** Visiting `/join/:token` for a batch group token showed "This invite link is invalid or the group no longer exists."
 - **Root Cause:** `get_group_preview` had `AND is_batch_group = false` in the token lookup query. Batch group tokens always returned `{ group: null, stats: null }`. GroupJoin set `notFound = true` and showed the error screen.
