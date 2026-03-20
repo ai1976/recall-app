@@ -187,22 +187,16 @@ export default function Home() {
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
               <span className="text-gray-700">
-                {stats.isLoading ? 'Active community' : `${stats.totalFlashcards + stats.totalNotes}+ items created`}
+                {stats.isLoading ? 'Active community' : `${stats.totalFlashcards + stats.totalNotes}+ flashcards & notes`}
               </span>
             </div>
           </div>
 
-          {/* Dual CTA Buttons */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-4">
-            <a
-              href="mailto:hello@recallapp.co.in?subject=Get My Institute on Recall&body=Hi, I'd like to get my institute on Recall. Please send me more details.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-xl transition transform hover:-translate-y-1"
-            >
-              Get your institute on Recall
-            </a>
+          {/* Primary B2C CTA */}
+          <div className="flex justify-center mb-4">
             <Link
               to="/signup"
-              className="bg-white border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-50 transition transform hover:-translate-y-1"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-10 py-4 rounded-lg text-lg font-semibold hover:shadow-xl transition transform hover:-translate-y-1"
             >
               Start free
             </Link>
@@ -213,6 +207,13 @@ export default function Home() {
             <Link to="/login" className="text-blue-600 hover:underline font-medium">
               Log in
             </Link>
+            {' '}·{' '}
+            <a
+              href="mailto:hello@recallapp.co.in?subject=Get My Institute on Recall&body=Hi, I'd like to get my institute on Recall. Please send me more details.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
+              className="text-blue-600 hover:underline font-medium"
+            >
+              Get your institute on Recall →
+            </a>
           </p>
 
           {/* Real-time Stats */}
@@ -233,13 +234,13 @@ export default function Home() {
               <div className="text-4xl font-bold text-green-600">
                 {stats.totalFlashcards}
               </div>
-              <div className="text-gray-600 mt-2">Items Created</div>
+              <div className="text-gray-600 mt-2">Flashcards</div>
             </div>
             <div>
               <div className="text-4xl font-bold text-orange-600">
                 {stats.totalNotes}
               </div>
-              <div className="text-gray-600 mt-2">Notes Uploaded</div>
+              <div className="text-gray-600 mt-2">Notes</div>
             </div>
           </div>
         </div>
@@ -429,40 +430,40 @@ export default function Home() {
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center space-x-2 bg-blue-200 text-blue-900 px-4 py-2 rounded-full mb-6">
               <Award className="h-4 w-4" />
-              <span className="text-sm font-semibold">For Institutes & Coaching Classes</span>
+              <span className="text-sm font-semibold">Free to Browse</span>
             </div>
-            
+
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Your Institute's Content, Ready to Study
+              Start with Our Existing Study Library
             </h2>
             <p className="text-xl text-gray-600 mb-8">
-              When your institute is on Recall, all study sets are pre-loaded into your account. No setup. No waiting. Just open the app and your batch's content is there — ready to review with spaced repetition.
+              Even before your institute joins, there are already {stats.flashcards > 0 ? stats.flashcards : 'hundreds of'} educator-verified flashcards and {stats.notes > 0 ? stats.notes : 'dozens of'} notes available to browse. Sign up free and start reviewing today.
             </p>
-            
+
             <div className="bg-white p-8 rounded-xl shadow-sm">
               <div className="grid md:grid-cols-3 gap-6 mb-6">
                 <div>
                   <div className="text-3xl font-bold text-blue-600 mb-2">
                     {stats.educators}
                   </div>
-                  <div className="text-gray-600">Expert Educators</div>
+                  <div className="text-gray-600">Educators</div>
                 </div>
                 <div>
                   <div className="text-3xl font-bold text-purple-600 mb-2">
                     {stats.flashcards}
                   </div>
-                  <div className="text-gray-600">Flashcards to Browse</div>
+                  <div className="text-gray-600">Flashcards</div>
                 </div>
                 <div>
                   <div className="text-3xl font-bold text-green-600 mb-2">
                     {stats.notes}
                   </div>
-                  <div className="text-gray-600">Notes to Browse</div>
+                  <div className="text-gray-600">Notes</div>
                 </div>
               </div>
-              
+
               <p className="text-gray-600 italic">
-                "Your batch group auto-enrolls you. Your content is pre-loaded. Your revision schedule starts Day 1."
+                "Browse public content → Create your own → Share with peers"
               </p>
             </div>
           </div>
@@ -517,62 +518,42 @@ export default function Home() {
               </ul>
             </div>
 
-            {/* Current Contributors - RESTORED with "Join" prefix */}
+            {/* Why Institutes Choose Recall */}
             <div className="bg-white/10 backdrop-blur-sm p-8 rounded-xl">
-              <h3 className="text-2xl font-bold mb-6">
-                {!stats.isLoading && educators.length > 0 ? (
-                  `Who Is Already on Recall`
-                ) : (
-                  `Who Is Already on Recall`
-                )}
-              </h3>
-              
-              {/* Show actual educators if available */}
-              {!stats.isLoading && educators.length > 0 ? (
-                <div className="space-y-4 mb-6">
-                  {educators.map((educator, index) => (
-                    <div key={educator.id || index} className="flex items-center space-x-4">
-                      <div className="bg-white/20 w-12 h-12 rounded-full flex items-center justify-center text-xl font-semibold">
-                        {educator.full_name?.charAt(0) || 'E'}
-                      </div>
-                      <div>
-                        <div className="font-semibold">{educator.full_name || 'Expert Educator'}</div>
-                        <div className="text-blue-100 text-sm">Subject Matter Expert</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4 mb-6">
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-white/20 p-3 rounded-full">
-                      <Users className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <div className="font-semibold">Growing Community</div>
-                      <div className="text-blue-100 text-sm">{stats.students} active students</div>
-                    </div>
+              <h3 className="text-2xl font-bold mb-2">Why Institutes Choose Recall</h3>
+              <p className="text-blue-100 text-sm mb-6">
+                When your institute is on Recall, all study sets are pre-loaded into your students' accounts. No setup. No waiting.
+              </p>
+
+              <div className="space-y-4 mb-6">
+                <div className="flex items-start space-x-4">
+                  <div className="bg-white/20 p-3 rounded-full flex-shrink-0">
+                    <Zap className="h-6 w-6" />
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-white/20 p-3 rounded-full">
-                      <BookOpen className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <div className="font-semibold">Quality Platform</div>
-                      <div className="text-blue-100 text-sm">{stats.flashcards + stats.notes} items shared</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-white/20 p-3 rounded-full">
-                      <TrendingUp className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <div className="font-semibold">Real Impact</div>
-                      <div className="text-blue-100 text-sm">Help students ace exams</div>
-                    </div>
+                  <div>
+                    <div className="font-semibold">Ready in 48 Hours</div>
+                    <div className="text-blue-100 text-sm">Institute onboarding and batch setup done for you</div>
                   </div>
                 </div>
-              )}
+                <div className="flex items-start space-x-4">
+                  <div className="bg-white/20 p-3 rounded-full flex-shrink-0">
+                    <Users className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="font-semibold">Students Auto-Enrolled</div>
+                    <div className="text-blue-100 text-sm">Students are automatically added to your batch on registration — no manual invites</div>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-4">
+                  <div className="bg-white/20 p-3 rounded-full flex-shrink-0">
+                    <BookOpen className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="font-semibold">Content Pre-loaded</div>
+                    <div className="text-blue-100 text-sm">Your CSV becomes your students' spaced repetition queue from Day 1</div>
+                  </div>
+                </div>
+              </div>
 
               <div className="mt-8 pt-8 border-t border-white/20">
                 <a
