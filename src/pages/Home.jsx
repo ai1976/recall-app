@@ -270,10 +270,10 @@ export default function Home() {
                 <Brain className="h-8 w-8" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                1. Start Reviewing Immediately
+                1. Start Reviewing Now
               </h3>
               <p className="text-gray-600">
-                Your institute's study sets are already waiting. Browse educator-curated flashcards and start your first spaced repetition session in under 2 minutes.
+                Public flashcard sets are already here. Browse study materials created by educators and peers, and start your first spaced repetition session in under 2 minutes.
               </p>
             </div>
 
@@ -310,7 +310,7 @@ export default function Home() {
                 <TrendingUp className="h-8 w-8" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                4. Review Daily — Never Forget
+                4. Never Forget Again
               </h3>
               <p className="text-gray-600">
                 5–10 minutes daily. SM-2 algorithm schedules each card at the exact moment before you'd forget it. Permanent recall, not last-minute cramming.
