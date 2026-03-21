@@ -161,10 +161,10 @@ export default function Home() {
           </div>
 
           {/* Main Headline - Brand name first, tagline second */}
-          <h1 className="text-6xl md:text-7xl font-bold text-gray-900 mb-3 leading-tight">
+          <h1 className="text-6xl md:text-7xl font-bold mb-3 leading-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Recall
           </h1>
-          <p className="text-2xl md:text-3xl font-semibold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <p className="text-2xl md:text-3xl font-bold mb-6 text-gray-900">
             The Revision Operating System.
           </p>
 
