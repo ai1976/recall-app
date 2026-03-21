@@ -1,11 +1,25 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-21 (Sprint 2.8-B)
-**Current Phase:** Sprint 2.8-B complete — full flagged content workflow
+**Last Updated:** 2026-03-21 (post-Sprint 2.9 fix)
+**Current Phase:** Sprint 2.9 complete — flagged content workflow completion
 
 ---
 
 ## Just Completed ✅
+
+### Fix — Dashboard placeholder card consistency (Mar 21, 2026)
+
+- **Professor "Needs Attention" card:** Was hidden entirely when `needsAttentionItems.length === 0` (Sprint 2.9 behavior). Changed to always-visible card matching admin/super_admin pattern — gray "No flags on your content. All clear!" when empty, amber with flag list when active. **Note:** This changed Sprint 2.9's intentional show-only-when-flags behavior. User approved making it always-visible to match the admin placeholder pattern.
+- **Admin + Super Admin "Needs Review" card:** Zero-state title was `'Flagged Content'` — changed to `'Needs Review'` so the placeholder label is consistent with section intent.
+
+Files Changed: `src/pages/Dashboard.jsx`
+
+### Sprint 2.9 — Flagged content workflow completion (Mar 21, 2026)
+
+- **SQL:** Deployed `auto_resolve_content_error_flags()` SECURITY DEFINER trigger function. Fires on UPDATE of `notes` (as `'note'`) or `flashcards` (as `'flashcard'`); resolves all matching pending `content_error` flags automatically with `resolution_note = 'Content updated by creator'`. Triggers: `trg_auto_resolve_note_flags` (notes), `trg_auto_resolve_flashcard_flags` (flashcards).
+- **Dashboard.jsx:** Professor Needs Attention card — "Review" button replaced with "Edit" + "Mark resolved" pair. "Edit" navigates to edit page; "Mark resolved" calls `resolve_content_flag` RPC and refreshes the list in place.
+- **Dashboard.jsx:** Student dashboard — "My Reports" card added. Fetches up to 10 of the student's own submitted flags directly from `content_flags` (RLS allows `flagged_by = auth.uid()`). Shows content_type, reason label, and status pill (Under review / Resolved / Dismissed / Content removed). Hidden if no reports submitted. `myReports` state + fetch scoped to non-professor/admin roles.
+- **helpContent.js:** Added second tip to `flagging-content` section: students can track report status via dashboard "My Reports".
 
 ### Sprint 2.8-B — Full flagged content workflow (Mar 21, 2026)
 

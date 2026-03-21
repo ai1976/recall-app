@@ -1,6 +1,32 @@
 # Changelog
 
 ---
+## [2026-03-21] fix: Dashboard placeholder card consistency (post-Sprint 2.9)
+
+### Changed
+- **`src/pages/Dashboard.jsx`** — Professor "Needs Attention" card now always visible (was hidden when `needsAttentionItems.length === 0`); zero-state shows "No flags on your content. All clear!" in gray; active state shows amber styling with flag list unchanged
+- **`src/pages/Dashboard.jsx`** — Admin and Super Admin "Needs Review" card zero-state title changed from `'Flagged Content'` to `'Needs Review'` for label consistency
+
+### Files Changed
+`src/pages/Dashboard.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
+## [2026-03-21] feat: Sprint 2.9 — flagged content workflow completion
+
+### Added
+- **Supabase** — `auto_resolve_content_error_flags()` trigger function (SECURITY DEFINER): auto-resolves pending `content_error` flags when a note or flashcard is updated by its creator; sets `resolution_note = 'Content updated by creator'`
+- **Supabase** — `trg_auto_resolve_note_flags` AFTER UPDATE trigger on `notes`
+- **Supabase** — `trg_auto_resolve_flashcard_flags` AFTER UPDATE trigger on `flashcards`
+- **`src/pages/Dashboard.jsx`** — Student "My Reports" card: fetches student's own `content_flags` rows (up to 10); shows content_type, reason label, status pill (Under review / Resolved / Dismissed / Content removed); hidden when no reports submitted
+
+### Changed
+- **`src/pages/Dashboard.jsx`** — Professor Needs Attention card: "Review" button replaced with "Edit" + "Mark resolved" buttons; "Mark resolved" calls `resolve_content_flag` RPC and refreshes list in place
+- **`src/data/helpContent.js`** — `flagging-content` section: second tip added about tracking report status via dashboard "My Reports"
+
+### Files Changed
+`src/pages/Dashboard.jsx`, `src/data/helpContent.js`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 ## [2026-03-21] feat: Sprint 2.8-B — full flagged content workflow
 
 ### Added
