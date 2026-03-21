@@ -305,8 +305,8 @@ export default function Help() {
       {/* Tab bar (hidden during search) */}
       {!isSearching && (
         <div className="overflow-x-auto mb-6 scrollbar-hide">
-          <div className="inline-flex gap-1 bg-gray-100 p-1 rounded-lg min-w-full">
-            {visibleTabs.map(tab => (
+          <div className="flex gap-1 bg-gray-100 pl-1 py-1 rounded-lg min-w-full">
+            {visibleTabs.map((tab, i) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
@@ -314,7 +314,7 @@ export default function Help() {
                   activeTab === tab.key
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
-                }`}
+                } ${i === visibleTabs.length - 1 ? 'mr-1' : ''}`}
               >
                 <DynamicIcon name={tab.icon} className="h-4 w-4" />
                 {tab.label}
