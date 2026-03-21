@@ -1,6 +1,23 @@
 # Changelog
 
 ---
+## [2026-03-21] feat: Sprint 2.8-A — public note sharing + WhatsApp OG previews
+
+### Added
+- **Supabase** — `get_public_note_preview(p_note_id uuid)` SECURITY DEFINER RPC; returns note metadata only when `visibility = 'public'`; joins profiles, subjects, topics; safe for anonymous callers
+- **`src/pages/public/NotePreview.jsx`** — new public page at `/note/:noteId`; fetches via RPC (anon-safe); subject/topic pills, blurred content preview, auth-aware CTA with `postAuthRedirect`
+- **`src/App.jsx`** — lazy import + `/note/:noteId` public route
+- **`src/data/helpContent.js`** — `sharing-whatsapp` section added to Social tab (all roles): steps for sharing notes and decks via WhatsApp
+
+### Changed
+- **`middleware.js`** — `NOTE_PATH` regex + `noteMatch`; guard updated to include noteMatch; `/note/:path*` added to matcher config; note OG handler fetches `get_public_note_preview` and returns title/description HTML for bots
+- **`src/pages/dashboard/Content/NoteDetail.jsx`** — `Share2` added to lucide-react import; `handleShare()` added (Web Share API + WhatsApp fallback); Share button rendered when `note.visibility === 'public'`
+- **`src/data/helpContent.js`** — `prof-share-content` section in For Professors tab rewritten with specific WhatsApp sharing steps and tip
+
+### Files Changed
+`middleware.js`, `src/pages/public/NotePreview.jsx`, `src/App.jsx`, `src/pages/dashboard/Content/NoteDetail.jsx`, `src/data/helpContent.js`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/FILE_STRUCTURE.md`
+
+---
 ## [2026-03-21] feat: Sprint 2.7-B — role-based Help section (professor and admin tabs)
 
 ### Added

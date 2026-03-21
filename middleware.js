@@ -14,11 +14,12 @@
  *   SUPABASE_SERVICE_ROLE_KEY — service role key (bypasses RLS)
  */
 
-export const config = { matcher: ['/deck/:path*', '/join/:path*'] };
+export const config = { matcher: ['/deck/:path*', '/join/:path*', '/note/:path*'] };
 
 const BOT_UA = /WhatsApp|facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|TelegramBot|Googlebot|bingbot|Applebot/i;
 const DECK_PATH = /^\/deck\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
 const JOIN_PATH = /^\/join\/([0-9a-f-]{36})$/i;
+const NOTE_PATH = /^\/note\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
 
 export default async function middleware(request) {
   const url = new URL(request.url);
@@ -27,9 +28,10 @@ export default async function middleware(request) {
 
   const deckMatch = DECK_PATH.exec(pathname);
   const joinMatch = JOIN_PATH.exec(pathname);
+  const noteMatch = NOTE_PATH.exec(pathname);
 
   // Pass through non-bot requests or non-matching paths
-  if ((!deckMatch && !joinMatch) || !BOT_UA.test(userAgent)) {
+  if ((!deckMatch && !joinMatch && !noteMatch) || !BOT_UA.test(userAgent)) {
     return; // undefined = pass through to the app
   }
 
@@ -115,6 +117,47 @@ export default async function middleware(request) {
       title = 'Study Group on Recall';
       description = 'Join a spaced repetition study group on Recall.';
     }
+
+    return buildOgResponse(title, description, pageUrl);
+  }
+
+  // ── /note/:noteId handler ──────────────────────────────────────────────────
+  if (noteMatch) {
+    const noteId = noteMatch[1];
+
+    let note = null;
+    try {
+      const res = await fetch(
+        `${supabaseUrl}/rest/v1/rpc/get_public_note_preview`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({ p_note_id: noteId }),
+        }
+      );
+      if (res.ok) {
+        const json = await res.json();
+        note = Array.isArray(json) ? json[0] : null;
+      }
+    } catch {
+      // Fall through to generic OG tags
+    }
+
+    if (!note) return; // private or not found — serve app normally
+
+    const descParts = [
+      note.subject_name ? note.subject_name : null,
+      note.topic_name   ? note.topic_name   : null,
+      note.author_name  ? `By ${note.author_name}` : null,
+    ].filter(Boolean);
+    const title = `${note.title} — Recall`;
+    const description = descParts.length > 0
+      ? descParts.join(' · ')
+      : 'Study note shared on Recall — spaced repetition for serious exam prep.';
 
     return buildOgResponse(title, description, pageUrl);
   }

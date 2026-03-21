@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText, File, Calendar, Tag, Plus, Brain, Trash2, Edit, Users } from 'lucide-react';
+import { ArrowLeft, FileText, File, Calendar, Tag, Plus, Brain, Trash2, Edit, Users, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import UpvoteButton from '@/components/ui/UpvoteButton';
@@ -82,6 +82,25 @@ export default function NoteDetail() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/note/${id}`;
+    const shareTitle = note?.title || 'Study note';
+    const shareText = `Check out this note on Recall: ${shareTitle}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
+      } catch {
+        // User cancelled — no action needed
+      }
+    } else {
+      window.open(
+        `https://wa.me/?text=${encodeURIComponent(shareText + '\n' + shareUrl)}`,
+        '_blank'
+      );
     }
   };
 
@@ -171,6 +190,13 @@ export default function NoteDetail() {
                 ownerId={note.user_id}
                 size="md"
               />
+
+              {note?.visibility === 'public' && (
+                <Button variant="outline" size="sm" onClick={handleShare}>
+                  <Share2 className="h-4 w-4 mr-1" />
+                  Share
+                </Button>
+              )}
 
               {!isOwner && (
                 <FlagButton contentType="note" contentId={note.id} />

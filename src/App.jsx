@@ -59,6 +59,7 @@ const ProfessorAnalytics = lazy(() => import('@/pages/dashboard/ProfessorAnalyti
 // Public Pages (no auth required)
 const GroupJoin = lazy(() => import('@/pages/public/GroupJoin'))
 const DeckPreview = lazy(() => import('@/pages/public/DeckPreview'))
+const NotePreview = lazy(() => import('@/pages/public/NotePreview'))
 
 // Admin Pages
 const SuperAdminDashboard = lazy(() => import('@/pages/admin/SuperAdminDashboard'))
@@ -166,6 +167,7 @@ if (!user || loading) return
           {/* Public Pages — no auth guard */}
           <Route path="/join/:token" element={<GroupJoin />} />
           <Route path="/deck/:deckId" element={<DeckPreview />} />
+          <Route path="/note/:noteId" element={<NotePreview />} />
 
           {/* Dashboard Route */}
           <Route

@@ -142,6 +142,10 @@ recall-app
 │   │   │   ├── BulkUploadTopics.jsx
 │   │   │   ├── SuperAdminDashboard.jsx
 │   │   │   └── SuperAdminAnalytics.jsx    ← super_admin analytics (Sprint 5)
+│   │   ├── public                         ← unauthenticated public pages (RPC-only data)
+│   │   │   ├── DeckPreview.jsx            ← /deck/:deckId — shareable study set preview
+│   │   │   ├── GroupJoin.jsx              ← /join/:token — group invite accept page
+│   │   │   └── NotePreview.jsx            ← /note/:noteId — shareable note preview (Sprint 2.8-A)
 │   │   ├── auth
 │   │   │   ├── ForgotPassword.jsx
 │   │   │   ├── Login.jsx

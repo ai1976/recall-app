@@ -472,6 +472,31 @@ export const HELP_TABS = [
           },
         ],
       },
+      {
+        id: 'sharing-whatsapp',
+        title: 'Sharing Study Content via WhatsApp',
+        icon: 'Share2',
+        content: [
+          {
+            type: 'paragraph',
+            text: 'You can share any public note or flashcard deck directly to WhatsApp. When the recipient taps the link, they see a preview card with the title, subject, and author — and a link to open it in Recall.',
+          },
+          {
+            type: 'steps',
+            items: [
+              'Open a note (from Browse Notes) or a study set (from Browse Flashcards).',
+              'Click the Share button in the header (only visible on public content).',
+              'On mobile: choose WhatsApp from the share sheet.',
+              'On desktop: a WhatsApp link opens automatically in a new tab.',
+              'The recipient sees a link preview. Clicking it opens the note or study set in Recall.',
+            ],
+          },
+          {
+            type: 'tip',
+            text: 'The Share button only appears on content with Public visibility. If you do not see a Share button, go to the note or deck settings and change visibility to Public.',
+          },
+        ],
+      },
     ],
   },
 
@@ -781,17 +806,28 @@ export const HELP_TABS = [
       },
       {
         id: 'prof-share-content',
-        title: 'Sharing Content Publicly',
+        title: 'Sharing Content via WhatsApp',
         icon: 'Share2',
         roles: ['professor'],
         content: [
-          { type: 'paragraph', text: 'You can share any note or flashcard deck via a direct URL. The share link works for anyone with a Recall account, regardless of whether they are in your batch.' },
-          { type: 'steps', items: [
-            'Open a note or flashcard deck you created.',
-            'Click the Share icon in the header.',
-            'Copy the link or send it directly via WhatsApp.',
-          ]},
-          { type: 'paragraph', text: 'For content to be accessible via a shared link, its visibility must be set to Public. Private content will show an access error to others.' },
+          {
+            type: 'paragraph',
+            text: 'Share any public note or flashcard deck directly to WhatsApp. Recipients see a link preview card with the title, subject, and your name as author.',
+          },
+          {
+            type: 'steps',
+            items: [
+              'Open a note or study set you created.',
+              'Click the Share button in the header (only available for Public content).',
+              'On mobile: choose WhatsApp from the share sheet. On desktop: WhatsApp opens in a new tab.',
+              'Students receive a preview link. Clicking it takes them to the note or deck on Recall.',
+              'If a student is not yet signed up, they are prompted to create a free account before viewing.',
+            ],
+          },
+          {
+            type: 'tip',
+            text: 'Sharing is the fastest way to get students started. Share your first few public decks in your class WhatsApp group and students can begin reviewing immediately — even before their batch group is set up.',
+          },
         ],
       },
     ],

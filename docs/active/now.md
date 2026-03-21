@@ -1,11 +1,20 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-21 (Sprint 2.7-B)
-**Current Phase:** Sprint 2.7-B complete — role-based Help section
+**Last Updated:** 2026-03-21 (Sprint 2.8-A)
+**Current Phase:** Sprint 2.8-A complete — public note sharing + WhatsApp OG previews
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 2.8-A — Public note sharing + WhatsApp OG previews (Mar 21, 2026)
+
+- **SQL:** Deployed `get_public_note_preview()` SECURITY DEFINER RPC (returns note metadata only for `visibility = 'public'`). Fixed column name: `n.user_id` not `n.created_by`.
+- **middleware.js:** Added `NOTE_PATH` regex, `noteMatch` variable, extended guard condition, added `/note/:path*` to matcher config. Note handler fetches via `get_public_note_preview` RPC and returns OG-tagged HTML for bots.
+- **NotePreview.jsx:** New public page at `/note/:noteId`. Fetches via RPC (anonymous-safe). Shows note title, subject/topic pills, author, description, blurred content preview. Auth-aware CTA (sign up / log in / open note). `postAuthRedirect` set before navigation.
+- **App.jsx:** Added `/note/:noteId` public route + lazy import for `NotePreview`.
+- **NoteDetail.jsx:** Added `Share2` to lucide-react import, `handleShare()` handler (Web Share API with WhatsApp fallback), Share button visible only when `note.visibility === 'public'`.
+- **helpContent.js:** Added `sharing-whatsapp` section to Social tab (all roles). Replaced `prof-share-content` section body in For Professors tab with specific WhatsApp sharing steps.
 
 ### Sprint 2.7-B — Role-based Help section (Mar 21, 2026)
 
