@@ -35,6 +35,10 @@ import {
   FileText,
   Play,
   Loader2,
+  Shield,
+  BarChart3,
+  Users,
+  Flag,
 } from 'lucide-react';
 
 // Must match ProfileSettings.jsx — static curated list, "Other" always last.
@@ -655,10 +659,248 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* FUTURE SPRINT PLACEHOLDER — Needs Attention (flagged content errors) */}
-              {/* Wire up to content_flags table in Sprint 2.8 */}
-              {/* When implemented: show only when flaggedItems.length > 0 */}
-              {/* <NeedsAttentionCard /> */}
+              {/* Needs Attention — flagged content placeholder (Sprint 2.8) */}
+              <Card className="border-amber-200 bg-amber-50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base text-amber-800">
+                    <Flag className="h-4 w-4 text-amber-600" />
+                    Needs Attention
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-amber-700">
+                    Student flags on your content will appear here — incorrect answers, typos, delete requests.
+                  </p>
+                  <p className="text-xs text-amber-600 mt-1">Coming in Sprint 2.8 · Requires <code>content_flags</code> table</p>
+                </CardContent>
+              </Card>
+
+              {/* Activity Feed */}
+              <ActivityFeed limit={5} />
+            </div>
+          </>
+        ) : userRole === 'admin' ? (
+          <>
+            {/* ===== ADMIN DASHBOARD ===== */}
+            <div className="mb-6 sm:mb-8">
+              <h1 className="text-2xl sm:text-3xl font-bold">
+                Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}!
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                Manage the Recall platform — content, users, and topics.
+              </p>
+            </div>
+
+            <div className="space-y-4 sm:space-y-6">
+              {/* Admin Tools */}
+              <div>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  Admin Tools
+                </h2>
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    onClick={() => navigate('/admin')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">Admin Dashboard</p>
+                          <p className="text-xs text-muted-foreground">Users & platform overview</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    onClick={() => navigate('/admin/analytics')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-indigo-100 rounded-lg">
+                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">Admin Analytics</p>
+                          <p className="text-xs text-muted-foreground">Platform-wide stats</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    onClick={() => navigate('/admin/bulk-upload-topics')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">Manage Topics</p>
+                          <p className="text-xs text-muted-foreground">Subjects & topic tree</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Needs Review — flagged content placeholder (Sprint 2.8) */}
+              <Card className="border-red-200 bg-red-50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base text-red-800">
+                    <Flag className="h-4 w-4 text-red-600" />
+                    Needs Review
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-red-700">
+                    Flagged content from students — incorrect cards, disputed notes, deletion requests — will appear here for admin review.
+                  </p>
+                  <p className="text-xs text-red-600 mt-1">Coming in Sprint 2.8 · Requires <code>content_flags</code> table</p>
+                </CardContent>
+              </Card>
+
+              {/* Activity Feed */}
+              <ActivityFeed limit={5} />
+            </div>
+          </>
+        ) : userRole === 'super_admin' ? (
+          <>
+            {/* ===== SUPER ADMIN DASHBOARD ===== */}
+            <div className="mb-6 sm:mb-8">
+              <h1 className="text-2xl sm:text-3xl font-bold">
+                Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}!
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                Full platform access — admin and super admin tools.
+              </p>
+            </div>
+
+            <div className="space-y-4 sm:space-y-6">
+              {/* Admin Tools */}
+              <div>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  Admin Tools
+                </h2>
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    onClick={() => navigate('/admin')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">Admin Dashboard</p>
+                          <p className="text-xs text-muted-foreground">Users & platform overview</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    onClick={() => navigate('/admin/analytics')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-indigo-100 rounded-lg">
+                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">Admin Analytics</p>
+                          <p className="text-xs text-muted-foreground">Platform-wide stats</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    onClick={() => navigate('/admin/bulk-upload-topics')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">Manage Topics</p>
+                          <p className="text-xs text-muted-foreground">Subjects & topic tree</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Super Admin Tools — elevated privilege, visually distinct */}
+              <div>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  Super Admin Tools
+                  <span className="ml-2 text-[10px] font-normal bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Elevated</span>
+                </h2>
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition border-red-200 hover:border-red-400"
+                    onClick={() => navigate('/super-admin')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-red-100 rounded-lg">
+                          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">Super Admin Dashboard</p>
+                          <p className="text-xs text-muted-foreground">Roles, access, system controls</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition border-red-200 hover:border-red-400"
+                    onClick={() => navigate('/super-admin/analytics')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-red-100 rounded-lg">
+                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">SA Analytics</p>
+                          <p className="text-xs text-muted-foreground">Cross-platform deep stats</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Needs Review — flagged content placeholder (Sprint 2.8) */}
+              <Card className="border-red-200 bg-red-50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base text-red-800">
+                    <Flag className="h-4 w-4 text-red-600" />
+                    Needs Review
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-red-700">
+                    Flagged content from students — incorrect cards, disputed notes, deletion requests — will appear here for review.
+                  </p>
+                  <p className="text-xs text-red-600 mt-1">Coming in Sprint 2.8 · Requires <code>content_flags</code> table</p>
+                </CardContent>
+              </Card>
 
               {/* Activity Feed */}
               <ActivityFeed limit={5} />
