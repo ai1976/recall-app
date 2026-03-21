@@ -304,23 +304,21 @@ export default function Help() {
 
       {/* Tab bar (hidden during search) */}
       {!isSearching && (
-        <div className="overflow-x-auto mb-6 scrollbar-hide">
-          <div className="flex gap-1 bg-gray-100 pl-1 py-1 rounded-lg min-w-full">
-            {visibleTabs.map((tab, i) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
-                  activeTab === tab.key
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
-                } ${i === visibleTabs.length - 1 ? 'mr-1' : ''}`}
-              >
-                <DynamicIcon name={tab.icon} className="h-4 w-4" />
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        <div className="flex flex-wrap gap-1 bg-gray-100 p-1.5 rounded-lg mb-6">
+          {visibleTabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
+                activeTab === tab.key
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <DynamicIcon name={tab.icon} className="h-4 w-4" />
+              {tab.label}
+            </button>
+          ))}
         </div>
       )}
 
