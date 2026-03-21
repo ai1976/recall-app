@@ -9,7 +9,7 @@
 
 ### Fix — Dashboard placeholder card consistency (Mar 21, 2026)
 
-- **Professor "Needs Attention" card:** Was hidden entirely when `needsAttentionItems.length === 0` (Sprint 2.9 behavior). Changed to always-visible card matching admin/super_admin pattern — gray "No flags on your content. All clear!" when empty, amber with flag list when active. **Note:** This changed Sprint 2.9's intentional show-only-when-flags behavior. User approved making it always-visible to match the admin placeholder pattern.
+- **Professor "Needs Attention" card:** Sprint 2.7A settled this as always-visible. Sprint 2.9 wrapped it in `{needsAttentionItems.length > 0 && (...)}` without approval, hiding it when empty. Fix restores the settled 2.7A design — gray "No flags on your content. All clear!" when empty, amber with flag list when active. All other 2.9 changes (Edit/Mark resolved buttons, student My Reports card) are approved and unchanged.
 - **Admin + Super Admin "Needs Review" card:** Zero-state title was `'Flagged Content'` — changed to `'Needs Review'` so the placeholder label is consistent with section intent.
 
 Files Changed: `src/pages/Dashboard.jsx`
