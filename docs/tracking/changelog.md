@@ -1,6 +1,21 @@
 # Changelog
 
 ---
+## [2026-03-21] feat: Sprint 2.7-B — role-based Help section (professor and admin tabs)
+
+### Added
+- **`src/data/helpContent.js`** — `prof-bulk-csv` section (professor-only) in Content tab
+- **`src/data/helpContent.js`** — "For Professors" tab (`roles: ['professor']`) with 5 sections: Welcome, Profile Setup, Analytics Dashboard, Batch Groups, Sharing Content Publicly
+- **`src/data/helpContent.js`** — "For Admins" tab (`roles: ['admin', 'super_admin']`) with 7 sections (3 are `super_admin`-only): Dashboard Overview, Access Requests, Batch Groups, Bulk Topics, Admin Analytics, User Roles (SA), Hard Delete (SA), SA Analytics (SA)
+- **`src/pages/dashboard/Help.jsx`** — `useRole` import; `visibleTabs` useMemo filtering tabs and sections by role
+
+### Changed
+- **`src/pages/dashboard/Help.jsx`** — All 4 logical `HELP_TABS` references replaced with `visibleTabs`; `GraduationCap` and `Shield` added to lucide-react import and ICON_MAP; `searchResults` dependency array includes `visibleTabs`
+
+### Files Changed
+`src/data/helpContent.js`, `src/pages/dashboard/Help.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 ## [2026-03-21] feat: Sprint 2.7-A — admin and super_admin role dashboards + visible placeholders
 
 ### Added

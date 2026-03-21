@@ -149,6 +149,24 @@ export const HELP_TABS = [
         ],
       },
       {
+        id: 'prof-bulk-csv',
+        title: 'Bulk CSV Upload (Professors)',
+        icon: 'Upload',
+        roles: ['professor'],
+        content: [
+          { type: 'paragraph', text: 'Professors can upload many flashcards at once using a CSV file. Go to Create → Bulk Upload.' },
+          { type: 'steps', items: [
+            'Prepare a CSV with two columns: "front" and "back". Each row is one flashcard.',
+            'Go to Create → Bulk Upload in the navigation bar.',
+            'Select the course, subject, and topic for the batch.',
+            'Upload your CSV file. A preview appears before you confirm.',
+            'Review any validation errors (blank fronts, duplicates) flagged in the preview.',
+            'Click "Upload" to create all cards as a new deck.',
+          ]},
+          { type: 'tip', text: 'Keep the CSV header row as exactly "front,back" (lowercase). Extra columns are ignored. Maximum 200 cards per upload.' },
+        ],
+      },
+      {
         id: 'visibility',
         title: 'Visibility Settings',
         icon: 'Eye',
@@ -682,6 +700,254 @@ export const HELP_TABS = [
               'Quick actions to edit, change visibility, or delete your content.',
             ],
           },
+        ],
+      },
+    ],
+  },
+
+  // ─── TAB 7: FOR PROFESSORS (role-gated) ───
+  {
+    key: 'professor-guide',
+    label: 'For Professors',
+    icon: 'GraduationCap',
+    roles: ['professor'],
+    sections: [
+      {
+        id: 'prof-welcome',
+        title: 'Welcome, Professor',
+        icon: 'GraduationCap',
+        defaultExpanded: true,
+        roles: ['professor'],
+        content: [
+          { type: 'paragraph', text: "Your professor account gives you tools beyond the standard student experience. You can upload notes and flashcard sets that appear directly in your enrolled students' study queues, track engagement with your content, and see how your batch is progressing." },
+          { type: 'list', items: [
+            'Upload notes and flashcard decks — same workflow as students, with public or private visibility.',
+            'Bulk upload flashcards from a CSV file for faster content creation.',
+            'View your Professor Analytics dashboard to see how students engage with your material.',
+            'Students enrolled in your batch are automatically assigned to the same course and institution group.',
+          ]},
+          { type: 'tip', text: 'Complete your profile (institution and course level) before uploading content. Your content is grouped by these fields, which is how students in your batch discover it.' },
+        ],
+      },
+      {
+        id: 'prof-profile-setup',
+        title: 'Profile Setup',
+        icon: 'User',
+        roles: ['professor'],
+        content: [
+          { type: 'paragraph', text: 'Before uploading content, set your institution and course level in your profile settings.' },
+          { type: 'steps', items: [
+            'Click your avatar or name in the top-right to open the Profile dropdown.',
+            'Select "Profile Settings".',
+            'Enter your Institution name (e.g., "More Classes Commerce") and Course Level (e.g., "CA Final").',
+            'Save your profile.',
+          ]},
+          { type: 'tip', text: 'The institution and course level you set here must exactly match what your students select during signup. Batch auto-enrollment matches on both fields — a mismatch means students miss the batch group.' },
+        ],
+      },
+      {
+        id: 'prof-analytics',
+        title: 'Professor Analytics Dashboard',
+        icon: 'BarChart3',
+        roles: ['professor'],
+        content: [
+          { type: 'paragraph', text: 'Access your analytics from the "Analytics" link in the top navigation bar (visible only to professors).' },
+          { type: 'list', items: [
+            'Course Selector — If you teach multiple courses, switch between them at the top.',
+            'Overview Cards — Total students in your batch, total reviews of your content this week, and total published notes and study sets.',
+            'Subject Breakdown Table — Per-subject review counts, unique reviewers, and your weakest and strongest-performing flashcards.',
+            'Weak Cards — Cards with the lowest easy-rate across your batch. These topics need more reinforcement.',
+            'Top Cards — Cards students find easiest — good indicators of mastered material.',
+            'Weekly New Student Reach — How many new students reviewed your content each week.',
+          ]},
+          { type: 'tip', text: 'The weak cards list is your most actionable insight. If a topic consistently appears there, consider adding more flashcards or a supplementary note on that subject.' },
+        ],
+      },
+      {
+        id: 'prof-batch-groups',
+        title: 'Batch Groups and Auto-Enrollment',
+        icon: 'Users',
+        roles: ['professor'],
+        content: [
+          { type: 'paragraph', text: 'Batch groups are created by admins and group students by course level and institution. When an admin grants a student access, the system automatically enrolls that student in the matching batch group.' },
+          { type: 'list', items: [
+            'You do not create batch groups yourself — admins create them.',
+            'All students at your institution + course level are automatically in the same batch group.',
+            'Your published content (notes and flashcard decks set to Public or Study Groups visibility) becomes visible to all enrolled students in your batch.',
+            'The Professor Analytics dashboard shows aggregate study data for students in your batch.',
+          ]},
+          { type: 'tip', text: "If a student is not seeing your content, check that their institution and course level in their profile exactly matches yours. Mismatches prevent auto-enrollment." },
+        ],
+      },
+      {
+        id: 'prof-share-content',
+        title: 'Sharing Content Publicly',
+        icon: 'Share2',
+        roles: ['professor'],
+        content: [
+          { type: 'paragraph', text: 'You can share any note or flashcard deck via a direct URL. The share link works for anyone with a Recall account, regardless of whether they are in your batch.' },
+          { type: 'steps', items: [
+            'Open a note or flashcard deck you created.',
+            'Click the Share icon in the header.',
+            'Copy the link or send it directly via WhatsApp.',
+          ]},
+          { type: 'paragraph', text: 'For content to be accessible via a shared link, its visibility must be set to Public. Private content will show an access error to others.' },
+        ],
+      },
+    ],
+  },
+
+  // ─── TAB 8: FOR ADMINS (role-gated) ───
+  {
+    key: 'admin-guide',
+    label: 'For Admins',
+    icon: 'Shield',
+    roles: ['admin', 'super_admin'],
+    sections: [
+      {
+        id: 'admin-dashboard-overview',
+        title: 'Admin Dashboard Overview',
+        icon: 'LayoutDashboard',
+        defaultExpanded: true,
+        roles: ['admin', 'super_admin'],
+        content: [
+          { type: 'paragraph', text: 'The Admin Dashboard is at /admin (Manage → Admin Dashboard in the nav bar). It has four main tabs:' },
+          { type: 'list', items: [
+            'Access Requests — Students who signed up requesting access appear here. Process them one at a time.',
+            'Batch Groups — View all batch groups and create new ones. Batch groups are the mechanism for auto-enrolling students.',
+            'Recent Users — Browse all registered users, their role, account type, and join date.',
+            'Content — Browse all public notes and flashcard decks. You can review or remove content that violates community guidelines.',
+          ]},
+          { type: 'tip', text: 'Process Access Requests first each day — students are waiting for access. Batch Groups setup should be done before students start registering.' },
+        ],
+      },
+      {
+        id: 'admin-access-requests',
+        title: 'Processing Access Requests',
+        icon: 'UserPlus',
+        roles: ['admin', 'super_admin'],
+        content: [
+          { type: 'paragraph', text: "When a student signs up and requests access, their request appears in the Access Requests tab. Review each request and grant or decline access." },
+          { type: 'steps', items: [
+            'Go to Admin Dashboard → Access Requests tab.',
+            "Each request shows the student's name, email, institution, and course level.",
+            "Click \"Grant Access\" to activate the student's account. This sets their account type to enrolled and auto-enrolls them in the matching batch group.",
+            'To decline, mark the request as declined.',
+          ]},
+          { type: 'tip', text: "Auto-enrollment matches on both institution AND course level. If the student's institution or course level does not exactly match an existing batch group, they get access but land in no batch. You can create the matching batch group and re-run access grant." },
+        ],
+      },
+      {
+        id: 'admin-batch-groups',
+        title: 'Creating Batch Groups',
+        icon: 'Users',
+        roles: ['admin', 'super_admin'],
+        content: [
+          { type: 'paragraph', text: 'Batch groups link students to professors by institution and course level. Always create batch groups before granting student access.' },
+          { type: 'steps', items: [
+            'Go to Admin Dashboard → Batch Groups tab.',
+            'Click "New Batch Group".',
+            'Enter the Group Name (e.g., "CA Final - More Classes Commerce"), select the Course, and enter the Institution name exactly as students will enter it in their profiles.',
+            'Click "Create Group".',
+            'Students with matching institution + course level will be auto-enrolled when you grant them access.',
+          ]},
+          { type: 'list', items: [
+            'You can create multiple batch groups for the same course at different institutions.',
+            'Institution matching is exact — confirm spelling before creating.',
+          ]},
+        ],
+      },
+      {
+        id: 'admin-bulk-topics',
+        title: 'Bulk Topic Upload',
+        icon: 'Upload',
+        roles: ['admin', 'super_admin'],
+        content: [
+          { type: 'paragraph', text: 'The Manage Topics page (Manage → Manage Topics) lets you seed the subject/topic taxonomy in bulk.' },
+          { type: 'steps', items: [
+            'Go to Manage → Manage Topics.',
+            'Select or create a discipline (course program, e.g., "CA Final").',
+            'Select or create a subject within that discipline (e.g., "Indirect Tax").',
+            'Upload a CSV or paste topic names. Each row is one topic name.',
+            'Review the parsed list and fix any errors.',
+            'Click "Upload Topics" to add them to the database.',
+          ]},
+          { type: 'tip', text: 'Topics uploaded here become immediately available in the subject/topic selectors when creating notes and flashcards. Do this before professors start uploading content.' },
+        ],
+      },
+      {
+        id: 'admin-analytics',
+        title: 'Admin Analytics',
+        icon: 'BarChart3',
+        roles: ['admin', 'super_admin'],
+        content: [
+          { type: 'paragraph', text: 'Admin Analytics (Manage → Admin Analytics) shows course-level study engagement across all students.' },
+          { type: 'list', items: [
+            'Overview Cards — Total users, total notes, total flashcards, and pending access requests.',
+            'Content Health Table — Per-subject breakdown of review counts and average easy rate.',
+            'Onboarding Funnel — Signed up → Access granted → First review completed.',
+            'Weekly Reviews Chart — Total review volume across the platform per week.',
+          ]},
+        ],
+      },
+      {
+        id: 'superadmin-user-roles',
+        title: 'Viewing and Changing User Roles',
+        icon: 'Shield',
+        roles: ['super_admin'],
+        content: [
+          { type: 'paragraph', text: 'The Super Admin Dashboard (Manage → Super Admin) lets you view all users across every role and change their role assignment.' },
+          { type: 'steps', items: [
+            'Go to Manage → Super Admin.',
+            'Find the user in the Users table. Use the search bar or filter by role.',
+            "Click the role badge next to the user's name to open the role change dialog.",
+            'Select the new role (student, professor, admin, super_admin).',
+            'Enter an optional reason (logged for audit purposes).',
+            'Confirm the change. It is logged with old role, new role, changed_by, and timestamp.',
+          ]},
+          { type: 'list', items: [
+            'You cannot change your own role.',
+            'All role changes are visible in the Audit Log tab.',
+            'Role changes take effect immediately — the user does not need to log out.',
+          ]},
+        ],
+      },
+      {
+        id: 'superadmin-hard-delete',
+        title: 'Hard Delete (Remove All User Data)',
+        icon: 'Layers',
+        roles: ['super_admin'],
+        content: [
+          { type: 'paragraph', text: 'Hard delete permanently removes a user and ALL their data from Recall. This cannot be undone.' },
+          { type: 'list', items: [
+            'Deleted data: profile, all notes, all flashcards, all decks, all reviews, friend connections, group memberships.',
+            'The deletion is logged in admin_audit_log before execution.',
+            'You cannot hard delete a super_admin account.',
+          ]},
+          { type: 'steps', items: [
+            'Go to Manage → Super Admin.',
+            'Find the user and click "Delete User" (shown in red).',
+            "A confirmation dialog shows their name, email, and content count.",
+            "Type the user's email to confirm, then click \"Delete Permanently\".",
+          ]},
+          { type: 'tip', text: 'Use hard delete only for GDPR data removal requests or confirmed fraudulent accounts. For inactive users, suspending their account in Admin Dashboard → Recent Users is sufficient and reversible.' },
+        ],
+      },
+      {
+        id: 'superadmin-sa-analytics',
+        title: 'Super Admin Analytics',
+        icon: 'BarChart3',
+        roles: ['super_admin'],
+        content: [
+          { type: 'paragraph', text: 'Super Admin Analytics (Manage → SA Analytics) provides platform-wide metrics beyond admin analytics.' },
+          { type: 'list', items: [
+            'Header Strip — Platform totals (users, notes, flashcards, reviews this week).',
+            'Cohort Comparison Table — Per-course review volume, active students, and average streak.',
+            'Creator Leaderboard — Top 20 content creators by total items published.',
+            'Platform Activity Heatmap — Calendar heatmap of total daily review volume across the entire platform.',
+            'Retention Cards — New this week, inactive (30+ days no reviews), retained (signed up this week + already reviewed).',
+            'Audit Log — 20 most recent admin actions with actor name and timestamp.',
+          ]},
         ],
       },
     ],

@@ -32,8 +32,11 @@ import {
   Settings,
   Trophy,
   Bell,
+  GraduationCap,
+  Shield,
 } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
+import { useRole } from '@/hooks/useRole';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { HELP_TABS, FAQ_ITEMS } from '@/data/helpContent';
@@ -44,6 +47,7 @@ const ICON_MAP = {
   FileText, CreditCard, Eye, Folder, ThumbsUp, Layers, BarChart3, Pause,
   UserPlus, User, Lock, Plus, Share2, Settings, Trophy, Bell, Search,
   HelpCircle, ChevronDown, ChevronRight,
+  GraduationCap, Shield,
 };
 
 function DynamicIcon({ name, className }) {
@@ -154,6 +158,18 @@ export default function Help() {
   const [expandedSections, setExpandedSections] = useState(new Set());
   const [showBackToTop, setShowBackToTop] = useState(false);
 
+  const { role, isLoading: roleLoading } = useRole();
+
+  const visibleTabs = useMemo(() => {
+    if (roleLoading || !role) return HELP_TABS;
+    return HELP_TABS
+      .filter(tab => !tab.roles || tab.roles.includes(role))
+      .map(tab => ({
+        ...tab,
+        sections: tab.sections.filter(s => !s.roles || s.roles.includes(role)),
+      }));
+  }, [role, roleLoading]);
+
   // Sync active tab with URL search params
   const activeTab = searchParams.get('tab') || 'getting-started';
   const setActiveTab = (tabKey) => {
@@ -163,7 +179,7 @@ export default function Help() {
   // Seed default expanded sections on mount
   useEffect(() => {
     const defaults = new Set();
-    HELP_TABS.forEach(tab => {
+    visibleTabs.forEach(tab => {
       tab.sections.forEach(section => {
         if (section.defaultExpanded) {
           defaults.add(section.id);
@@ -201,7 +217,7 @@ export default function Help() {
     const query = searchQuery.toLowerCase();
     const results = [];
 
-    HELP_TABS.forEach(tab => {
+    visibleTabs.forEach(tab => {
       tab.sections.forEach(section => {
         const titleMatch = section.title.toLowerCase().includes(query);
         const contentMatch = section.content.some(item => {
@@ -240,9 +256,9 @@ export default function Help() {
     });
 
     return results;
-  }, [searchQuery]);
+  }, [searchQuery, visibleTabs]);
 
-  const currentTab = HELP_TABS.find(t => t.key === activeTab) || HELP_TABS[0];
+  const currentTab = visibleTabs.find(t => t.key === activeTab) || visibleTabs[0];
   const isSearching = searchResults !== null;
 
   return (
@@ -289,7 +305,7 @@ export default function Help() {
       {/* Tab bar (hidden during search) */}
       {!isSearching && (
         <div className="flex overflow-x-auto gap-1 bg-gray-100 p-1 rounded-lg mb-6 scrollbar-hide">
-          {HELP_TABS.map(tab => (
+          {visibleTabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}

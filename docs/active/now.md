@@ -1,11 +1,23 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-21 (Sprint 2.6 + 2.7-A)
-**Current Phase:** Sprint 2.6 fully complete + 2.7-A (role-based dashboards for admin/super_admin)
+**Last Updated:** 2026-03-21 (Sprint 2.7-B)
+**Current Phase:** Sprint 2.7-B complete — role-based Help section
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 2.7-B — Role-based Help section (Mar 21, 2026)
+
+- **helpContent.js:** Added `prof-bulk-csv` professor-only section to the Content tab. Appended two new role-gated tabs: "For Professors" (`roles: ['professor']`, 5 sections) and "For Admins" (`roles: ['admin', 'super_admin']`, 7 sections including 3 super_admin-only sub-sections).
+- **Help.jsx:** Imported `useRole`, added `visibleTabs` useMemo that filters tabs and sections by role. All 4 `HELP_TABS` references replaced with `visibleTabs`. Added `GraduationCap` and `Shield` to lucide-react import and `ICON_MAP`. `searchResults` dependency array updated to include `visibleTabs`.
+- No SQL. No new files. No new routes.
+
+**Role visibility:**
+- Student: 6 tabs (existing) — professor and admin tabs hidden
+- Professor: 7 tabs (existing 6 + For Professors)
+- Admin: 7 tabs (existing 6 + For Admins, without super_admin-only sections)
+- Super Admin: 7 tabs (existing 6 + For Admins, all sections including super_admin-only)
 
 ### Sprint 2.7-A — Admin & super_admin role dashboards (Mar 21, 2026)
 
