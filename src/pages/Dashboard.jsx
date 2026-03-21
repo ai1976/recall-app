@@ -119,6 +119,7 @@ export default function Dashboard() {
   const [userRole, setUserRole] = useState('');
   const [needsAttentionItems, setNeedsAttentionItems] = useState([]);
   const [needsReviewCount, setNeedsReviewCount] = useState(0);
+  const [myReports, setMyReports] = useState([]);
 
   // Onboarding modal state
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -253,6 +254,17 @@ export default function Dashboard() {
       );
 
       setHasUserActivity(reviewsCount > 0);
+
+      // Fetch student's own submitted flags (RLS allows flagged_by = auth.uid())
+      if (!['professor', 'admin', 'super_admin'].includes(profile?.role)) {
+        const { data: reportsData } = await supabase
+          .from('content_flags')
+          .select('id, content_type, reason, status, resolution_note, created_at')
+          .eq('flagged_by', authUser.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+        setMyReports(reportsData || []);
+      }
 
     } catch (error) {
       console.error('🔴 Dashboard Error:', error);
@@ -672,15 +684,17 @@ export default function Dashboard() {
               </div>
 
               {/* Needs Attention — flagged content errors on professor's own content */}
-              {needsAttentionItems.length > 0 && (
-                <Card className="border-amber-300 bg-amber-50">
-                  <CardHeader>
-                    <CardTitle className="text-amber-800 flex items-center gap-2 text-base sm:text-lg">
-                      <AlertTriangle className="h-5 w-5" />
-                      Needs Attention ({needsAttentionItems.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+              <Card className={`cursor-pointer transition hover:border-primary ${needsAttentionItems.length > 0 ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className={`flex items-center gap-2 text-base ${needsAttentionItems.length > 0 ? 'text-amber-800' : 'text-gray-800'}`}>
+                    <AlertTriangle className={`h-4 w-4 ${needsAttentionItems.length > 0 ? 'text-amber-600' : 'text-gray-500'}`} />
+                    Needs Attention{needsAttentionItems.length > 0 ? ` (${needsAttentionItems.length})` : ''}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {needsAttentionItems.length === 0 ? (
+                    <p className="text-sm text-gray-500">No flags on your content. All clear!</p>
+                  ) : (
                     <div className="space-y-3">
                       {needsAttentionItems.slice(0, 5).map((item) => (
                         <div
@@ -701,18 +715,35 @@ export default function Dashboard() {
                               </span>
                             )}
                           </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="shrink-0"
-                            onClick={() => navigate(
-                              item.content_type === 'note'
-                                ? `/dashboard/notes/edit/${item.content_id}`
-                                : `/dashboard/flashcards/edit/${item.content_id}`
-                            )}
-                          >
-                            Review
-                          </Button>
+                          <div className="flex gap-2 shrink-0">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(
+                                item.content_type === 'note'
+                                  ? `/dashboard/notes/edit/${item.content_id}`
+                                  : `/dashboard/flashcards/edit/${item.content_id}`
+                              )}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-green-700 hover:text-green-800 hover:bg-green-50"
+                              onClick={async () => {
+                                await supabase.rpc('resolve_content_flag', {
+                                  p_flag_id: item.flag_id,
+                                  p_action: 'resolve',
+                                  p_resolution_note: 'Marked resolved by creator',
+                                });
+                                const { data: flagData } = await supabase.rpc('get_my_content_flags');
+                                setNeedsAttentionItems(flagData || []);
+                              }}
+                            >
+                              Mark resolved
+                            </Button>
+                          </div>
                         </div>
                       ))}
                       {needsAttentionItems.length > 5 && (
@@ -721,9 +752,9 @@ export default function Dashboard() {
                         </p>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Activity Feed */}
               <ActivityFeed limit={5} />
@@ -809,7 +840,7 @@ export default function Dashboard() {
                 <CardHeader className="pb-2">
                   <CardTitle className={`flex items-center gap-2 text-base ${needsReviewCount > 0 ? 'text-red-800' : 'text-gray-800'}`}>
                     <Flag className={`h-4 w-4 ${needsReviewCount > 0 ? 'text-red-600' : 'text-gray-500'}`} />
-                    {needsReviewCount > 0 ? `${needsReviewCount} Item${needsReviewCount === 1 ? '' : 's'} Need Review` : 'Flagged Content'}
+                    {needsReviewCount > 0 ? `${needsReviewCount} Item${needsReviewCount === 1 ? '' : 's'} Need Review` : 'Needs Review'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -948,7 +979,7 @@ export default function Dashboard() {
                 <CardHeader className="pb-2">
                   <CardTitle className={`flex items-center gap-2 text-base ${needsReviewCount > 0 ? 'text-red-800' : 'text-gray-800'}`}>
                     <Flag className={`h-4 w-4 ${needsReviewCount > 0 ? 'text-red-600' : 'text-gray-500'}`} />
-                    {needsReviewCount > 0 ? `${needsReviewCount} Item${needsReviewCount === 1 ? '' : 's'} Need Review` : 'Flagged Content'}
+                    {needsReviewCount > 0 ? `${needsReviewCount} Item${needsReviewCount === 1 ? '' : 's'} Need Review` : 'Needs Review'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1270,6 +1301,56 @@ export default function Dashboard() {
                         </div>
                         <span className="text-primary text-xs sm:text-sm">View →</span>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* ===== MY REPORTS ===== */}
+              {myReports.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <Flag className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
+                      My Reports
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {myReports.map((report) => {
+                        const statusConfig = {
+                          pending:  { label: 'Under review',     className: 'bg-amber-100 text-amber-800' },
+                          resolved: { label: 'Resolved',         className: 'bg-green-100 text-green-800' },
+                          rejected: { label: 'Dismissed',        className: 'bg-gray-100 text-gray-700'  },
+                          removed:  { label: 'Content removed',  className: 'bg-red-100 text-red-800'    },
+                        };
+                        const reasonLabel = {
+                          content_error:  'Content Error',
+                          inappropriate: 'Inappropriate',
+                          other:          'Other',
+                        };
+                        const cfg = statusConfig[report.status] || statusConfig.pending;
+                        return (
+                          <div
+                            key={report.id}
+                            className="flex items-start justify-between gap-3 p-3 border rounded-lg text-sm"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-gray-500 capitalize">{report.content_type}</span>
+                                <span className="text-gray-400">·</span>
+                                <span className="text-gray-700">{reasonLabel[report.reason] || report.reason}</span>
+                              </div>
+                              {report.resolution_note && (
+                                <p className="text-xs text-gray-500 mt-1 italic">{report.resolution_note}</p>
+                              )}
+                            </div>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${cfg.className}`}>
+                              {cfg.label}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
