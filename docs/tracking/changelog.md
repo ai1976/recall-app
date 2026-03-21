@@ -1,6 +1,15 @@
 # Changelog
 
 ---
+## [2026-03-21] fix: hero gradient swap — brand name Recall gets gradient, tagline goes solid dark
+
+### Changed
+- **`src/pages/Home.jsx`** — swapped colour treatment in hero: `h1 "Recall"` now has `bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent`; tagline "The Revision Operating System." now `text-gray-900 font-bold` (solid dark). Deliberate branding decision: gradient = attention magnet, must land on brand name first, not the tagline. Do NOT revert.
+
+### Files Changed
+`src/pages/Home.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/active/context.md`
+
+---
 ## [2026-03-20] feat: Sprint 2.5 + refinements — Landing page redesign: The Revision Operating System
 
 ### Changed

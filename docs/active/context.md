@@ -1,8 +1,29 @@
 # RECALL - Project Context (Source of Truth)
 
-**Last Updated:** February 24, 2026
+**Last Updated:** March 21, 2026
 **Live URL:** https://recall-app-omega.vercel.app
 **Repository:** https://github.com/ai1976/recall-app
+
+---
+
+## Landing Page Design Decisions (src/pages/Home.jsx)
+
+These are locked design choices made with deliberate reasoning. Do NOT change without explicit user instruction.
+
+### Hero Gradient Treatment (decided Mar 21, 2026)
+- **`h1 "Recall"`** → gradient (`bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent`)
+- **`"The Revision Operating System."`** → solid dark (`text-gray-900 font-bold`)
+- **Why:** The gradient is the attention magnet — eye goes to it first. Brand name must be what the user sees and remembers, not the tagline. Tagline in solid dark reads as confident and authoritative. Reversing this (tagline in gradient) pushes the product name into the background.
+
+### Hero CTA Hierarchy (decided Mar 20, 2026)
+- **Primary:** "Start free" → full gradient button (B2C)
+- **Secondary:** "Get your institute on Recall" → text link below stats, after a horizontal divider (B2B)
+- **Why:** B2C students find the page organically. B2B institute owners come via referral/direct outreach — they won't cold-convert from a hero CTA.
+
+### Stat Labels (decided Mar 20, 2026)
+- Grid shows "Flashcards" and "Notes" separately (not combined "Items Created")
+- Hero pill 3 shows combined total as "flashcards & notes"
+- **Why:** Showing combined total in pill then splitting in grid was confusing. Labels now make the relationship obvious.
 
 ---
 

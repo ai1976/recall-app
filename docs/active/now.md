@@ -37,6 +37,7 @@
 - Final CTA: new heading, new body, "Start free" button, footer note updated
 - Footer tagline: updated to revision OS positioning
 - Email: all 7 occurrences of `recall@moreclassescommerce.com` replaced with `hello@recallapp.co.in`
+- **Hero colour swap (intentional design decision):** "Recall" h1 gets the gradient (from-blue-600 to-purple-600 bg-clip-text text-transparent); "The Revision Operating System." is solid text-gray-900 font-bold — this is deliberate so the eye lands on the brand name first. Do NOT revert.
 
 **RLS note (diagnostic, not fixed):** Lines 37–47 fetch educator profiles via direct `.from('profiles')` query in an unauthenticated context. This silently returns 0 rows for anonymous users due to RLS. The educator list in the right panel of the "For Institutes & Educators" section will not display — it falls back to the static "Growing Community" / "Quality Platform" cards. Not fixed in Sprint 2.5.
 
