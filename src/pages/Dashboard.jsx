@@ -39,6 +39,7 @@ import {
   BarChart3,
   Users,
   Flag,
+  AlertTriangle,
 } from 'lucide-react';
 
 // Must match ProfileSettings.jsx — static curated list, "Other" always last.
@@ -116,6 +117,8 @@ export default function Dashboard() {
   const [isNewUser, setIsNewUser] = useState(false);
   const [hasUserActivity, setHasUserActivity] = useState(false);
   const [userRole, setUserRole] = useState('');
+  const [needsAttentionItems, setNeedsAttentionItems] = useState([]);
+  const [needsReviewCount, setNeedsReviewCount] = useState(0);
 
   // Onboarding modal state
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -217,6 +220,15 @@ export default function Dashboard() {
         fetchContentCounts(authUser.id),
         fetchClassStats(courseForStats)
       ]);
+
+      // Fetch flagged content for professor/admin dashboard cards
+      if (profile?.role === 'professor') {
+        const { data: flagData } = await supabase.rpc('get_my_content_flags');
+        setNeedsAttentionItems(flagData || []);
+      } else if (['admin', 'super_admin'].includes(profile?.role)) {
+        const { data: flagData } = await supabase.rpc('get_admin_flags', { p_status: 'pending' });
+        setNeedsReviewCount((flagData || []).length);
+      }
 
       // Determine if new user
       const { count: reviewsCount } = await supabase
@@ -659,21 +671,59 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Needs Attention — flagged content placeholder (Sprint 2.8) */}
-              <Card className="border-amber-200 bg-amber-50">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base text-amber-800">
-                    <Flag className="h-4 w-4 text-amber-600" />
-                    Needs Attention
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-amber-700">
-                    Student flags on your content will appear here — incorrect answers, typos, delete requests.
-                  </p>
-                  <p className="text-xs text-amber-600 mt-1">Coming in Sprint 2.8 · Requires <code>content_flags</code> table</p>
-                </CardContent>
-              </Card>
+              {/* Needs Attention — flagged content errors on professor's own content */}
+              {needsAttentionItems.length > 0 && (
+                <Card className="border-amber-300 bg-amber-50">
+                  <CardHeader>
+                    <CardTitle className="text-amber-800 flex items-center gap-2 text-base sm:text-lg">
+                      <AlertTriangle className="h-5 w-5" />
+                      Needs Attention ({needsAttentionItems.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {needsAttentionItems.slice(0, 5).map((item) => (
+                        <div
+                          key={item.flag_id}
+                          className="flex items-start justify-between gap-3 p-3 bg-white rounded-lg border border-amber-200"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {item.content_title || 'Untitled'}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {item.flag_count} {item.flag_count === 1 ? 'student' : 'students'} flagged
+                              {item.details ? ` · "${item.details.slice(0, 60)}${item.details.length > 60 ? '…' : ''}"` : ''}
+                            </p>
+                            {item.priority === 'high' && (
+                              <span className="inline-flex items-center text-xs text-red-600 font-medium mt-1">
+                                🔴 High priority
+                              </span>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="shrink-0"
+                            onClick={() => navigate(
+                              item.content_type === 'note'
+                                ? `/dashboard/notes/edit/${item.content_id}`
+                                : `/dashboard/flashcards/edit/${item.content_id}`
+                            )}
+                          >
+                            Review
+                          </Button>
+                        </div>
+                      ))}
+                      {needsAttentionItems.length > 5 && (
+                        <p className="text-xs text-center text-amber-700">
+                          +{needsAttentionItems.length - 5} more items need attention
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Activity Feed */}
               <ActivityFeed limit={5} />
@@ -751,19 +801,23 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Needs Review — flagged content placeholder (Sprint 2.8) */}
-              <Card className="border-red-200 bg-red-50">
+              {/* Needs Review — flagged content queue */}
+              <Card
+                className={`cursor-pointer transition hover:border-primary ${needsReviewCount > 0 ? 'border-red-200 bg-red-50' : 'border-gray-200'}`}
+                onClick={() => navigate('/admin')}
+              >
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base text-red-800">
-                    <Flag className="h-4 w-4 text-red-600" />
-                    Needs Review
+                  <CardTitle className={`flex items-center gap-2 text-base ${needsReviewCount > 0 ? 'text-red-800' : 'text-gray-800'}`}>
+                    <Flag className={`h-4 w-4 ${needsReviewCount > 0 ? 'text-red-600' : 'text-gray-500'}`} />
+                    {needsReviewCount > 0 ? `${needsReviewCount} Item${needsReviewCount === 1 ? '' : 's'} Need Review` : 'Flagged Content'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-red-700">
-                    Flagged content from students — incorrect cards, disputed notes, deletion requests — will appear here for admin review.
+                  <p className={`text-sm ${needsReviewCount > 0 ? 'text-red-700' : 'text-gray-500'}`}>
+                    {needsReviewCount > 0
+                      ? `${needsReviewCount} pending flag${needsReviewCount === 1 ? '' : 's'} from students. Review in Admin Dashboard → Content tab.`
+                      : 'No pending flags. All clear!'}
                   </p>
-                  <p className="text-xs text-red-600 mt-1">Coming in Sprint 2.8 · Requires <code>content_flags</code> table</p>
                 </CardContent>
               </Card>
 
@@ -886,19 +940,23 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Needs Review — flagged content placeholder (Sprint 2.8) */}
-              <Card className="border-red-200 bg-red-50">
+              {/* Needs Review — flagged content queue */}
+              <Card
+                className={`cursor-pointer transition hover:border-primary ${needsReviewCount > 0 ? 'border-red-200 bg-red-50' : 'border-gray-200'}`}
+                onClick={() => navigate('/admin')}
+              >
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base text-red-800">
-                    <Flag className="h-4 w-4 text-red-600" />
-                    Needs Review
+                  <CardTitle className={`flex items-center gap-2 text-base ${needsReviewCount > 0 ? 'text-red-800' : 'text-gray-800'}`}>
+                    <Flag className={`h-4 w-4 ${needsReviewCount > 0 ? 'text-red-600' : 'text-gray-500'}`} />
+                    {needsReviewCount > 0 ? `${needsReviewCount} Item${needsReviewCount === 1 ? '' : 's'} Need Review` : 'Flagged Content'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-red-700">
-                    Flagged content from students — incorrect cards, disputed notes, deletion requests — will appear here for review.
+                  <p className={`text-sm ${needsReviewCount > 0 ? 'text-red-700' : 'text-gray-500'}`}>
+                    {needsReviewCount > 0
+                      ? `${needsReviewCount} pending flag${needsReviewCount === 1 ? '' : 's'} from students. Review in Admin Dashboard → Content tab.`
+                      : 'No pending flags. All clear!'}
                   </p>
-                  <p className="text-xs text-red-600 mt-1">Coming in Sprint 2.8 · Requires <code>content_flags</code> table</p>
                 </CardContent>
               </Card>
 

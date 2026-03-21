@@ -238,6 +238,27 @@ export const HELP_TABS = [
           },
         ],
       },
+      {
+        id: 'flagging-content',
+        title: 'Reporting Incorrect or Inappropriate Content',
+        icon: 'Flag',
+        content: [
+          { type: 'paragraph', text: 'If you find a flashcard or note with wrong information, outdated content, or inappropriate material, you can flag it for review.' },
+          { type: 'steps', items: [
+            'Click the "Report" button (flag icon) on any note or flashcard.',
+            'Select a reason: Content Error (wrong/outdated information), Inappropriate (offensive or off-topic), or Other.',
+            'Add a brief description in the details field — for content errors, explain what is wrong.',
+            'Submit the report.',
+          ]},
+          { type: 'list', items: [
+            'Content Error flags are sent to the educator who created the material to correct it.',
+            'Inappropriate flags go directly to the Recall admin team for review.',
+            'You can only submit one flag per item — duplicate reports from the same account are blocked.',
+            'If 3 or more students flag the same item, it is automatically escalated to high priority.',
+          ]},
+          { type: 'tip', text: 'For content errors, the more detail you add in the description, the faster the educator can fix it. For example: "The income tax basic exemption limit shown is ₹2.5L but it was revised to ₹3L from FY 2023-24."' },
+        ],
+      },
     ],
   },
 
@@ -805,6 +826,28 @@ export const HELP_TABS = [
         ],
       },
       {
+        id: 'prof-needs-attention',
+        title: 'Responding to Content Flags (Needs Attention)',
+        icon: 'AlertTriangle',
+        roles: ['professor'],
+        content: [
+          { type: 'paragraph', text: 'When students flag one of your notes or flashcards as containing an error, it appears in the "Needs Attention" section on your dashboard. You are expected to review and respond.' },
+          { type: 'steps', items: [
+            'Go to your Dashboard. The "Needs Attention" card shows flagged items.',
+            'Click "Review" next to an item to open the edit page.',
+            "Read the student's description of the issue in the flag.",
+            'If the flag is valid: edit the content and save.',
+            'If the flag is incorrect: the admin can dismiss it — contact admin if a flag is clearly wrong.',
+          ]},
+          { type: 'list', items: [
+            'Items are shown in order of priority. 🔴 High priority means 3+ students flagged the same item.',
+            'You only see "Content Error" flags — Inappropriate flags go to the admin team, not to you.',
+            'Resolving a flag quickly keeps your content quality high and protects your reputation on the platform.',
+          ]},
+          { type: 'tip', text: 'If a tax law or syllabus changes, proactively update your flashcards before students flag them. One update can resolve multiple flags at once.' },
+        ],
+      },
+      {
         id: 'prof-share-content',
         title: 'Sharing Content via WhatsApp',
         icon: 'Share2',
@@ -924,6 +967,29 @@ export const HELP_TABS = [
             'Onboarding Funnel — Signed up → Access granted → First review completed.',
             'Weekly Reviews Chart — Total review volume across the platform per week.',
           ]},
+        ],
+      },
+      {
+        id: 'admin-flagged-content',
+        title: 'Reviewing Flagged Content',
+        icon: 'Flag',
+        roles: ['admin', 'super_admin'],
+        content: [
+          { type: 'paragraph', text: 'Flagged content appears in Admin Dashboard → Content tab at the top of the page. Content Error flags go to the professor first — you see them too and can override. Inappropriate/Other flags come directly to you.' },
+          { type: 'list', items: [
+            '🔴 High Priority — 3 or more students flagged the same item. Act on these first.',
+            'Content Error — Student believes the answer or information is wrong. Professor should fix it; you can dismiss if the flag is incorrect.',
+            'Inappropriate — Content is offensive or off-topic. You must decide: dismiss or remove.',
+            'Other — Review case by case.',
+          ]},
+          { type: 'steps', items: [
+            'Go to Admin Dashboard → Content tab. Flagged items appear above Public Notes.',
+            "Read the flag reason and student's details.",
+            'Click "Dismiss" to reject the flag (adds it to Rejected history).',
+            'Click "Remove" to delete the content permanently and mark the flag as removed.',
+            'Use the status filter (Pending / Resolved / Rejected / Removed) to view history.',
+          ]},
+          { type: 'tip', text: 'For Content Error flags where the professor has already corrected the content, the flag will automatically appear as Resolved. You do not need to action those manually.' },
         ],
       },
       {

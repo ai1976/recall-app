@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Users, FileText, AlertCircle, TrendingUp, XCircle, CreditCard,
-  ChevronDown, ChevronUp, ExternalLink, Shield, Plus, X,
+  ChevronDown, ChevronUp, ExternalLink, Shield, Plus, X, AlertTriangle,
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -38,6 +38,11 @@ export default function AdminDashboard() {
   const [createBatchLoading, setCreateBatchLoading] = useState(false);
   const [availableCourses, setAvailableCourses] = useState([]);     // from disciplines table
   const [availableInstitutions, setAvailableInstitutions] = useState([]); // distinct from profiles
+
+  // ── Flagged content state
+  const [flaggedItems, setFlaggedItems] = useState([]);
+  const [flagsLoading, setFlagsLoading] = useState(false);
+  const [flagFilter, setFlagFilter] = useState('pending');
 
   // ── Load-more limits
   const [notesLimit, setNotesLimit] = useState(10);
@@ -72,8 +77,15 @@ export default function AdminDashboard() {
 
   async function fetchAll() {
     setIsLoading(true);
-    await Promise.all([fetchStats(), fetchContent(), fetchUsers()]);
+    await Promise.all([fetchStats(), fetchContent(), fetchUsers(), fetchFlaggedContent('pending')]);
     setIsLoading(false);
+  }
+
+  async function fetchFlaggedContent(status = 'pending') {
+    setFlagsLoading(true);
+    const { data } = await supabase.rpc('get_admin_flags', { p_status: status });
+    setFlaggedItems(data || []);
+    setFlagsLoading(false);
   }
 
   async function fetchStats() {
@@ -437,6 +449,120 @@ export default function AdminDashboard() {
       {/* ── Content Moderation ── */}
       {activeTab === 'content' && (
         <div className="space-y-8">
+
+          {/* === FLAGGED CONTENT === */}
+          <div className="mb-2">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Flagged Content
+                {flaggedItems.length > 0 && (
+                  <span className="bg-red-100 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                    {flaggedItems.filter(f => f.priority === 'high').length > 0
+                      ? `${flaggedItems.filter(f => f.priority === 'high').length} high priority`
+                      : `${flaggedItems.length} pending`}
+                  </span>
+                )}
+              </h3>
+              <select
+                value={flagFilter}
+                onChange={(e) => { setFlagFilter(e.target.value); fetchFlaggedContent(e.target.value); }}
+                className="text-sm border border-gray-200 rounded-md px-3 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-gray-300"
+              >
+                <option value="pending">Pending</option>
+                <option value="resolved">Resolved</option>
+                <option value="rejected">Rejected</option>
+                <option value="removed">Removed</option>
+              </select>
+            </div>
+
+            {flagsLoading ? (
+              <p className="text-sm text-gray-400">Loading flagged content...</p>
+            ) : flaggedItems.length === 0 ? (
+              <p className="text-sm text-gray-400">
+                {flagFilter === 'pending' ? 'No pending flags. All clear!' : `No ${flagFilter} flags.`}
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {flaggedItems.map((item) => (
+                  <div
+                    key={item.flag_id}
+                    className={`p-4 rounded-lg border bg-white ${
+                      item.priority === 'high' ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          {item.priority === 'high' && (
+                            <span className="text-xs font-medium text-red-600 bg-red-100 px-2 py-0.5 rounded">
+                              🔴 HIGH PRIORITY
+                            </span>
+                          )}
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded capitalize">
+                            {item.content_type}
+                          </span>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded capitalize">
+                            {item.reason.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {item.content_title || 'Untitled'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          By {item.content_creator_name || 'Unknown'} ·{' '}
+                          Flagged by {item.flagged_by_name} ·{' '}
+                          {item.flag_count > 1 ? `${item.flag_count} reports · ` : ''}
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </p>
+                        {item.details && (
+                          <p className="text-xs text-gray-600 mt-1 italic">"{item.details}"</p>
+                        )}
+                      </div>
+                      {item.status === 'pending' && (
+                        <div className="flex gap-2 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              await supabase.rpc('resolve_content_flag', {
+                                p_flag_id: item.flag_id,
+                                p_action: 'reject',
+                                p_resolution_note: 'Dismissed by admin',
+                              });
+                              fetchFlaggedContent(flagFilter);
+                            }}
+                          >
+                            Dismiss
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={async () => {
+                              if (!confirm(`Delete this ${item.content_type}? This cannot be undone.`)) return;
+                              await supabase
+                                .from(item.content_type === 'note' ? 'notes' : 'flashcards')
+                                .delete()
+                                .eq('id', item.content_id);
+                              await supabase.rpc('resolve_content_flag', {
+                                p_flag_id: item.flag_id,
+                                p_action: 'remove',
+                                p_resolution_note: 'Content removed by admin',
+                              });
+                              fetchFlaggedContent(flagFilter);
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <hr className="border-gray-200" />
 
           {/* Public Notes */}
           <section>
