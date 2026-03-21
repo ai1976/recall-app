@@ -319,6 +319,8 @@ export default function Help() {
               {tab.label}
             </button>
           ))}
+          {/* Trailing spacer — prevents right-padding clip in overflow-x-auto */}
+          <span className="shrink-0 w-1" />
         </div>
       )}
 
