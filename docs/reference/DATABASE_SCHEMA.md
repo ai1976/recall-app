@@ -659,6 +659,53 @@ Prevents: User A sending multiple requests to User B
 
 ---
 
+### 2.18 content_flags ⭐ NEW
+
+**Purpose:** Stores user-submitted flags on notes and flashcards. Routes content_error flags to the content creator (professor) and inappropriate/other flags to admin.
+**Created:** March 2026 (Sprint 2.8-B)
+**Columns:** 12
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | uuid | NO | gen_random_uuid() | Primary key |
+| flagged_by | uuid | NO | - | FK to profiles.id, ON DELETE CASCADE |
+| content_type | text | NO | - | CHECK IN ('flashcard', 'note') |
+| content_id | uuid | NO | - | ID of the flagged note or flashcard |
+| reason | text | NO | - | CHECK IN ('content_error', 'inappropriate', 'other') |
+| details | text | YES | NULL | Optional student description of the issue (max 500 chars) |
+| status | text | NO | 'pending' | CHECK IN ('pending', 'resolved', 'rejected', 'removed') |
+| priority | text | NO | 'normal' | CHECK IN ('normal', 'high') — auto-escalates to 'high' when 3+ flags |
+| resolved_by | uuid | YES | NULL | FK to profiles.id — who resolved/dismissed the flag |
+| resolution_note | text | YES | NULL | Admin/professor note on resolution |
+| created_at | timestamptz | NO | now() | When flagged |
+| resolved_at | timestamptz | YES | NULL | When resolved/rejected/removed |
+
+**Key Indexes:**
+- `idx_content_flags_content` on (content_type, content_id) — fast item lookup
+- `idx_content_flags_status` on (status, priority, created_at DESC) — queue ordering
+
+**RLS Policies:**
+- `flags_insert` — authenticated users can INSERT where flagged_by = auth.uid()
+- `flags_select_own` — users can SELECT their own flags (for "already flagged" state)
+- `flags_select_admin` — admins/super_admins can SELECT all flags
+- Professors and admins can read all flags (existing policy from original table)
+- Admins can update flag status (existing policy)
+
+**RPCs using this table:**
+- `submit_content_flag(p_content_type, p_content_id, p_reason, p_details)` — inserts flag, dedup check, priority escalation, notifies creator + admins, returns jsonb
+- `get_my_content_flags()` — professor queue: pending content_error flags on own content
+- `get_admin_flags(p_status)` — admin queue: all flags filtered by status
+- `resolve_content_flag(p_flag_id, p_action, p_resolution_note)` — sets status to resolved/rejected/removed
+
+**Flag Routing:**
+- `content_error` → Professor (creator of flagged item) + admin can see/override
+- `inappropriate` → Admin/super_admin only (creator cannot self-resolve — conflict of interest)
+- `other` → Admin first, escalate to creator if needed
+
+**Priority Escalation:** When 3+ users flag the same content_id, all pending flags for that item auto-set to priority = 'high'.
+
+---
+
 ### 2.17 notifications ⭐ NEW
 
 **Purpose:** User notifications (group invites, friend requests, etc.) with JSONB metadata

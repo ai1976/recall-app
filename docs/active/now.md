@@ -1,11 +1,19 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-21 (Sprint 2.8-A)
-**Current Phase:** Sprint 2.8-A complete — public note sharing + WhatsApp OG previews
+**Last Updated:** 2026-03-21 (Sprint 2.8-B)
+**Current Phase:** Sprint 2.8-B complete — full flagged content workflow
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 2.8-B — Full flagged content workflow (Mar 21, 2026)
+
+- **SQL:** Migrated `content_flags` table (renamed `reporter_id` → `flagged_by`, added `details`, `priority`, `resolved_by`, `resolution_note`, `resolved_at`, CHECK constraints, indexes). Replaced `submit_content_flag` (v2: `p_details` param, dedup check, priority auto-escalation at 3+ flags, `jsonb` return). Deployed `get_my_content_flags` (professor queue — content_error flags on own content), `get_admin_flags` (admin queue with status filter), `resolve_content_flag` (resolve/reject/remove with note).
+- **FlagButton.jsx:** Added details `Textarea`. Fixed `SelectItem` values to match DB CHECK constraint (`content_error`/`inappropriate`/`other`). Handles `already_flagged` jsonb response with toast. Resets details on close/success.
+- **Dashboard.jsx:** Professor "Needs Attention" placeholder replaced with live card from `get_my_content_flags` — shows flag count, priority badge, details snippet, Review button. Admin/super_admin "Needs Review" placeholder replaced with wired card showing pending flag count; links to Admin Dashboard Content tab.
+- **AdminDashboard.jsx:** Flagged Content section added at top of Content Moderation tab. Status filter (Pending/Resolved/Rejected/Removed). Dismiss (reject) and Remove (delete content + mark removed) actions call `resolve_content_flag`. High-priority items show red border.
+- **helpContent.js + Help.jsx:** Student flagging guide added to Content tab. Professor "Responding to Content Flags" guide added to For Professors tab. Admin "Reviewing Flagged Content" guide added to For Admins tab. `Flag` and `AlertTriangle` added to ICON_MAP.
 
 ### Sprint 2.8-A — Public note sharing + WhatsApp OG previews (Mar 21, 2026)
 

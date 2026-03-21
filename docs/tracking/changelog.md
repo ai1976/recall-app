@@ -1,6 +1,26 @@
 # Changelog
 
 ---
+## [2026-03-21] feat: Sprint 2.8-B — full flagged content workflow
+
+### Added
+- **Supabase** — `content_flags` table with RLS (flagged_by, content_type, content_id, reason, details, status, priority, resolved_by, resolution_note, resolved_at, created_at); CHECK constraints on content_type/reason/status/priority; indexes on (content_type, content_id) and (status, priority, created_at)
+- **Supabase** — `submit_content_flag(p_content_type, p_content_id, p_reason, p_details)` v2: dedup check returns `{error:'already_flagged'}`, priority auto-escalates to 'high' at 3+ flags, returns `jsonb`, preserves creator + admin notifications, fixes flashcard lookup (user_id direct, not deck_id join)
+- **Supabase** — `get_my_content_flags()` SECURITY DEFINER: returns pending content_error flags on professor's own notes/flashcards with flag_count window function
+- **Supabase** — `get_admin_flags(p_status)` SECURITY DEFINER: returns all flags filtered by status with flagged_by name, creator name, flag_count
+- **Supabase** — `resolve_content_flag(p_flag_id, p_action, p_resolution_note)`: sets status (resolved/rejected/removed), resolved_by, resolved_at
+- **`src/data/helpContent.js`** — `flagging-content` section in Content tab (student-visible); `prof-needs-attention` section in For Professors tab; `admin-flagged-content` section in For Admins tab
+
+### Changed
+- **`src/components/ui/FlagButton.jsx`** — Details Textarea added; SelectItem values fixed to `content_error`/`inappropriate`/`other`; `already_flagged` toast handling; `p_details` passed to RPC; details reset on close
+- **`src/pages/Dashboard.jsx`** — Professor: Needs Attention card wired to `get_my_content_flags` (live flag list with Review buttons); Admin/super_admin: Needs Review card wired to pending flag count + navigate to `/admin`; `AlertTriangle` added to imports
+- **`src/pages/admin/AdminDashboard.jsx`** — Flagged Content section added at top of Content tab; status filter dropdown; Dismiss and Remove actions; `AlertTriangle` added to imports; `fetchFlaggedContent` added to `fetchAll`
+- **`src/pages/dashboard/Help.jsx`** — `Flag` and `AlertTriangle` added to lucide-react imports and ICON_MAP
+
+### Files Changed
+`src/components/ui/FlagButton.jsx`, `src/pages/Dashboard.jsx`, `src/pages/admin/AdminDashboard.jsx`, `src/data/helpContent.js`, `src/pages/dashboard/Help.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`
+
+---
 ## [2026-03-21] feat: Sprint 2.8-A — public note sharing + WhatsApp OG previews
 
 ### Added
