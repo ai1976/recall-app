@@ -170,7 +170,7 @@ export default function Home() {
 
           {/* Subheadline - Better sequencing */}
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Your institute's content, your own notes, and peer study sets — all reviewed with spaced repetition so nothing is forgotten before exam day.
+            Expert-curated content, your own notes, and peer study sets — all reviewed with spaced repetition so nothing is forgotten before exam day.
           </p>
 
           {/* Social Proof - Platform activity */}
