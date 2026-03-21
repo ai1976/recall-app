@@ -1,19 +1,36 @@
 # Changelog
 
 ---
-## [2026-03-21] feat: Sprint 2.6 — nav consolidation, professor dashboard, dynamic motivation tips
+## [2026-03-21] feat: Sprint 2.7-A — admin and super_admin role dashboards + visible placeholders
+
+### Added
+- **`src/pages/Dashboard.jsx`** — Admin view: 3 navigation cards (Admin Dashboard, Admin Analytics, Manage Topics) + Needs Review placeholder + Activity Feed
+- **`src/pages/Dashboard.jsx`** — Super Admin view: same 3 admin cards + elevated SA section (red border, "Elevated" badge) with SA Dashboard and SA Analytics cards + Needs Review placeholder + Activity Feed
+- **`src/pages/Dashboard.jsx`** — imports for `Shield`, `BarChart3`, `Users`, `Flag` icons
+
+### Changed
+- **`src/pages/Dashboard.jsx`** — role conditional extended from 2-way (professor/student) to 4-way (professor/admin/super_admin/student)
+- **`src/pages/Dashboard.jsx`** — Professor "Needs Attention" changed from commented-out code to a visible amber placeholder card
+
+### Files Changed
+`src/pages/Dashboard.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
+## [2026-03-21] feat: Sprint 2.6 — nav consolidation, professor dashboard, educator RLS fix, dynamic motivation tips
 
 ### Added
 - **`src/components/layout/NavDesktop.jsx`** — `isManageActive()` helper for active state on `/admin` and `/super-admin` routes
 - **`src/pages/Dashboard.jsx`** — `userRole` state; professor-conditional dashboard render with content summary, quick actions, and activity feed
+- **Supabase** — `get_public_educators()` SECURITY DEFINER function deployed; returns top 3 professor profiles for unauthenticated landing page access
 
 ### Changed
 - **`src/components/layout/NavDesktop.jsx`** — 5 standalone admin/super_admin nav links collapsed into single "Manage ▾" dropdown (Admin Dashboard, Admin Analytics, Manage Topics, Super Admin, SA Analytics)
 - **`src/pages/Dashboard.jsx`** — `profile.role` now stored in state via `setUserRole`; professor role gets dedicated dashboard UI instead of student stats
 - **`src/components/dashboard/AnonymousStats.jsx`** — `getComparisonMessage()` rewritten with 4 context-aware states; zero-state shows dynamic message; Class Milestones footer is context-aware based on whether student studied today
+- **`src/pages/Home.jsx`** — educator fetch replaced from direct `.from('profiles')` (silently RLS-blocked for anonymous users) to `.rpc('get_public_educators')`; educator names now correctly appear on landing page
 
 ### Files Changed
-`src/components/layout/NavDesktop.jsx`, `src/pages/Dashboard.jsx`, `src/components/dashboard/AnonymousStats.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`
+`src/components/layout/NavDesktop.jsx`, `src/pages/Dashboard.jsx`, `src/components/dashboard/AnonymousStats.jsx`, `src/pages/Home.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`
 
 ---
 ## [2026-03-21] fix: hero gradient swap — brand name Recall gets gradient, tagline goes solid dark

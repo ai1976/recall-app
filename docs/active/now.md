@@ -1,20 +1,26 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-21 (Sprint 2.6)
-**Current Phase:** Sprint 2.6 complete — Nav consolidation, professor dashboard, motivation tips
+**Last Updated:** 2026-03-21 (Sprint 2.6 + 2.7-A)
+**Current Phase:** Sprint 2.6 fully complete + 2.7-A (role-based dashboards for admin/super_admin)
 
 ---
 
 ## Just Completed ✅
 
-### Sprint 2.6 — Nav consolidation, professor dashboard, motivation tips (Mar 21, 2026)
+### Sprint 2.7-A — Admin & super_admin role dashboards (Mar 21, 2026)
 
-**Parts A, B, D complete. Part C (Home.jsx educator fetch) deferred pending SQL deployment.**
+- **Dashboard.jsx:** Extended role conditional from binary (professor/student) to 4-way (professor / admin / super_admin / student).
+- **Admin view:** 3 navigation cards — Admin Dashboard (`/admin`), Admin Analytics (`/admin/analytics`), Manage Topics (`/admin/bulk-upload-topics`) — plus "Needs Review" flagged content placeholder (amber/red card, Sprint 2.8 marker) + Activity Feed.
+- **Super Admin view:** Same 3 admin cards + a visually distinct "Super Admin Tools" section (red border, "Elevated" badge) with SA Dashboard (`/super-admin`) and SA Analytics (`/super-admin/analytics`) + "Needs Review" placeholder + Activity Feed.
+- **Professor view:** "Needs Attention" placeholder is now a visible amber card (was a commented-out code comment). Will wire to `content_flags` table in Sprint 2.8.
+- **New imports:** `Shield`, `BarChart3`, `Users`, `Flag` added to Dashboard.jsx.
 
-- **Part A — NavDesktop.jsx:** Replaced 5 standalone admin/super_admin nav links (Admin, Admin Analytics, Super Admin, SA Analytics, Manage Topics) with a single "Manage ▾" dropdown. Added `isManageActive()` helper. Nav now max 5 top-level items for admin/super_admin.
-- **Part B — Dashboard.jsx:** Added `userRole` state; set from `profile.role` on load. Professor role now renders a dedicated dashboard (Your Content summary + Quick Actions + Activity Feed) instead of the student stats view. Student dashboard unchanged.
-- **Part D — AnonymousStats.jsx:** `getComparisonMessage()` now returns 4 distinct context-aware states (not started / ahead / behind / at average). "Below average" message shows exact reviews needed, not a percentage. Zero-state block shows the dynamic message. Class Milestones footer is context-aware (different copy if student has studied today vs not).
-- **Part C deferred:** `get_public_educators()` SQL must be deployed in Supabase first. Home.jsx frontend change is ready but NOT committed — waiting for SQL confirmation.
+### Sprint 2.6 — Nav consolidation, professor dashboard, educator RLS fix, motivation tips (Mar 21, 2026)
+
+- **Part A — NavDesktop.jsx:** Replaced 5 standalone admin/super_admin nav links with a single "Manage ▾" dropdown. Added `isManageActive()` helper. Max 5 top-level nav items for admin/super_admin.
+- **Part B — Dashboard.jsx:** Added `userRole` state set from `profile.role`. Professor role renders dedicated dashboard (Your Content + Quick Actions + Activity Feed).
+- **Part C — Home.jsx:** Educator fetch replaced from direct `.from('profiles')` (RLS-blocked for anon users) to `.rpc('get_public_educators')`. SQL function `get_public_educators()` deployed in Supabase first (SECURITY DEFINER). Educator names now appear on landing page.
+- **Part D — AnonymousStats.jsx:** `getComparisonMessage()` rewritten with 4 context-aware states. "Below average" shows exact review count needed. Zero-state shows dynamic message. Class Milestones footer varies by whether student studied today.
 
 ### Sprint 2.5 + Refinements — Landing Page (Mar 20, 2026)
 
