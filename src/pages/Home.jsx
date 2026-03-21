@@ -35,12 +35,9 @@ export default function Home() {
           .eq('role', 'professor');
 
         // Fetch educator profiles for display
+        // Uses SECURITY DEFINER RPC — Home.jsx is unauthenticated, direct .from() would be RLS-blocked
         const { data: educatorData } = await supabase
-          .from('profiles')
-          .select('id, full_name, role')
-          .eq('role', 'professor')
-          .order('created_at', { ascending: true })
-          .limit(3);
+          .rpc('get_public_educators');
         
         if (educatorData && educatorData.length > 0) {
           setEducators(educatorData);

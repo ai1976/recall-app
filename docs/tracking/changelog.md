@@ -1,6 +1,21 @@
 # Changelog
 
 ---
+## [2026-03-21] feat: Sprint 2.6 — nav consolidation, professor dashboard, dynamic motivation tips
+
+### Added
+- **`src/components/layout/NavDesktop.jsx`** — `isManageActive()` helper for active state on `/admin` and `/super-admin` routes
+- **`src/pages/Dashboard.jsx`** — `userRole` state; professor-conditional dashboard render with content summary, quick actions, and activity feed
+
+### Changed
+- **`src/components/layout/NavDesktop.jsx`** — 5 standalone admin/super_admin nav links collapsed into single "Manage ▾" dropdown (Admin Dashboard, Admin Analytics, Manage Topics, Super Admin, SA Analytics)
+- **`src/pages/Dashboard.jsx`** — `profile.role` now stored in state via `setUserRole`; professor role gets dedicated dashboard UI instead of student stats
+- **`src/components/dashboard/AnonymousStats.jsx`** — `getComparisonMessage()` rewritten with 4 context-aware states; zero-state shows dynamic message; Class Milestones footer is context-aware based on whether student studied today
+
+### Files Changed
+`src/components/layout/NavDesktop.jsx`, `src/pages/Dashboard.jsx`, `src/components/dashboard/AnonymousStats.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 ## [2026-03-21] fix: hero gradient swap — brand name Recall gets gradient, tagline goes solid dark
 
 ### Changed

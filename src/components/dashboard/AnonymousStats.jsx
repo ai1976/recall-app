@@ -28,26 +28,34 @@ export default function AnonymousStats({
   
   // Determine comparison message
   const getComparisonMessage = () => {
-    if (userReviewsThisWeek === 0) return null;
-    
+    if (!hasUserActivity || userReviewsThisWeek === 0) {
+      return {
+        text: `Your classmates are already building their streaks. Start your first review session today — even 5 cards makes a difference!`,
+        color: 'text-indigo-600'
+      };
+    }
+
+    if (!showComparison) return null;
+
     const difference = userReviewsThisWeek - classAverage;
-    const percentDiff = classAverage > 0 
-      ? Math.round((difference / classAverage) * 100) 
+    const reviewsNeeded = Math.ceil(classAverage - userReviewsThisWeek);
+    const percentAhead = classAverage > 0
+      ? Math.round((difference / classAverage) * 100)
       : 100;
-    
+
     if (difference > 0) {
       return {
-        text: `You're ${percentDiff}% above the class average! 🎉`,
+        text: `You're ${percentAhead}% ahead of the class this week. Keep your lead — don't give classmates a chance to catch up! 🏆`,
         color: 'text-green-600'
       };
     } else if (difference < 0) {
       return {
-        text: `${Math.abs(percentDiff)}% below average — you've got this! 💪`,
+        text: `Just ${reviewsNeeded} more review${reviewsNeeded !== 1 ? 's' : ''} to reach the class average. You can close the gap in one session today! 💪`,
         color: 'text-amber-600'
       };
     } else {
       return {
-        text: `Right at the class average — keep it up! ✨`,
+        text: `You're right at the class average. One more session today and you'll be ahead of the pack. 🚀`,
         color: 'text-blue-600'
       };
     }
@@ -69,10 +77,12 @@ export default function AnonymousStats({
           {!hasUserActivity ? (
             // Zero Data State
             <div className="text-center py-4">
-              <p className="text-sm sm:text-base text-muted-foreground mb-2">
-                Complete your first review to see how you compare!
-              </p>
-              <p className="text-xs text-muted-foreground">
+              {comparisonMessage && (
+                <p className={`text-sm sm:text-base font-medium ${comparisonMessage.color}`}>
+                  {comparisonMessage.text}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">
                 Your classmates are already studying. Join them! 📚
               </p>
             </div>
@@ -175,7 +185,10 @@ export default function AnonymousStats({
           {/* Motivational footer */}
           {studentsStudiedToday > 0 && (
             <p className="text-xs text-center text-muted-foreground mt-3">
-              Don't fall behind — your classmates are studying right now! 🔥
+              {userReviewsThisWeek > 0
+                ? `${studentsStudiedToday} ${studentsStudiedToday === 1 ? 'classmate has' : 'classmates have'} studied today — you're one of them. Keep it up! 👍`
+                : `${studentsStudiedToday} ${studentsStudiedToday === 1 ? 'classmate is' : 'classmates are'} studying today — don't fall behind! 🔥`
+              }
             </p>
           )}
         </CardContent>

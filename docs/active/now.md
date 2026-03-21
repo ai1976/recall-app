@@ -1,11 +1,20 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-20 (Sprint 2.5 + post-sprint refinements)
-**Current Phase:** Sprint 2.5 complete — Landing page redesign with iterative UX refinements
+**Last Updated:** 2026-03-21 (Sprint 2.6)
+**Current Phase:** Sprint 2.6 complete — Nav consolidation, professor dashboard, motivation tips
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 2.6 — Nav consolidation, professor dashboard, motivation tips (Mar 21, 2026)
+
+**Parts A, B, D complete. Part C (Home.jsx educator fetch) deferred pending SQL deployment.**
+
+- **Part A — NavDesktop.jsx:** Replaced 5 standalone admin/super_admin nav links (Admin, Admin Analytics, Super Admin, SA Analytics, Manage Topics) with a single "Manage ▾" dropdown. Added `isManageActive()` helper. Nav now max 5 top-level items for admin/super_admin.
+- **Part B — Dashboard.jsx:** Added `userRole` state; set from `profile.role` on load. Professor role now renders a dedicated dashboard (Your Content summary + Quick Actions + Activity Feed) instead of the student stats view. Student dashboard unchanged.
+- **Part D — AnonymousStats.jsx:** `getComparisonMessage()` now returns 4 distinct context-aware states (not started / ahead / behind / at average). "Below average" message shows exact reviews needed, not a percentage. Zero-state block shows the dynamic message. Class Milestones footer is context-aware (different copy if student has studied today vs not).
+- **Part C deferred:** `get_public_educators()` SQL must be deployed in Supabase first. Home.jsx frontend change is ready but NOT committed — waiting for SQL confirmation.
 
 ### Sprint 2.5 + Refinements — Landing Page (Mar 20, 2026)
 

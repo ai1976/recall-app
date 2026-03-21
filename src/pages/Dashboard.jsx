@@ -111,6 +111,7 @@ export default function Dashboard() {
   // User state flags
   const [isNewUser, setIsNewUser] = useState(false);
   const [hasUserActivity, setHasUserActivity] = useState(false);
+  const [userRole, setUserRole] = useState('');
 
   // Onboarding modal state
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -174,6 +175,7 @@ export default function Dashboard() {
 
       if (profile) {
         setUserName(profile.full_name || '');
+        setUserRole(profile.role || 'student');
 
         const isAdminRole = ['admin', 'super_admin'].includes(profile.role);
 
@@ -521,314 +523,461 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
 
-        {/* Header Section */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold">
-            {isNewUser 
-              ? `Welcome to Recall${userName ? `, ${userName.split(' ')[0]}` : ''}! 👋` 
-              : `Welcome back${userName ? `, ${userName.split(' ')[0]}` : ''}! 👋`
-            }
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            {isNewUser
-              ? "Let's get you started on your journey to mastering your subjects."
-              : reviewsDue > 0
-                ? `You have ${reviewsDue} item${reviewsDue > 1 ? 's' : ''} ready for review`
-                : "All caught up! Time to learn something new? 🎉"
-            }
-          </p>
-        </div>
-
-        {/* Push notification permission prompt — shown once, dismissed to localStorage */}
-        <PushPermissionBanner />
-
-        <div className="space-y-4 sm:space-y-6">
-
-          {/* ===== NEW USER ONBOARDING ===== */}
-          {isNewUser && (
-            <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
-              <CardHeader>
-                <CardTitle className="text-base sm:text-lg">Get Started</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
-                      <h3 className="font-semibold text-sm sm:text-base">Browse Content</h3>
-                    </div>
-                    <p className="text-xs sm:text-sm text-gray-700 mb-3">
-                      Explore expert notes and flashcards created by professors
-                    </p>
-                    <div className="flex flex-wrap gap-3">
-                      <Button variant="outline" onClick={() => navigate('/dashboard/notes')}>
-                        <FileText className="mr-2 h-4 w-4" /> Browse Notes
-                      </Button>
-                      <Button variant="outline" onClick={() => navigate('/dashboard/review-flashcards')}>
-                        <CreditCard className="mr-2 h-4 w-4" /> Browse Flashcards
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* ===== PRIMARY CTA: START REVIEW ===== */}
-          {!isNewUser && reviewsDue > 0 && (
-            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-              <CardContent className="pt-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-green-100 rounded-full">
-                      <Play className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-lg sm:text-xl font-bold text-green-800">
-                        {reviewsDue} item{reviewsDue > 1 ? 's' : ''} ready
-                      </p>
-                      <p className="text-sm text-green-600">
-                        Keep your streak alive!
-                      </p>
-                    </div>
-                  </div>
-                  <Button 
-                    size="lg" 
-                    className="bg-green-600 hover:bg-green-700"
-                    onClick={() => navigate('/dashboard/review-session')}
-                  >
-                    <Play className="mr-2 h-4 w-4" /> Start Review Session
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* ===== ALL CAUGHT UP STATE ===== */}
-          {!isNewUser && reviewsDue === 0 && (
-            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-              <CardContent className="pt-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <p className="text-lg sm:text-xl font-bold text-blue-800">
-                      🎉 All caught up!
-                    </p>
-                    <p className="text-sm text-blue-600">
-                      No scheduled reviews. Time to learn something new?
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" onClick={() => navigate('/dashboard/review-flashcards')}>
-                      Browse Study Sets
-                    </Button>
-                    <Button onClick={() => navigate('/dashboard/notes')}>
-                      Browse Notes
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* ===== YOUR WEEK STATS ===== */}
-          {!isNewUser && (
-            <div>
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                📊 Your Week
-              </h2>
-              <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-xs sm:text-sm font-medium">Reviews</CardTitle>
-                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl sm:text-2xl font-bold">{cardsReviewedThisWeek}</div>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Last 7 days</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-xs sm:text-sm font-medium">Streak</CardTitle>
-                    <Flame className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl sm:text-2xl font-bold">{studyStreak}</div>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">
-                      {studyStreak === 1 ? 'day' : 'days'} in a row
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-xs sm:text-sm font-medium">Accuracy</CardTitle>
-                    <Target className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl sm:text-2xl font-bold">{accuracy}%</div>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Easy + Medium</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-xs sm:text-sm font-medium">Mastered</CardTitle>
-                    <Award className="h-3 w-3 sm:h-4 sm:w-4 text-purple-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl sm:text-2xl font-bold">{cardsMastered}</div>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Unique items</p>
-                  </CardContent>
-                </Card>
-              </div>
+        {/* ===== PROFESSOR DASHBOARD ===== */}
+        {userRole === 'professor' ? (
+          <>
+            {/* Header */}
+            <div className="mb-6 sm:mb-8">
+              <h1 className="text-2xl sm:text-3xl font-bold">
+                Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}!
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                Manage your content and track your students' engagement.
+              </p>
             </div>
-          )}
 
-          {/* ===== ANONYMOUS CLASS STATS ===== */}
-          {!isNewUser && (
-            <AnonymousStats
-              userReviewsThisWeek={cardsReviewedThisWeek}
-              classAverage={classStats.avgReviewsThisWeek}
-              studentsStudiedToday={classStats.studentsStudiedToday}
-              studentsWithStreak={classStats.studentsWithStreak}
-              showComparison={classStats.minUsersMet}
-              hasUserActivity={hasUserActivity}
-            />
-          )}
-
-          {/* ===== RECENT ACTIVITY FEED ===== */}
-          {!isNewUser && (
-            <ActivityFeed limit={5} />
-          )}
-
-          {/* ===== QUICK ACTIONS ===== */}
-          {!isNewUser && (
-            <div>
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                ⚡ Quick Actions
-              </h2>
-              <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                <Card 
-                  className="hover:bg-accent cursor-pointer transition hover:border-primary" 
-                  onClick={() => navigate('/dashboard/notes')}
-                >
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-100 rounded-lg">
-                        <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm sm:text-base">Browse Notes</p>
-                        <p className="text-xs text-muted-foreground">Study materials</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card 
-                  className="hover:bg-accent cursor-pointer transition hover:border-primary" 
-                  onClick={() => navigate('/dashboard/review-flashcards')}
-                >
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm sm:text-base">Browse Flashcards</p>
-                        <p className="text-xs text-muted-foreground">Review & learn</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card
-                  className="hover:bg-accent cursor-pointer transition hover:border-primary"
-                  onClick={() => navigate('/dashboard/notes/new')}
-                >
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-amber-100 rounded-lg">
-                        <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm sm:text-base">Upload Note</p>
-                        <p className="text-xs text-muted-foreground">Photos or PDFs</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card
-                  className="hover:bg-accent cursor-pointer transition hover:border-primary"
-                  onClick={() => navigate('/dashboard/flashcards/new')}
-                >
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm sm:text-base">Create Flashcard</p>
-                        <p className="text-xs text-muted-foreground">Add your own</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
-
-          {/* ===== MY CONTRIBUTIONS ===== */}
-          {!isNewUser && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-                  My Contributions
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
-                  <div 
-                    className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
+            <div className="space-y-4 sm:space-y-6">
+              {/* Content Summary */}
+              <div>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  Your Content
+                </h2>
+                <div className="grid gap-3 sm:gap-4 grid-cols-2">
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
                     onClick={() => navigate('/dashboard/my-notes')}
                   >
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
-                      <div>
-                        <p className="font-medium text-xs sm:text-sm">My Notes</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">
-                          {notesCount} uploaded
-                        </p>
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">My Notes</p>
+                          <p className="text-xs text-muted-foreground">{notesCount} uploaded</p>
+                        </div>
                       </div>
-                    </div>
-                    <span className="text-primary text-xs sm:text-sm">View →</span>
-                  </div>
+                    </CardContent>
+                  </Card>
 
-                  <div 
-                    className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
                     onClick={() => navigate('/dashboard/flashcards')}
                   >
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">My Flashcards</p>
+                          <p className="text-xs text-muted-foreground">{flashcardsCount} created</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  ⚡ Quick Actions
+                </h2>
+                <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    onClick={() => navigate('/dashboard/notes/new')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-amber-100 rounded-lg">
+                          <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">Upload Note</p>
+                          <p className="text-xs text-muted-foreground">Photos or PDFs</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    onClick={() => navigate('/dashboard/flashcards/new')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">Create Flashcard</p>
+                          <p className="text-xs text-muted-foreground">Add your own</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    onClick={() => navigate('/dashboard/bulk-upload')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">Bulk Upload</p>
+                          <p className="text-xs text-muted-foreground">CSV import</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    onClick={() => navigate('/dashboard/professor-analytics')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-indigo-100 rounded-lg">
+                          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">Analytics</p>
+                          <p className="text-xs text-muted-foreground">Student activity</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* FUTURE SPRINT PLACEHOLDER — Needs Attention (flagged content errors) */}
+              {/* Wire up to content_flags table in Sprint 2.8 */}
+              {/* When implemented: show only when flaggedItems.length > 0 */}
+              {/* <NeedsAttentionCard /> */}
+
+              {/* Activity Feed */}
+              <ActivityFeed limit={5} />
+            </div>
+          </>
+        ) : (
+          <>
+            {/* ===== STUDENT DASHBOARD ===== */}
+
+            {/* Header Section */}
+            <div className="mb-6 sm:mb-8">
+              <h1 className="text-2xl sm:text-3xl font-bold">
+                {isNewUser
+                  ? `Welcome to Recall${userName ? `, ${userName.split(' ')[0]}` : ''}! 👋`
+                  : `Welcome back${userName ? `, ${userName.split(' ')[0]}` : ''}! 👋`
+                }
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                {isNewUser
+                  ? "Let's get you started on your journey to mastering your subjects."
+                  : reviewsDue > 0
+                    ? `You have ${reviewsDue} item${reviewsDue > 1 ? 's' : ''} ready for review`
+                    : "All caught up! Time to learn something new? 🎉"
+                }
+              </p>
+            </div>
+
+            {/* Push notification permission prompt — shown once, dismissed to localStorage */}
+            <PushPermissionBanner />
+
+            <div className="space-y-4 sm:space-y-6">
+
+              {/* ===== NEW USER ONBOARDING ===== */}
+              {isNewUser && (
+                <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
+                  <CardHeader>
+                    <CardTitle className="text-base sm:text-lg">Get Started</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
                       <div>
-                        <p className="font-medium text-xs sm:text-sm">My Flashcards</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">
-                          {flashcardsCount} created
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
+                          <h3 className="font-semibold text-sm sm:text-base">Browse Content</h3>
+                        </div>
+                        <p className="text-xs sm:text-sm text-gray-700 mb-3">
+                          Explore expert notes and flashcards created by professors
                         </p>
+                        <div className="flex flex-wrap gap-3">
+                          <Button variant="outline" onClick={() => navigate('/dashboard/notes')}>
+                            <FileText className="mr-2 h-4 w-4" /> Browse Notes
+                          </Button>
+                          <Button variant="outline" onClick={() => navigate('/dashboard/review-flashcards')}>
+                            <CreditCard className="mr-2 h-4 w-4" /> Browse Flashcards
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                    <span className="text-primary text-xs sm:text-sm">View →</span>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* ===== PRIMARY CTA: START REVIEW ===== */}
+              {!isNewUser && reviewsDue > 0 && (
+                <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 bg-green-100 rounded-full">
+                          <Play className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-lg sm:text-xl font-bold text-green-800">
+                            {reviewsDue} item{reviewsDue > 1 ? 's' : ''} ready
+                          </p>
+                          <p className="text-sm text-green-600">
+                            Keep your streak alive!
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        size="lg"
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={() => navigate('/dashboard/review-session')}
+                      >
+                        <Play className="mr-2 h-4 w-4" /> Start Review Session
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* ===== ALL CAUGHT UP STATE ===== */}
+              {!isNewUser && reviewsDue === 0 && (
+                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <p className="text-lg sm:text-xl font-bold text-blue-800">
+                          🎉 All caught up!
+                        </p>
+                        <p className="text-sm text-blue-600">
+                          No scheduled reviews. Time to learn something new?
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" onClick={() => navigate('/dashboard/review-flashcards')}>
+                          Browse Study Sets
+                        </Button>
+                        <Button onClick={() => navigate('/dashboard/notes')}>
+                          Browse Notes
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* ===== YOUR WEEK STATS ===== */}
+              {!isNewUser && (
+                <div>
+                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                    📊 Your Week
+                  </h2>
+                  <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-xs sm:text-sm font-medium">Reviews</CardTitle>
+                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xl sm:text-2xl font-bold">{cardsReviewedThisWeek}</div>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">Last 7 days</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-xs sm:text-sm font-medium">Streak</CardTitle>
+                        <Flame className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xl sm:text-2xl font-bold">{studyStreak}</div>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">
+                          {studyStreak === 1 ? 'day' : 'days'} in a row
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-xs sm:text-sm font-medium">Accuracy</CardTitle>
+                        <Target className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xl sm:text-2xl font-bold">{accuracy}%</div>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">Easy + Medium</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-xs sm:text-sm font-medium">Mastered</CardTitle>
+                        <Award className="h-3 w-3 sm:h-4 sm:w-4 text-purple-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xl sm:text-2xl font-bold">{cardsMastered}</div>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">Unique items</p>
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
 
-        </div>
+              {/* ===== ANONYMOUS CLASS STATS ===== */}
+              {!isNewUser && (
+                <AnonymousStats
+                  userReviewsThisWeek={cardsReviewedThisWeek}
+                  classAverage={classStats.avgReviewsThisWeek}
+                  studentsStudiedToday={classStats.studentsStudiedToday}
+                  studentsWithStreak={classStats.studentsWithStreak}
+                  showComparison={classStats.minUsersMet}
+                  hasUserActivity={hasUserActivity}
+                />
+              )}
+
+              {/* ===== RECENT ACTIVITY FEED ===== */}
+              {!isNewUser && (
+                <ActivityFeed limit={5} />
+              )}
+
+              {/* ===== QUICK ACTIONS ===== */}
+              {!isNewUser && (
+                <div>
+                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                    ⚡ Quick Actions
+                  </h2>
+                  <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+                    <Card
+                      className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                      onClick={() => navigate('/dashboard/notes')}
+                    >
+                      <CardContent className="pt-4 pb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-purple-100 rounded-lg">
+                            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm sm:text-base">Browse Notes</p>
+                            <p className="text-xs text-muted-foreground">Study materials</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card
+                      className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                      onClick={() => navigate('/dashboard/review-flashcards')}
+                    >
+                      <CardContent className="pt-4 pb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm sm:text-base">Browse Flashcards</p>
+                            <p className="text-xs text-muted-foreground">Review & learn</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card
+                      className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                      onClick={() => navigate('/dashboard/notes/new')}
+                    >
+                      <CardContent className="pt-4 pb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-amber-100 rounded-lg">
+                            <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm sm:text-base">Upload Note</p>
+                            <p className="text-xs text-muted-foreground">Photos or PDFs</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card
+                      className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                      onClick={() => navigate('/dashboard/flashcards/new')}
+                    >
+                      <CardContent className="pt-4 pb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm sm:text-base">Create Flashcard</p>
+                            <p className="text-xs text-muted-foreground">Add your own</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              )}
+
+              {/* ===== MY CONTRIBUTIONS ===== */}
+              {!isNewUser && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+                      My Contributions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                      <div
+                        className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
+                        onClick={() => navigate('/dashboard/my-notes')}
+                      >
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                          <div>
+                            <p className="font-medium text-xs sm:text-sm">My Notes</p>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">
+                              {notesCount} uploaded
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-primary text-xs sm:text-sm">View →</span>
+                      </div>
+
+                      <div
+                        className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
+                        onClick={() => navigate('/dashboard/flashcards')}
+                      >
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                          <div>
+                            <p className="font-medium text-xs sm:text-sm">My Flashcards</p>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">
+                              {flashcardsCount} created
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-primary text-xs sm:text-sm">View →</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+            </div>
+          </>
+        )}
       </PageContainer>
   );
 }
