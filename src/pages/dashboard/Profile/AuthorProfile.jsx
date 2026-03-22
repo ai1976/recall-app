@@ -12,6 +12,8 @@ import {
   ArrowLeft,
   Users,
   UserPlus,
+  UserCheck,
+  UserMinus,
   Clock,
   FileText,
   Brain,
@@ -40,6 +42,9 @@ export default function AuthorProfile() {
   const [sendingRequest, setSendingRequest] = useState(false);
   const [collapsedCourses, setCollapsedCourses] = useState({});
   const [showPreview, setShowPreview] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(null); // null = loading, true/false = known
+  const [followLoading, setFollowLoading] = useState(false);
+  const [hoveringFollowBtn, setHoveringFollowBtn] = useState(false);
 
   const isOwnProfile = user?.id === userId;
 
@@ -53,8 +58,8 @@ export default function AuthorProfile() {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      // Call both RPC functions in parallel (2 round-trips instead of 6)
-      const [profileResult, contentResult] = await Promise.all([
+      // Call RPC functions in parallel
+      const [profileResult, contentResult, followStatusResult] = await Promise.all([
         supabase.rpc('get_author_profile', {
           p_author_id: userId,
           p_viewer_id: user.id,
@@ -63,6 +68,10 @@ export default function AuthorProfile() {
           p_author_id: userId,
           p_viewer_id: user.id,
         }),
+        // Only fetch follow status for other users' profiles
+        isOwnProfile
+          ? Promise.resolve({ data: null, error: null })
+          : supabase.rpc('get_follow_status', { p_target_id: userId }),
       ]);
 
       if (profileResult.error) {
@@ -105,6 +114,11 @@ export default function AuthorProfile() {
 
       // Set teaching courses (from updated get_author_profile RPC — array of strings)
       setTeachingCourses(profileData?.teaching_courses || []);
+
+      // Set follow status
+      if (!isOwnProfile && followStatusResult?.data) {
+        setIsFollowing(followStatusResult.data.is_following ?? false);
+      }
 
       // Set content
       setContentSummary(contentData?.accessible || []);
@@ -149,6 +163,37 @@ export default function AuthorProfile() {
       });
     } finally {
       setSendingRequest(false);
+    }
+  };
+
+  const handleFollow = async () => {
+    setFollowLoading(true);
+    setIsFollowing(true); // optimistic
+    try {
+      const { error } = await supabase.rpc('follow_user', { p_followee_id: userId });
+      if (error) throw error;
+    } catch (error) {
+      setIsFollowing(false); // revert
+      console.error('Error following user:', error);
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleUnfollow = async () => {
+    setFollowLoading(true);
+    setIsFollowing(false); // optimistic
+    setHoveringFollowBtn(false);
+    try {
+      const { error } = await supabase.rpc('unfollow_user', { p_followee_id: userId });
+      if (error) throw error;
+    } catch (error) {
+      setIsFollowing(true); // revert
+      console.error('Error unfollowing user:', error);
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setFollowLoading(false);
     }
   };
 
@@ -307,7 +352,43 @@ export default function AuthorProfile() {
             {/* Action Buttons */}
             <div className="flex-shrink-0">
               {!isOwnProfile && (
-                <>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  {/* Follow / Unfollow button */}
+                  {isFollowing === false && (
+                    <Button
+                      onClick={handleFollow}
+                      disabled={followLoading}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Follow
+                    </Button>
+                  )}
+                  {isFollowing === true && (
+                    <Button
+                      onClick={handleUnfollow}
+                      disabled={followLoading}
+                      size="sm"
+                      variant={hoveringFollowBtn ? 'destructive' : 'outline'}
+                      onMouseEnter={() => setHoveringFollowBtn(true)}
+                      onMouseLeave={() => setHoveringFollowBtn(false)}
+                    >
+                      {hoveringFollowBtn ? (
+                        <>
+                          <UserMinus className="h-4 w-4 mr-2" />
+                          Unfollow
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck className="h-4 w-4 mr-2" />
+                          Following ✓
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {/* Friend request buttons */}
                   {!friendshipStatus && (
                     <Button onClick={sendFriendRequest} disabled={sendingRequest} size="sm">
                       <UserPlus className="h-4 w-4 mr-2" />
@@ -342,7 +423,7 @@ export default function AuthorProfile() {
                       Add Friend
                     </Button>
                   )}
-                </>
+                </div>
               )}
               {isOwnProfile && (
                 <Button

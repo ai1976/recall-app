@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Settings,
   GraduationCap,
+  Rss,
 } from 'lucide-react';
 import { useCourseContext } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
@@ -260,6 +261,13 @@ export default function NavMobile({
                       >
                         <Network className="h-4 w-4 text-gray-400" />
                         <span className="text-sm text-gray-700">Study Groups</span>
+                      </button>
+                      <button
+                        onClick={() => handleNavClick('/dashboard/following')}
+                        className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"
+                      >
+                        <Rss className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-gray-700">Following</span>
                       </button>
 
                       {/* Divider */}

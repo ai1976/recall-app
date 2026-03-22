@@ -537,6 +537,41 @@ export const HELP_TABS = [
         ],
       },
       {
+        id: 'follow-system',
+        title: 'Following',
+        icon: 'Rss',
+        content: [
+          {
+            type: 'paragraph',
+            text: 'Following is a one-way connection \u2014 no mutual agreement needed. Follow anyone on Recall: students from other courses, professors, or top performers you want to keep an eye on.',
+          },
+          {
+            type: 'list',
+            items: [
+              'One-way \u2014 you follow them; they do not need to follow you back.',
+              'No course restriction \u2014 follow anyone regardless of their course level.',
+              'The person you follow gets a notification when you start following them.',
+            ],
+          },
+          {
+            type: 'paragraph',
+            text: 'How to follow someone: visit their profile (click their name on any note, flashcard, or in Find Friends) and tap the Follow button.',
+          },
+          {
+            type: 'paragraph',
+            text: 'Each person you follow shows three live stats for the current week: streak (consecutive study days), reviews this week, and study time this week.',
+          },
+          {
+            type: 'paragraph',
+            text: 'To manage who you follow, go to the Following tab (Friends icon \u2192 Following, or Groups \u2192 Following on mobile). You can unfollow anyone from there.',
+          },
+          {
+            type: 'tip',
+            text: 'Following is for inspiration \u2014 use it to track high-performers or professors. For mutual stats-sharing and friends-only content, use the friend system instead.',
+          },
+        ],
+      },
+      {
         id: 'friends-content',
         title: 'Friends-Only Content',
         icon: 'Lock',

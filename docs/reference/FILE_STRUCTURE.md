@@ -164,6 +164,7 @@ recall-app
 │   │   │   │   └── NoteUpload.jsx
 │   │   │   ├── Friends
 │   │   │   │   ├── FindFriends.jsx
+│   │   │   │   ├── Following.jsx
 │   │   │   │   ├── FriendRequests.jsx
 │   │   │   │   └── MyFriends.jsx
 │   │   │   ├── Groups

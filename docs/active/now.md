@@ -1,11 +1,27 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-22 (Sprint 3.3)
-**Current Phase:** Sprint 3.3 complete — Friend System Cleanup + Mutual Stats
+**Last Updated:** 2026-03-22 (Sprint 3.4)
+**Current Phase:** Sprint 3.4 complete — Follow System
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 3.4 — Follow System (Mar 22, 2026)
+
+- **SQL:** `follows` table — `follower_id`, `followee_id` (both FK → `auth.users` ON DELETE CASCADE), `UNIQUE(follower_id, followee_id)`, `CHECK(follower_id <> followee_id)`. RLS enabled: INSERT (own follower_id), DELETE (own follower_id), SELECT (caller is follower OR followee). Indexes on both FKs.
+- **SQL:** `follow_user(p_followee_id uuid)` SECURITY DEFINER RPC — idempotent INSERT ON CONFLICT DO NOTHING. Prevents self-follow. On new follow only (`GET DIAGNOSTICS ROW_COUNT`): inserts a `'follow'` notification into the `notifications` table for the followee.
+- **SQL:** `unfollow_user(p_followee_id uuid)` SECURITY DEFINER RPC — DELETE from follows where `follower_id = auth.uid()`.
+- **SQL:** `get_following_with_stats()` SECURITY DEFINER RPC — all users caller follows, with `user_id`, `full_name`, `course_level`, `role`, `reviews_this_week` (COUNT from `reviews.created_at >= date_trunc('week', CURRENT_DATE)`), `streak_days` (via `get_user_streak`), `study_time_this_week_seconds` (SUM from `study_sessions.session_date >= week start`), `following_since`. All stats COALESCE to 0. Ordered by `created_at DESC`.
+- **SQL:** `get_follow_status(p_target_id uuid)` SECURITY DEFINER RPC — returns `{ is_following: boolean }` for profile page button initialisation.
+- **Following.jsx:** New page at `src/pages/dashboard/Friends/Following.jsx`. Calls `get_following_with_stats`. Card style matches MyFriends.jsx exactly (avatar, name link, role badge, course, following-since, stats row). Unfollow button: calls `unfollow_user`, removes card optimistically, reverts on error. Loading: 3-card skeleton. Empty state with Users2 icon.
+- **AuthorProfile.jsx:** Follow/Unfollow button added to action area for non-own profiles. Initial state from `get_follow_status` (fetched in the same `Promise.all` as existing profile/content calls). Follow: `UserPlus` icon, primary outline style. Following: `UserCheck ✓` (outline) → hover → `UserMinus Unfollow` (destructive). Both optimistic with revert on error. New imports: `UserCheck`, `UserMinus`.
+- **App.jsx:** `/dashboard/following` route added, lazy-imports `Following.jsx`.
+- **FriendsDropdown.jsx:** "Following" link added after "My Friends", uses `Rss` icon.
+- **NavMobile.jsx:** "Following" button added in Groups section (after Study Groups), uses `Rss` icon.
+- **helpContent.js:** `follow-system` section added to Social tab (between `friend-stats` / `author-profiles` and `friends-content`). Covers: one-way, no course restriction, notification, stats visible, how to follow, how to manage, tip distinguishing following vs friends.
+
+Files Changed: `src/pages/dashboard/Friends/Following.jsx` (new), `src/pages/dashboard/Profile/AuthorProfile.jsx`, `src/App.jsx`, `src/components/layout/FriendsDropdown.jsx`, `src/components/layout/NavMobile.jsx`, `src/data/helpContent.js`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`
 
 ### Sprint 3.3 — Friend System Cleanup + Mutual Stats (Mar 22, 2026)
 

@@ -23,6 +23,7 @@ const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'))
 const FindFriends = lazy(() => import('@/pages/dashboard/Friends/FindFriends'))
 const FriendRequests = lazy(() => import('@/pages/dashboard/Friends/FriendRequests'))
 const MyFriends = lazy(() => import('@/pages/dashboard/Friends/MyFriends'))
+const Following = lazy(() => import('@/pages/dashboard/Friends/Following'))
 
 // Dashboard - Groups Pages
 const MyGroups = lazy(() => import('@/pages/dashboard/Groups/MyGroups'))
@@ -133,6 +134,7 @@ if (!user || loading) return
             /dashboard/find-friends        → pages/dashboard/Friends/FindFriends.jsx
             /dashboard/friend-requests     → pages/dashboard/Friends/FriendRequests.jsx
             /dashboard/my-friends          → pages/dashboard/Friends/MyFriends.jsx
+            /dashboard/following           → pages/dashboard/Friends/Following.jsx
             /super-admin                   → pages/admin/SuperAdminDashboard.jsx
             /super-admin/analytics         → pages/admin/SuperAdminAnalytics.jsx
             /admin                         → pages/admin/AdminDashboard.jsx
@@ -280,6 +282,10 @@ if (!user || loading) return
           <Route
             path="/dashboard/my-friends"
             element={user ? <MyFriends /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/dashboard/following"
+            element={user ? <Following /> : <Navigate to="/login" replace />}
           />
 
           {/* Professor Routes */}

@@ -26,10 +26,10 @@
 ## 1. OVERVIEW
 
 ### Quick Stats
-- **Total Tables:** 23 ⭐ (was 22, added study_sessions — Sprint 3.1)
-- **Custom Functions:** 9 ⭐ (was 7, added get_discoverable_users + get_my_friends_with_stats — Sprint 3.3)
-- **RLS Policies:** 26 ⭐ (was 24, added 2 for study_sessions — Sprint 3.1)
-- **Indexes:** 54+ ⭐ (was 53+, added idx_study_sessions_user_date — Sprint 3.1)
+- **Total Tables:** 24 ⭐ (was 23, added follows — Sprint 3.4)
+- **Custom Functions:** 13 ⭐ (was 9, added follow_user + unfollow_user + get_following_with_stats + get_follow_status — Sprint 3.4)
+- **RLS Policies:** 29 ⭐ (was 26, added 3 for follows — Sprint 3.4)
+- **Indexes:** 56+ ⭐ (was 54+, added follows_follower_id_idx + follows_followee_id_idx — Sprint 3.4)
 - **Triggers:** 0 (currently)
 - **Database Size:** ~50 MB (estimated for 20 users)
 
@@ -814,6 +814,95 @@ Stores completed study sessions only. Incomplete/abandoned sessions are held in 
 **Design decision — no incomplete rows:** The single INSERT pattern means the DB stores only sessions that actually completed. Abandoned sessions are recovered client-side via localStorage on next app load (< 4h recovery prompt, ≥ 4h silent discard).
 
 **Design decision — local date:** `session_date` is the user's local date (`new Date().toLocaleDateString('en-CA')`), not UTC. This is critical for users in UTC+5:30 and later — after 6:30 PM UTC the DB's `CURRENT_DATE` would already be "tomorrow".
+
+---
+
+## follows (Sprint 3.4)
+
+Unilateral follow relationships. A follower can follow any user without mutual consent.
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | uuid | PK, default gen_random_uuid() |
+| `follower_id` | uuid | NOT NULL, FK → auth.users ON DELETE CASCADE |
+| `followee_id` | uuid | NOT NULL, FK → auth.users ON DELETE CASCADE |
+| `created_at` | timestamptz | DEFAULT now() |
+
+**Constraints:** `UNIQUE(follower_id, followee_id)`, `CHECK(follower_id <> followee_id)`
+
+**RLS:** Enabled.
+- INSERT: `auth.uid() = follower_id`
+- DELETE: `auth.uid() = follower_id`
+- SELECT: `auth.uid() = follower_id OR auth.uid() = followee_id`
+
+**Indexes:** `follows_follower_id_idx` on `follower_id`, `follows_followee_id_idx` on `followee_id`
+
+**Design note:** Asymmetric by design — followee does not gain access to follower stats. Stats shown on Following.jsx are public to all followers.
+
+---
+
+## follow_user (Sprint 3.4)
+
+```sql
+follow_user(p_followee_id uuid)
+RETURNS jsonb  -- { success: boolean }
+SECURITY DEFINER
+```
+
+**Purpose:** Idempotent follow. Prevents self-follow. Fires a `'follow'` notification to followee only on a genuinely new row (checked via `GET DIAGNOSTICS ROW_COUNT`).
+**Caller:** `AuthorProfile.jsx`
+
+---
+
+## unfollow_user (Sprint 3.4)
+
+```sql
+unfollow_user(p_followee_id uuid)
+RETURNS jsonb  -- { success: boolean }
+SECURITY DEFINER
+```
+
+**Purpose:** DELETE from follows where `follower_id = auth.uid()`.
+**Caller:** `AuthorProfile.jsx`, `Following.jsx`
+
+---
+
+## get_following_with_stats (Sprint 3.4)
+
+```sql
+get_following_with_stats()
+RETURNS TABLE (
+  user_id                      uuid,
+  full_name                    text,
+  course_level                 text,
+  role                         text,
+  reviews_this_week            bigint, -- COUNT from reviews.created_at >= date_trunc('week', CURRENT_DATE)
+  streak_days                  integer,-- from get_user_streak(followee_id)
+  study_time_this_week_seconds bigint, -- SUM from study_sessions.session_date >= week start
+  following_since              timestamptz
+)
+SECURITY DEFINER
+```
+
+**Purpose:** All users the caller follows with public weekly stats. No cross-follow check — stats are public to all followers by design.
+**Caller:** `Following.jsx`
+- `reviews_this_week` — COUNT from `reviews` where `created_at >= date_trunc('week', CURRENT_DATE::timestamptz)`
+- `streak_days` — result of `get_user_streak(followee_id)`
+- `study_time_this_week_seconds` — SUM of `duration_seconds` from `study_sessions` where `session_date >= date_trunc('week', CURRENT_DATE)::date`
+- All stats COALESCE to 0. Ordered by `created_at DESC`.
+
+---
+
+## get_follow_status (Sprint 3.4)
+
+```sql
+get_follow_status(p_target_id uuid)
+RETURNS jsonb  -- { is_following: boolean }
+SECURITY DEFINER
+```
+
+**Purpose:** EXISTS check — is the caller currently following `p_target_id`? Used to initialise the Follow button state on `AuthorProfile.jsx`.
+**Caller:** `AuthorProfile.jsx`
 
 ---
 

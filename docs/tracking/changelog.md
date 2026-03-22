@@ -1,6 +1,27 @@
 # Changelog
 
 ---
+## [2026-03-22] feat: Sprint 3.4 — Follow System
+
+### Added
+- **Supabase** — `follows` table with RLS (INSERT/DELETE own follower_id; SELECT if caller is follower or followee). Indexes on `follower_id` and `followee_id`. UNIQUE constraint and self-follow CHECK.
+- **Supabase** — `follow_user(p_followee_id uuid)` SECURITY DEFINER RPC. Idempotent follow. Fires a `'follow'` notification into `notifications` table on new follow only (via `GET DIAGNOSTICS ROW_COUNT`).
+- **Supabase** — `unfollow_user(p_followee_id uuid)` SECURITY DEFINER RPC.
+- **Supabase** — `get_following_with_stats()` SECURITY DEFINER RPC. Returns followees with `reviews_this_week`, `streak_days` (via `get_user_streak`), `study_time_this_week_seconds`, `following_since`. All stats COALESCE to 0.
+- **Supabase** — `get_follow_status(p_target_id uuid)` SECURITY DEFINER RPC. Returns `{ is_following: boolean }`.
+- **`src/pages/dashboard/Friends/Following.jsx`** (new) — Following page. Card layout matches MyFriends.jsx exactly. Skeleton loading, optimistic unfollow, empty state.
+
+### Changed
+- **`src/pages/dashboard/Profile/AuthorProfile.jsx`** — Follow/Unfollow button added for non-own profiles. Fetches initial state via `get_follow_status` in existing `Promise.all`. Hover state switches "Following ✓" → "Unfollow". Optimistic updates with revert on error.
+- **`src/App.jsx`** — `/dashboard/following` route added.
+- **`src/components/layout/FriendsDropdown.jsx`** — "Following" link added (after My Friends), `Rss` icon.
+- **`src/components/layout/NavMobile.jsx`** — "Following" button added in Groups section, `Rss` icon.
+- **`src/data/helpContent.js`** — `follow-system` section added to Social tab explaining one-way follows, no course restriction, stats visibility, how to follow/manage.
+
+### Files Changed
+`src/pages/dashboard/Friends/Following.jsx`, `src/pages/dashboard/Profile/AuthorProfile.jsx`, `src/App.jsx`, `src/components/layout/FriendsDropdown.jsx`, `src/components/layout/NavMobile.jsx`, `src/data/helpContent.js`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`
+
+---
 ## [2026-03-22] feat: Sprint 3.3 — Friend System Cleanup + Mutual Stats
 
 ### Added

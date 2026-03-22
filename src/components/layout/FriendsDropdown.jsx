@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Check, X, UserPlus, UserCheck, Clock } from 'lucide-react';
+import { Users, Check, X, UserPlus, UserCheck, Clock, Rss } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -208,6 +208,12 @@ export default function FriendsDropdown({ pendingCount }) {
           <Link to="/dashboard/my-friends" className="flex items-center gap-2 cursor-pointer">
             <UserCheck className="h-4 w-4" />
             My Friends
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/dashboard/following" className="flex items-center gap-2 cursor-pointer">
+            <Rss className="h-4 w-4" />
+            Following
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
