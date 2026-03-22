@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, UserPlus, Users } from 'lucide-react';
+import { Search, UserPlus, Users, Rss, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import BadgeIcon from '@/components/badges/BadgeIcon';
 import PageContainer from '@/components/layout/PageContainer';
@@ -19,11 +19,49 @@ export default function FindFriends() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [userBadges, setUserBadges] = useState({});
+  const [followingSet, setFollowingSet] = useState(new Set()); // user_ids the caller follows
+  const [followLoading, setFollowLoading] = useState(null); // user_id currently being toggled
 
   useEffect(() => {
     fetchUsers();
+    fetchFollowingSet();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  const fetchFollowingSet = async () => {
+    try {
+      const { data } = await supabase.rpc('get_following_with_stats');
+      setFollowingSet(new Set((data || []).map(f => f.user_id)));
+    } catch {
+      // non-critical — buttons default to "Follow"
+    }
+  };
+
+  const handleFollowToggle = async (userId) => {
+    const isFollowing = followingSet.has(userId);
+    setFollowLoading(userId);
+    // optimistic update
+    setFollowingSet(prev => {
+      const next = new Set(prev);
+      isFollowing ? next.delete(userId) : next.add(userId);
+      return next;
+    });
+    try {
+      const rpc = isFollowing ? 'unfollow_user' : 'follow_user';
+      const { error } = await supabase.rpc(rpc, { p_followee_id: userId });
+      if (error) throw error;
+    } catch (error) {
+      // revert on error
+      setFollowingSet(prev => {
+        const next = new Set(prev);
+        isFollowing ? next.add(userId) : next.delete(userId);
+        return next;
+      });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setFollowLoading(null);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -198,15 +236,35 @@ export default function FindFriends() {
                       </div>
                     </div>
 
-                    {/* Action Button */}
-                    <Button
-                      onClick={() => sendFriendRequest(person.user_id)}
-                      disabled={loading}
-                      size="sm"
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Add Friend
-                    </Button>
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={() => handleFollowToggle(person.user_id)}
+                        disabled={followLoading === person.user_id}
+                        size="sm"
+                        variant="outline"
+                      >
+                        {followingSet.has(person.user_id) ? (
+                          <>
+                            <UserCheck className="h-4 w-4 mr-2" />
+                            Following
+                          </>
+                        ) : (
+                          <>
+                            <Rss className="h-4 w-4 mr-2" />
+                            Follow
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => sendFriendRequest(person.user_id)}
+                        disabled={loading}
+                        size="sm"
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Add Friend
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
               </Card>
