@@ -82,6 +82,18 @@ export default function StudyMode({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propFlashcards]);
 
+  // Mark session start in localStorage once cards are ready.
+  // Preview mode sessions are excluded — Tier B users shouldn't log study time
+  // for content they haven't unlocked.
+  // The DB row is only written when the session ends (single INSERT pattern).
+  useEffect(() => {
+    if (!loading && flashcards.length > 0 && !previewModeParam) {
+      localStorage.setItem('recall_session_started_at', new Date().toISOString());
+      localStorage.setItem('recall_session_source', 'study_mode');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
   // Stop speech when card changes or answer is revealed
   useEffect(() => {
     stop();
@@ -513,7 +525,44 @@ export default function StudyMode({
     }
   };
 
+  // Log the completed study_mode session to DB (single INSERT pattern).
+  // Called fire-and-forget from finishSession — never blocks the user flow.
+  // Minimum 10 seconds to avoid logging accidental/empty sessions.
+  const logStudyModeSession = async () => {
+    try {
+      const startedAtStr = localStorage.getItem('recall_session_started_at');
+      const source       = localStorage.getItem('recall_session_source');
+
+      if (!startedAtStr || source !== 'study_mode' || !user) return;
+
+      const startedAt      = new Date(startedAtStr);
+      const endedAt        = new Date();
+      const durationSeconds = Math.round((endedAt.getTime() - startedAt.getTime()) / 1000);
+
+      // Clear localStorage before the DB call to prevent double-logging
+      localStorage.removeItem('recall_session_started_at');
+      localStorage.removeItem('recall_session_source');
+
+      if (durationSeconds < 10) return;
+
+      const sessionDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+
+      await supabase.from('study_sessions').insert({
+        user_id:          user.id,
+        started_at:       startedAt.toISOString(),
+        ended_at:         endedAt.toISOString(),
+        duration_seconds: durationSeconds,
+        session_date:     sessionDate,
+        source:           'study_mode',
+      });
+    } catch (err) {
+      // Silent fail — never interrupt the user's study completion flow
+      console.error('Failed to log study_mode session:', err);
+    }
+  };
+
   const finishSession = () => {
+    logStudyModeSession(); // fire-and-forget
     if (onComplete) {
       onComplete(sessionStats);
     } else {

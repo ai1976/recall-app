@@ -72,6 +72,41 @@ export const HELP_TABS = [
           },
         ],
       },
+      {
+        id: 'study-timer',
+        title: 'Study Timer',
+        icon: 'Timer',
+        content: [
+          {
+            type: 'paragraph',
+            text: 'Recall tracks how long you spend studying so you can see your daily and weekly totals on the dashboard. Study time is captured in two ways:',
+          },
+          {
+            type: 'list',
+            items: [
+              'Auto-capture \u2014 When you complete a Study Set session (reviewing flashcards), Recall automatically logs the session duration. No action needed on your part.',
+              'Manual timer \u2014 For offline study \u2014 reading notes, textbooks, or practising problems on paper \u2014 use the Study Timer widget on your dashboard. Press Start when you begin and Stop when you finish.',
+            ],
+          },
+          {
+            type: 'steps',
+            items: [
+              'Find the \u201cStudy Timer\u201d card in the Study Time section of your dashboard.',
+              'Press \u201cStart\u201d when you begin offline study.',
+              'Press \u201cStop\u201d when you finish. The session is saved immediately.',
+              'Your Today and This Week totals update instantly.',
+            ],
+          },
+          {
+            type: 'tip',
+            text: 'If you accidentally close the tab while the timer is running, Recall will detect the unfinished session next time you open the dashboard and ask whether you want to log it. Sessions older than 4 hours are discarded automatically.',
+          },
+          {
+            type: 'paragraph',
+            text: 'Study time is the foundation for upcoming features including the leaderboard, daily study goals, and friend comparisons \u2014 so keeping it accurate helps you track your real progress.',
+          },
+        ],
+      },
     ],
   },
 
@@ -257,6 +292,7 @@ export const HELP_TABS = [
             'If 3 or more students flag the same item, it is automatically escalated to high priority.',
           ]},
           { type: 'tip', text: 'For content errors, the more detail you add in the description, the faster the educator can fix it. For example: "The income tax basic exemption limit shown is ₹2.5L but it was revised to ₹3L from FY 2023-24."' },
+          { type: 'tip', text: 'You can track the status of your reports in your dashboard under "My Reports". You will see whether your report is under review, resolved, or dismissed.' },
         ],
       },
     ],

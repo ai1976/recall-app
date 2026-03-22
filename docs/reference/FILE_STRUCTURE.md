@@ -85,7 +85,8 @@ recall-app
 │   │   │   └── SubjectMasteryTable.jsx    ← per-subject mastery table (get_subject_mastery_v1 RPC)
 │   │   ├── dashboard
 │   │   │   ├── ActivityFeed.jsx
-│   │   │   └── AnonymousStats.jsx
+│   │   │   ├── AnonymousStats.jsx
+│   │   │   └── StudyTimerWidget.jsx       ← manual offline study timer (student only); clock via DOM ref
 │   │   ├── flashcards
 │   │   │   ├── FlashcardCard.jsx
 │   │   │   ├── SpeakButton.jsx

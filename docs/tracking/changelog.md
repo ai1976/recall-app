@@ -1,6 +1,24 @@
 # Changelog
 
 ---
+## [2026-03-22] feat: Sprint 3.1 — Study Timer
+
+### Added
+- **Supabase** — `study_sessions` table: `id`, `user_id`, `started_at`, `ended_at` (NOT NULL), `duration_seconds` (NOT NULL, CHECK > 0), `session_date` (date), `source` (CHECK 'manual'|'study_mode'), `created_at`. Only completed sessions stored — DB never holds incomplete rows.
+- **Supabase** — RLS on `study_sessions`: authenticated INSERT + SELECT own rows (`auth.uid() = user_id`). Index `idx_study_sessions_user_date` on `(user_id, session_date)`.
+- **Supabase** — `get_study_time_stats(p_user_id uuid, p_local_date date)` SECURITY DEFINER RPC: returns `today_seconds`, `week_seconds`, `today_sessions`, `week_sessions`. Uses `p_local_date` for correct timezone handling.
+- **`src/components/dashboard/StudyTimerWidget.jsx`** — New isolated manual timer component. Clock via DOM ref (zero Dashboard re-renders per tick). Idle / running / saving states. Stale session recovery (< 4h prompt, ≥ 4h silent discard). `onSessionLogged` callback.
+- **`src/data/helpContent.js`** — `study-timer` section in Getting Started tab.
+
+### Changed
+- **`src/pages/Dashboard.jsx`** — Student section: "⏱ Study Time" 3-col grid (Today, This Week, StudyTimerWidget). `fetchStudyTimeStats` RPC. `formatStudyTime` helper. `authUserId` state. `Clock` + `StudyTimerWidget` imports.
+- **`src/pages/dashboard/Study/StudyMode.jsx`** — Session start to localStorage on load; `logStudyModeSession()` fire-and-forget from `finishSession()`.
+- **`src/pages/dashboard/Help.jsx`** — `Timer` added to lucide imports and `ICON_MAP`.
+
+### Files Changed
+`src/components/dashboard/StudyTimerWidget.jsx` (new), `src/pages/Dashboard.jsx`, `src/pages/dashboard/Study/StudyMode.jsx`, `src/data/helpContent.js`, `src/pages/dashboard/Help.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`
+
+---
 ## [2026-03-21] fix: Dashboard placeholder card consistency (post-Sprint 2.9)
 
 ### Changed

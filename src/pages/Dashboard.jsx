@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import AnonymousStats from '@/components/dashboard/AnonymousStats';
 import OnboardingModal from '@/components/dashboard/OnboardingModal';
+import StudyTimerWidget from '@/components/dashboard/StudyTimerWidget';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
 import PushPermissionBanner from '@/components/notifications/PushPermissionBanner';
 import { useBadges } from '@/hooks/useBadges';
@@ -40,6 +41,7 @@ import {
   Users,
   Flag,
   AlertTriangle,
+  Clock,
 } from 'lucide-react';
 
 // Must match ProfileSettings.jsx — static curated list, "Other" always last.
@@ -81,6 +83,15 @@ const formatLocalDate = (date) => {
   return new Date(date).toLocaleDateString('en-CA');
 };
 
+// Format seconds → "1h 23m" / "45m" / "< 1m"
+const formatStudyTime = (seconds) => {
+  if (!seconds || seconds < 60) return '< 1m';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h === 0) return `${m}m`;
+  return `${h}h ${m}m`;
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -120,6 +131,14 @@ export default function Dashboard() {
   const [needsAttentionItems, setNeedsAttentionItems] = useState([]);
   const [needsReviewCount, setNeedsReviewCount] = useState(0);
   const [myReports, setMyReports] = useState([]);
+
+  // Study time stats (student only)
+  const [studyTimeStats, setStudyTimeStats] = useState({
+    today_seconds: 0, week_seconds: 0, today_sessions: 0, week_sessions: 0
+  });
+  const [studyTimeLoading, setStudyTimeLoading] = useState(true);
+  // Stored so the onSessionLogged callback can re-fetch without re-reading auth
+  const [authUserId, setAuthUserId] = useState(null);
 
   // Onboarding modal state
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -173,6 +192,7 @@ export default function Dashboard() {
         navigate('/login');
         return;
       }
+      setAuthUserId(authUser.id);
 
       // Fetch profile for name, course level, institution, onboarding flag, and role
       const { data: profile } = await supabase
@@ -254,6 +274,11 @@ export default function Dashboard() {
       );
 
       setHasUserActivity(reviewsCount > 0);
+
+      // Fetch study time stats for student dashboard
+      if (!['professor', 'admin', 'super_admin'].includes(profile?.role)) {
+        fetchStudyTimeStats(authUser.id);
+      }
 
       // Fetch student's own submitted flags (RLS allows flagged_by = auth.uid())
       if (!['professor', 'admin', 'super_admin'].includes(profile?.role)) {
@@ -362,6 +387,28 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error('🔴 RPC Error:', err);
+    }
+  };
+
+  const fetchStudyTimeStats = async (userId) => {
+    try {
+      const localDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in user's timezone
+      const { data, error } = await supabase.rpc('get_study_time_stats', {
+        p_user_id:    userId,
+        p_local_date: localDate,
+      });
+      if (!error && data && data.length > 0) {
+        setStudyTimeStats({
+          today_seconds:  Number(data[0].today_seconds)  || 0,
+          week_seconds:   Number(data[0].week_seconds)   || 0,
+          today_sessions: Number(data[0].today_sessions) || 0,
+          week_sessions:  Number(data[0].week_sessions)  || 0,
+        });
+      }
+    } catch (err) {
+      console.error('🔴 Study time stats error:', err);
+    } finally {
+      setStudyTimeLoading(false);
     }
   };
 
@@ -1160,6 +1207,57 @@ export default function Dashboard() {
                         <p className="text-[10px] sm:text-xs text-muted-foreground">Unique items</p>
                       </CardContent>
                     </Card>
+                  </div>
+                </div>
+              )}
+
+              {/* ===== STUDY TIME + MANUAL TIMER ===== */}
+              {!isNewUser && (
+                <div>
+                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                    ⏱ Study Time
+                  </h2>
+                  <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
+
+                    {/* Today */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-xs sm:text-sm font-medium">Today</CardTitle>
+                        <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xl sm:text-2xl font-bold">
+                          {studyTimeLoading ? '—' : formatStudyTime(studyTimeStats.today_seconds)}
+                        </div>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">
+                          {studyTimeLoading ? '' : `${studyTimeStats.today_sessions} session${studyTimeStats.today_sessions === 1 ? '' : 's'}`}
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    {/* This Week */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-xs sm:text-sm font-medium">This Week</CardTitle>
+                        <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xl sm:text-2xl font-bold">
+                          {studyTimeLoading ? '—' : formatStudyTime(studyTimeStats.week_seconds)}
+                        </div>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">
+                          {studyTimeLoading ? '' : `${studyTimeStats.week_sessions} session${studyTimeStats.week_sessions === 1 ? '' : 's'} this week`}
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    {/* Manual timer widget — spans both cols on mobile, 1 col on lg */}
+                    <div className="col-span-2 lg:col-span-1">
+                      <StudyTimerWidget
+                        onSessionLogged={() => authUserId && fetchStudyTimeStats(authUserId)}
+                      />
+                    </div>
+
                   </div>
                 </div>
               )}

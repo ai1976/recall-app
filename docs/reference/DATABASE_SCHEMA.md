@@ -26,10 +26,10 @@
 ## 1. OVERVIEW
 
 ### Quick Stats
-- **Total Tables:** 22 ⭐ (was 21, added profile_courses table)
-- **Custom Functions:** 5 ⭐ (added get_author_profile, get_author_content_summary)
-- **RLS Policies:** 24
-- **Indexes:** 53+ ⭐ (was 50+, added 3 indexes)
+- **Total Tables:** 23 ⭐ (was 22, added study_sessions — Sprint 3.1)
+- **Custom Functions:** 6 ⭐ (was 5, added get_study_time_stats — Sprint 3.1)
+- **RLS Policies:** 26 ⭐ (was 24, added 2 for study_sessions — Sprint 3.1)
+- **Indexes:** 54+ ⭐ (was 53+, added idx_study_sessions_user_date — Sprint 3.1)
 - **Triggers:** 0 (currently)
 - **Database Size:** ~50 MB (estimated for 20 users)
 
@@ -792,9 +792,49 @@ VALUES ('Prof. Sharma', 'individual', 'sharma@example.com', 40.0);
 
 ---
 
+## study_sessions (Sprint 3.1)
+
+Stores completed study sessions only. Incomplete/abandoned sessions are held in localStorage and never written to the DB.
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | uuid | PK, default gen_random_uuid() |
+| `user_id` | uuid | NOT NULL, FK → auth.users ON DELETE CASCADE |
+| `started_at` | timestamptz | NOT NULL |
+| `ended_at` | timestamptz | NOT NULL |
+| `duration_seconds` | integer | NOT NULL, CHECK > 0 |
+| `session_date` | date | NOT NULL — stored as user's LOCAL date (YYYY-MM-DD), passed from frontend |
+| `source` | text | NOT NULL, CHECK IN ('manual', 'study_mode') |
+| `created_at` | timestamptz | DEFAULT now() |
+
+**RLS:** Enabled. INSERT and SELECT for own rows only (`auth.uid() = user_id`). No UPDATE or DELETE — sessions are immutable.
+
+**Index:** `idx_study_sessions_user_date` on `(user_id, session_date)` — optimises the stats RPC.
+
+**Design decision — no incomplete rows:** The single INSERT pattern means the DB stores only sessions that actually completed. Abandoned sessions are recovered client-side via localStorage on next app load (< 4h recovery prompt, ≥ 4h silent discard).
+
+**Design decision — local date:** `session_date` is the user's local date (`new Date().toLocaleDateString('en-CA')`), not UTC. This is critical for users in UTC+5:30 and later — after 6:30 PM UTC the DB's `CURRENT_DATE` would already be "tomorrow".
+
+---
+
+## get_study_time_stats (Sprint 3.1)
+
+```sql
+get_study_time_stats(p_user_id uuid, p_local_date date)
+RETURNS TABLE (today_seconds bigint, week_seconds bigint, today_sessions bigint, week_sessions bigint)
+SECURITY DEFINER
+```
+
+- `p_local_date` — today's date in the user's local timezone, passed from frontend as `new Date().toLocaleDateString('en-CA')`
+- Week bounds: Monday–Sunday of the ISO week containing `p_local_date` (Postgres `date_trunc('week', ...)`)
+- Filters strictly by `p_user_id` — no cross-user access
+- Called by authenticated users for their own stats only
+
+---
+
 ## 3. RLS POLICIES
 
-**Total Policies:** 24  
+**Total Policies:** 26 ⭐ (was 24 — added 2 for study_sessions)
 **Last Updated:** January 2, 2026
 
 ### 3.1 profiles Table Policies

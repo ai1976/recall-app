@@ -1,11 +1,22 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-21 (post-Sprint 2.9 fix)
-**Current Phase:** Sprint 2.9 complete — flagged content workflow completion
+**Last Updated:** 2026-03-22 (Sprint 3.1)
+**Current Phase:** Sprint 3.1 complete — Study Timer
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 3.1 — Study Timer (Mar 22, 2026)
+
+- **SQL:** `study_sessions` table — `ended_at` and `duration_seconds` NOT NULL by design (only completed sessions stored). RLS: authenticated INSERT/SELECT own rows. Index on `(user_id, session_date)`. `get_study_time_stats(p_user_id uuid, p_local_date date)` SECURITY DEFINER RPC returns `today_seconds`, `week_seconds`, `today_sessions`, `week_sessions`. `p_local_date` is required because `session_date` is stored as the user's local date — DB cannot derive "today" in UTC correctly for users in UTC+5:30.
+- **StudyTimerWidget.jsx:** New isolated component at `src/components/dashboard/StudyTimerWidget.jsx`. Manual start/stop timer for offline study. Clock ticks via `clockRef.current.textContent` (direct DOM) — zero Dashboard re-renders per second. States: idle → running → saving → idle. On mount: checks `recall_session_started_at` + `recall_session_source = 'manual'` in localStorage; if ≤ 4h old, shows recovery prompt ("Unfinished session from X ago — Log it?"); if > 4h, silently discards. On stop: single INSERT into `study_sessions`. `onSessionLogged` callback triggers Dashboard stats refresh.
+- **Dashboard.jsx:** Student dashboard gets new "⏱ Study Time" section — 3-col grid (Today card, This Week card, StudyTimerWidget). Stats fetched via `get_study_time_stats` RPC. `formatStudyTime` helper: `< 1m` / `45m` / `1h 23m`. Stats refresh immediately after each manual session via `onSessionLogged`. `authUserId` state added to make callback stable. `Clock` added to lucide imports.
+- **StudyMode.jsx:** Session start written to localStorage (`recall_session_started_at`, `recall_session_source = 'study_mode'`) via `useEffect` that fires when `loading` becomes `false` and cards are ready. Preview mode excluded. `logStudyModeSession()` called fire-and-forget from `finishSession()` — single INSERT, clears localStorage first to prevent double-logging, silent fail on error.
+- **helpContent.js:** `study-timer` section added to Getting Started tab. Explains auto-capture vs manual, stale session recovery, and why study time matters (leaderboard, goals, friend comparison).
+- **Help.jsx:** `Timer` added to lucide imports and `ICON_MAP`.
+
+Files Changed: `src/components/dashboard/StudyTimerWidget.jsx` (new), `src/pages/Dashboard.jsx`, `src/pages/dashboard/Study/StudyMode.jsx`, `src/data/helpContent.js`, `src/pages/dashboard/Help.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`
 
 ### Fix — Dashboard placeholder card consistency (Mar 21, 2026)
 
