@@ -132,7 +132,7 @@ export default function FriendsDropdown({ pendingCount }) {
       <DropdownMenuContent align="end" className="w-72">
         {/* Header */}
         <div className="px-3 py-2 border-b">
-          <p className="text-sm font-semibold text-gray-900">Friend Requests</p>
+          <p className="text-sm font-semibold text-gray-900">Friends & Following</p>
         </div>
 
         {/* Pending Requests */}
@@ -201,7 +201,7 @@ export default function FriendsDropdown({ pendingCount }) {
         <DropdownMenuItem asChild>
           <Link to="/dashboard/find-friends" className="flex items-center gap-2 cursor-pointer">
             <UserPlus className="h-4 w-4" />
-            Find Friends
+            Find People
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
