@@ -1,6 +1,17 @@
 # Changelog
 
 ---
+## [2026-03-22] feat: Follow system discoverability + label cleanup
+
+### Changed
+- **`src/components/layout/FriendsDropdown.jsx`** — Header renamed "Friend Requests" → "Friends & Following". "Find Friends" link renamed "Find People".
+- **`src/pages/dashboard/Friends/FindFriends.jsx`** — Page title "Find Friends" → "Find People". Subtitle updated to reflect both friend and follow actions. Follow/Following toggle button added to each card (fetches existing follows on mount via `get_following_with_stats`; optimistic toggle).
+- **`src/data/helpContent.js`** — All "Find Friends" references updated to "Find People"; dropdown references updated to "Friends & Following"; follow-system how-to updated to mention Find People as primary discovery surface.
+
+### Files Changed
+`src/components/layout/FriendsDropdown.jsx`, `src/pages/dashboard/Friends/FindFriends.jsx`, `src/data/helpContent.js`
+
+---
 ## [2026-03-22] feat: Sprint 3.4 — Follow System
 
 ### Added

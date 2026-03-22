@@ -457,15 +457,15 @@ export const HELP_TABS = [
           {
             type: 'steps',
             items: [
-              'Click the Friends icon in the navigation bar (or the people icon on mobile).',
-              'Go to "Find Friends" to browse other Recall users on your course.',
+              'Click the Friends & Following icon in the navigation bar (or the people icon on mobile).',
+              'Go to "Find People" to browse other Recall users on your course.',
               'Use the search bar to find specific people by name.',
-              'Click "Add Friend" to send a friend request.',
+              'Click "Add Friend" to send a friend request, or "Follow" to follow them without a mutual connection.',
             ],
           },
           {
             type: 'paragraph',
-            text: 'Find Friends automatically shows only users on your course level — cross-institute connections are fine, but cross-course discovery is not supported. Each profile card shows public achievement badges to help you identify active study partners.',
+            text: 'Find People automatically shows only users on your course level — cross-institute connections are fine, but cross-course discovery is not supported. Each profile card shows public achievement badges to help you identify active study partners.',
           },
         ],
       },
@@ -555,7 +555,7 @@ export const HELP_TABS = [
           },
           {
             type: 'paragraph',
-            text: 'How to follow someone: visit their profile (click their name on any note, flashcard, or in Find Friends) and tap the Follow button.',
+            text: 'How to follow someone: go to Find People (Friends & Following icon \u2192 Find People) and tap Follow on any card, or visit their profile and tap the Follow button.',
           },
           {
             type: 'paragraph',
@@ -750,7 +750,7 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'Earn badges by reaching milestones in your study journey. Badges appear on your profile and in the Find Friends page (if set to public).',
+            text: 'Earn badges by reaching milestones in your study journey. Badges appear on your profile and in the Find People page (if set to public).',
           },
           {
             type: 'list',
@@ -1216,7 +1216,7 @@ export const FAQ_ITEMS = [
   },
   {
     question: 'How do achievement badge privacy toggles work?',
-    answer: 'By default, earned badges are public and visible on your profile and in Find Friends. You can toggle each badge individually from "My Achievements" to make it private. Private badges are only visible to you.',
+    answer: 'By default, earned badges are public and visible on your profile and in Find People. You can toggle each badge individually from "My Achievements" to make it private. Private badges are only visible to you.',
   },
   {
     question: 'What does suspending a card do?',
