@@ -1,11 +1,25 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-22 (Sprint 3.4)
-**Current Phase:** Sprint 3.4 complete — Follow System
+**Last Updated:** 2026-03-22 (Sprint 3.5)
+**Current Phase:** Sprint 3.5 complete — Leaderboard + Goals
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 3.5 — Leaderboard + Goals (Mar 22, 2026)
+
+- **SQL:** `ALTER TABLE profiles ADD COLUMN daily_review_goal integer CHECK (>0 AND <=200)` + `daily_study_goal_minutes integer CHECK (>0 AND <=480)`. Both nullable — NULL means no goal set.
+- **SQL:** `get_friends_leaderboard()` SECURITY DEFINER RPC. Returns caller + mutual friends (role='student' only) ranked by `reviews_this_week DESC`, `study_time_this_week_seconds` as tiebreaker. DENSE_RANK ties. Caller's own row always included. Week boundary: `date_trunc('week', CURRENT_DATE)`. All stats COALESCE to 0. Fields: `rank`, `user_id`, `full_name`, `is_self`, `reviews_this_week`, `study_time_this_week_seconds`.
+- **SQL:** `get_following_leaderboard()` SECURITY DEFINER RPC. Same fields and ranking as friends leaderboard. Aggregates full followee set first (no pre-limit), then returns top 20 by rank + caller's own row regardless of rank — so caller's actual rank is always exact.
+- **SQL:** `update_daily_goal(p_review_goal integer, p_study_goal_minutes integer)` SECURITY DEFINER RPC. Updates both columns on caller's profile row. Either value can be NULL to clear that type. Auth.uid() check before UPDATE.
+- **LeaderboardWidget.jsx:** New isolated component at `src/components/dashboard/LeaderboardWidget.jsx`. Two tabs: Friends | Following. Friends tab fetches on mount; Following tab fetches lazily (first click only). Per row: rank, name (bold + blue bg for caller), reviews this week, study time. Skeleton loading (4 rows), error state with Retry, empty states. Manages own state — zero Dashboard re-renders.
+- **GoalProgressWidget.jsx:** New component at `src/components/dashboard/GoalProgressWidget.jsx`. Three display states: no-goal (two buttons), editing (inline input, no modal), active goal (progress bar, today actual vs target, Edit link, green "Goal reached ✓" at 100%). Updates via `update_daily_goal` RPC; calls `onGoalUpdated` prop to sync parent state. Progress resets at midnight (derived from today's actual passed as prop).
+- **Dashboard.jsx:** Profile select extended to fetch `daily_review_goal` + `daily_study_goal_minutes`. Added `reviewGoal`, `studyGoalMinutes`, `todayReviews` state. `fetchPersonalStats` now computes `todayReviews` (quality > 0, local date = today) from already-fetched reviews data — no extra network call. `GoalProgressWidget` inserted after Study Time section. `LeaderboardWidget` inserted after Anonymous Stats.
+- **GroupDetail.jsx:** Batch Performance table — `#` rank column added as first column (non-sortable `<th>`). Rank = `idx + 1` from current `sortedStats` order — re-ranks live when any column header is clicked. Minor: `(row)` → `(row, idx)` in map.
+- **helpContent.js:** New `leaderboard` section added to Social tab (after `follow-system`). New `daily-goals` section added to Getting Started tab (after `study-timer`). `prof-batch-performance` list updated to include `#` rank column description.
+
+Files Changed: `src/components/dashboard/LeaderboardWidget.jsx` (new), `src/components/dashboard/GoalProgressWidget.jsx` (new), `src/pages/Dashboard.jsx`, `src/pages/dashboard/Groups/GroupDetail.jsx`, `src/data/helpContent.js`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`
 
 ### Sprint 3.4 — Follow System (Mar 22, 2026)
 

@@ -107,6 +107,47 @@ export const HELP_TABS = [
           },
         ],
       },
+      {
+        id: 'daily-goals',
+        title: 'Daily Goals',
+        icon: 'Target',
+        content: [
+          {
+            type: 'paragraph',
+            text: 'The Daily Goal widget on your dashboard lets you set a personal daily target and track your progress against it in real time.',
+          },
+          {
+            type: 'list',
+            items: [
+              'Review goal \u2014 A target number of flashcard reviews to complete each day (maximum 200).',
+              'Study time goal \u2014 A target number of minutes to spend studying each day (maximum 480, i.e. 8 hours). This counts both Study Set sessions and manual timer sessions.',
+            ],
+          },
+          {
+            type: 'steps',
+            items: [
+              'Find the \u201cDaily Goal\u201d card in the Study Time section of your dashboard.',
+              'Click \u201cReview goal\u201d or \u201cStudy time goal\u201d to set a target.',
+              'Type a number and press Set (or press Enter). Only one goal type is active at a time.',
+              'The widget immediately shows your progress: today\u2019s actual vs your target, a progress bar, and the percentage complete.',
+              'When you hit 100%, the widget shows \u201cGoal reached \u2713\u201d in green.',
+            ],
+          },
+          {
+            type: 'list',
+            items: [
+              'Progress resets at midnight in your local timezone every day.',
+              'To change your target, click the \u201cEdit\u201d link on the active goal.',
+              'To switch goal types (e.g., from review to study time), click Edit and then choose the other type \u2014 this clears the old goal automatically.',
+              'To remove a goal entirely, click Edit and then \u201cClear goal\u201d.',
+            ],
+          },
+          {
+            type: 'tip',
+            text: 'Start small. A daily goal of 20 reviews is more sustainable than 100. Consistency over weeks builds more retention than high-volume cramming.',
+          },
+        ],
+      },
     ],
   },
 
@@ -572,6 +613,39 @@ export const HELP_TABS = [
         ],
       },
       {
+        id: 'leaderboard',
+        title: 'Leaderboard',
+        icon: 'Trophy',
+        content: [
+          {
+            type: 'paragraph',
+            text: 'The Leaderboard widget on your dashboard lets you see how your study activity compares to the people you are connected with. It has two tabs:',
+          },
+          {
+            type: 'list',
+            items: [
+              'Friends — Your mutual friends who are students, ranked by reviews this week. You always appear in this list so you can see your own rank.',
+              'Following — Up to the top 20 students you follow, ranked by reviews this week. If you are outside the top 20, your own row is appended at the bottom with your actual rank.',
+            ],
+          },
+          {
+            type: 'list',
+            items: [
+              'Ranking is by reviews this week (Monday to Sunday, server time). Study time is the tiebreaker when two people have the same review count.',
+              'Tied rows show the same rank number.',
+              'Your row is highlighted in blue so it is easy to spot.',
+              'Streak is not shown on the leaderboard — it is visible on your own dashboard only.',
+              'There is no platform-wide public leaderboard by design — Recall values privacy and does not surface global rankings.',
+              'Professors and admins are excluded — they are content creators, not reviewers, and their stats are not shown in any leaderboard context.',
+            ],
+          },
+          {
+            type: 'tip',
+            text: 'To appear on your friends\u2019 leaderboard, add mutual friends from the Find People page. To appear on someone\u2019s Following tab, they need to follow you.',
+          },
+        ],
+      },
+      {
         id: 'friends-content',
         title: 'Friends-Only Content',
         icon: 'Lock',
@@ -940,6 +1014,7 @@ export const HELP_TABS = [
           {
             type: 'list',
             items: [
+              '# — Rank based on the current sort order. Rank 1 is always the student at the top of whichever column you have sorted. Clicking a different column header re-ranks instantly.',
               'Name — The student\'s full name.',
               'Reviews This Week — Total flashcard reviews completed since Monday (server time). The primary measure of active study.',
               'Streak — Current consecutive-day review streak shown as e.g. "7d". A dash (—) means no active streak.',

@@ -86,6 +86,8 @@ recall-app
 │   │   ├── dashboard
 │   │   │   ├── ActivityFeed.jsx
 │   │   │   ├── AnonymousStats.jsx
+│   │   │   ├── GoalProgressWidget.jsx     ← daily review/study-time goal vs today's actual (student only); writes via update_daily_goal RPC
+│   │   │   ├── LeaderboardWidget.jsx      ← friends + following leaderboard tabs (student only); isolated, zero parent re-renders
 │   │   │   └── StudyTimerWidget.jsx       ← manual offline study timer (student only); clock via DOM ref
 │   │   ├── flashcards
 │   │   │   ├── FlashcardCard.jsx

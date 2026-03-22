@@ -1,6 +1,25 @@
 # Changelog
 
 ---
+## [2026-03-22] feat: Sprint 3.5 — Leaderboard + Goals
+
+### Added
+- **Supabase** — `profiles.daily_review_goal` (integer, nullable, CHECK >0 AND <=200) + `profiles.daily_study_goal_minutes` (integer, nullable, CHECK >0 AND <=480)
+- **Supabase** — `get_friends_leaderboard()` SECURITY DEFINER RPC. Mutual friends (students only) + caller, ranked by reviews_this_week DESC / study_time_this_week_seconds as tiebreaker. DENSE_RANK. Fields: rank, user_id, full_name, is_self, reviews_this_week, study_time_this_week_seconds.
+- **Supabase** — `get_following_leaderboard()` SECURITY DEFINER RPC. Full followee set ranked, top 20 returned + caller's own row regardless of rank. Same fields as friends leaderboard.
+- **Supabase** — `update_daily_goal(p_review_goal, p_study_goal_minutes)` SECURITY DEFINER RPC. Either value can be NULL to clear.
+- **`src/components/dashboard/LeaderboardWidget.jsx`** (new) — Isolated widget. Friends tab (fetches on mount) + Following tab (lazy, first-click). Skeleton loading, error+retry, empty states. Caller's row highlighted blue.
+- **`src/components/dashboard/GoalProgressWidget.jsx`** (new) — Daily goal widget. States: no goal, editing (inline input), active progress (bar, actual vs target, Edit, goal-reached green). Writes via update_daily_goal RPC.
+
+### Changed
+- **`src/pages/Dashboard.jsx`** — Profile select adds `daily_review_goal` + `daily_study_goal_minutes`. New state: `reviewGoal`, `studyGoalMinutes`, `todayReviews`. `fetchPersonalStats` computes `todayReviews` from existing reviews data. GoalProgressWidget added after Study Time section; LeaderboardWidget added after Anonymous Stats.
+- **`src/pages/dashboard/Groups/GroupDetail.jsx`** — Batch Performance table: `#` rank column added as first column, derived client-side from sort order.
+- **`src/data/helpContent.js`** — `leaderboard` section added to Social tab; `daily-goals` section added to Getting Started tab; `prof-batch-performance` updated with `#` rank column description.
+
+### Files Changed
+`src/components/dashboard/LeaderboardWidget.jsx`, `src/components/dashboard/GoalProgressWidget.jsx`, `src/pages/Dashboard.jsx`, `src/pages/dashboard/Groups/GroupDetail.jsx`, `src/data/helpContent.js`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`
+
+---
 ## [2026-03-22] fix: Hide study stats for professors/admins on Following page
 
 ### Changed

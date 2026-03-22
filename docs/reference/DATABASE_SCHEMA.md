@@ -27,7 +27,7 @@
 
 ### Quick Stats
 - **Total Tables:** 24 ⭐ (was 23, added follows — Sprint 3.4)
-- **Custom Functions:** 13 ⭐ (was 9, added follow_user + unfollow_user + get_following_with_stats + get_follow_status — Sprint 3.4)
+- **Custom Functions:** 16 ⭐ (was 13, added get_friends_leaderboard + get_following_leaderboard + update_daily_goal — Sprint 3.5)
 - **RLS Policies:** 29 ⭐ (was 26, added 3 for follows — Sprint 3.4)
 - **Indexes:** 56+ ⭐ (was 54+, added follows_follower_id_idx + follows_followee_id_idx — Sprint 3.4)
 - **Triggers:** 0 (currently)
@@ -70,8 +70,8 @@
 
 **Purpose:** User accounts with 4-tier role system (student/professor/admin/super_admin)
 **Created:** December 2025 (Phase 0.5)
-**Last Updated:** March 19, 2026 (added account_type, has_seen_onboarding)
-**Columns:** 11
+**Last Updated:** March 22, 2026 (added daily_review_goal, daily_study_goal_minutes — Sprint 3.5)
+**Columns:** 13
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -86,6 +86,8 @@
 | has_seen_onboarding | boolean | NO | false | Set to true when user dismisses OnboardingModal. Controls first-login modal. |
 | created_at | timestamp | NO | NOW() | Account creation timestamp |
 | timezone | text | YES | 'Asia/Kolkata' | IANA timezone identifier (e.g., 'Asia/Kolkata', 'America/New_York'). Auto-detected from browser. |
+| daily_review_goal | integer | YES | NULL | Student's daily review target. CHECK >0 AND <=200. NULL = no goal set. Sprint 3.5. |
+| daily_study_goal_minutes | integer | YES | NULL | Student's daily study time target in minutes. CHECK >0 AND <=480. NULL = no goal set. Sprint 3.5. |
 
 **Key distinction — role vs account_type:**
 - `role` = permission level (student/professor/admin/super_admin)
@@ -864,6 +866,65 @@ SECURITY DEFINER
 
 **Purpose:** DELETE from follows where `follower_id = auth.uid()`.
 **Caller:** `AuthorProfile.jsx`, `Following.jsx`
+
+---
+
+## get_friends_leaderboard (Sprint 3.5)
+
+```sql
+get_friends_leaderboard()
+RETURNS TABLE (
+  rank                          integer,
+  user_id                       uuid,
+  full_name                     text,
+  is_self                       boolean,
+  reviews_this_week             bigint,
+  study_time_this_week_seconds  bigint
+)
+```
+
+**Purpose:** Returns the caller + all mutual friends who are students, ranked for the leaderboard widget (Friends tab).
+**Security:** SECURITY DEFINER. Caller must be authenticated (`auth.uid()` checked). Students only (`profiles.role = 'student'`).
+**Ranking:** DENSE_RANK — `reviews_this_week DESC`, `study_time_this_week_seconds DESC` as tiebreaker. Tied rows share same rank integer. No streak.
+**Week boundary:** `date_trunc('week', CURRENT_DATE)` (Monday, server UTC). All stats COALESCE to 0.
+**Caller:** `LeaderboardWidget.jsx` (Friends tab). Fetches on mount.
+
+---
+
+## get_following_leaderboard (Sprint 3.5)
+
+```sql
+get_following_leaderboard()
+RETURNS TABLE (
+  rank                          integer,
+  user_id                       uuid,
+  full_name                     text,
+  is_self                       boolean,
+  reviews_this_week             bigint,
+  study_time_this_week_seconds  bigint
+)
+```
+
+**Purpose:** Returns top 20 followees (students only) + the caller's own row regardless of rank, for the leaderboard widget (Following tab).
+**Security:** SECURITY DEFINER. Caller must be authenticated. Students only.
+**Ranking:** Aggregates full followee set before applying top-20 limit — caller's rank is exact, not an approximation. Same DENSE_RANK logic as friends leaderboard.
+**Caller:** `LeaderboardWidget.jsx` (Following tab). Fetches lazily on first tab click.
+
+---
+
+## update_daily_goal (Sprint 3.5)
+
+```sql
+update_daily_goal(
+  p_review_goal        integer DEFAULT NULL,
+  p_study_goal_minutes integer DEFAULT NULL
+)
+RETURNS void
+```
+
+**Purpose:** Updates `daily_review_goal` and `daily_study_goal_minutes` on the caller's profile row. Either argument can be NULL to clear that goal type. Passing both as NULL clears all goals.
+**Security:** SECURITY DEFINER. `auth.uid()` checked before UPDATE.
+**Caller:** `GoalProgressWidget.jsx` — on Set and on Clear goal.
 
 ---
 

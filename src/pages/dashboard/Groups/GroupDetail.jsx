@@ -510,6 +510,7 @@ export default function GroupDetail() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-gray-50">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-10">#</th>
                       <SortHeader field="full_name" label="Name" />
                       <SortHeader field="reviews_this_week" label="Reviews This Week" />
                       <SortHeader field="streak_days" label="Streak" />
@@ -518,8 +519,9 @@ export default function GroupDetail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedStats.map((row) => (
+                    {sortedStats.map((row, idx) => (
                       <tr key={row.user_id} className="border-b last:border-0 hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm text-gray-400 font-medium">{idx + 1}</td>
                         <td className="px-4 py-3 font-medium text-gray-900">{row.full_name || '—'}</td>
                         <td className="px-4 py-3 text-gray-700">{Number(row.reviews_this_week)}</td>
                         <td className="px-4 py-3 text-gray-700">

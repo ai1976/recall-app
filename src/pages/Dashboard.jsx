@@ -18,6 +18,8 @@ import {
 import AnonymousStats from '@/components/dashboard/AnonymousStats';
 import OnboardingModal from '@/components/dashboard/OnboardingModal';
 import StudyTimerWidget from '@/components/dashboard/StudyTimerWidget';
+import LeaderboardWidget from '@/components/dashboard/LeaderboardWidget';
+import GoalProgressWidget from '@/components/dashboard/GoalProgressWidget';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
 import PushPermissionBanner from '@/components/notifications/PushPermissionBanner';
 import { useBadges } from '@/hooks/useBadges';
@@ -141,6 +143,12 @@ export default function Dashboard() {
   // Stored so the onSessionLogged callback can re-fetch without re-reading auth
   const [authUserId, setAuthUserId] = useState(null);
 
+  // Daily goal values (student only) — fetched from profiles
+  const [reviewGoal, setReviewGoal]           = useState(null);
+  const [studyGoalMinutes, setStudyGoalMinutes] = useState(null);
+  // Today's review count — computed in fetchPersonalStats, used by GoalProgressWidget
+  const [todayReviews, setTodayReviews]       = useState(0);
+
   // Onboarding modal state
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -195,10 +203,10 @@ export default function Dashboard() {
       }
       setAuthUserId(authUser.id);
 
-      // Fetch profile for name, course level, institution, onboarding flag, and role
+      // Fetch profile for name, course level, institution, onboarding flag, role, and goal columns
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, course_level, institution, has_seen_onboarding, role')
+        .select('full_name, course_level, institution, has_seen_onboarding, role, daily_review_goal, daily_study_goal_minutes')
         .eq('id', authUser.id)
         .single();
 
@@ -206,6 +214,8 @@ export default function Dashboard() {
         setUserName(profile.full_name || '');
         setUserRole(profile.role || 'student');
         setUserCourseLevel(profile.course_level || '');
+        setReviewGoal(profile.daily_review_goal ?? null);
+        setStudyGoalMinutes(profile.daily_study_goal_minutes ?? null);
 
         const isAdminRole = ['admin', 'super_admin'].includes(profile.role);
 
@@ -321,6 +331,13 @@ export default function Dashboard() {
       // Only count reviews with quality > 0 for weekly stats (skip/suspend create quality=0 records)
       const weeklyReviews = activeReviews.filter(r => new Date(r.created_at) >= sevenDaysAgo && r.quality > 0);
       setCardsReviewedThisWeek(weeklyReviews.length);
+
+      // Today's reviews — used by GoalProgressWidget (same data, no extra fetch)
+      const todayStr = formatLocalDate(new Date());
+      const todayRevCount = activeReviews.filter(
+        r => r.quality > 0 && formatLocalDate(r.created_at) === todayStr
+      ).length;
+      setTodayReviews(todayRevCount);
 
       // Calculate streak (only count actual reviews, not skip/suspend actions)
       const actualReviews = activeReviews.filter(r => r.quality > 0);
@@ -1264,6 +1281,20 @@ export default function Dashboard() {
                 </div>
               )}
 
+              {/* ===== DAILY GOAL ===== */}
+              {!isNewUser && (
+                <GoalProgressWidget
+                  reviewGoal={reviewGoal}
+                  studyGoalMinutes={studyGoalMinutes}
+                  todayReviews={todayReviews}
+                  todaySeconds={studyTimeStats.today_seconds}
+                  onGoalUpdated={(rg, sg) => {
+                    setReviewGoal(rg);
+                    setStudyGoalMinutes(sg);
+                  }}
+                />
+              )}
+
               {/* ===== ANONYMOUS CLASS STATS ===== */}
               {!isNewUser && (
                 <AnonymousStats
@@ -1275,6 +1306,11 @@ export default function Dashboard() {
                   hasUserActivity={hasUserActivity}
                   courseLevel={userCourseLevel}
                 />
+              )}
+
+              {/* ===== LEADERBOARD ===== */}
+              {!isNewUser && (
+                <LeaderboardWidget courseLevel={userCourseLevel} />
               )}
 
               {/* ===== RECENT ACTIVITY FEED ===== */}
