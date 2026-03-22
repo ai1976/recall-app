@@ -862,6 +862,45 @@ export const HELP_TABS = [
         ],
       },
       {
+        id: 'prof-batch-performance',
+        title: 'Batch Performance View',
+        icon: 'BarChart3',
+        roles: ['professor'],
+        content: [
+          {
+            type: 'paragraph',
+            text: 'Each batch group has a Batch Performance view — a private table showing this week\'s study activity for every student in that group. It is only visible to professors, admins, and super admins. Students cannot see it, and they cannot see batch groups in their Groups list at all. This is intentional: keeping the classroom social dynamic comfortable means students study for themselves, not to avoid appearing at the bottom of a leaderboard.',
+          },
+          {
+            type: 'steps',
+            items: [
+              'Go to Study Groups in the navigation bar.',
+              'Batch groups appear in your groups list with an "Official" badge. Click one.',
+              'The Batch Performance table loads automatically — you do not need to click anything extra.',
+              'Click any column header to sort. Click again to reverse the sort direction.',
+            ],
+          },
+          {
+            type: 'list',
+            items: [
+              'Name — The student\'s full name.',
+              'Reviews This Week — Total flashcard reviews completed since Monday (server time). The primary measure of active study.',
+              'Streak — Current consecutive-day review streak shown as e.g. "7d". A dash (—) means no active streak.',
+              'Study Time This Week — Total time logged via the Study Timer since Monday. Shown as e.g. "1h 23m", "45m", or "< 1m".',
+              'Last Active — When the student last completed a flashcard review. Shows "Today", "2 days ago", or a date for older activity.',
+            ],
+          },
+          {
+            type: 'tip',
+            text: 'Last Active reflects the last flashcard review only — it does not update when a student logs offline study time using the manual timer. Study Time This Week does include manual timer sessions, so a student can have Study Time with no Last Active date if they have only used the manual timer and not reviewed any cards.',
+          },
+          {
+            type: 'tip',
+            text: 'Batch groups are created by admins — you cannot create them yourself. If your batch group is missing or has the wrong students, contact your admin.',
+          },
+        ],
+      },
+      {
         id: 'prof-needs-attention',
         title: 'Responding to Content Flags (Needs Attention)',
         icon: 'AlertTriangle',

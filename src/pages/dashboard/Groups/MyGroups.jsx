@@ -41,22 +41,38 @@ export default function MyGroups() {
 
   const fetchGroups = async () => {
     try {
-      const [userGroupsRes, batchGroupsRes] = await Promise.all([
-        supabase.rpc('get_user_groups'),
-        supabase.rpc('get_my_batch_groups'),
-      ]);
+      // Fetch role to decide batch group visibility at the query level
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
 
-      if (userGroupsRes.error) throw userGroupsRes.error;
+      const isStudent = !profile?.role || profile.role === 'student';
 
-      // Merge batch groups, deduplicating by ID
-      // (students who are members of a batch group get it from get_user_groups already)
-      const merged = [...(userGroupsRes.data ?? [])];
-      const existingIds = new Set(merged.map(g => g.id));
-      (batchGroupsRes.data ?? []).forEach(g => {
-        if (!existingIds.has(g.id)) merged.push(g);
-      });
+      if (isStudent) {
+        // Students: exclude batch groups server-side — they never hit the network
+        const { data, error } = await supabase
+          .rpc('get_user_groups')
+          .eq('is_batch_group', false);
+        if (error) throw error;
+        setGroups(data ?? []);
+      } else {
+        // Professors/admins: show all groups including batch groups
+        const [userGroupsRes, batchGroupsRes] = await Promise.all([
+          supabase.rpc('get_user_groups'),
+          supabase.rpc('get_my_batch_groups'),
+        ]);
+        if (userGroupsRes.error) throw userGroupsRes.error;
 
-      setGroups(merged);
+        // Merge batch groups, deduplicating by ID
+        const merged = [...(userGroupsRes.data ?? [])];
+        const existingIds = new Set(merged.map(g => g.id));
+        (batchGroupsRes.data ?? []).forEach(g => {
+          if (!existingIds.has(g.id)) merged.push(g);
+        });
+        setGroups(merged);
+      }
     } catch (error) {
       console.error('Error fetching groups:', error);
       toast({

@@ -31,6 +31,10 @@ import {
   Clock,
   Link2,
   MessageCircle,
+  Shield,
+  ChevronUp,
+  ChevronDown,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function GroupDetail() {
@@ -67,21 +71,51 @@ export default function GroupDetail() {
   // Cancel invite loading
   const [cancellingInviteId, setCancellingInviteId] = useState(null);
 
+  // Viewer role — fetched in parallel with group data
+  const [role, setRole] = useState('');
+
+  // Batch Performance state
+  const [batchStats, setBatchStats] = useState([]);
+  const [batchStatsLoading, setBatchStatsLoading] = useState(false);
+  const [batchStatsError, setBatchStatsError] = useState(false);
+  const [sortField, setSortField] = useState('reviews_this_week');
+  const [sortDir, setSortDir] = useState('desc');
+
   useEffect(() => {
     fetchGroupData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
 
-  const fetchGroupData = async () => {
-    setLoading(true);
+  const fetchBatchStats = async () => {
+    setBatchStatsLoading(true);
+    setBatchStatsError(false);
     try {
-      // Single SECURITY DEFINER RPC — bypasses RLS entirely, avoids
-      // the infinite-recursion / "failed to load group" problem that
-      // occurred when doing a direct study_groups SELECT through RLS.
-      const { data, error } = await supabase.rpc('get_group_detail', {
+      const { data, error } = await supabase.rpc('get_batch_group_member_stats', {
         p_group_id: groupId,
       });
       if (error) throw error;
+      setBatchStats(data || []);
+    } catch (error) {
+      console.error('Error fetching batch stats:', error);
+      setBatchStatsError(true);
+    } finally {
+      setBatchStatsLoading(false);
+    }
+  };
+
+  const fetchGroupData = async () => {
+    setLoading(true);
+    try {
+      // Fetch group detail and viewer role in parallel
+      const [groupResult, profileResult] = await Promise.all([
+        supabase.rpc('get_group_detail', { p_group_id: groupId }),
+        supabase.from('profiles').select('role').eq('id', user.id).single(),
+      ]);
+      if (groupResult.error) throw groupResult.error;
+
+      const { data } = groupResult;
+      const viewerRole = profileResult.data?.role || 'student';
+      setRole(viewerRole);
 
       // Group info
       setGroup(data.group);
@@ -106,6 +140,11 @@ export default function GroupDetail() {
 
       // Shared content
       setSharedContent(data.shared_content || { notes: [], decks: [] });
+
+      // If this is a batch group and the viewer is professor/admin, load stats
+      if (data.group?.is_batch_group && ['professor', 'admin', 'super_admin'].includes(viewerRole)) {
+        fetchBatchStats();
+      }
     } catch (error) {
       console.error('Error fetching group data:', error);
       toast({
@@ -116,6 +155,36 @@ export default function GroupDetail() {
       navigate('/dashboard/groups');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Batch Performance helpers
+  const formatStudyTime = (seconds) => {
+    if (!seconds || seconds < 60) return '< 1m';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h === 0) return `${m}m`;
+    return `${h}h ${m}m`;
+  };
+
+  const formatLastActive = (dateStr) => {
+    if (!dateStr) return '—';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const date = new Date(dateStr);
+    date.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((today - date) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Today';
+    if (diffDays <= 6) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('desc');
     }
   };
 
@@ -343,6 +412,136 @@ export default function GroupDetail() {
   }
 
   if (!group) return null;
+
+  // Safety guard: student navigating directly to a batch group URL
+  if (group.is_batch_group && role === 'student') {
+    navigate('/dashboard/groups');
+    return null;
+  }
+
+  // Batch Performance view for professors/admins
+  if (group.is_batch_group && ['professor', 'admin', 'super_admin'].includes(role)) {
+    const SortHeader = ({ field, label }) => (
+      <th
+        className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-900 select-none whitespace-nowrap"
+        onClick={() => handleSort(field)}
+      >
+        <span className="flex items-center gap-1">
+          {label}
+          {sortField === field ? (
+            sortDir === 'asc'
+              ? <ChevronUp className="h-3 w-3" />
+              : <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronUp className="h-3 w-3 text-gray-300" />
+          )}
+        </span>
+      </th>
+    );
+
+    const sortedStats = [...batchStats].sort((a, b) => {
+      if (sortField === 'full_name') {
+        const aVal = a.full_name || '';
+        const bVal = b.full_name || '';
+        return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      if (sortField === 'last_active_date') {
+        if (!a.last_active_date && !b.last_active_date) return 0;
+        if (!a.last_active_date) return sortDir === 'asc' ? -1 : 1;
+        if (!b.last_active_date) return sortDir === 'asc' ? 1 : -1;
+        const diff = new Date(a.last_active_date) - new Date(b.last_active_date);
+        return sortDir === 'asc' ? diff : -diff;
+      }
+      const aVal = Number(a[sortField] ?? 0);
+      const bVal = Number(b[sortField] ?? 0);
+      return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+
+    return (
+      <PageContainer width="full">
+        <Button variant="ghost" onClick={() => navigate('/dashboard/groups')} className="mb-6">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Groups
+        </Button>
+
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
+            <span className="flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+              <Shield className="h-3.5 w-3.5" />
+              Batch Performance
+            </span>
+          </div>
+          <p className="text-gray-600">
+            {members.length} {members.length === 1 ? 'student' : 'students'}
+          </p>
+        </div>
+
+        {/* Stats Table */}
+        <Card>
+          <CardContent className="p-0">
+            {batchStatsLoading ? (
+              <div className="p-6 space-y-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="flex gap-4 animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded w-40" />
+                    <div className="h-4 bg-gray-200 rounded w-24" />
+                    <div className="h-4 bg-gray-200 rounded w-16" />
+                    <div className="h-4 bg-gray-200 rounded w-28" />
+                    <div className="h-4 bg-gray-200 rounded w-20" />
+                  </div>
+                ))}
+              </div>
+            ) : batchStatsError ? (
+              <div className="py-16 text-center">
+                <p className="text-gray-600 mb-4">Could not load batch stats</p>
+                <Button variant="outline" onClick={fetchBatchStats}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+              </div>
+            ) : batchStats.length === 0 ? (
+              <div className="py-16 text-center">
+                <p className="text-gray-500">No activity recorded yet for this batch</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <SortHeader field="full_name" label="Name" />
+                      <SortHeader field="reviews_this_week" label="Reviews This Week" />
+                      <SortHeader field="streak_days" label="Streak" />
+                      <SortHeader field="study_time_this_week_seconds" label="Study Time This Week" />
+                      <SortHeader field="last_active_date" label="Last Active" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedStats.map((row) => (
+                      <tr key={row.user_id} className="border-b last:border-0 hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium text-gray-900">{row.full_name || '—'}</td>
+                        <td className="px-4 py-3 text-gray-700">{Number(row.reviews_this_week)}</td>
+                        <td className="px-4 py-3 text-gray-700">
+                          {Number(row.streak_days) > 0 ? `${row.streak_days}d` : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">
+                          {formatStudyTime(Number(row.study_time_this_week_seconds))}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">
+                          {formatLastActive(row.last_active_date)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </PageContainer>
+    );
+  }
 
   // Determine which shared content IDs already exist to avoid duplicate share buttons
   const sharedNoteIds = new Set(sharedContent.notes.map(n => n.id));

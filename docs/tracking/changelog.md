@@ -1,6 +1,22 @@
 # Changelog
 
 ---
+## [2026-03-22] feat: Sprint 3.2 — Batch Group as Professor Tool
+
+### Added
+- **Supabase** — `get_batch_group_member_stats(p_group_id uuid)` SECURITY DEFINER RPC: returns `user_id`, `full_name`, `reviews_this_week`, `streak_days` (via `get_user_streak`), `study_time_this_week_seconds`, `last_active_date` per active student member. Two security gates: caller role check, batch group check. Week: `date_trunc('week', CURRENT_DATE)`. Zero-activity values coalesced to 0.
+- **`src/pages/dashboard/Groups/GroupDetail.jsx`** — Batch Performance view for professors/admins on batch groups: sortable table (Name, Reviews This Week, Streak, Study Time, Last Active), loading skeleton, error + retry, empty state. Student safety redirect. `fetchBatchStats` function. `formatStudyTime`, `formatLastActive`, `handleSort`, `SortHeader` helpers. New imports: `Shield`, `ChevronUp`, `ChevronDown`, `RefreshCw`.
+- **`src/data/helpContent.js`** — `prof-batch-performance` section in For Professors tab: navigation steps, column explanations, Last Active caveat, batch group creation note.
+
+### Changed
+- **`src/pages/dashboard/Groups/MyGroups.jsx`** — Students: batch groups excluded at query level via `.rpc('get_user_groups').eq('is_batch_group', false)` + `get_my_batch_groups` skipped. Role fetched from profiles in `fetchGroups`. Professors/admins unchanged.
+- **`src/components/dashboard/AnonymousStats.jsx`** — Added `courseLevel` prop. "Class Average" bar label now reads `"vs all Recall students studying [course_level]"` or `"vs all Recall students"` when null.
+- **`src/pages/Dashboard.jsx`** — Added `userCourseLevel` state from `profile.course_level`. Passed to `<AnonymousStats>` as `courseLevel`.
+
+### Files Changed
+`src/pages/dashboard/Groups/MyGroups.jsx`, `src/pages/dashboard/Groups/GroupDetail.jsx`, `src/components/dashboard/AnonymousStats.jsx`, `src/pages/Dashboard.jsx`, `src/data/helpContent.js`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`
+
+---
 ## [2026-03-22] feat: Sprint 3.1 — Study Timer
 
 ### Added

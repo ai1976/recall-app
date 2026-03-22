@@ -128,6 +128,7 @@ export default function Dashboard() {
   const [isNewUser, setIsNewUser] = useState(false);
   const [hasUserActivity, setHasUserActivity] = useState(false);
   const [userRole, setUserRole] = useState('');
+  const [userCourseLevel, setUserCourseLevel] = useState('');
   const [needsAttentionItems, setNeedsAttentionItems] = useState([]);
   const [needsReviewCount, setNeedsReviewCount] = useState(0);
   const [myReports, setMyReports] = useState([]);
@@ -204,6 +205,7 @@ export default function Dashboard() {
       if (profile) {
         setUserName(profile.full_name || '');
         setUserRole(profile.role || 'student');
+        setUserCourseLevel(profile.course_level || '');
 
         const isAdminRole = ['admin', 'super_admin'].includes(profile.role);
 
@@ -1271,6 +1273,7 @@ export default function Dashboard() {
                   studentsWithStreak={classStats.studentsWithStreak}
                   showComparison={classStats.minUsersMet}
                   hasUserActivity={hasUserActivity}
+                  courseLevel={userCourseLevel}
                 />
               )}
 

@@ -1,11 +1,22 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-22 (Sprint 3.1)
-**Current Phase:** Sprint 3.1 complete — Study Timer
+**Last Updated:** 2026-03-22 (Sprint 3.2)
+**Current Phase:** Sprint 3.2 complete — Batch Group as Professor Tool
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 3.2 — Batch Group as Professor Tool (Mar 22, 2026)
+
+- **SQL:** `get_batch_group_member_stats(p_group_id uuid)` SECURITY DEFINER RPC deployed. Returns one row per active student member: `user_id`, `full_name`, `reviews_this_week`, `streak_days` (via `get_user_streak`), `study_time_this_week_seconds` (from `study_sessions`), `last_active_date` (MAX review `created_at`). Two security checks inside: caller must be professor/admin/super_admin; group must have `is_batch_group = true`. Week boundary: `date_trunc('week', CURRENT_DATE)` (Monday start, server UTC). All zero-activity fields return `0` via COALESCE.
+- **MyGroups.jsx:** Students now see zero batch groups — server-side filter via `.rpc('get_user_groups').eq('is_batch_group', false)` means batch group data never hits the network for students. `get_my_batch_groups` is skipped entirely for students. Role fetched from profiles at the start of `fetchGroups`. Professors/admins unchanged.
+- **GroupDetail.jsx:** Added `role` state (fetched in parallel with `get_group_detail`). Added `fetchBatchStats` calling `get_batch_group_member_stats`. When `group.is_batch_group && role === 'student'`: redirects to `/dashboard/groups` (safety guard). When `group.is_batch_group && role is professor/admin/super_admin`: renders Batch Performance view — group name + "Batch Performance" badge + member count header; sortable table (click header to toggle asc/desc) with columns: Name, Reviews This Week, Streak (`Xd` / `—`), Study Time This Week (`< 1m` / `45m` / `1h 23m`), Last Active (`Today` / `X days ago` / date). Loading skeleton, error state with Retry, empty state. Added `formatStudyTime` (matching Sprint 3.1), `formatLastActive`, `handleSort`, `SortHeader` inner component. New lucide imports: `Shield`, `ChevronUp`, `ChevronDown`, `RefreshCw`.
+- **AnonymousStats.jsx:** Added `courseLevel` prop. "Class Average" progress bar label now reads `"vs all Recall students studying [course_level]"` when course_level is known, or `"vs all Recall students"` when null/empty.
+- **Dashboard.jsx:** Added `userCourseLevel` state. Set from `profile.course_level` in `fetchDashboardData`. Passed as `courseLevel={userCourseLevel}` to `<AnonymousStats>`.
+- **helpContent.js:** New `prof-batch-performance` section added to For Professors tab (between `prof-batch-groups` and `prof-needs-attention`). Explains: what the view is, why students don't see it, how to navigate to it, column explanations, Last Active caveat (reflects review only, not manual timer), batch group creation note (admin only).
+
+Files Changed: `src/pages/dashboard/Groups/MyGroups.jsx`, `src/pages/dashboard/Groups/GroupDetail.jsx`, `src/components/dashboard/AnonymousStats.jsx`, `src/pages/Dashboard.jsx`, `src/data/helpContent.js`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`
 
 ### Sprint 3.1 — Study Timer (Mar 22, 2026)
 

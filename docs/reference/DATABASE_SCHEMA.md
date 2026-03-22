@@ -27,7 +27,7 @@
 
 ### Quick Stats
 - **Total Tables:** 23 ⭐ (was 22, added study_sessions — Sprint 3.1)
-- **Custom Functions:** 6 ⭐ (was 5, added get_study_time_stats — Sprint 3.1)
+- **Custom Functions:** 7 ⭐ (was 6, added get_batch_group_member_stats — Sprint 3.2)
 - **RLS Policies:** 26 ⭐ (was 24, added 2 for study_sessions — Sprint 3.1)
 - **Indexes:** 54+ ⭐ (was 53+, added idx_study_sessions_user_date — Sprint 3.1)
 - **Triggers:** 0 (currently)
@@ -814,6 +814,33 @@ Stores completed study sessions only. Incomplete/abandoned sessions are held in 
 **Design decision — no incomplete rows:** The single INSERT pattern means the DB stores only sessions that actually completed. Abandoned sessions are recovered client-side via localStorage on next app load (< 4h recovery prompt, ≥ 4h silent discard).
 
 **Design decision — local date:** `session_date` is the user's local date (`new Date().toLocaleDateString('en-CA')`), not UTC. This is critical for users in UTC+5:30 and later — after 6:30 PM UTC the DB's `CURRENT_DATE` would already be "tomorrow".
+
+---
+
+## get_batch_group_member_stats (Sprint 3.2)
+
+```sql
+get_batch_group_member_stats(p_group_id uuid)
+RETURNS TABLE (
+  user_id                      uuid,
+  full_name                    text,
+  reviews_this_week            bigint,
+  streak_days                  integer,
+  study_time_this_week_seconds bigint,
+  last_active_date             date
+)
+SECURITY DEFINER
+```
+
+- **Security gate 1:** Caller's `role` in `profiles` must be `professor`, `admin`, or `super_admin` — otherwise raises exception `'Access denied'`
+- **Security gate 2:** `p_group_id` must resolve to a `study_groups` row with `is_batch_group = true` — otherwise raises `'Not a batch group'`
+- `reviews_this_week` — COUNT of reviews rows where `created_at >= date_trunc('week', CURRENT_DATE)`
+- `streak_days` — result of `get_user_streak(user_id)` (existing function)
+- `study_time_this_week_seconds` — SUM of `duration_seconds` from `study_sessions` where `session_date >= date_trunc('week', CURRENT_DATE)::date`
+- `last_active_date` — `MAX(created_at)::date` from reviews for that user
+- All aggregates use `COALESCE(..., 0)` — students with zero activity return `0`, not NULL
+- Week boundary: `date_trunc('week', CURRENT_DATE)` (Monday start, server UTC — acceptable for aggregated batch data)
+- Filters `study_group_members` on `group_id = p_group_id AND status = 'active'`
 
 ---
 

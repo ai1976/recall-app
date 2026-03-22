@@ -19,7 +19,8 @@ export default function AnonymousStats({
   studentsStudiedToday = 0,
   studentsWithStreak = 0,
   showComparison = false,
-  hasUserActivity = false
+  hasUserActivity = false,
+  courseLevel = null,
 }) {
   // Calculate comparison metrics
   const maxValue = Math.max(userReviewsThisWeek, classAverage, 1);
@@ -118,7 +119,11 @@ export default function AnonymousStats({
                 {/* Class average progress */}
                 <div>
                   <div className="flex justify-between text-xs sm:text-sm mb-1">
-                    <span className="font-medium text-muted-foreground">Class Average</span>
+                    <span className="font-medium text-muted-foreground">
+                      {courseLevel
+                        ? `vs all Recall students studying ${courseLevel}`
+                        : 'vs all Recall students'}
+                    </span>
                     <span className="text-muted-foreground">{classAverage} reviews</span>
                   </div>
                   <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
