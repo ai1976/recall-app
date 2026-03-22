@@ -559,7 +559,7 @@ export const HELP_TABS = [
           },
           {
             type: 'paragraph',
-            text: 'Each person you follow shows three live stats for the current week: streak (consecutive study days), reviews this week, and study time this week.',
+            text: 'For students you follow, each card shows three live stats for the current week: streak (consecutive study days), reviews this week, and study time this week. For professors and admins, stats are not shown \u2014 visit their profile to explore their notes and flashcards instead.',
           },
           {
             type: 'paragraph',

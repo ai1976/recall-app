@@ -154,28 +154,34 @@ export default function Following() {
                   </Button>
                 </div>
 
-                {/* Stats Row */}
-                <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-600 border-t pt-3">
-                  <span className="flex items-center gap-1">
-                    <Flame className="h-3.5 w-3.5 text-orange-400" />
-                    <span className="font-medium">
-                      {person.streak_days > 0 ? `${person.streak_days}d` : '—'}
+                {/* Stats Row — students only; professors/admins don't use review metrics */}
+                {person.role === 'student' || !person.role ? (
+                  <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-600 border-t pt-3">
+                    <span className="flex items-center gap-1">
+                      <Flame className="h-3.5 w-3.5 text-orange-400" />
+                      <span className="font-medium">
+                        {person.streak_days > 0 ? `${person.streak_days}d` : '—'}
+                      </span>
+                      <span className="text-gray-400">streak</span>
                     </span>
-                    <span className="text-gray-400">streak</span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <BookOpen className="h-3.5 w-3.5 text-blue-400" />
-                    <span className="font-medium">{Number(person.reviews_this_week)}</span>
-                    <span className="text-gray-400">reviews this week</span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5 text-green-400" />
-                    <span className="font-medium">
-                      {formatStudyTime(Number(person.study_time_this_week_seconds))}
+                    <span className="flex items-center gap-1">
+                      <BookOpen className="h-3.5 w-3.5 text-blue-400" />
+                      <span className="font-medium">{Number(person.reviews_this_week)}</span>
+                      <span className="text-gray-400">reviews this week</span>
                     </span>
-                    <span className="text-gray-400">study time</span>
-                  </span>
-                </div>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5 text-green-400" />
+                      <span className="font-medium">
+                        {formatStudyTime(Number(person.study_time_this_week_seconds))}
+                      </span>
+                      <span className="text-gray-400">study time</span>
+                    </span>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-gray-400 border-t pt-3">
+                    Visit their profile to explore notes and flashcards.
+                  </p>
+                )}
               </CardHeader>
             </Card>
           ))

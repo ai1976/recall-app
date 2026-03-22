@@ -1,6 +1,16 @@
 # Changelog
 
 ---
+## [2026-03-22] fix: Hide study stats for professors/admins on Following page
+
+### Changed
+- **`src/pages/dashboard/Friends/Following.jsx`** — Stats row (streak / reviews / study time) now renders only for `role === 'student'`. For professors and admins, replaced with "Visit their profile to explore notes and flashcards." — avoids the misleading impression that they are inactive.
+- **`src/data/helpContent.js`** — follow-system section updated to document the student-only stats behaviour.
+
+### Files Changed
+`src/pages/dashboard/Friends/Following.jsx`, `src/data/helpContent.js`
+
+---
 ## [2026-03-22] feat: Follow system discoverability + label cleanup
 
 ### Changed
