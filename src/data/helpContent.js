@@ -458,15 +458,14 @@ export const HELP_TABS = [
             type: 'steps',
             items: [
               'Click the Friends icon in the navigation bar (or the people icon on mobile).',
-              'Go to "Find Friends" to browse other Recall users.',
+              'Go to "Find Friends" to browse other Recall users on your course.',
               'Use the search bar to find specific people by name.',
-              'Filter by course level to find classmates in your program.',
               'Click "Add Friend" to send a friend request.',
             ],
           },
           {
             type: 'paragraph',
-            text: 'Each user\'s profile card in Find Friends shows their public achievement badges, making it easy to identify active and experienced study partners.',
+            text: 'Find Friends automatically shows only users on your course level — cross-institute connections are fine, but cross-course discovery is not supported. Each profile card shows public achievement badges to help you identify active study partners.',
           },
         ],
       },
@@ -491,6 +490,29 @@ export const HELP_TABS = [
           {
             type: 'paragraph',
             text: 'You can also manage friend requests from the Friends dropdown in the navigation bar, which shows a count of pending requests.',
+          },
+        ],
+      },
+      {
+        id: 'friend-stats',
+        title: 'Friend Stats',
+        icon: 'BarChart2',
+        content: [
+          {
+            type: 'paragraph',
+            text: 'Once a friend request is accepted, each friend card in My Friends shows three live stats for the current week:',
+          },
+          {
+            type: 'list',
+            items: [
+              'Streak \u2014 Consecutive study days. Shown as \u201c7d\u201d; displayed as \u201c\u2014\u201d if the streak is zero.',
+              'Reviews this week \u2014 Total flashcard reviews completed since Monday.',
+              'Study time \u2014 Total time logged in the study timer this week, formatted as \u201c1h 23m\u201d, \u201c45m\u201d, or \u201c< 1m\u201d.',
+            ],
+          },
+          {
+            type: 'paragraph',
+            text: 'Stats only appear for confirmed friends \u2014 pending requests do not show activity. All stats reset at the start of each week (Monday).',
           },
         ],
       },

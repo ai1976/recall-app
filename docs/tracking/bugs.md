@@ -2,6 +2,18 @@
 
 ## Resolved Bugs
 
+### [Mar 22, 2026] FindFriends — Raw email exposed in network payload (client-side masking only)
+- **Symptom:** `FindFriends.jsx` queried `profiles` with `email` in the select. `maskEmail()` hid the address in the UI but any user with DevTools could read the full email of every user on the platform in the network response.
+- **Root Cause:** No server-side filtering. The function `maskEmail()` was purely cosmetic. The comment at line 14 acknowledged this explicitly: "NOTE: Email masking is cosmetic only. Full email is present in data payload."
+- **Fix:** Replaced direct `.from('profiles')` query with `.rpc('get_discoverable_users')` SECURITY DEFINER function. Masking now happens inside PostgreSQL — `left(email, 1) || '***@' || domain`. Raw email never appears in the RPC response.
+- **Status:** ✅ RESOLVED
+
+### [Mar 22, 2026] FindFriends — No course-level filtering (all users shown to all users)
+- **Symptom:** `FindFriends.jsx` returned every user on the platform regardless of course. A CA Foundation student saw CA Final, CMA, and all other users.
+- **Root Cause:** The direct `profiles` query had no `course_level` filter. There was a stale help section entry ("Filter by course level") but no such client-side filter existed in the code.
+- **Fix:** `get_discoverable_users()` RPC filters `WHERE p.course_level = v_course_level` server-side. Cross-institute same-course connections are still allowed (intentional product design).
+- **Status:** ✅ RESOLVED
+
 ### [Mar 20, 2026] AuthContext signUp — profile INSERT fails with 401 (no session during email-confirmation flow)
 - **Symptom:** New user signs up → email confirmed → logs in → intermittent missing profile rows; browser console showed 401 on `profiles` INSERT during signup.
 - **Root Cause:** `AuthContext.signUp()` called `supabase.from('profiles').insert(...)` client-side immediately after `supabase.auth.signUp()`. With email confirmation ON, `signUp()` returns a `user` object but **no session** — `auth.uid()` is null. RLS blocked the insert silently (returned a `profileError` but the code only logged a warning and continued). Users who signed up could sometimes land in a state with no profile row.

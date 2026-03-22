@@ -38,7 +38,7 @@ export default function FriendRequests() {
         
         const { data: profiles, error: profileError } = await supabase
           .from('profiles')
-          .select('id, full_name, email, course_level, role')
+          .select('id, full_name, course_level, role')
           .in('id', senderIds);
 
         if (profileError) throw profileError;
@@ -161,7 +161,7 @@ export default function FriendRequests() {
                   <div className="flex items-start gap-3">
                     {/* Avatar */}
                     <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-lg">
-                      {request.sender?.full_name?.charAt(0) || request.sender?.email?.charAt(0)}
+                      {request.sender?.full_name?.charAt(0) || '?'}
                     </div>
                     
                     {/* Info */}

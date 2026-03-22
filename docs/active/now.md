@@ -1,11 +1,23 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-22 (Sprint 3.2)
-**Current Phase:** Sprint 3.2 complete — Batch Group as Professor Tool
+**Last Updated:** 2026-03-22 (Sprint 3.3)
+**Current Phase:** Sprint 3.3 complete — Friend System Cleanup + Mutual Stats
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 3.3 — Friend System Cleanup + Mutual Stats (Mar 22, 2026)
+
+- **SQL:** `get_discoverable_users()` SECURITY DEFINER RPC — replaces direct `profiles` query in FindFriends. Filters to caller's `course_level`, excludes self + pending/accepted friends in both directions. Server-side email masking (first char + `***@` + domain). Returns: `user_id`, `full_name`, `masked_email`, `course_level`, `institution`, `role`.
+- **SQL:** `get_my_friends_with_stats()` SECURITY DEFINER RPC — replaces two-step N+1 fetch in MyFriends. Confirmed friends only. Returns: `friendship_id`, `user_id`, `full_name`, `masked_email`, `course_level`, `role`, `reviews_this_week` (COUNT from `reviews.created_at >= date_trunc('week', CURRENT_DATE)`), `streak_days` (via `get_user_streak`), `study_time_this_week_seconds` (SUM from `study_sessions.session_date >= week start`), `friends_since` (`updated_at`). All stats COALESCE to 0.
+- **FindFriends.jsx:** Removed `maskEmail` function, `friendships` state, `fetchFriendships`, and `getFriendshipStatus`. Replaced direct `.from('profiles')` query with `.rpc('get_discoverable_users')`. Uses `person.user_id` throughout. Action buttons simplified to single "Add Friend" (RPC already excludes pending/accepted). After sending, re-fetches and sender disappears from list automatically.
+- **MyFriends.jsx:** Replaced two-step fetch with `.rpc('get_my_friends_with_stats')`. Added `loadingFriends` state with 3-card skeleton. Added stats row per friend card: streak (`Xd` / `—`), reviews this week, study time (`< 1m` / `45m` / `1h 23m`). Stats separated by a border-top row with colored icons. Empty state updated: "No friends yet — find people studying [course_level] to connect with" (course_level fetched from profiles in parallel on mount). Unfriend button still functional via `friendship_id` from RPC.
+- **FriendRequests.jsx:** Audit — email was fetched but never rendered. Dropped `email` from profiles select. Avatar fallback changed from `email.charAt(0)` to `'?'`.
+- **helpContent.js:** Updated `finding-friends` steps (removed stale "Filter by course level" step, added note that filtering is automatic and server-side). Added new `friend-stats` section explaining streak, reviews this week, and study time display.
+- **Bugs closed:** FindFriends email exposure (raw email in network payload) + FindFriends no course filter (showed all users regardless of course).
+
+Files Changed: `src/pages/dashboard/Friends/FindFriends.jsx`, `src/pages/dashboard/Friends/MyFriends.jsx`, `src/pages/dashboard/Friends/FriendRequests.jsx`, `src/data/helpContent.js`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md`, `docs/reference/DATABASE_SCHEMA.md`
 
 ### Sprint 3.2 — Batch Group as Professor Tool (Mar 22, 2026)
 

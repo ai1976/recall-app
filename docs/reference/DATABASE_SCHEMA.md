@@ -27,7 +27,7 @@
 
 ### Quick Stats
 - **Total Tables:** 23 ⭐ (was 22, added study_sessions — Sprint 3.1)
-- **Custom Functions:** 7 ⭐ (was 6, added get_batch_group_member_stats — Sprint 3.2)
+- **Custom Functions:** 9 ⭐ (was 7, added get_discoverable_users + get_my_friends_with_stats — Sprint 3.3)
 - **RLS Policies:** 26 ⭐ (was 24, added 2 for study_sessions — Sprint 3.1)
 - **Indexes:** 54+ ⭐ (was 53+, added idx_study_sessions_user_date — Sprint 3.1)
 - **Triggers:** 0 (currently)
@@ -814,6 +814,54 @@ Stores completed study sessions only. Incomplete/abandoned sessions are held in 
 **Design decision — no incomplete rows:** The single INSERT pattern means the DB stores only sessions that actually completed. Abandoned sessions are recovered client-side via localStorage on next app load (< 4h recovery prompt, ≥ 4h silent discard).
 
 **Design decision — local date:** `session_date` is the user's local date (`new Date().toLocaleDateString('en-CA')`), not UTC. This is critical for users in UTC+5:30 and later — after 6:30 PM UTC the DB's `CURRENT_DATE` would already be "tomorrow".
+
+---
+
+## get_discoverable_users (Sprint 3.3)
+
+```sql
+get_discoverable_users()
+RETURNS TABLE (
+  user_id       uuid,
+  full_name     text,
+  masked_email  text,   -- first_char***@domain — raw email never returned
+  course_level  text,
+  institution   text,
+  role          text
+)
+SECURITY DEFINER
+```
+
+**Purpose:** Returns users the caller can send friend requests to.
+**Security:** Caller must be authenticated (`auth.uid()` not null). Bypasses RLS to read profiles but never returns raw email.
+**Filtering:** Same `course_level` as caller; excludes self; excludes any user with a `pending` or `accepted` friendship in either direction. Rejected friendships are not excluded (re-adding is allowed).
+**Caller:** `FindFriends.jsx` — replaces direct `profiles` table query.
+
+---
+
+## get_my_friends_with_stats (Sprint 3.3)
+
+```sql
+get_my_friends_with_stats()
+RETURNS TABLE (
+  friendship_id                uuid,
+  user_id                      uuid,
+  full_name                    text,
+  masked_email                 text,   -- first_char***@domain
+  course_level                 text,
+  role                         text,
+  reviews_this_week            bigint, -- COUNT from reviews.created_at >= date_trunc('week', CURRENT_DATE)
+  streak_days                  integer,-- from get_user_streak(user_id)
+  study_time_this_week_seconds bigint, -- SUM from study_sessions.session_date >= week start
+  friends_since                timestamp without time zone  -- friendships.updated_at (acceptance time)
+)
+SECURITY DEFINER
+```
+
+**Purpose:** Returns confirmed friends with weekly activity stats in one call.
+**Security:** Caller must be authenticated. Confirmed (`status = 'accepted'`) friendships only — no stat leakage for pending requests.
+**Stats:** All stat fields COALESCE to 0 for friends with no activity. Week boundary: `date_trunc('week', CURRENT_DATE)` (Monday, server UTC).
+**Caller:** `MyFriends.jsx` — replaces two-step N+1 fetch (friendships → profiles).
 
 ---
 

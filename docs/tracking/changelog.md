@@ -1,6 +1,22 @@
 # Changelog
 
 ---
+## [2026-03-22] feat: Sprint 3.3 — Friend System Cleanup + Mutual Stats
+
+### Added
+- **Supabase** — `get_discoverable_users()` SECURITY DEFINER RPC. Filters to caller's `course_level`; excludes self, pending requests (both directions), accepted friends. Server-side email masking: `first_char***@domain`. Returns `user_id`, `full_name`, `masked_email`, `course_level`, `institution`, `role`.
+- **Supabase** — `get_my_friends_with_stats()` SECURITY DEFINER RPC. Confirmed friends only, no N+1. Returns `friendship_id`, `user_id`, `full_name`, `masked_email`, `course_level`, `role`, `reviews_this_week`, `streak_days` (via `get_user_streak`), `study_time_this_week_seconds` (from `study_sessions`), `friends_since`. All stats COALESCE to 0.
+
+### Changed
+- **`src/pages/dashboard/Friends/FindFriends.jsx`** — Replaced direct `profiles` table query with `.rpc('get_discoverable_users')`. Removed `maskEmail`, `friendships` state, `fetchFriendships`, `getFriendshipStatus`. Action buttons simplified to single "Add Friend" (excluded users never appear). After send, list auto-refreshes via re-fetch.
+- **`src/pages/dashboard/Friends/MyFriends.jsx`** — Replaced two-step N+1 fetch with `.rpc('get_my_friends_with_stats')`. Added skeleton loading (3 cards). Added per-friend stats row: streak, reviews this week, study time. Updated empty state with course_level interpolation. Unfriend uses `friendship_id` from RPC.
+- **`src/pages/dashboard/Friends/FriendRequests.jsx`** — Dropped `email` from profiles select (was fetched but never rendered). Avatar fallback updated.
+- **`src/data/helpContent.js`** — `finding-friends` steps updated (server-side filtering noted, stale manual-filter step removed). New `friend-stats` section added explaining streak / reviews / study time display.
+
+### Files Changed
+`src/pages/dashboard/Friends/FindFriends.jsx`, `src/pages/dashboard/Friends/MyFriends.jsx`, `src/pages/dashboard/Friends/FriendRequests.jsx`, `src/data/helpContent.js`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md`, `docs/reference/DATABASE_SCHEMA.md`
+
+---
 ## [2026-03-22] feat: Sprint 3.2 — Batch Group as Professor Tool
 
 ### Added

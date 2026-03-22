@@ -5,21 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, UserPlus, Users, Clock } from 'lucide-react';
+import { Search, UserPlus, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import BadgeIcon from '@/components/badges/BadgeIcon';
 import PageContainer from '@/components/layout/PageContainer';
 import { notifyFriendEvent } from '@/lib/notifyEdge';
-
-// NOTE: Email masking is cosmetic only. Full email is present in data payload.
-// A future improvement would be to mask server-side via an RPC or database view.
-function maskEmail(email) {
-  if (!email) return '';
-  const [local, domain] = email.split('@');
-  if (!domain) return email;
-  const visible = local.slice(0, 2);
-  return `${visible}***@${domain}`;
-}
 
 export default function FindFriends() {
   const { user } = useAuth();
@@ -28,28 +18,19 @@ export default function FindFriends() {
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [friendships, setFriendships] = useState([]);
   const [userBadges, setUserBadges] = useState({});
 
   useEffect(() => {
     fetchUsers();
-    fetchFriendships();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, course_level, role, institution, created_at')
-        .neq('id', user.id)
-        .order('full_name');
-
+      const { data, error } = await supabase.rpc('get_discoverable_users');
       if (error) throw error;
       setUsers(data || []);
-
-      // Fetch public badges for all users
-      fetchUserBadges((data || []).map(u => u.id));
+      fetchUserBadges((data || []).map(u => u.user_id));
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -57,9 +38,7 @@ export default function FindFriends() {
 
   const fetchUserBadges = async (userIds) => {
     if (!userIds || userIds.length === 0) return;
-
     try {
-      // Fetch only PUBLIC badges (is_public = true)
       const { data, error } = await supabase
         .from('user_badges')
         .select(`
@@ -73,38 +52,18 @@ export default function FindFriends() {
           )
         `)
         .in('user_id', userIds)
-        .eq('is_public', true);  // Only fetch public badges
+        .eq('is_public', true);
 
       if (error) throw error;
 
-      // Group badges by user_id
       const badgesByUser = {};
       (data || []).forEach(item => {
-        if (!badgesByUser[item.user_id]) {
-          badgesByUser[item.user_id] = [];
-        }
-        if (item.badge_definitions) {
-          badgesByUser[item.user_id].push(item.badge_definitions);
-        }
+        if (!badgesByUser[item.user_id]) badgesByUser[item.user_id] = [];
+        if (item.badge_definitions) badgesByUser[item.user_id].push(item.badge_definitions);
       });
-
       setUserBadges(badgesByUser);
     } catch (error) {
       console.error('Error fetching user badges:', error);
-    }
-  };
-
-  const fetchFriendships = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('friendships')
-        .select('*')
-        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
-
-      if (error) throw error;
-      setFriendships(data || []);
-    } catch (error) {
-      console.error('Error fetching friendships:', error);
     }
   };
 
@@ -127,10 +86,8 @@ export default function FindFriends() {
         description: "Your friend request has been sent.",
       });
 
-      // Fire-and-forget push notification to the recipient
       notifyFriendEvent({ event_type: 'friend_request', actor_id: user.id, target_user_id: friendId });
-
-      fetchFriendships();
+      fetchUsers();
     } catch (error) {
       console.error('Error sending friend request:', error);
       toast({
@@ -143,20 +100,6 @@ export default function FindFriends() {
     }
   };
 
-  const getFriendshipStatus = (userId) => {
-    const friendship = friendships.find(
-      f => (f.user_id === user.id && f.friend_id === userId) ||
-           (f.friend_id === user.id && f.user_id === userId)
-    );
-
-    if (!friendship) return null;
-
-    if (friendship.user_id === user.id) {
-      return { status: friendship.status, type: 'sent' };
-    }
-    return { status: friendship.status, type: 'received' };
-  };
-
   const filteredUsers = users.filter(u =>
     u.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -166,7 +109,7 @@ export default function FindFriends() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Find Friends</h1>
         <p className="text-gray-600">
-          Connect with your classmates to share study materials
+          Connect with classmates studying the same course
         </p>
       </div>
 
@@ -198,13 +141,10 @@ export default function FindFriends() {
           </Card>
         ) : (
           filteredUsers.map((person) => {
-            const friendStatus = getFriendshipStatus(person.id);
-            const canAddFriend = !friendStatus || friendStatus.status === 'rejected';
-            const personBadges = userBadges[person.id] || [];
-            const joinedYear = person.created_at ? new Date(person.created_at).getFullYear() : null;
+            const personBadges = userBadges[person.user_id] || [];
 
             return (
-              <Card key={person.id}>
+              <Card key={person.user_id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
@@ -217,7 +157,7 @@ export default function FindFriends() {
                       <div>
                         <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
                           <Link
-                            to={`/dashboard/profile/${person.id}`}
+                            to={`/dashboard/profile/${person.user_id}`}
                             className="hover:text-blue-600 transition-colors"
                           >
                             {person.full_name || 'Unknown'}
@@ -227,7 +167,6 @@ export default function FindFriends() {
                               👨‍🏫 Professor
                             </span>
                           )}
-                          {/* Badges */}
                           {personBadges.length > 0 && (
                             <div className="flex items-center gap-1 ml-1">
                               {personBadges.slice(0, 4).map((badge) => (
@@ -248,54 +187,26 @@ export default function FindFriends() {
                           )}
                         </CardTitle>
                         <CardDescription>
-                          {maskEmail(person.email)}
+                          {person.masked_email}
                           {person.course_level && (
                             <span className="ml-2">• {person.course_level}</span>
                           )}
                           {person.institution && (
                             <span className="ml-2">• {person.institution}</span>
                           )}
-                          {joinedYear && (
-                            <span className="ml-2">• Joined {joinedYear}</span>
-                          )}
                         </CardDescription>
                       </div>
                     </div>
 
                     {/* Action Button */}
-                    <div>
-                      {canAddFriend && (
-                        <Button
-                          onClick={() => sendFriendRequest(person.id)}
-                          disabled={loading}
-                          size="sm"
-                        >
-                          <UserPlus className="h-4 w-4 mr-2" />
-                          Add Friend
-                        </Button>
-                      )}
-
-                      {friendStatus?.status === 'pending' && friendStatus?.type === 'sent' && (
-                        <Button variant="outline" size="sm" disabled>
-                          <Clock className="h-4 w-4 mr-2" />
-                          Request Sent
-                        </Button>
-                      )}
-
-                      {friendStatus?.status === 'pending' && friendStatus?.type === 'received' && (
-                        <Button variant="outline" size="sm" disabled>
-                          <Clock className="h-4 w-4 mr-2" />
-                          Pending
-                        </Button>
-                      )}
-
-                      {friendStatus?.status === 'accepted' && (
-                        <Button variant="outline" size="sm" disabled>
-                          <Users className="h-4 w-4 mr-2" />
-                          Friends
-                        </Button>
-                      )}
-                    </div>
+                    <Button
+                      onClick={() => sendFriendRequest(person.user_id)}
+                      disabled={loading}
+                      size="sm"
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Add Friend
+                    </Button>
                   </div>
                 </CardHeader>
               </Card>
