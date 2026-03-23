@@ -1,6 +1,21 @@
 # Changelog
 
 ---
+## [2026-03-23] feat: Clickable upvote notifications + Professor Analytics charts
+
+### Added
+- **ProfessorAnalytics** — Quality Distribution donut chart (PieChart from recharts). Computed from subject-level average quality, bucketed into Easy (≥4) / Medium (3–4) / Hard (<3) / Not Reviewed. Placed in 2-column grid alongside Weekly New Students bar chart.
+
+### Changed
+- **ActivityDropdown** — Upvote notifications now route dynamically using `metadata.content_id` + `metadata.content_type`. Notes navigate to `/dashboard/notes/{id}`; flashcard deck upvotes fall back to `/dashboard/my-contributions`. Graceful fallback when metadata is absent.
+- **ProfessorAnalytics** — "Weakest Cards" renamed to "Challenging Cards" with explanatory note clarifying this reflects student recall difficulty, not content framing issues.
+- **ProfessorAnalytics** — Most Reviewed Cards panel now has descriptive subtitle ("high engagement, likely high importance").
+
+### Files Changed
+- `src/components/layout/ActivityDropdown.jsx`
+- `src/pages/dashboard/ProfessorAnalytics.jsx`
+
+---
 ## [2026-03-22] feat: Sprint 3.5 — Leaderboard + Goals
 
 ### Added

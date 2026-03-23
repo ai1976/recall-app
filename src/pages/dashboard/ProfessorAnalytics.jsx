@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
+  PieChart, Pie, Cell,
 } from 'recharts';
 import {
   BookOpen, Users, Star, TrendingUp, AlertTriangle,
@@ -25,6 +26,18 @@ function WeeklyTooltip({ active, payload, label }) {
       <p className="text-indigo-600 font-bold mt-0.5">
         {count} new student{count !== 1 ? 's' : ''}
       </p>
+    </div>
+  );
+}
+
+// ─── Recharts custom tooltip for quality pie ──────────────────────────────────
+function QualityPieTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const { name, value } = payload[0];
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 text-sm">
+      <p className="font-medium text-gray-700">{name}</p>
+      <p className="text-gray-500 mt-0.5">{value} card{value !== 1 ? 's' : ''}</p>
     </div>
   );
 }
@@ -143,6 +156,26 @@ export default function ProfessorAnalytics() {
 
   // ── Chart data (inject readable label) ─────────────────────────────────────
   const chartData = weeklyReach.map(w => ({ ...w, label: formatWeekLabel(w.week_start) }));
+
+  // ── Quality distribution (computed from subject-level averages) ─────────────
+  const qualityPieData = useMemo(() => {
+    if (!subjects.length) return [];
+    let easy = 0, medium = 0, hard = 0, unreviewed = 0;
+    subjects.forEach(s => {
+      const cards = Number(s.card_count) || 0;
+      if (!Number(s.total_reviews)) { unreviewed += cards; return; }
+      const q = Number(s.avg_quality);
+      if (q >= 4) easy += cards;
+      else if (q >= 3) medium += cards;
+      else hard += cards;
+    });
+    return [
+      { name: 'Easy (≥4.0)', value: easy,       color: '#22c55e' },
+      { name: 'Medium (3–4)', value: medium,     color: '#f59e0b' },
+      { name: 'Hard (<3.0)',  value: hard,        color: '#ef4444' },
+      { name: 'Not Reviewed', value: unreviewed,  color: '#d1d5db' },
+    ].filter(d => d.value > 0);
+  }, [subjects]);
 
   // ── Full-page spinner while role/course context resolves ────────────────────
   if (roleLoading || courseLoading) {
@@ -328,80 +361,58 @@ export default function ProfessorAnalytics() {
             )}
           </section>
 
-          {/* ── Weak cards + Top cards panels ─────────────────────────────── */}
+          {/* ── Quality distribution + Weekly reach ──────────────────────── */}
           {!noReviews && (
-            <>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                {/* Weak cards */}
-                <section>
-                  <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                    Weakest Cards
-                    <span className="ml-1.5 text-xs font-normal normal-case text-gray-400">
-                      (min 3 reviews to qualify)
-                    </span>
-                  </h2>
-                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                    {loading ? (
-                      <CardPanelSkeleton />
-                    ) : weakCards.length === 0 ? (
-                      <EmptyPanel message="No cards with 3+ reviews yet." />
-                    ) : (
-                      <div className="divide-y divide-gray-100">
-                        {weakCards.map((card, i) => (
-                          <CardPanelRow
-                            key={card.card_id}
-                            rank={i + 1}
-                            card={card}
-                            metric={<QualityBadge value={card.avg_quality} hasReviews />}
-                            metaSub={`${card.review_count} reviews`}
-                            onCopy={() => copyCardId(card.card_id)}
-                            rankColor="text-red-500"
-                          />
+              {/* Quality distribution donut */}
+              <section>
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                  Quality Distribution
+                  <span className="ml-1.5 text-xs font-normal normal-case text-gray-400">
+                    (by subject avg · Easy ≥4, Medium 3–4, Hard &lt;3)
+                  </span>
+                </h2>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  {loading ? (
+                    <div className="h-52 animate-pulse bg-gray-100 rounded" />
+                  ) : qualityPieData.length === 0 ? (
+                    <EmptyPanel message="No review data yet." />
+                  ) : (
+                    <>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={qualityPieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={55}
+                            outerRadius={85}
+                            paddingAngle={2}
+                            dataKey="value"
+                          >
+                            {qualityPieData.map((entry, index) => (
+                              <Cell key={index} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<QualityPieTooltip />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      {/* Legend */}
+                      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
+                        {qualityPieData.map(d => (
+                          <span key={d.name} className="flex items-center gap-1.5 text-xs text-gray-600">
+                            <span className="inline-block h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                            {d.name} ({d.value})
+                          </span>
                         ))}
                       </div>
-                    )}
-                  </div>
-                </section>
+                    </>
+                  )}
+                </div>
+              </section>
 
-                {/* Top cards */}
-                <section>
-                  <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                    Most Reviewed Cards
-                  </h2>
-                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                    {loading ? (
-                      <CardPanelSkeleton />
-                    ) : topCards.length === 0 ? (
-                      <EmptyPanel message="No reviews yet." />
-                    ) : (
-                      <div className="divide-y divide-gray-100">
-                        {topCards.map((card, i) => (
-                          <CardPanelRow
-                            key={card.card_id}
-                            rank={i + 1}
-                            card={card}
-                            metric={
-                              <span className="text-sm font-bold text-gray-800">
-                                {card.total_reviews}
-                              </span>
-                            }
-                            metaSub={
-                              card.avg_quality != null
-                                ? `Quality: ${Number(card.avg_quality).toFixed(1)}`
-                                : 'Quality: —'
-                            }
-                            onCopy={() => copyCardId(card.card_id)}
-                            rankColor="text-indigo-500"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </section>
-              </div>
-
-              {/* ── Weekly student reach chart ──────────────────────────── */}
+              {/* Weekly student reach chart */}
               <section>
                 <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
                   New Students per Week
@@ -409,9 +420,9 @@ export default function ProfessorAnalytics() {
                     (last 8 weeks — first-time reviewers only)
                   </span>
                 </h2>
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
                   {loading ? (
-                    <div className="h-48 animate-pulse bg-gray-100 rounded" />
+                    <div className="h-52 animate-pulse bg-gray-100 rounded" />
                   ) : (
                     <>
                       <ResponsiveContainer width="100%" height={200}>
@@ -454,7 +465,87 @@ export default function ProfessorAnalytics() {
                   )}
                 </div>
               </section>
-            </>
+            </div>
+          )}
+
+          {/* ── Challenging cards + Most Reviewed panels ──────────────────── */}
+          {!noReviews && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+              {/* Challenging cards */}
+              <section>
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                  Challenging Cards
+                  <span className="ml-1.5 text-xs font-normal normal-case text-gray-400">
+                    (min 3 reviews to qualify)
+                  </span>
+                </h2>
+                <p className="text-xs text-gray-400 mb-3">
+                  Students are finding these concepts harder to recall — not necessarily a content issue.
+                  Consider adding mnemonics or revisiting these in class.
+                </p>
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  {loading ? (
+                    <CardPanelSkeleton />
+                  ) : weakCards.length === 0 ? (
+                    <EmptyPanel message="No cards with 3+ reviews yet." />
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {weakCards.map((card, i) => (
+                        <CardPanelRow
+                          key={card.card_id}
+                          rank={i + 1}
+                          card={card}
+                          metric={<QualityBadge value={card.avg_quality} hasReviews />}
+                          metaSub={`${card.review_count} reviews`}
+                          onCopy={() => copyCardId(card.card_id)}
+                          rankColor="text-red-500"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Top cards */}
+              <section>
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                  Most Reviewed Cards
+                </h2>
+                <p className="text-xs text-gray-400 mb-3">
+                  Cards students are returning to most often — high engagement, likely high importance.
+                </p>
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  {loading ? (
+                    <CardPanelSkeleton />
+                  ) : topCards.length === 0 ? (
+                    <EmptyPanel message="No reviews yet." />
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {topCards.map((card, i) => (
+                        <CardPanelRow
+                          key={card.card_id}
+                          rank={i + 1}
+                          card={card}
+                          metric={
+                            <span className="text-sm font-bold text-gray-800">
+                              {card.total_reviews}
+                            </span>
+                          }
+                          metaSub={
+                            card.avg_quality != null
+                              ? `Quality: ${Number(card.avg_quality).toFixed(1)}`
+                              : 'Quality: —'
+                          }
+                          onCopy={() => copyCardId(card.card_id)}
+                          rankColor="text-indigo-500"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
           )}
 
         </div>

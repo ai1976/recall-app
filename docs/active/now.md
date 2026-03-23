@@ -1,11 +1,19 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-22 (Sprint 3.5)
-**Current Phase:** Sprint 3.5 complete — Leaderboard + Goals
+**Last Updated:** 2026-03-23
+**Current Phase:** Notification UX + Professor Analytics improvements
 
 ---
 
 ## Just Completed ✅
+
+### Notification click routing + Professor Analytics charts (Mar 23, 2026)
+
+- **ActivityDropdown.jsx:** Upvote notifications now route to specific content. If `metadata.content_id` + `content_type === 'note'`, navigates to `/dashboard/notes/{id}`. Flashcard deck upvotes fall back to `/dashboard/my-contributions`. Graceful — if metadata not yet populated, falls back cleanly.
+- **ProfessorAnalytics.jsx:** "Weakest Cards" renamed to "Challenging Cards" with explanatory note ("students find these harder to recall — not necessarily a content issue"). Added descriptive subtitle to Most Reviewed Cards panel too.
+- **ProfessorAnalytics.jsx:** New Quality Distribution donut chart (PieChart from recharts) computed from subject-level averages. Shows Easy (≥4) / Medium (3–4) / Hard (<3) / Not Reviewed card counts. Placed in 2-column grid alongside Weekly New Students chart.
+
+Files Changed: `src/components/layout/ActivityDropdown.jsx`, `src/pages/dashboard/ProfessorAnalytics.jsx`
 
 ### Sprint 3.5 — Leaderboard + Goals (Mar 22, 2026)
 

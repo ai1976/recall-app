@@ -33,6 +33,8 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
         return <UserPlus className="h-4 w-4 text-orange-500" />;
       case 'access_granted':
         return <CheckCheck className="h-4 w-4 text-green-500" />;
+      case 'follow':
+        return <UserPlus className="h-4 w-4 text-indigo-500" />;
       default:
         return <Bell className="h-4 w-4 text-gray-500" />;
     }
@@ -47,14 +49,23 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
         return '/dashboard/my-friends';
       case 'badge_earned':
         return '/dashboard/achievements';
-      case 'upvote':
+      case 'upvote': {
+        const { content_type, content_id } = notification.metadata || {};
+        if (content_id && content_type === 'note') return `/dashboard/notes/${content_id}`;
+        // flashcard_deck upvotes go to contributions page (no standalone deck detail page)
         return '/dashboard/my-contributions';
+      }
       case 'group_invite':
         return '/dashboard/groups';
       case 'access_request':
         return '/admin?tab=access-requests';
       case 'access_granted':
         return '/dashboard/review-flashcards';
+      case 'follow': {
+        const { follower_id } = notification.metadata || {};
+        if (follower_id) return `/dashboard/profile/${follower_id}`;
+        return '/dashboard/find-people';
+      }
       default:
         return '/dashboard';
     }
