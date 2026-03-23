@@ -228,7 +228,7 @@ export const HELP_TABS = [
         id: 'prof-bulk-csv',
         title: 'Bulk CSV Upload (Professors)',
         icon: 'Upload',
-        roles: ['professor'],
+        roles: ['professor', 'admin', 'super_admin'],
         content: [
           { type: 'paragraph', text: 'Professors can upload many flashcards at once using a CSV file. Go to Create → Bulk Upload.' },
           { type: 'steps', items: [
@@ -923,14 +923,14 @@ export const HELP_TABS = [
     key: 'professor-guide',
     label: 'For Professors',
     icon: 'GraduationCap',
-    roles: ['professor'],
+    roles: ['professor', 'admin', 'super_admin'],
     sections: [
       {
         id: 'prof-welcome',
         title: 'Welcome, Professor',
         icon: 'GraduationCap',
         defaultExpanded: true,
-        roles: ['professor'],
+        roles: ['professor', 'admin', 'super_admin'],
         content: [
           { type: 'paragraph', text: "Your professor account gives you tools beyond the standard student experience. You can upload notes and flashcard sets that appear directly in your enrolled students' study queues, track engagement with your content, and see how your batch is progressing." },
           { type: 'list', items: [
@@ -946,7 +946,7 @@ export const HELP_TABS = [
         id: 'prof-profile-setup',
         title: 'Profile Setup',
         icon: 'User',
-        roles: ['professor'],
+        roles: ['professor', 'admin', 'super_admin'],
         content: [
           { type: 'paragraph', text: 'Before uploading content, set your institution and course level in your profile settings.' },
           { type: 'steps', items: [
@@ -962,7 +962,7 @@ export const HELP_TABS = [
         id: 'prof-analytics',
         title: 'Professor Analytics Dashboard',
         icon: 'BarChart3',
-        roles: ['professor'],
+        roles: ['professor', 'admin', 'super_admin'],
         content: [
           { type: 'paragraph', text: 'Access your analytics from the "Analytics" link in the top navigation bar (visible only to professors).' },
           { type: 'list', items: [
@@ -980,7 +980,7 @@ export const HELP_TABS = [
         id: 'prof-batch-groups',
         title: 'Batch Groups and Auto-Enrollment',
         icon: 'Users',
-        roles: ['professor'],
+        roles: ['professor', 'admin', 'super_admin'],
         content: [
           { type: 'paragraph', text: 'Batch groups are created by admins and group students by course level and institution. When an admin grants a student access, the system automatically enrolls that student in the matching batch group.' },
           { type: 'list', items: [
@@ -996,7 +996,7 @@ export const HELP_TABS = [
         id: 'prof-batch-performance',
         title: 'Batch Performance View',
         icon: 'BarChart3',
-        roles: ['professor'],
+        roles: ['professor', 'admin', 'super_admin'],
         content: [
           {
             type: 'paragraph',
@@ -1036,7 +1036,7 @@ export const HELP_TABS = [
         id: 'prof-needs-attention',
         title: 'Responding to Content Flags (Needs Attention)',
         icon: 'AlertTriangle',
-        roles: ['professor'],
+        roles: ['professor', 'admin', 'super_admin'],
         content: [
           { type: 'paragraph', text: 'When students flag one of your notes or flashcards as containing an error, it appears in the "Needs Attention" section on your dashboard. You are expected to review and respond.' },
           { type: 'steps', items: [
@@ -1058,7 +1058,7 @@ export const HELP_TABS = [
         id: 'prof-share-content',
         title: 'Sharing Content via WhatsApp',
         icon: 'Share2',
-        roles: ['professor'],
+        roles: ['professor', 'admin', 'super_admin'],
         content: [
           {
             type: 'paragraph',

@@ -264,6 +264,15 @@ export default function Help() {
   const currentTab = visibleTabs.find(t => t.key === activeTab) || visibleTabs[0];
   const isSearching = searchResults !== null;
 
+  // Mobile accordion: clicking the active tab closes it
+  const toggleMobileTab = (tabKey) => {
+    if (activeTab === tabKey) {
+      setSearchParams({}, { replace: true });
+    } else {
+      setActiveTab(tabKey);
+    }
+  };
+
   return (
     <PageContainer width="medium">
       {/* Header */}
@@ -305,26 +314,6 @@ export default function Help() {
         )}
       </div>
 
-      {/* Tab bar (hidden during search) */}
-      {!isSearching && (
-        <div className="flex flex-wrap gap-1 bg-gray-100 p-1.5 rounded-lg mb-6">
-          {visibleTabs.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
-                activeTab === tab.key
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <DynamicIcon name={tab.icon} className="h-4 w-4" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Search results */}
       {isSearching && (
         <div className="mb-6">
@@ -346,35 +335,111 @@ export default function Help() {
         </div>
       )}
 
-      {/* Tab content (hidden during search) */}
+      {/* Option C layout: sidebar (desktop) + accordion (mobile) */}
       {!isSearching && (
-        <div>
-          {currentTab.sections.map((section) => (
-            <CollapsibleSection
-              key={section.id}
-              section={section}
-              isExpanded={expandedSections.has(section.id)}
-              onToggle={() => toggleSection(section.id)}
-            />
-          ))}
+        <div className="md:flex md:gap-6">
 
-          {/* FAQ section in "More" tab */}
-          {activeTab === 'more' && (
-            <div className="mt-8">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <HelpCircle className="h-5 w-5 text-blue-600" />
-                Frequently Asked Questions
-              </h2>
-              {FAQ_ITEMS.map((faq, idx) => (
-                <FAQItem
-                  key={idx}
-                  item={faq}
-                  isExpanded={expandedSections.has(`faq-${idx}`)}
-                  onToggle={() => toggleSection(`faq-${idx}`)}
-                />
+          {/* ── Desktop sidebar nav ── */}
+          <nav className="hidden md:block w-44 shrink-0">
+            <div className="sticky top-6 space-y-0.5">
+              {visibleTabs.map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium rounded-lg text-left transition-colors ${
+                    activeTab === tab.key
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <DynamicIcon name={tab.icon} className="h-4 w-4 shrink-0" />
+                  {tab.label}
+                </button>
               ))}
             </div>
-          )}
+          </nav>
+
+          {/* ── Desktop content area ── */}
+          <div className="hidden md:block flex-1 min-w-0">
+            {currentTab.sections.map((section) => (
+              <CollapsibleSection
+                key={section.id}
+                section={section}
+                isExpanded={expandedSections.has(section.id)}
+                onToggle={() => toggleSection(section.id)}
+              />
+            ))}
+            {activeTab === 'more' && (
+              <div className="mt-8">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <HelpCircle className="h-5 w-5 text-blue-600" />
+                  Frequently Asked Questions
+                </h2>
+                {FAQ_ITEMS.map((faq, idx) => (
+                  <FAQItem
+                    key={idx}
+                    item={faq}
+                    isExpanded={expandedSections.has(`faq-${idx}`)}
+                    onToggle={() => toggleSection(`faq-${idx}`)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── Mobile accordion ── */}
+          <div className="md:hidden w-full space-y-2">
+            {visibleTabs.map(tab => (
+              <div key={tab.key}>
+                <button
+                  onClick={() => toggleMobileTab(tab.key)}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    activeTab === tab.key
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <DynamicIcon name={tab.icon} className="h-4 w-4" />
+                    {tab.label}
+                  </span>
+                  {activeTab === tab.key
+                    ? <ChevronDown className="h-4 w-4" />
+                    : <ChevronRight className="h-4 w-4" />
+                  }
+                </button>
+                {activeTab === tab.key && (
+                  <div className="mt-2 pl-2">
+                    {tab.sections.map((section) => (
+                      <CollapsibleSection
+                        key={section.id}
+                        section={section}
+                        isExpanded={expandedSections.has(section.id)}
+                        onToggle={() => toggleSection(section.id)}
+                      />
+                    ))}
+                    {tab.key === 'more' && (
+                      <div className="mt-4">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <HelpCircle className="h-5 w-5 text-blue-600" />
+                          Frequently Asked Questions
+                        </h2>
+                        {FAQ_ITEMS.map((faq, idx) => (
+                          <FAQItem
+                            key={idx}
+                            item={faq}
+                            isExpanded={expandedSections.has(`faq-${idx}`)}
+                            onToggle={() => toggleSection(`faq-${idx}`)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
         </div>
       )}
 
