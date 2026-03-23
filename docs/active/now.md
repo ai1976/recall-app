@@ -1,11 +1,28 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-03-23
-**Current Phase:** Notification UX + Professor Analytics improvements
+**Current Phase:** Sprint P1 — Public /guide route
 
 ---
 
 ## Just Completed ✅
+
+### Sprint P1 — Public /guide Student Guide shell (Mar 23, 2026)
+
+- **StudentGuide.jsx:** New public page at `/guide` — no auth, no DB calls. Two-panel layout: sticky 260px sidebar (desktop) listing all 9 situations as clickable nav buttons; horizontal scrollable pill row (mobile). Smooth scroll to each section anchor on click.
+- **Header bar:** "Recall" wordmark links to `/`, "Student Guide" tagline below, "Log in" link on the right.
+- **9 situation sections:** enrollment, orientation, studying, behind, content, scoring, stats, social, reports — each with emoji + headline + placeholder "Actions coming in Sprint P2."
+- **App.jsx:** Added `StudentGuide` lazy import + `/guide` route in the public no-auth-guard block.
+
+Files Changed: `src/pages/guide/StudentGuide.jsx` (NEW), `src/App.jsx`
+
+### Sprint 2.7-B — Help section Option C layout + role-based tabs (Mar 23, 2026)
+
+- **Help.jsx:** Replaced horizontal tab bar with Option C layout — sticky left sidebar nav on desktop (`md:flex`, `w-44 shrink-0`), full-width accordion on mobile (`md:hidden`). Each tab on mobile is a collapsible header (blue when open, gray when closed). Clicking the active mobile tab closes it (`toggleMobileTab`). No more overflow, no clipping, no hidden tabs on any screen size.
+- **helpContent.js:** `professor-guide` tab and all its sections updated from `roles: ['professor']` → `roles: ['professor', 'admin', 'super_admin']`. `prof-bulk-csv` section in Content tab updated same way. Admins and super_admins now see the full For Professors guide.
+- **Flagging workflow:** Flag button already exists in StudyMode (Content error / Inappropriate / Other). Full backend workflow deferred to Sprint 2.8. Agreed design: Content error routes to professor first (edit or reject with reason); Inappropriate/Spam routes to admin only (conflict of interest). Duplicate flags from 3+ students auto-escalate priority. Student always notified of resolution.
+
+Files Changed: `src/pages/dashboard/Help.jsx`, `src/data/helpContent.js`
 
 ### Notification click routing + Professor Analytics charts (Mar 23, 2026)
 

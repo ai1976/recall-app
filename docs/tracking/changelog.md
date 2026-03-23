@@ -1,6 +1,37 @@
 # Changelog
 
 ---
+## [2026-03-23] feat: Sprint P1 — Public /guide Student Guide shell
+
+### Added
+- **StudentGuide.jsx** — New public page at `/guide` (no auth, no DB calls). Two-panel layout: sticky left sidebar (~260px) on desktop listing all 9 situations as clickable nav buttons; horizontal scrollable pill row on mobile (sticky below header). Smooth scroll to section anchors on click.
+- **9 situations defined:** enrollment, orientation, studying, behind, content, scoring, stats, social, reports — each with id, sidebarLabel, emoji, headline, tone, and empty `actions` array (filled in Sprint P2).
+- **Header bar:** "Recall" wordmark + "Student Guide" tagline linking to `/`; "Log in" link to `/login` on the right.
+- **Section shells:** Each situation renders `<section id={situation.id}>` with emoji + headline and placeholder text "Actions coming in Sprint P2." Subtle `<hr>` dividers between sections.
+
+### Changed
+- **App.jsx** — Added `StudentGuide` lazy import and `/guide` route in the public no-auth-guard block.
+
+### Files Changed
+- `src/pages/guide/StudentGuide.jsx` (NEW)
+- `src/App.jsx`
+
+---
+## [2026-03-23] feat: Sprint 2.7-B — Role-based Help section + Option C layout
+
+### Added
+- **Help.jsx** — Desktop sidebar nav (`w-44` sticky left column, `md:flex` two-column layout). Each tab is a button in the sidebar; active tab highlighted in blue-50.
+- **Help.jsx** — Mobile accordion: each tab renders as a collapsible full-width header. Blue background when open, gray when closed. Clicking the open tab closes it. No horizontal scrolling on any screen size.
+
+### Changed
+- **helpContent.js** — `professor-guide` tab-level and all section-level `roles` updated from `['professor']` to `['professor', 'admin', 'super_admin']`. Admins now see the full For Professors guide.
+- **helpContent.js** — `prof-bulk-csv` section in Content tab roles updated same way.
+
+### Files Changed
+- `src/pages/dashboard/Help.jsx`
+- `src/data/helpContent.js`
+
+---
 ## [2026-03-23] feat: Clickable upvote notifications + Professor Analytics charts
 
 ### Added
