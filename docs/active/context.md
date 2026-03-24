@@ -1,7 +1,7 @@
 # RECALL - Project Context (Source of Truth)
 
 **Last Updated:** March 21, 2026
-**Live URL:** https://recall-app-omega.vercel.app
+**Live URL:** https://www.recallapp.co.in
 **Repository:** https://github.com/ai1976/recall-app
 
 ---

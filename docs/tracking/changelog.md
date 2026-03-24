@@ -2362,7 +2362,7 @@ Code Updates:
 
 ### December 27, 2025
 - ✅ Deployed to Vercel production
-- ✅ Live URL: https://recall-app-omega.vercel.app
+- ✅ Live URL: https://recall-app-omega.vercel.app → migrated to https://www.recallapp.co.in (Mar 2026)
 - ✅ All VS Code errors fixed (52 → 20 CSS warnings)
 - ✅ Fixed runtime error in progress.jsx (reviewed_at → created_at)
 - ✅ Removed duplicate AuthContext.jsx from lib/ folder

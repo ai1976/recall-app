@@ -4,7 +4,7 @@
 - **OS:** Windows 11
 - **Shell:** bash (NOT PowerShell — Claude Code runs in bash even on Windows)
 - **Stack:** React 18 + Vite, Supabase (PostgreSQL + Auth + RLS), TailwindCSS
-- **Live URL:** https://recall-app-omega.vercel.app
+- **Live URL:** https://www.recallapp.co.in
 
 ## Git Commits (CRITICAL - bash)
 The shell is bash. NEVER use PowerShell Here-String syntax (`$msg = @"..."@`) — it will fail.
