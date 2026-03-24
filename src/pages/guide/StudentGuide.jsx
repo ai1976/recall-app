@@ -61,12 +61,11 @@ export default function StudentGuide() {
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-xl px-3 py-1 rounded">
               R
             </div>
-            <div className="flex flex-col leading-tight">
-              <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Recall
-              </span>
-              <span className="text-xs text-gray-500">Student Guide</span>
-            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Recall
+            </span>
+            <span className="text-gray-300 font-light text-xl">|</span>
+            <span className="text-gray-500 text-sm font-medium">Study Guide</span>
           </Link>
           <Link
             to="/login"
