@@ -7,12 +7,12 @@ export const SITUATIONS = [
     id: 'enrollment',
     sidebarLabel: 'Getting In',
     emoji: '🎟️',
-    headline: 'I received an invite link to join a class',
+    headline: 'I received an invite link from a class or study group',
     steps: [
       {
-        label: 'Open the invite link',
+        label: 'Create your account first',
         detail:
-          'Your professor or a classmate will share an invite link via WhatsApp, email, or another channel. Open the link in your browser — it will take you directly to the Recall sign-up or join page.',
+          'Go to Sign Up and create your Recall account. The invite link only works once you are logged in, so complete signup before clicking it again.',
         linkLabel: 'Sign Up',
         linkTo: '/signup',
         isSignup: true,
@@ -20,15 +20,15 @@ export const SITUATIONS = [
       {
         label: 'Set your display name',
         detail:
-          'During signup you will be asked for a display name. This is what your professor and classmates will see on leaderboards and shared content.',
+          'During signup you will be asked for a display name. This is what others will see on leaderboards and shared content.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
       },
       {
-        label: 'You are in — go to your Group',
+        label: 'Open the invite link to join the group',
         detail:
-          'Once signed in, the invite link will take you into your class Group. This is where your professor shares notes and study sets. You can also reach it anytime from the Groups section.',
+          'Once signed in, open the invite link that was shared with you via WhatsApp, email, or another channel. It will take you directly into the group where notes and study sets have been shared.',
         linkLabel: 'Groups',
         linkTo: '/dashboard/groups',
         isSignup: false,
@@ -42,25 +42,25 @@ export const SITUATIONS = [
     headline: 'I just signed up — what do I do first?',
     steps: [
       {
-        label: 'Check your Dashboard',
+        label: 'Your Dashboard is home base',
         detail:
-          'Your Dashboard shows your review queue, streak counter, and recent activity. Start here every session.',
+          'Your Dashboard shows your review queue, streak counter, and recent activity. It starts empty — that is normal. It fills up as you add content or join groups.',
         linkLabel: 'Dashboard',
         linkTo: '/dashboard',
         isSignup: false,
       },
       {
-        label: 'Find the Study menu',
+        label: 'Add your first content',
         detail:
-          'In the top navigation bar, click Study. It has two key links: Review Flashcards (your daily due cards) and Browse Notes (course material to read). These are the two things you will use most.',
-        linkLabel: 'Review Flashcards',
-        linkTo: '/dashboard/review-flashcards',
+          'Use the Create menu to Upload a Note or Create a Flashcard. Every flashcard you create goes straight into your review queue. There is no separate "add to deck" step.',
+        linkLabel: 'Create Flashcard',
+        linkTo: '/dashboard/flashcards/new',
         isSignup: false,
       },
       {
-        label: 'Join your class Group',
+        label: 'Studying with a class? Check Groups',
         detail:
-          'Go to Groups and open your class group. Your professor shares notes and study sets there. Content shared in the group appears in your Notes and Study Sets sections automatically.',
+          'If a professor or study group invited you, go to Groups to find and open that group. Notes and study sets shared there will appear in your account automatically. If you are studying independently, skip this step.',
         linkLabel: 'Groups',
         linkTo: '/dashboard/groups',
         isSignup: false,
@@ -68,7 +68,7 @@ export const SITUATIONS = [
       {
         label: 'Do your first review',
         detail:
-          'Even one card reviewed today starts your streak. Head to Review Flashcards and complete whatever is in the queue.',
+          'Once you have at least one flashcard — your own or from a group — head to Review Flashcards and work through the queue. Even one card today starts your streak.',
         linkLabel: 'Review Flashcards',
         linkTo: '/dashboard/review-flashcards',
         isSignup: false,
