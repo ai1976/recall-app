@@ -10,7 +10,7 @@ export const SITUATIONS = [
     headline: 'I want to set up my account',
     steps: [
       {
-        label: 'Is your coaching class on Recall? (B2B path)',
+        label: 'Is your Institute on Recall?',
         detail:
           'If your institute enrolled you, simply sign up using the email you provided them. Your class\'s premium study material is already waiting for you — no code needed.',
         linkLabel: 'Sign Up',
@@ -18,7 +18,7 @@ export const SITUATIONS = [
         isSignup: true,
       },
       {
-        label: 'Studying on your own? (B2C path)',
+        label: 'Studying on your own?',
         detail:
           'No problem. Just sign up and select your target exam (e.g., CA Intermediate). You can create unlimited flashcards for free and preview expert content from day one.',
         linkLabel: 'Sign Up',
