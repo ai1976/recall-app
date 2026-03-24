@@ -1,11 +1,30 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-23
-**Current Phase:** Sprint P1 — Public /guide route
+**Last Updated:** 2026-03-24
+**Current Phase:** Sprint P3 complete — /guide feature shipped
 
 ---
 
 ## Just Completed ✅
+
+### Sprint P3 — Student Guide discovery, polish & page completion (Mar 23, 2026)
+
+- **Home.jsx:** Added "Student Guide" link to desktop nav (left of Login) and mobile nav. Plain text, matches existing nav link style. Appears on all screen sizes.
+- **Home.jsx:** Added Student Guide banner above the footer — full-width muted strip (bg-gray-50, border-gray-200, rounded-lg) with "New to Recall? Browse the Student Guide" text and a blue pill `<Link to="/guide">`. Plain public-to-public navigation, no postAuthRedirect.
+- **StudentGuide.jsx:** Added `useEffect` that sets `document.title = 'Student Guide — Recall'` on mount and resets to `'Recall'` on unmount.
+- **StudentGuide.jsx:** Added "You are here." intro block (bg-indigo-50, border-indigo-100, rounded-xl) above the two-panel layout. Spans full content width. Includes inline `<Link to="/login">` for returning users.
+- **StudentGuide.jsx:** Added "Still need help?" closing block (bg-gray-50, border-gray-200, rounded-xl, mt-10) after the last section in main content. Includes `<Link to="/">` with ArrowLeft icon. Not in sidebar nav.
+- **StudentGuide.jsx:** Added "↑ Back to top" `<button>` at the bottom of the desktop sidebar — calls `window.scrollTo({ top: 0, behavior: 'smooth' })`. Styled text-xs text-gray-400 hover:text-gray-600 mt-6 px-3.
+
+Files Changed: `src/pages/Home.jsx`, `src/pages/guide/StudentGuide.jsx`
+
+### Sprint P2 — Student Guide content, step list, links & scroll spy (Mar 23, 2026)
+
+- **guideContent.js:** New data file at `src/data/guideContent.js`. Exports `SITUATIONS` array — 9 situations, each with `id`, `sidebarLabel`, `emoji`, `headline`, and `steps[]`. Steps carry `label`, `detail`, `linkLabel`, `linkTo`, `isSignup`.
+- **StudentGuide.jsx:** Replaced inline `situations` array with import from `@/data/guideContent`. Added `useNavigate` + `useState(activeId)`. Each section renders a numbered step list with optional "label →" chip buttons. Chips set `localStorage.postAuthRedirect` and navigate to `/login` (or `/signup` directly for `isSignup: true`).
+- **Scroll spy:** `IntersectionObserver` watches all 9 sections (`threshold: 0.2`, `rootMargin: '-20% 0px -60% 0px'`). Active section highlighted in desktop sidebar (blue-50 bg, blue-700 text, border-l-2 border-blue-500) and mobile pill (bg-blue-600 text-white).
+
+Files Changed: `src/data/guideContent.js` (NEW), `src/pages/guide/StudentGuide.jsx`, `docs/reference/FILE_STRUCTURE.md`
 
 ### Sprint P1 — Public /guide Student Guide shell (Mar 23, 2026)
 

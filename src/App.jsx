@@ -61,6 +61,7 @@ const ProfessorAnalytics = lazy(() => import('@/pages/dashboard/ProfessorAnalyti
 const GroupJoin = lazy(() => import('@/pages/public/GroupJoin'))
 const DeckPreview = lazy(() => import('@/pages/public/DeckPreview'))
 const NotePreview = lazy(() => import('@/pages/public/NotePreview'))
+const StudentGuide = lazy(() => import('@/pages/guide/StudentGuide'))
 
 // Admin Pages
 const SuperAdminDashboard = lazy(() => import('@/pages/admin/SuperAdminDashboard'))
@@ -170,6 +171,7 @@ if (!user || loading) return
           <Route path="/join/:token" element={<GroupJoin />} />
           <Route path="/deck/:deckId" element={<DeckPreview />} />
           <Route path="/note/:noteId" element={<NotePreview />} />
+          <Route path="/guide" element={<StudentGuide />} />
 
           {/* Dashboard Route */}
           <Route

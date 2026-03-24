@@ -114,6 +114,7 @@ export default function Home() {
               <a href="#features" className="text-gray-700 hover:text-blue-600 transition">Features</a>
               <a href="#how-it-works" className="text-gray-700 hover:text-blue-600 transition">How It Works</a>
               <a href="#educators" className="text-gray-700 hover:text-blue-600 transition">For Educators</a>
+              <Link to="/guide" className="text-gray-700 hover:text-blue-600 transition">Student Guide</Link>
               <Link to="/login" className="text-gray-700 hover:text-blue-600 transition">Login</Link>
               <Link 
                 to="/signup" 
@@ -125,6 +126,12 @@ export default function Home() {
 
             {/* Mobile Menu Button */}
             <div className="md:hidden flex items-center space-x-3">
+              <Link
+                to="/guide"
+                className="text-gray-700 hover:text-blue-600 text-sm font-medium transition"
+              >
+                Guide
+              </Link>
               <Link
                 to="/login"
                 className="text-gray-700 hover:text-blue-600 text-sm font-medium transition"
@@ -645,6 +652,23 @@ export default function Home() {
           <p className="mt-6 text-blue-100">
             Free for students • Institute plans available
           </p>
+        </div>
+      </section>
+
+      {/* Student Guide Banner */}
+      <section className="bg-white py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg px-6 py-4 flex items-center justify-between">
+            <span className="text-gray-600 text-sm">
+              🗺️ <span className="font-medium text-gray-800">New to Recall?</span> Browse the Student Guide — no login needed.
+            </span>
+            <Link
+              to="/guide"
+              className="ml-4 flex-none bg-blue-600 text-white text-sm font-medium px-4 py-1.5 rounded-full hover:bg-blue-700 transition-colors whitespace-nowrap"
+            >
+              Open Guide →
+            </Link>
+          </div>
         </div>
       </section>
 

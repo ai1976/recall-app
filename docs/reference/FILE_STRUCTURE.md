@@ -124,6 +124,7 @@ recall-app
 │   ├── contexts
 │   │   └── AuthContext.jsx
 │   ├── data
+│   │   ├── guideContent.js
 │   │   └── helpContent.js
 │   ├── hooks
 │   │   ├── use-toast.js
@@ -145,6 +146,8 @@ recall-app
 │   │   │   ├── BulkUploadTopics.jsx
 │   │   │   ├── SuperAdminDashboard.jsx
 │   │   │   └── SuperAdminAnalytics.jsx    ← super_admin analytics (Sprint 5)
+│   │   ├── guide                          ← public wayfinding pages (no auth, no DB calls)
+│   │   │   └── StudentGuide.jsx           ← /guide — 9-situation student wayfinding page (Sprint P1)
 │   │   ├── public                         ← unauthenticated public pages (RPC-only data)
 │   │   │   ├── DeckPreview.jsx            ← /deck/:deckId — shareable study set preview
 │   │   │   ├── GroupJoin.jsx              ← /join/:token — group invite accept page
@@ -542,5 +545,14 @@ git push
 ### New Key File Locations:
 - **Course Context:** `src/contexts/CourseContext.jsx`
 - **Course Switcher UI:** `src/components/layout/CourseSwitcher.jsx`
+
+---
+## 🔧 RECENTLY MODIFIED (Mar 23, 2026) - Sprint P1: Public /guide Student Guide
+
+### New Files:
+- ✅ `src/pages/guide/StudentGuide.jsx` (NEW — public /guide wayfinding page, 9 situations, no auth)
+
+### Changes:
+- ✅ `src/App.jsx` (Added StudentGuide lazy import + `/guide` route in public block)
 
 **END OF FILE STRUCTURE DOCUMENT**
