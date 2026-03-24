@@ -57,12 +57,17 @@ export default function StudentGuide() {
       {/* Header Bar */}
       <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex flex-col leading-tight">
-            <Link to="/" className="text-lg font-bold text-gray-900 tracking-tight hover:text-indigo-600 transition-colors">
-              Recall
-            </Link>
-            <span className="text-xs text-gray-500">Student Guide</span>
-          </div>
+          <Link to="/" className="flex items-center gap-2">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-xl px-3 py-1 rounded">
+              R
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Recall
+              </span>
+              <span className="text-xs text-gray-500">Student Guide</span>
+            </div>
+          </Link>
           <Link
             to="/login"
             className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"

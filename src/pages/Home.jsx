@@ -114,13 +114,18 @@ export default function Home() {
               <a href="#features" className="text-gray-700 hover:text-blue-600 transition">Features</a>
               <a href="#how-it-works" className="text-gray-700 hover:text-blue-600 transition">How It Works</a>
               <a href="#educators" className="text-gray-700 hover:text-blue-600 transition">For Educators</a>
-              <Link to="/guide" className="text-gray-700 hover:text-blue-600 transition">Student Guide</Link>
               <Link to="/login" className="text-gray-700 hover:text-blue-600 transition">Login</Link>
-              <Link 
-                to="/signup" 
+              <Link
+                to="/signup"
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:shadow-lg transition"
               >
-                Get Started Free
+                Start free
+              </Link>
+              <Link
+                to="/guide"
+                className="border border-indigo-200 text-indigo-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-50 transition"
+              >
+                Student Guide
               </Link>
             </div>
 
