@@ -173,7 +173,7 @@ export default function Home() {
           <h1 className="text-6xl md:text-7xl font-bold mb-3 leading-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Recall
           </h1>
-          <p className="text-2xl md:text-3xl font-bold mb-6 text-gray-900">
+          <p className="text-2xl md:text-3xl font-semibold mb-6 text-gray-800">
             The Revision Operating System.
           </p>
 
@@ -220,25 +220,25 @@ export default function Home() {
           {/* Real-time Stats */}
           <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
             <div>
-              <div className="text-4xl font-bold text-blue-600">
+              <div className="text-4xl font-bold text-indigo-600">
                 {stats.students}
               </div>
               <div className="text-gray-600 mt-2">Active Students</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-purple-600">
+              <div className="text-4xl font-bold text-indigo-600">
                 {stats.educators}
               </div>
               <div className="text-gray-600 mt-2">Expert Educators</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-green-600">
+              <div className="text-4xl font-bold text-indigo-600">
                 {stats.totalFlashcards}
               </div>
               <div className="text-gray-600 mt-2">Flashcards</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-orange-600">
+              <div className="text-4xl font-bold text-indigo-600">
                 {stats.totalNotes}
               </div>
               <div className="text-gray-600 mt-2">Notes</div>

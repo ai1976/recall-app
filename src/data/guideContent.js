@@ -7,12 +7,20 @@ export const SITUATIONS = [
     id: 'enrollment',
     sidebarLabel: 'Getting In',
     emoji: '🎟️',
-    headline: 'I received an invite link from a class or study group',
+    headline: 'I want to set up my account',
     steps: [
       {
-        label: 'Create your account first',
+        label: 'Is your coaching class on Recall? (B2B path)',
         detail:
-          'Go to Sign Up and create your Recall account. The invite link only works once you are logged in, so complete signup before clicking it again.',
+          'If your institute enrolled you, simply sign up using the email you provided them. Your class\'s premium study material is already waiting for you — no code needed.',
+        linkLabel: 'Sign Up',
+        linkTo: '/signup',
+        isSignup: true,
+      },
+      {
+        label: 'Studying on your own? (B2C path)',
+        detail:
+          'No problem. Just sign up and select your target exam (e.g., CA Intermediate). You can create unlimited flashcards for free and preview expert content from day one.',
         linkLabel: 'Sign Up',
         linkTo: '/signup',
         isSignup: true,
@@ -20,15 +28,15 @@ export const SITUATIONS = [
       {
         label: 'Set your display name',
         detail:
-          'During signup you will be asked for a display name. This is what others will see on leaderboards and shared content.',
+          'During signup you will be asked for a display name. This is what others will see on leaderboards and shared content — choose something you are happy with publicly.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
       },
       {
-        label: 'Open the invite link to join the group',
+        label: 'Received a group invite link?',
         detail:
-          'Once signed in, open the invite link that was shared with you via WhatsApp, email, or another channel. It will take you directly into the group where notes and study sets have been shared.',
+          'If someone shared a Recall group link with you via WhatsApp, email, or another channel — open it once you are signed in. It will drop you straight into the group where shared notes and study sets live.',
         linkLabel: 'Groups',
         linkTo: '/dashboard/groups',
         isSignup: false,
@@ -122,33 +130,33 @@ export const SITUATIONS = [
     headline: "I'm behind on my reviews",
     steps: [
       {
-        label: 'Open your Review queue now',
+        label: "Don't panic — start small",
         detail:
-          'The longer you wait, the larger the backlog grows. Even 10 cards today is better than zero.',
+          "Recall queues cards so you don't forget them, but you don't have to clear everything in one day. Focus on reviewing just 20 cards today to protect your streak. That is enough to get moving again.",
         linkLabel: 'Review Flashcards',
         linkTo: '/dashboard/review-flashcards',
         isSignup: false,
       },
       {
-        label: 'Do not add new cards yet',
+        label: 'Hold off on adding new cards',
         detail:
-          'Adding new cards while behind makes the backlog worse. Clear existing dues first, then resume adding.',
+          'Adding new cards while behind makes the backlog larger. Work through what is already due first — new cards can wait a day or two.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
       },
       {
-        label: 'Use shorter sessions',
+        label: 'Break it into short blocks',
         detail:
-          'You do not have to finish the entire queue in one sitting. Break it into 15-minute blocks across the day. The system will reprioritise overdue cards automatically.',
+          'You do not need to finish the whole queue in one sitting. Try two or three 15-minute sessions across the day. Recall reprioritises overdue cards automatically — just keep showing up.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
       },
       {
-        label: 'Check My Progress after a few days',
+        label: 'Watch your retention rate recover',
         detail:
-          'Once you are back on track, My Progress will show your retention rate recovering. Use it as motivation, not judgment.',
+          'After a few consistent days, open My Progress. Your retention rate will start climbing again. Use it as motivation, not judgment — a dip is normal and fully recoverable.',
         linkLabel: 'My Progress',
         linkTo: '/dashboard/progress',
         isSignup: false,
@@ -202,17 +210,17 @@ export const SITUATIONS = [
     headline: "I don't understand how scoring works",
     steps: [
       {
-        label: 'Spaced repetition sets your schedule',
+        label: 'Recall uses a Memory Engine, not a fixed schedule',
         detail:
-          'Recall uses a spaced repetition algorithm. Cards you know well appear less often. Cards you struggle with appear more often. The goal is to review each card just before you would forget it.',
+          'Instead of studying everything every day, Recall\'s Memory Engine shows you each card just before you are likely to forget it. If you mark a card Hard, it comes back tomorrow. If you mark it Easy, it will not bother you for a week — saving you time for cards that actually need work.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
       },
       {
-        label: 'Your rating moves the next due date',
+        label: 'Three ratings, three outcomes',
         detail:
-          'Hard = card comes back tomorrow. Medium = 3 days. Easy = 7 days. There is also Study Again to repeat the card in the same session without changing its schedule. One honest rating per card is all the system needs.',
+          'Hard = back tomorrow. Medium = back in 3 days. Easy = back in 7 days. There is also Study Again to repeat a card immediately in the same session without changing its future schedule. One honest rating per card is all the system needs.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
@@ -220,7 +228,7 @@ export const SITUATIONS = [
       {
         label: 'Points and streaks are motivational, not academic',
         detail:
-          'Points accumulate from reviews and content creation. Streaks track consecutive days of activity. Neither affects your professor\'s assessment — they exist to keep you consistent.',
+          'Points accumulate from reviews and content creation. Streaks track consecutive days of activity. Neither reflects your knowledge level — they exist purely to keep you consistent.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
@@ -228,7 +236,7 @@ export const SITUATIONS = [
       {
         label: 'Check the Leaderboard for context',
         detail:
-          'The Leaderboard on your Dashboard shows your ranking relative to classmates. Use it to gauge activity levels, not ability.',
+          'The Leaderboard on your Dashboard shows your activity ranking relative to others. Use it to gauge study volume, not ability.',
         linkLabel: 'Dashboard',
         linkTo: '/dashboard',
         isSignup: false,

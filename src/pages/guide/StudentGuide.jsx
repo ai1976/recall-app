@@ -77,21 +77,25 @@ export default function StudentGuide() {
       </header>
 
       {/* Mobile pill row — visible only on small screens */}
-      <div className="md:hidden sticky top-14 z-20 bg-white border-b border-gray-200 px-4 py-2 overflow-x-auto scrollbar-hide">
-        <div ref={pillRowRef} className="flex gap-2 w-max">
-          {SITUATIONS.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => scrollToSection(s.id)}
-              className={`flex-none px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
-                activeId === s.id
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-indigo-100 hover:text-indigo-700'
-              }`}
-            >
-              {s.emoji} {s.sidebarLabel}
-            </button>
-          ))}
+      <div className="md:hidden sticky top-14 z-20 bg-white border-b border-gray-200 relative">
+        {/* Fade-right hint — signals more content is scrollable */}
+        <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
+        <div className="overflow-x-auto scrollbar-hide px-4 py-2">
+          <div ref={pillRowRef} className="flex gap-2 w-max pr-10">
+            {SITUATIONS.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => scrollToSection(s.id)}
+                className={`flex-none px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
+                  activeId === s.id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-indigo-100 hover:text-indigo-700'
+                }`}
+              >
+                {s.emoji} {s.sidebarLabel}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
