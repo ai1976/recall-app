@@ -7,12 +7,12 @@ export const SITUATIONS = [
     id: 'enrollment',
     sidebarLabel: 'Getting In',
     emoji: '🎟️',
-    headline: 'I just received an enrollment code',
+    headline: 'I received an invite link to join a class',
     steps: [
       {
-        label: 'Create your account',
+        label: 'Open the invite link',
         detail:
-          'Open Recall and click Sign Up. Paste your enrollment code in the field provided — this links your account to your professor\'s class automatically.',
+          'Your professor or a classmate will share an invite link via WhatsApp, email, or another channel. Open the link in your browser — it will take you directly to the Recall sign-up or join page.',
         linkLabel: 'Sign Up',
         linkTo: '/signup',
         isSignup: true,
@@ -26,11 +26,11 @@ export const SITUATIONS = [
         isSignup: false,
       },
       {
-        label: 'Go to your Dashboard',
+        label: 'You are in — go to your Group',
         detail:
-          'Once signed in, your Dashboard is home base. Your review queue, streak counter, and recent activity all live here.',
-        linkLabel: 'Dashboard',
-        linkTo: '/dashboard',
+          'Once signed in, the invite link will take you into your class Group. This is where your professor shares notes and study sets. You can also reach it anytime from the Groups section.',
+        linkLabel: 'Groups',
+        linkTo: '/dashboard/groups',
         isSignup: false,
       },
     ],
@@ -44,33 +44,33 @@ export const SITUATIONS = [
       {
         label: 'Check your Dashboard',
         detail:
-          'Your Dashboard shows your review queue, streak, and any content your professor has shared. Start here every session.',
+          'Your Dashboard shows your review queue, streak counter, and recent activity. Start here every session.',
         linkLabel: 'Dashboard',
         linkTo: '/dashboard',
         isSignup: false,
       },
       {
-        label: 'Explore your Notes',
+        label: 'Find the Study menu',
         detail:
-          'Notes are longer-form study material — summaries, chapter breakdowns, anything you want to read before drilling. Browse what your professor has shared or create your own.',
-        linkLabel: 'Notes',
-        linkTo: '/dashboard/notes',
+          'In the top navigation bar, click Study. It has two key links: Review Flashcards (your daily due cards) and Browse Notes (course material to read). These are the two things you will use most.',
+        linkLabel: 'Review Flashcards',
+        linkTo: '/dashboard/review-flashcards',
         isSignup: false,
       },
       {
-        label: 'Look at your Study Sets',
+        label: 'Join your class Group',
         detail:
-          'Study Sets (flashcard decks) are what power your daily review. Your professor may have seeded some already.',
-        linkLabel: 'Study Sets',
-        linkTo: '/dashboard/decks',
+          'Go to Groups and open your class group. Your professor shares notes and study sets there. Content shared in the group appears in your Notes and Study Sets sections automatically.',
+        linkLabel: 'Groups',
+        linkTo: '/dashboard/groups',
         isSignup: false,
       },
       {
         label: 'Do your first review',
         detail:
-          'Even one card reviewed today starts your streak. Head to the Review section and complete whatever is in the queue.',
-        linkLabel: 'Review',
-        linkTo: '/dashboard/review',
+          'Even one card reviewed today starts your streak. Head to Review Flashcards and complete whatever is in the queue.',
+        linkLabel: 'Review Flashcards',
+        linkTo: '/dashboard/review-flashcards',
         isSignup: false,
       },
     ],
@@ -85,14 +85,14 @@ export const SITUATIONS = [
         label: 'Open your Review queue',
         detail:
           'Your queue shows every card that is due today based on spaced repetition. Work through this first before adding new cards.',
-        linkLabel: 'Review',
-        linkTo: '/dashboard/review',
+        linkLabel: 'Review Flashcards',
+        linkTo: '/dashboard/review-flashcards',
         isSignup: false,
       },
       {
         label: 'Rate each card honestly',
         detail:
-          'After seeing the answer, rate yourself: Again (completely forgot), Hard (struggled), Good (recalled with effort), Easy (instant recall). Your future schedule is built from these ratings — gaming them only hurts you.',
+          'After seeing the answer, rate yourself: Hard (back tomorrow), Medium (back in 3 days), Easy (back in 7 days). There is also a Study Again option to repeat the card immediately without changing its schedule. Your future schedule is built from these ratings — honest ratings give you the most effective review plan.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
@@ -100,8 +100,8 @@ export const SITUATIONS = [
       {
         label: 'Browse Notes for deeper reading',
         detail:
-          'If a card stumps you, go to Notes to read the fuller explanation before moving on.',
-        linkLabel: 'Notes',
+          'If a card stumps you, go to Browse Notes to read the fuller explanation before moving on.',
+        linkLabel: 'Browse Notes',
         linkTo: '/dashboard/notes',
         isSignup: false,
       },
@@ -125,8 +125,8 @@ export const SITUATIONS = [
         label: 'Open your Review queue now',
         detail:
           'The longer you wait, the larger the backlog grows. Even 10 cards today is better than zero.',
-        linkLabel: 'Review',
-        linkTo: '/dashboard/review',
+        linkLabel: 'Review Flashcards',
+        linkTo: '/dashboard/review-flashcards',
         isSignup: false,
       },
       {
@@ -146,11 +146,11 @@ export const SITUATIONS = [
         isSignup: false,
       },
       {
-        label: 'Check your Stats after a few days',
+        label: 'Check My Progress after a few days',
         detail:
-          'Once you are back on track, your Stats page will show your retention rate recovering. Use it as motivation, not judgment.',
-        linkLabel: 'Stats',
-        linkTo: '/dashboard/stats',
+          'Once you are back on track, My Progress will show your retention rate recovering. Use it as motivation, not judgment.',
+        linkLabel: 'My Progress',
+        linkTo: '/dashboard/progress',
         isSignup: false,
       },
     ],
@@ -164,31 +164,31 @@ export const SITUATIONS = [
       {
         label: 'Create a Note',
         detail:
-          'Go to Notes and click New Note. Organise it under a Subject and Topic so it is easy to find later. Set visibility to Private if it is rough, Friends or Public when it is ready to share.',
-        linkLabel: 'Notes',
+          'Go to Browse Notes and click New Note. Organise it under a Subject and Topic so it is easy to find later. Set visibility to Private if it is rough, Friends or Public when it is ready to share.',
+        linkLabel: 'Browse Notes',
         linkTo: '/dashboard/notes',
         isSignup: false,
       },
       {
         label: 'Create a Flashcard',
         detail:
-          'Go to Flashcards and click New Card. Every card you create goes into your review queue automatically — there is no separate "add to deck" step.',
+          'Use the Study menu → New Flashcard. Every card you create goes into your review queue automatically — there is no separate "add to deck" step.',
         linkLabel: 'New Flashcard',
-        linkTo: '/dashboard/flashcards/create',
+        linkTo: '/dashboard/flashcards/new',
         isSignup: false,
       },
       {
         label: 'Group cards into a Study Set',
         detail:
-          'Study Sets let you organise cards by subject and topic. Cards are grouped by the Subject + Topic combination you chose when creating them.',
-        linkLabel: 'Study Sets',
-        linkTo: '/dashboard/decks',
+          'Study Sets organise cards by Subject and Topic. Cards are grouped automatically by the Subject + Topic combination you chose when creating them — no manual grouping needed.',
+        linkLabel: null,
+        linkTo: null,
         isSignup: false,
       },
       {
         label: 'Set visibility thoughtfully',
         detail:
-          'Private = only you. Friends = your followers. Public = everyone on Recall. Your professor can see everything in your enrolled class regardless of visibility.',
+          'Private = only you. Friends = people you follow. Public = anyone on Recall. Content you share inside a Group is visible to group members only — your private content is never visible to anyone else.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
@@ -204,7 +204,7 @@ export const SITUATIONS = [
       {
         label: 'Spaced repetition sets your schedule',
         detail:
-          'Recall uses a spaced repetition algorithm (SM-2). Cards you know well appear less often. Cards you struggle with appear more often. The goal is to review each card just before you would forget it.',
+          'Recall uses a spaced repetition algorithm. Cards you know well appear less often. Cards you struggle with appear more often. The goal is to review each card just before you would forget it.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
@@ -212,7 +212,7 @@ export const SITUATIONS = [
       {
         label: 'Your rating moves the next due date',
         detail:
-          'Again = card comes back very soon. Hard = sooner than scheduled. Good = on schedule. Easy = pushed further into the future. One honest rating per card is all the system needs.',
+          'Hard = card comes back tomorrow. Medium = 3 days. Easy = 7 days. There is also Study Again to repeat the card in the same session without changing its schedule. One honest rating per card is all the system needs.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
@@ -228,9 +228,9 @@ export const SITUATIONS = [
       {
         label: 'Check the Leaderboard for context',
         detail:
-          'The Leaderboard shows points relative to classmates. Use it to gauge activity, not ability.',
-        linkLabel: 'Leaderboard',
-        linkTo: '/dashboard/leaderboard',
+          'The Leaderboard on your Dashboard shows your ranking relative to classmates. Use it to gauge activity levels, not ability.',
+        linkLabel: 'Dashboard',
+        linkTo: '/dashboard',
         isSignup: false,
       },
     ],
@@ -242,11 +242,11 @@ export const SITUATIONS = [
     headline: "I want to see how I'm doing",
     steps: [
       {
-        label: 'Open My Stats',
+        label: 'Open My Progress',
         detail:
-          'Your Stats page shows review history, retention rate, streak graph, and card counts over time.',
-        linkLabel: 'My Stats',
-        linkTo: '/dashboard/stats',
+          'My Progress shows your review history, retention rate, streak graph, and item counts over time. Find it under the Study menu or use the link below.',
+        linkLabel: 'My Progress',
+        linkTo: '/dashboard/progress',
         isSignup: false,
       },
       {
@@ -260,9 +260,9 @@ export const SITUATIONS = [
       {
         label: 'Check the Leaderboard',
         detail:
-          'Points-based ranking across your class. Useful for spotting if you are significantly under- or over-studying relative to peers.',
-        linkLabel: 'Leaderboard',
-        linkTo: '/dashboard/leaderboard',
+          'The Leaderboard is on your Dashboard — it shows your weekly review ranking relative to classmates. Useful for spotting if you are significantly under- or over-studying relative to peers.',
+        linkLabel: 'Dashboard',
+        linkTo: '/dashboard',
         isSignup: false,
       },
       {
@@ -284,31 +284,31 @@ export const SITUATIONS = [
       {
         label: 'Find People',
         detail:
-          'Use the Find People page to search for classmates by name and follow them. Following someone lets you see their public and friends-visibility content.',
+          'Use Find People to search for classmates by name and follow them. Following someone lets you see their public and friends-visibility content.',
         linkLabel: 'Find People',
-        linkTo: '/dashboard/find-people',
+        linkTo: '/dashboard/find-friends',
         isSignup: false,
       },
       {
-        label: 'Join a Group',
+        label: 'Create a Group or join one',
         detail:
-          'Groups are shared spaces where classmates and professors post content. You may have been auto-added to one via your enrollment code, or you can request to join.',
+          'Groups are shared spaces where members post notes and study sets. You can create your own group and invite people using a shareable link — send it via WhatsApp, email, or any messaging app. People who are not yet on Recall can sign up and join using your link.',
         linkLabel: 'Groups',
         linkTo: '/dashboard/groups',
         isSignup: false,
       },
       {
-        label: 'Browse shared Notes and Decks',
+        label: 'Browse shared Notes and Study Sets',
         detail:
-          'Once you follow someone or join a group, their shared content appears in your feed. You can save or copy items you find useful.',
-        linkLabel: 'Notes',
+          'Once you are in a group, content shared by the group admin or members appears in your Notes and Study Sets sections. You can view and study from it directly.',
+        linkLabel: 'Browse Notes',
         linkTo: '/dashboard/notes',
         isSignup: false,
       },
       {
         label: 'Share your own content',
         detail:
-          'Set a Note or Study Set to Public or Friends visibility to contribute back. Your profile shows everything you have shared.',
+          'Set a Note or Study Set to Public or Friends visibility to contribute back. Or share it directly into a Group so only group members can access it.',
         linkLabel: 'My Profile',
         linkTo: '/dashboard/profile',
         isSignup: false,
@@ -322,9 +322,9 @@ export const SITUATIONS = [
     headline: 'I want to flag something or check my reports',
     steps: [
       {
-        label: 'Flag a Note or Flashcard',
+        label: 'Flag a Flashcard during review',
         detail:
-          'On any Note or Flashcard, open the options menu (···) and choose Flag. Select a reason — incorrect content, inappropriate, or other — and submit.',
+          'A flag icon is visible directly on each card during a review session. Tap it, select a reason — incorrect content, inappropriate, or other — and submit. No need to open any menu.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
@@ -332,7 +332,7 @@ export const SITUATIONS = [
       {
         label: 'Your flag is sent to moderators',
         detail:
-          'Flagged items are reviewed by your professor or a platform admin. You will not be notified of the outcome but the item will be reviewed within the platform\'s moderation cycle.',
+          'Flagged items are reviewed by your professor or a platform admin. Content errors go to the professor first; inappropriate content goes directly to an admin.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
