@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CreditCard, BookOpen, LogIn, User } from 'lucide-react';
+import GuideInfoModal from '@/components/GuideInfoModal';
 
 export default function DeckPreview() {
   const { deckId } = useParams();
@@ -159,6 +160,10 @@ export default function DeckPreview() {
                 Sign in
               </Link>
             </p>
+            <GuideInfoModal
+              situationId="studying"
+              triggerLabel="New to Recall? See how Study Sets work →"
+            />
           </div>
         )}
 

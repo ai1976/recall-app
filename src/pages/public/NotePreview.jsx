@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { FileText, LogIn, User } from 'lucide-react';
+import GuideInfoModal from '@/components/GuideInfoModal';
 
 export default function NotePreview() {
   const { noteId } = useParams();
@@ -181,6 +182,10 @@ export default function NotePreview() {
                 Sign in
               </button>
             </p>
+            <GuideInfoModal
+              situationId="content"
+              triggerLabel="New to Recall? See how Notes work →"
+            />
           </div>
         )}
 

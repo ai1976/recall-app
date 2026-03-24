@@ -7,6 +7,17 @@
 
 ## Just Completed ✅
 
+### Contextual Info Modal on all three public share pages (Mar 24, 2026)
+
+- **GuideInfoModal.jsx:** New shared component at `src/components/GuideInfoModal.jsx`. Renders a subtle trigger button + shadcn `<Dialog>` modal. Pulls content directly from `SITUATIONS` in `guideContent.js` (single source of truth). Accepts `situationId` and `triggerLabel` props. Never navigates away — postAuthRedirect funnel on `/deck` and `/join` is fully preserved. "Got it" button closes the modal.
+- **DeckPreview.jsx:** Added `<GuideInfoModal situationId="studying" />` below the "Sign in" line in the logged-out CTA block. Trigger: "New to Recall? See how Study Sets work →"
+- **NotePreview.jsx:** Added `<GuideInfoModal situationId="content" />` below the "Sign in" line in the logged-out CTA block. Trigger: "New to Recall? See how Notes work →"
+- **GroupJoin.jsx:** Added `<GuideInfoModal situationId="social" />` below the "Sign in" line in the logged-out CTA block. Trigger: "New to Recall? See how Groups work →"
+
+Files Changed: `src/components/GuideInfoModal.jsx` (NEW), `src/pages/public/DeckPreview.jsx`, `src/pages/public/NotePreview.jsx`, `src/pages/public/GroupJoin.jsx`
+
+---
+
 ### Sprint P3 — Student Guide discovery, polish & page completion (Mar 23, 2026)
 
 - **Home.jsx:** Added "Student Guide" link to desktop nav (left of Login) and mobile nav. Plain text, matches existing nav link style. Appears on all screen sizes.

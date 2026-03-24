@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, TrendingUp, Zap, Award, LogIn } from 'lucide-react';
+import GuideInfoModal from '@/components/GuideInfoModal';
 
 export default function GroupJoin() {
   const { token } = useParams();
@@ -170,6 +171,10 @@ export default function GroupJoin() {
                     Sign in
                   </button>
                 </p>
+                <GuideInfoModal
+                  situationId="social"
+                  triggerLabel="New to Recall? See how Groups work →"
+                />
               </div>
             )}
           </CardContent>

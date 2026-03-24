@@ -247,6 +247,18 @@ recall-app
 - `src/pages/dashboard/BulkUploadFlashcards.jsx` - Bulk upload flashcards via CSV (all users)
 - `src/pages/professor/ProfessorTools.jsx` - Legacy (redirects to BulkUploadFlashcards)
 
+### **Public Share Pages:**
+- `src/pages/public/DeckPreview.jsx` - Public study set preview (viral share page, /deck/:id)
+- `src/pages/public/NotePreview.jsx` - Public note preview (viral share page, /note/:id)
+- `src/pages/public/GroupJoin.jsx` - Public group invite page (/join/:token)
+
+### **Shared UI Helpers:**
+- `src/components/GuideInfoModal.jsx` - Contextual info modal for public pages; pulls content from guideContent.js by situationId; no navigation, preserves postAuthRedirect funnel
+
+### **Student Guide:**
+- `src/pages/guide/StudentGuide.jsx` - Public /guide page (no auth required)
+- `src/data/guideContent.js` - SITUATIONS data array (single source of truth for all guide content)
+
 ### **Configuration:**
 - `src/lib/supabase.js` - Supabase client setup
 - `vite.config.js` - Vite configuration
