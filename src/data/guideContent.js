@@ -162,18 +162,18 @@ export const SITUATIONS = [
     headline: 'I want to add my own notes or flashcards',
     steps: [
       {
-        label: 'Create a Note',
+        label: 'Upload a Note',
         detail:
-          'Go to Browse Notes and click New Note. Organise it under a Subject and Topic so it is easy to find later. Set visibility to Private if it is rough, Friends or Public when it is ready to share.',
-        linkLabel: 'Browse Notes',
-        linkTo: '/dashboard/notes',
+          'Use the Create menu in the top navigation → Upload Note. Organise it under a Subject and Topic so it is easy to find later. Set visibility to Private if it is rough, Friends or Public when it is ready to share.',
+        linkLabel: 'Upload Note',
+        linkTo: '/dashboard/notes/new',
         isSignup: false,
       },
       {
         label: 'Create a Flashcard',
         detail:
-          'Use the Study menu → New Flashcard. Every card you create goes into your review queue automatically — there is no separate "add to deck" step.',
-        linkLabel: 'New Flashcard',
+          'Use the Create menu → Create Flashcard. Every card you create goes into your review queue automatically — there is no separate "add to deck" step.',
+        linkLabel: 'Create Flashcard',
         linkTo: '/dashboard/flashcards/new',
         isSignup: false,
       },
