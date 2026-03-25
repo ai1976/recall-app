@@ -1,11 +1,23 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-24
-**Current Phase:** Sprint P3 complete — /guide feature shipped
+**Last Updated:** 2026-03-25
+**Current Phase:** Sprint 3.1 patch — Study Timer 3-tier recovery
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 3.1 patch — Study Timer 3-tier recovery (Mar 25, 2026)
+
+- **Root cause:** Students starting manual timer, switching to another app, and the browser reloading the page on return. The old code showed a recovery prompt (asking if they want to log it), which students either dismissed or didn't understand — losing the session.
+- **Fix — StudyTimerWidget.jsx:** Replaced the single recovery prompt with three-tier logic evaluated on mount:
+  - `< 4h elapsed` → auto-resume the timer from original start time, clock shows correct elapsed immediately (via `startMsRef` + `useEffect` on `timerState`)
+  - `4–16h elapsed` → honest-session prompt: "Your timer ran for Xh Ym. Were you studying the whole time?" with three options: [Yes, log full time] | [Log less… → custom hours input, capped at elapsed] | [Discard session]
+  - `> 16h elapsed` → silently discard (leaderboard protection — physically impossible as continuous study)
+- **helpContent.js:** `study-timer` section updated to describe all three tiers. Old single-line tip replaced with a list + updated tip encouraging students to press Stop before switching away.
+- **No SQL changes.** No new files. No schema changes.
+
+Files Changed: `src/components/dashboard/StudyTimerWidget.jsx`, `src/data/helpContent.js`, `docs/active/now.md`, `docs/tracking/changelog.md`
 
 ### Contextual Info Modal on all three public share pages (Mar 24, 2026)
 

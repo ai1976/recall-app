@@ -98,12 +98,24 @@ export const HELP_TABS = [
             ],
           },
           {
+            type: 'paragraph',
+            text: 'What happens if you switch apps or the page reloads while the timer is running:',
+          },
+          {
+            type: 'list',
+            items: [
+              'Under 4 hours away \u2014 Timer auto-resumes from where it left off. No prompt. This covers briefly switching to WhatsApp, a browser tab, or another app.',
+              '4 to 16 hours away \u2014 Timer pauses and shows a prompt: \u201cYour timer ran for Xh Ym. Were you studying the whole time?\u201d You can log the full time, log fewer hours via a custom input (if you took breaks), or discard the session. Be honest \u2014 your time feeds the leaderboard.',
+              'Over 16 hours away \u2014 Session is silently discarded. A session of that length cannot be genuine continuous study.',
+            ],
+          },
+          {
             type: 'tip',
-            text: 'If you accidentally close the tab while the timer is running, Recall will detect the unfinished session next time you open the dashboard and ask whether you want to log it. Sessions older than 4 hours are discarded automatically.',
+            text: 'The best habit is to press Stop before switching away. Auto-resume is a safety net for short breaks, not a substitute for managing your own timer.',
           },
           {
             type: 'paragraph',
-            text: 'Study time is the foundation for upcoming features including the leaderboard, daily study goals, and friend comparisons \u2014 so keeping it accurate helps you track your real progress.',
+            text: 'Accurate study time feeds the leaderboard and daily goals \u2014 logging honestly is what makes those features meaningful.',
           },
         ],
       },

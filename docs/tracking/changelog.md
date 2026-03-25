@@ -1,6 +1,16 @@
 # Changelog
 
 ---
+## [2026-03-25] fix: Sprint 3.1 patch — Study Timer 3-tier stale session recovery
+
+### Changed
+- **`src/components/dashboard/StudyTimerWidget.jsx`** — Replaced single "Log it / Discard" recovery prompt with three-tier mount logic: `< 4h` auto-resumes silently (handles app-switch + page reload); `4–16h` shows honest-session prompt with full-log, custom-hours input (1h to max elapsed), and discard options; `> 16h` silently discards to protect leaderboard integrity. Added `startMsRef` + `useEffect(timerState)` so resumed clock shows correct elapsed immediately, not "00:00".
+- **`src/data/helpContent.js`** — `study-timer` help section: old single-line discard tip replaced with a list describing all three tiers, plus a tip encouraging students to press Stop before switching away.
+
+### Files Changed
+`src/components/dashboard/StudyTimerWidget.jsx`, `src/data/helpContent.js`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 ## [2026-03-24] feat: contextual info modal on all three public share pages
 
 ### Added
