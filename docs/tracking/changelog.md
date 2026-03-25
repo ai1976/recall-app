@@ -1,6 +1,20 @@
 # Changelog
 
 ---
+## [2026-03-25] feat: Sprint 3.6 — Nightly Study Summary Push Notification
+
+### Added
+- **`supabase/functions/cron-daily-study-summary/index.ts`** (NEW) — Deno Edge Function. Runs every 15 min via pg_cron. Finds students whose local time is 22:00–22:14, checks 7-day activity, computes today's study seconds, and sends a personalised push. Two message variants: "Great work today 🎯" (≥60s logged, shows formatted duration + leaderboard nudge) vs "Time to open the books 📚" (<60s). Stale subscriptions (410/404) marked `is_active = false` and skipped on subsequent runs. Returns `{ processed, sent, failed, removed_stale }`.
+- **pg_cron schedule** `cron-daily-study-summary` on `*/15 * * * *` — see session notes for exact SQL.
+
+### Changed
+- **`docs/reference/DATABASE_SCHEMA.md`** — Added `push_subscriptions` table doc, `push_notification_preferences` table doc, and new "Edge Functions" reference section documenting all 6 functions including `cron-daily-study-summary`.
+- **`docs/reference/FILE_STRUCTURE.md`** — Added `cron-review-reminders` and `cron-daily-study-summary` entries under `supabase/functions/`.
+
+### Files Changed
+`supabase/functions/cron-daily-study-summary/index.ts` (NEW), `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`
+
+---
 ## [2026-03-25] fix: Sprint 3.1 patch — Study Timer 3-tier stale session recovery
 
 ### Changed

@@ -12,8 +12,12 @@ recall-app
 │       │   └── index.ts                   ← soft-delete push subscription
 │       ├── notify-friend-event
 │       │   └── index.ts                   ← instant push for friend_request/accepted
-│       └── notify-content-created
-│           └── index.ts                   ← update-in-place aggregation + push
+│       ├── notify-content-created
+│       │   └── index.ts                   ← update-in-place aggregation + push
+│       ├── cron-review-reminders
+│       │   └── index.ts                   ← daily 08:00 IST push for due review cards
+│       └── cron-daily-study-summary
+│           └── index.ts                   ← nightly 22:00 local-time study summary push (Sprint 3.6)
 ├── .env.local
 ├── .gitignore
 ├── components.json

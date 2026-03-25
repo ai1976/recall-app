@@ -2551,6 +2551,84 @@ Logs daily activity for streak and time-based badge calculations.
 
 ---
 
+## push_subscriptions (Sprint 3.x — Push Phase)
+
+Stores Web Push API subscriptions per device. One user can have multiple rows (one per browser/device). Soft-deleted on 410/404 response from push server.
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | uuid | PK, default gen_random_uuid() |
+| `user_id` | uuid | NOT NULL, FK → auth.users ON DELETE CASCADE |
+| `endpoint` | text | NOT NULL |
+| `p256dh` | text | NOT NULL |
+| `auth` | text | NOT NULL |
+| `browser` | text | nullable — Chrome, Firefox, Edge, Safari |
+| `platform` | text | nullable — Android, iOS, Windows, macOS |
+| `is_active` | boolean | DEFAULT true — set false on 410/404, never hard-deleted |
+| `created_at` | timestamptz | DEFAULT now() |
+| `last_used_at` | timestamptz | updated on each successful send |
+
+**RLS:** Enabled. `USING (auth.uid() = user_id)` — users manage own rows only.
+
+**Unique constraint:** `(user_id, endpoint)` — one row per browser per user.
+
+**Usage:** Queried by `_shared/sendPush.ts` (filters `is_active = true`). Written by `push-subscribe` Edge Function. Stale rows deactivated (not deleted) by `sendPushToUsers` helper and `cron-daily-study-summary`.
+
+---
+
+## push_notification_preferences (Sprint 3.x — Push Phase)
+
+Per-user opt-in/out flags for each notification type. Defaults to all `true` if no row exists.
+
+| Column | Type | Constraints |
+|---|---|---|
+| `user_id` | uuid | PK, FK → auth.users ON DELETE CASCADE |
+| `review_reminders` | boolean | DEFAULT true |
+| `professor_content` | boolean | DEFAULT true |
+| `friend_content` | boolean | DEFAULT true |
+| `group_content` | boolean | DEFAULT true |
+| `friend_requests` | boolean | DEFAULT true |
+| `friend_accepted` | boolean | DEFAULT true |
+| `updated_at` | timestamptz | DEFAULT now() |
+
+**Note:** `daily_summary` preference column is not yet added — Sprint 3.6 notifies all active students without an opt-out (future scope).
+
+---
+
+## Edge Functions (Supabase Deno runtime)
+
+All functions live in `supabase/functions/`. Shared helpers in `_shared/` are not deployed as standalone functions.
+
+| Function | Trigger | Purpose |
+|---|---|---|
+| `push-subscribe` | User action (POST) | Upsert push subscription into `push_subscriptions` |
+| `push-unsubscribe` | User action (POST) | Mark subscription `is_active = false` |
+| `notify-friend-event` | DB trigger / server | Instant push for friend_request / accepted events |
+| `notify-content-created` | DB trigger / server | Push when professor posts new notes or flashcards |
+| `cron-review-reminders` | pg_cron — 02:30 UTC daily | Push to students with cards due today (08:00 IST) |
+| `cron-daily-study-summary` | pg_cron — `*/15 * * * *` | Nightly 22:00 local-time study summary push (Sprint 3.6) |
+
+### cron-daily-study-summary (Sprint 3.6)
+
+Runs every 15 minutes. Notifies students whose local time is **22:00–22:14** with a personalised study summary for the day.
+
+**15-minute cadence rationale:** IST is UTC+5:30 (fractional offset). An hourly cron at :00 UTC fires at 10:30 PM IST, not 10:00 PM IST. Running every 15 min and filtering `MINUTE < 15` delivers at exactly 22:00 local time for all fractional timezones without duplicates.
+
+**Eligibility filters:**
+- `profiles.role = 'student'` only
+- Local time: hour = 22 AND minute < 15 (computed via `Intl.DateTimeFormat`, timezone from `profiles.timezone`)
+- Active in last 7 days: at least one row in `study_sessions` OR `reviews` with `created_at >= NOW() - 7 days`
+
+**Message variants:**
+- `today_seconds >= 60`: "Great work today 🎯" — logged study time formatted as `Xh Ym` / `Ym`
+- `today_seconds < 60`: "Time to open the books 📚" — encourages first session
+
+**Stale subscription handling:** 410/404 responses set `is_active = false` on the subscription row; execution continues for remaining users.
+
+**pg_cron job name:** `cron-daily-study-summary`
+
+---
+
 **END OF DATABASE_SCHEMA.md**
 
 *This document saved you 2+ hours of debugging. Keep it updated!* 🎯

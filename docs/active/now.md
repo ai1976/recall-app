@@ -1,11 +1,26 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-03-25
-**Current Phase:** Sprint 3.1 patch — Study Timer 3-tier recovery
+**Current Phase:** Sprint 3.6 — Nightly Study Summary Push Notification
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 3.6 — Nightly Study Summary Push Notification (Mar 25, 2026)
+
+- **New Edge Function** `cron-daily-study-summary` at `supabase/functions/cron-daily-study-summary/index.ts`. Runs every 15 minutes via pg_cron (`*/15 * * * *`). Delivers a personalised study summary push at exactly 22:00 local time for each student — fractional-offset timezones (IST = UTC+5:30) handled correctly via `Intl.DateTimeFormat` bucketing.
+- **Eligibility:** `role = 'student'`, local time 22:00–22:14, active in last 7 days (study_sessions OR reviews).
+- **Messages:** ≥60s logged → "Great work today 🎯" with formatted time + leaderboard nudge. <60s → "Time to open the books 📚" encouragement.
+- **No sw.js changes** — push + notificationclick handlers were already complete.
+- **No table changes** — `push_subscriptions` table already existed with all required columns.
+- **No frontend changes** — notification is the feature; no preferences UI this sprint.
+- **Stale subscriptions** deactivated (is_active = false) on 410/404, never hard-deleted.
+- **pg_cron schedule** to be run in Supabase SQL Editor (see session notes below).
+
+Files Changed: `supabase/functions/cron-daily-study-summary/index.ts` (NEW), `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`
+
+---
 
 ### Sprint 3.1 patch — Study Timer 3-tier recovery (Mar 25, 2026)
 
