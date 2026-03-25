@@ -1,7 +1,7 @@
 # IDEAS - Feature Backlog
 
 **Project:** Recall  
-**Last Updated:** January 18, 2026
+**Last Updated:** March 25, 2026
 
 ---
 
@@ -133,6 +133,7 @@
 - [ ] Pagination for large note lists
 - [ ] Database query optimization
 - [ ] CDN for static assets
+- [ ] **Tech Debt (Target: ~5,000 active students):** Refactor `cron-daily-study-summary` Edge Function. Currently scans the entire `profiles` table every 15 minutes and calculates each user's local timezone at runtime. This works fine at ~140 users but will hit Edge Function timeout limits at scale. **Fix:** Add a `notification_bucket_utc` column to `profiles` (e.g. `'16:30'` for IST users — their 10 PM in UTC). Add an index on this column. The cron job then runs a single indexed lookup `WHERE notification_bucket_utc = <current_utc_time>` instead of doing datetime math on every row. Calculate and write the bucket value once at signup or timezone change, not on every cron tick.
 
 ### Code Quality
 - [ ] Remove console.log statements
