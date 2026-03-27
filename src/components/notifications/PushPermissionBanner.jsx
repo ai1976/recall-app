@@ -34,6 +34,33 @@ export default function PushPermissionBanner() {
 
   if (!mounted) return null;
 
+  const handleDismiss = () => {
+    localStorage.setItem(DISMISSED_KEY, 'true');
+    setIsDismissed(true);
+  };
+
+  // iOS in a regular browser tab: PushManager is unavailable, so isSupported=false,
+  // but we still need to show the "add to home screen" instructions.
+  // Must check needsIOSInstall BEFORE the isSupported guard.
+  if (needsIOSInstall) {
+    if (isDismissed) return null;
+    return (
+      <div className="flex items-start gap-3 px-4 py-3 mb-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
+        <Smartphone className="h-4 w-4 mt-0.5 flex-shrink-0" />
+        <div className="flex-1">
+          <p className="font-medium">Get push notifications on iPhone</p>
+          <p className="text-indigo-600 mt-0.5">
+            Tap <strong>Share</strong> → <strong>Add to Home Screen</strong>, then open the app
+            from your home screen.
+          </p>
+        </div>
+        <button onClick={handleDismiss} className="text-indigo-400 hover:text-indigo-600 flex-shrink-0">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
   // Hide if: not supported, already subscribed, already dismissed, permission denied
   if (!isSupported) return null;
   if (isSubscribed) return null;
@@ -41,11 +68,6 @@ export default function PushPermissionBanner() {
   if (permission === 'denied') return null;
   // Already asked and granted but not yet subscribed (edge case) — let ProfileSettings handle it
   if (permission === 'granted' && !isSubscribed) return null;
-
-  const handleDismiss = () => {
-    localStorage.setItem(DISMISSED_KEY, 'true');
-    setIsDismissed(true);
-  };
 
   const handleEnable = async () => {
     const success = await subscribe();
@@ -65,25 +87,6 @@ export default function PushPermissionBanner() {
       <div className="flex items-center gap-3 px-4 py-3 mb-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
         <Bell className="h-4 w-4 flex-shrink-0" />
         <span>Push notifications enabled! You'll be notified when new content is added.</span>
-      </div>
-    );
-  }
-
-  // iOS: must install PWA first
-  if (needsIOSInstall) {
-    return (
-      <div className="flex items-start gap-3 px-4 py-3 mb-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
-        <Smartphone className="h-4 w-4 mt-0.5 flex-shrink-0" />
-        <div className="flex-1">
-          <p className="font-medium">Get push notifications on iPhone</p>
-          <p className="text-indigo-600 mt-0.5">
-            Tap <strong>Share</strong> → <strong>Add to Home Screen</strong>, then open the app
-            from your home screen.
-          </p>
-        </div>
-        <button onClick={handleDismiss} className="text-indigo-400 hover:text-indigo-600 flex-shrink-0">
-          <X className="h-4 w-4" />
-        </button>
       </div>
     );
   }

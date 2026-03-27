@@ -29,6 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Timer, Square } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const SHORT_BREAK_MS   = 4  * 60 * 60 * 1000; // < 4h  → auto-resume
 const PROMPT_CUTOFF_MS = 16 * 60 * 60 * 1000; // 4–16h → prompt, > 16h → discard
@@ -66,6 +67,7 @@ function formatMs(ms) {
 
 export default function StudyTimerWidget({ onSessionLogged }) {
   const { user } = useAuth();
+  const { toast } = useToast();
 
   // timerState: 'idle' | 'running' | 'saving'
   const [timerState, setTimerState] = useState('idle');
@@ -76,6 +78,8 @@ export default function StudyTimerWidget({ onSessionLogged }) {
   const [customHours, setCustomHours] = useState('');
   // Brief confirmation message shown after a successful log
   const [confirmation, setConfirmation] = useState('');
+  // True after a recovery-prompt log — prompts the student to press Start again
+  const [postRecovery, setPostRecovery] = useState(false);
 
   // Interval handle — in ref so ticks never trigger re-renders
   const intervalRef = useRef(null);
@@ -121,7 +125,7 @@ export default function StudyTimerWidget({ onSessionLogged }) {
       setTimerState('running');
     } else if (elapsedMs < PROMPT_CUTOFF_MS) {
       // 4–16h — honest-session prompt
-      setRecoveryPrompt({ startedAt: startedAtStr, elapsedMs });
+      setRecoveryPrompt({ startedAt: startedAtStr, elapsedMs, source: 'stale' });
     } else {
       // > 16h — discard silently, leaderboard protection
       localStorage.removeItem(LS_STARTED);
@@ -165,17 +169,55 @@ export default function StudyTimerWidget({ onSessionLogged }) {
     localStorage.setItem(LS_SOURCE, 'manual');
     startTick(new Date(isoStr).getTime());
     setConfirmation('');
+    setPostRecovery(false);
     setTimerState('running');
   };
 
   const handleStop = async () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     startMsRef.current = null;
-    setTimerState('saving');
 
+    const startedAtStr = localStorage.getItem(LS_STARTED);
+    const elapsedMs    = Date.now() - new Date(startedAtStr).getTime();
+
+    // ── Three-tier policy on Stop (mirrors mount-time stale session logic) ──
+    //
+    //   < 4h   → log normally
+    //   4–16h  → honest-session prompt (same UI as stale session on mount)
+    //   > 16h  → discard + toast (leaderboard protection; toast because the
+    //            student deliberately pressed Stop and deserves an explanation,
+    //            unlike the silent discard on mount)
+
+    if (elapsedMs >= PROMPT_CUTOFF_MS) {
+      // > 16h — physically impossible continuous study. Discard and notify.
+      localStorage.removeItem(LS_STARTED);
+      localStorage.removeItem(LS_SOURCE);
+      if (clockRef.current) clockRef.current.textContent = '00:00';
+      setTimerState('idle');
+      toast({
+        title: 'Session discarded',
+        description:
+          'Timers over 16 hours cannot be logged to protect leaderboard integrity.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (elapsedMs >= SHORT_BREAK_MS) {
+      // 4–16h — route to honest-session prompt.
+      // localStorage keys are intentionally NOT cleared here: if the student
+      // navigates away without responding, the next mount will catch the
+      // session again via the standard stale-session flow.
+      if (clockRef.current) clockRef.current.textContent = '00:00';
+      setRecoveryPrompt({ startedAt: startedAtStr, elapsedMs, source: 'stop' });
+      setTimerState('idle');
+      return;
+    }
+
+    // < 4h — log normally.
+    setTimerState('saving');
     try {
-      const startedAtStr    = localStorage.getItem(LS_STARTED);
-      const durationSeconds = Math.round((Date.now() - new Date(startedAtStr).getTime()) / 1000);
+      const durationSeconds = Math.round(elapsedMs / 1000);
       const duration        = await insertSession(startedAtStr, durationSeconds);
 
       if (duration > 0) {
@@ -200,6 +242,7 @@ export default function StudyTimerWidget({ onSessionLogged }) {
       const duration = await insertSession(recoveryPrompt.startedAt, durationSeconds);
       if (duration > 0) {
         setConfirmation(`Session logged: ${formatDuration(duration)}`);
+        setPostRecovery(true);
         onSessionLogged?.();
       }
     } catch (err) {
@@ -220,6 +263,7 @@ export default function StudyTimerWidget({ onSessionLogged }) {
       const duration = await insertSession(recoveryPrompt.startedAt, hrs * 3600);
       if (duration > 0) {
         setConfirmation(`Session logged: ${formatDuration(duration)}`);
+        setPostRecovery(true);
         onSessionLogged?.();
       }
     } catch (err) {
@@ -252,12 +296,14 @@ export default function StudyTimerWidget({ onSessionLogged }) {
       </CardHeader>
       <CardContent>
 
-        {/* ── Recovery prompt (4–16h stale session) ── */}
+        {/* ── Recovery prompt (4–16h) ── */}
         {recoveryPrompt && timerState !== 'saving' && (
           <div className="space-y-3">
             <p className="text-xs sm:text-sm font-medium text-amber-800 leading-snug">
-              Your timer ran for {formatMs(recoveryPrompt.elapsedMs)}.
-              Were you studying the whole time?
+              {recoveryPrompt.source === 'stop'
+                ? `Wow, a ${formatMs(recoveryPrompt.elapsedMs)} session! Just confirming — do you want to log the full time, or did you leave the timer running during a break?`
+                : `Your timer ran for ${formatMs(recoveryPrompt.elapsedMs)}. Were you studying the whole time?`
+              }
             </p>
 
             {!customInputMode ? (
@@ -267,7 +313,10 @@ export default function StudyTimerWidget({ onSessionLogged }) {
                   className="h-8 w-full justify-start text-xs"
                   onClick={handleRecoveryFull}
                 >
-                  Yes — log {formatMs(recoveryPrompt.elapsedMs)}
+                  {recoveryPrompt.source === 'stop'
+                    ? `Log full ${formatMs(recoveryPrompt.elapsedMs)}`
+                    : `Yes — log ${formatMs(recoveryPrompt.elapsedMs)}`
+                  }
                 </Button>
                 <Button
                   size="sm"
@@ -333,7 +382,14 @@ export default function StudyTimerWidget({ onSessionLogged }) {
           <div className="flex items-center justify-between">
             <div>
               {confirmation ? (
-                <p className="text-xs sm:text-sm text-green-600 font-medium">{confirmation}</p>
+                <>
+                  <p className="text-xs sm:text-sm text-green-600 font-medium">{confirmation}</p>
+                  {postRecovery && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      Tap Start to begin a new session.
+                    </p>
+                  )}
+                </>
               ) : (
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Offline study</p>
               )}

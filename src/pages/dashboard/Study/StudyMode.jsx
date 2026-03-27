@@ -342,15 +342,7 @@ export default function StudyMode({
       setCurrentIndex(flashcards.length);
       setShowAnswer(false);
     } else {
-      if (onComplete) {
-        onComplete(sessionStats);
-      } else {
-        toast({
-          title: "Study session complete!",
-          description: `You reviewed ${flashcards.length} flashcards`,
-        });
-        if(onExit) onExit();
-      }
+      finishSession();
     }
   };
 

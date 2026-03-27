@@ -2,6 +2,30 @@
 
 ## Resolved Bugs
 
+### [Mar 27, 2026] iOS 16.7.5 — Push notification install instructions never shown
+- **Symptom:** iOS users in regular Safari saw neither the push enable button nor the "Add to Home Screen" instructions.
+- **Root Cause:** `PushPermissionBanner.jsx` evaluated `if (!isSupported) return null` before the `needsIOSInstall` check. On iOS in-browser, `PushManager` is not in `window`, so `isSupported = false` and the component returned `null` before reaching the iOS-specific render path. The iOS instructions were dead code.
+- **Fix:** Moved `handleDismiss` above all guards; inserted the `needsIOSInstall` early return (with `isDismissed` guard) before the `isSupported` guard.
+- **Status:** ✅ RESOLVED
+
+### [Mar 27, 2026] Study time not updating after flashcard review session
+- **Symptom:** Completing a flashcard study session did not add time to the "Study time today" dashboard stat. Affected all platforms (not just iOS).
+- **Root Cause:** `handleRating()` in `StudyMode.jsx` handled the last-card completion inline: `if (onComplete) onComplete(sessionStats); else { toast(); onExit(); }`. This code path never called `finishSession()` or `logStudyModeSession()`. Only the skip/suspend/reset-on-last-card paths called `finishSession()`. The rating path — the primary completion path for all students — silently discarded the session.
+- **Fix:** Replaced the inline last-card completion block in `handleRating` with a single `finishSession()` call.
+- **Status:** ✅ RESOLVED
+
+### [Mar 27, 2026] handleStop — 21h+ sessions bypass leaderboard protection
+- **Symptom:** A student who kept the browser tab open (never reloading the page) and manually pressed Stop after 21+ hours would have the full duration logged to the DB, bypassing leaderboard integrity protection. Confirmed via diagnostic: a 76,035s (21.1h) session existed in `study_sessions`.
+- **Root Cause:** The 16h discard threshold only ran on page **mount** (stale session recovery). `handleStop` had no duration check at all — it passed any elapsed time directly to `insertSession`.
+- **Fix:** Applied the same 3-tier policy to `handleStop` as mount-time stale session recovery: `< 4h` logs normally; `4–16h` routes to the honest-session prompt (localStorage keys preserved for mount recovery if student navigates away); `> 16h` discards and shows a destructive toast. Added `useToast` import to `StudyTimerWidget.jsx`.
+- **Status:** ✅ RESOLVED
+
+### [Mar 27, 2026] Android — After recovery prompt, second study session not started (UX gap)
+- **Symptom:** After the 4–16h stale-session recovery prompt logged a session, students did not realize they needed to press Start again for a new session. Total study time appeared lower than actual.
+- **Root Cause:** No code-level cap found in `insertSession`, `GoalProgressWidget`, or `get_study_time_stats` (RPC diagnostic pending). The UX gap: post-recovery idle state showed "Session logged: Xh Ym" + Start button but no guidance linking the two.
+- **Fix:** Added `postRecovery` boolean state in `StudyTimerWidget`. Set to `true` after recovery-prompt log, cleared on Start. When true, a "Tap Start to begin a new session." hint appears below the confirmation text.
+- **Status:** ✅ UX fixed. SQL diagnostic for RPC cap still pending — run `[DIAGNOSTIC] Inspect get_study_time_stats for duration cap` in Supabase to confirm no server-side filter exists.
+
 ### [Mar 22, 2026] FindFriends — Raw email exposed in network payload (client-side masking only)
 - **Symptom:** `FindFriends.jsx` queried `profiles` with `email` in the select. `maskEmail()` hid the address in the UI but any user with DevTools could read the full email of every user on the platform in the network response.
 - **Root Cause:** No server-side filtering. The function `maskEmail()` was purely cosmetic. The comment at line 14 acknowledged this explicitly: "NOTE: Email masking is cosmetic only. Full email is present in data payload."

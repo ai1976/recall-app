@@ -1,6 +1,27 @@
 # Changelog
 
 ---
+## [2026-03-27] fix: Sprint 3.7b — handleStop 3-tier leaderboard protection + context-aware prompt copy
+
+### Fixed
+- **`src/components/dashboard/StudyTimerWidget.jsx`** — `handleStop` had no duration ceiling. A student who kept the browser tab open (bypassing the mount-time stale session check) and pressed Stop after 21h+ would log the full duration, corrupting leaderboard stats. Applied the same 3-tier policy as mount-time stale session recovery: `< 4h` logs normally; `4–16h` routes to the honest-session prompt (localStorage keys intentionally preserved so mount can recover the session if student navigates away mid-prompt); `> 16h` discards and shows a destructive toast. Added `useToast` import.
+- **Recovery prompt copy is now source-aware.** Added `source: 'stale' | 'stop'` field to `recoveryPrompt` state. Mount-triggered (stale) prompt keeps original copy: *"Your timer ran for Xh. Were you studying the whole time?"* / *"Yes — log Xh"*. Stop-triggered prompt uses encouraging copy: *"Wow, a Xh session! Just confirming — do you want to log the full time, or did you leave the timer running during a break?"* / *"Log full Xh"*. Tier 3 toast updated to: *"Timers over 16 hours cannot be logged to protect leaderboard integrity."*
+
+### Files Changed
+`src/components/dashboard/StudyTimerWidget.jsx`, `docs/tracking/changelog.md`
+
+---
+## [2026-03-27] fix: Sprint 3.7 — iOS push banner, study session logging, timer UX
+
+### Fixed
+- **`src/components/notifications/PushPermissionBanner.jsx`** — iOS users in a regular Safari tab (not installed as PWA) never saw the "Add to Home Screen" install instructions. `PushManager` is unavailable in iOS Safari in-browser, so `isSupported = false`. The `if (!isSupported) return null` guard was evaluated before the `needsIOSInstall` check, making the iOS instructions dead code. Fix: moved `handleDismiss` above all guards, added the `needsIOSInstall` early return before the `isSupported` guard.
+- **`src/pages/dashboard/Study/StudyMode.jsx`** — `handleRating()` handled the last-card completion inline (directly calling `onComplete`/`onExit` without calling `finishSession()`). `logStudyModeSession()` was therefore never called on the primary completion path (rating the final card). Only skip/suspend/reset paths correctly triggered `finishSession()`. Fix: replaced inline last-card completion code in `handleRating` with `finishSession()`.
+- **`src/components/dashboard/StudyTimerWidget.jsx`** — After the 4–16h honest-session recovery prompt logs a session, the widget returned to idle showing "Session logged: Xh Ym" but gave no indication the student needed to press Start for a new session. Added `postRecovery` boolean state; when true (set after recovery-prompt log, cleared on Start), a "Tap Start to begin a new session." hint appears below the confirmation text.
+
+### Files Changed
+`src/components/notifications/PushPermissionBanner.jsx`, `src/pages/dashboard/Study/StudyMode.jsx`, `src/components/dashboard/StudyTimerWidget.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md`
+
+---
 ## [2026-03-25] feat: Sprint 3.6 — Nightly Study Summary Push Notification
 
 ### Added

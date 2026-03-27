@@ -1,11 +1,22 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-25
-**Current Phase:** Sprint 3.6 — Nightly Study Summary Push Notification
+**Last Updated:** 2026-03-27
+**Current Phase:** Sprint 3.7 — Bug Fixes (Notifications + Study Timer)
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 3.7 — All bugs resolved (Mar 27, 2026)
+
+- **Bug 1A — iOS push banner never shown in-browser:** `PushPermissionBanner.jsx` had `if (!isSupported) return null` BEFORE the `needsIOSInstall` check. On iOS in regular Safari, `PushManager` is not in `window` → `isSupported = false` → the iOS install instructions were dead code. Fix: moved `handleDismiss` above the `needsIOSInstall` guard and moved the iOS install-instructions render path before the `isSupported` guard.
+- **Bug 1B — Study time never logged after flashcard review session:** `handleRating()` in `StudyMode.jsx` handled the last-card completion inline and never called `finishSession()`, which is the only call site for `logStudyModeSession()`. Rating the last card — the primary completion path for every student — silently discarded the session. Fix: replaced inline completion code in `handleRating` with `finishSession()`.
+- **Bug 2 — Android 8h "cap" confirmed as UX gap:** SQL diagnostics confirmed no code or RPC cap. `get_study_time_stats` is a clean SUM with no ceiling. Root cause: student didn't press Start after their break. Fix: added `postRecovery` state flag in `StudyTimerWidget`; after a recovery-prompt log, shows "Tap Start to begin a new session." hint. Cleared on Start.
+- **Leaderboard protection gap in `handleStop`:** Diagnostic revealed a 76,035s (21.1h) session in the DB — logged via manual Stop with the tab kept open, bypassing the mount-time 16h discard. Fix: applied the same 3-tier policy to `handleStop` as mount (< 4h logs normally; 4–16h shows honest-session prompt; > 16h discards + destructive toast). Added `source: 'stale' | 'stop'` to `recoveryPrompt` state so the prompt uses context-aware copy: Stop-triggered shows encouraging framing (*"Wow, a Xh session! Just confirming…"*), mount-triggered keeps original suspicious-neutral copy.
+
+Files Changed: `src/components/notifications/PushPermissionBanner.jsx`, `src/pages/dashboard/Study/StudyMode.jsx`, `src/components/dashboard/StudyTimerWidget.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md`
+
+---
 
 ### Sprint 3.6 — Nightly Study Summary Push Notification (Mar 25, 2026)
 
