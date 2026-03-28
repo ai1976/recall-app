@@ -94,6 +94,21 @@ export default function StudyMode({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
+  // Capture study time when the user backgrounds the app or closes the tab.
+  // Covers iOS force-quit and app-switch scenarios where handleExit() never fires.
+  // logStudyModeSession() clears localStorage before the DB call, so if the user
+  // returns and exits cleanly afterward, the second call is a safe no-op.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        logStudyModeSession(); // fire-and-forget
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Stop speech when card changes or answer is revealed
   useEffect(() => {
     stop();
@@ -518,8 +533,11 @@ export default function StudyMode({
   };
 
   // Log the completed study_mode session to DB (single INSERT pattern).
-  // Called fire-and-forget from finishSession — never blocks the user flow.
+  // Called fire-and-forget from finishSession, handleExit, and the
+  // visibilitychange listener — never blocks the user flow.
   // Minimum 10 seconds to avoid logging accidental/empty sessions.
+  // localStorage is cleared before the DB call so a second caller always
+  // finds empty keys and returns early — no double-logging possible.
   const logStudyModeSession = async () => {
     try {
       const startedAtStr = localStorage.getItem('recall_session_started_at');
@@ -623,6 +641,7 @@ export default function StudyMode({
   };
 
   const handleExit = () => {
+    logStudyModeSession(); // fire-and-forget — captures partial session on mid-deck exit
     if (onExit) {
       onExit();
     } else {

@@ -1,6 +1,16 @@
 # Changelog
 
 ---
+## [2026-03-28] fix: Sprint 3.8 — Study time logging for mid-session exits and iOS force-quits
+
+### Fixed
+- **`src/pages/dashboard/Study/StudyMode.jsx`** — Mid-session exits via `handleExit()` never logged study time. `logStudyModeSession()` was only called inside `finishSession()` (triggered when the final card is rated), so students who reviewed cards and then navigated away got 0 study time despite review rows being written card-by-card. This caused widespread `< 1m` study time on the leaderboard for students with 20–30 reviews. Fix: added `logStudyModeSession()` call at the top of `handleExit()`, fire-and-forget, before navigation. Double-logging is prevented by the existing localStorage-clear-before-DB-call pattern in `logStudyModeSession()`.
+- **`src/pages/dashboard/Study/StudyMode.jsx`** — Tab closes, iOS app swipe-away, and app backgrounding silently discarded all study time since no button click was possible. Fix: added a `visibilitychange` event listener that fires `logStudyModeSession()` when `document.visibilityState === 'hidden'`. Listener is registered on mount and cleaned up on unmount. Handles iOS force-quit (app switch triggers `hidden` before the process is killed). Same localStorage-based deduplication ensures a subsequent clean exit is a no-op.
+
+### Files Changed
+`src/pages/dashboard/Study/StudyMode.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 ## [2026-03-27] fix: Sprint 3.7b — handleStop 3-tier leaderboard protection + context-aware prompt copy
 
 ### Fixed
