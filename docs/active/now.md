@@ -1,11 +1,26 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-28
-**Current Phase:** Sprint 3.8 — Study Time Leaderboard Fix
+**Last Updated:** 2026-03-30
+**Current Phase:** Sprint 3.9 — Push Notification Infrastructure Fix
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 3.9 — Push notification CRON_SECRET mismatch (Mar 30, 2026)
+
+- **Root cause diagnosed:** All push notifications (nightly study summary + morning review reminder) were silently failing since Sprint 3.6 shipped. Every pg_cron invocation returned HTTP 401 Unauthorized. Two separate issues:
+  1. `cron-daily-study-summary` pg_cron job had the placeholder `YOUR_CRON_SECRET_HERE` as the `x-cron-secret` header value — never replaced with the real secret.
+  2. Fixing it required setting a new `CRON_SECRET` value via Supabase CLI (`npx supabase secrets set`), which then broke `daily-review-reminders` (that job had the original correct hash). Resynced both jobs to the new secret.
+- **Fix — `cron-daily-study-summary`:** Updated pg_cron job command to send correct `x-cron-secret` header. Confirmed 200 response on next invocation (16:45 UTC 2026-03-29).
+- **Fix — `daily-review-reminders`:** Resynced pg_cron job to the new `CRON_SECRET` value after CLI secret rotation.
+- **No code changes.** All fixes applied in Supabase: secret updated via CLI, cron jobs recreated via SQL.
+- **Verification:** `daily-review-reminders` fires at 02:30 UTC daily — first post-fix delivery will be 2026-03-31 08:00 IST. Nightly summary fires tonight at 16:30 UTC (22:00 IST).
+- **Affected users:** All students with push subscriptions. No notifications were ever delivered since Sprint 3.6 (2026-03-25). Aryan Pamnani confirmed as test case — active subscription, 224 cards due, all eligibility checks pass.
+
+Files Changed: `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md` (infrastructure fixes only — no source code changes)
+
+---
 
 ### Sprint 3.8 — Study time logging for mid-session exits and iOS force-quits (Mar 28, 2026)
 

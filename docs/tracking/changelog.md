@@ -1,6 +1,17 @@
 # Changelog
 
 ---
+## [2026-03-30] fix: Sprint 3.9 — Push notification CRON_SECRET mismatch (infrastructure)
+
+### Fixed
+- **pg_cron job `cron-daily-study-summary`** — Job command had literal placeholder `YOUR_CRON_SECRET_HERE` as the `x-cron-secret` header value since Sprint 3.6 was deployed. Every invocation returned HTTP 401 and the function body never executed. No nightly study summary notification was ever delivered to any user.
+- **pg_cron job `daily-review-reminders`** — After rotating `CRON_SECRET` via Supabase CLI to fix the above, this job began returning 401 because it still sent the original hash. Resynced job command to the new secret value.
+- Both cron jobs now return HTTP 200. First post-fix nightly summary: 2026-03-29 22:00 IST. First post-fix morning reminder: 2026-03-31 08:00 IST.
+
+### Files Changed
+`docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md` (no source code changes — infrastructure fix only)
+
+---
 ## [2026-03-28] fix: Sprint 3.8 — Study time logging for mid-session exits and iOS force-quits
 
 ### Fixed

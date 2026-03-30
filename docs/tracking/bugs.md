@@ -2,6 +2,14 @@
 
 ## Resolved Bugs
 
+### [Mar 30, 2026] Push notifications never delivered since Sprint 3.6 — CRON_SECRET mismatch
+- **Symptom:** No student received any push notification (nightly study summary or morning review reminder) since Sprint 3.6 shipped on 2026-03-25. Edge Function invocations all returned HTTP 401.
+- **Root Cause (primary):** `cron-daily-study-summary` pg_cron job was created with the literal placeholder `YOUR_CRON_SECRET_HERE` as the `x-cron-secret` header value, never replaced with the real secret. Function's auth guard rejected every call.
+- **Root Cause (secondary):** Fixing required rotating `CRON_SECRET` via Supabase CLI (`npx supabase secrets set`). `daily-review-reminders` was correctly configured with the original hash but that hash no longer matched after rotation → also broke until resynced.
+- **Fix:** Recreated both pg_cron jobs via `cron.unschedule()` + `cron.schedule()` with correct matching secret. Confirmed 200 response on next invocation.
+- **Key lesson:** `CRON_SECRET` is shared by all cron-triggered Edge Functions. Before rotating it, audit every cron job command that sends it in an `x-cron-secret` header — resync all jobs atomically.
+- **Status:** ✅ RESOLVED
+
 ### [Mar 27, 2026] iOS 16.7.5 — Push notification install instructions never shown
 - **Symptom:** iOS users in regular Safari saw neither the push enable button nor the "Add to Home Screen" instructions.
 - **Root Cause:** `PushPermissionBanner.jsx` evaluated `if (!isSupported) return null` before the `needsIOSInstall` check. On iOS in-browser, `PushManager` is not in `window`, so `isSupported = false` and the component returned `null` before reaching the iOS-specific render path. The iOS instructions were dead code.
