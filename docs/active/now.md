@@ -26,7 +26,19 @@ Files Changed: `src/pages/dashboard/Content/FlashcardCreate.jsx`, `docs/active/n
 
 ---
 
-### Sprint 4.0 (hotfix) — Suspend Topic PostgREST ambiguity (Apr 4, 2026)
+### Sprint 4.0 (hotfix 3) — Wrong column names in suspend_topic_cards + skip_topic_cards (Apr 4, 2026)
+
+- **Root cause:** Both RPCs used `easiness_factor` and `repetitions` — the column names as documented in DATABASE_SCHEMA.md. The actual `reviews` table columns are `easiness` and `repetition`. The schema doc was wrong and was used as the sole source of truth when writing SQL.
+- **Why the SQL Editor diagnostic missed it:** The test student+topic had zero matching flashcards, so the INSERT body never executed. "Success. No rows returned" was a false pass. Only Aryan's real data (cards with that topic) triggered the INSERT and surfaced the 42703 error.
+- **Confirmed via:** Browser console — `code: '42703', message: 'column "easiness_factor" of relation "reviews" does not exist'`
+- **Fix:** `CREATE OR REPLACE` of both functions with correct column names + `NOTIFY pgrst, 'reload schema'` in same execution.
+- **Schema doc corrected:** DATABASE_SCHEMA.md reviews table updated with correct column names, missing columns (`last_reviewed_at`), unique constraint (`reviews_user_flashcard_unique`), and a CRITICAL trap notice for all three known column name pitfalls.
+
+Files Changed: `docs/reference/DATABASE_SCHEMA.md`, `docs/tracking/bugs.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
+
+### Sprint 4.0 (hotfix 2) — Suspend Topic PostgREST ambiguity (Apr 4, 2026)
 
 - **Symptom:** "Failed to suspend topic." error immediately on tapping Suspend Topic. Reported by Aryan Pamnani on iOS minutes after Sprint 4.0 deployed.
 - **Root cause:** `CREATE OR REPLACE FUNCTION suspend_topic_cards(UUID, UUID DEFAULT NULL, TEXT DEFAULT NULL)` did not replace the existing `suspend_topic_cards(UUID, UUID)` — PostgreSQL treats different parameter signatures as separate functions. Both existed simultaneously. PostgREST returned an ambiguity error on every call.

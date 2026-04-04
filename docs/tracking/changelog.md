@@ -18,6 +18,16 @@
 `src/pages/dashboard/Content/FlashcardCreate.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md`
 
 ---
+## [2026-04-04] fix: Sprint 4.0 hotfix 3 — Wrong column names in topic RPCs + schema doc corrected
+
+### Fixed
+- **`suspend_topic_cards` + `skip_topic_cards` column names** — Both RPCs used `easiness_factor` (actual: `easiness`) and `repetitions` (actual: `repetition`) sourced from an incorrect DATABASE_SCHEMA.md. Error 42703 only surfaced when the INSERT path was triggered by real data (cards with an existing topic). Deployed via `CREATE OR REPLACE` of both functions with correct column names + `NOTIFY pgrst, 'reload schema'`.
+- **`DATABASE_SCHEMA.md` reviews table** — Corrected `easiness_factor` → `easiness`, `repetitions` → `repetition`. Added missing `last_reviewed_at` column and `reviews_user_flashcard_unique` UNIQUE constraint. Column count corrected from 10 to 12. CRITICAL section expanded with all three known column name traps and a rule to cross-check against `StudyMode.jsx` handleRating before deploying any SQL against the reviews table.
+
+### Files Changed
+`docs/reference/DATABASE_SCHEMA.md`, `docs/tracking/bugs.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 ## [2026-04-04] fix: Sprint 4.0 hotfix — Suspend Topic PostgREST ambiguity
 
 ### Fixed

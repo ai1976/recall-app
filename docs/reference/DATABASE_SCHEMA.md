@@ -252,9 +252,9 @@
 
 ### 2.4 reviews
 
-**Purpose:** Spaced repetition review history (SuperMemo-2 algorithm)  
-**Created:** December 2025  
-**Columns:** 10
+**Purpose:** Spaced repetition review history (SuperMemo-2 algorithm)
+**Created:** December 2025
+**Columns:** 12
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -262,10 +262,11 @@
 | user_id | uuid | NO | - | Foreign key to profiles.id |
 | flashcard_id | uuid | NO | - | Foreign key to flashcards.id |
 | quality | integer | NO | - | 1=Hard, 3=Medium, 5=Easy |
-| easiness_factor | numeric | NO | 2.5 | SuperMemo-2 EF value |
+| easiness | numeric | NO | 2.5 | SuperMemo-2 EF value — ⚠️ column is `easiness` NOT `easiness_factor` |
 | interval | integer | NO | 1 | Days until next review |
-| repetitions | integer | NO | 0 | Consecutive correct reviews |
+| repetition | integer | NO | 0 | Consecutive correct reviews — ⚠️ column is `repetition` NOT `repetitions` |
 | next_review_date | timestamp | NO | NOW() | When card is due next |
+| last_reviewed_at | timestamp | YES | NULL | Timestamp of most recent rating |
 | status | text | NO | 'active' | active/suspended (card suspension system) |
 | skip_until | date | YES | NULL | Date until which card is hidden (skip 24hr) |
 | created_at | timestamp | NO | NOW() | When review happened |
@@ -276,19 +277,24 @@
 - Suspended cards don't count as "due" and don't affect streak
 - Skipped cards are filtered out of due queries when `skip_until > today`
 - Constraint: `CHECK (status IN ('active', 'suspended'))`
+- Unique constraint: `reviews_user_flashcard_unique UNIQUE (user_id, flashcard_id)` — one review record per user per card
 
 **Why This Structure:**
 - Implements SuperMemo-2 algorithm for optimal retention
 - `quality` maps to: 1=Hard (review soon), 3=Medium (review later), 5=Easy (review much later)
-- `easiness_factor` adjusts based on performance (2.5 default)
+- `easiness` adjusts based on performance (2.5 default)
 - `interval` grows exponentially for correctly answered cards
 - `created_at` used for study streak calculation (NOT reviewed_at)
 
-**Related Tables:** profiles, flashcards  
-**Key Indexes:** user_id, flashcard_id, next_review_date (for due cards), created_at (for streak calculation)  
+**Related Tables:** profiles, flashcards
+**Key Indexes:** user_id, flashcard_id, next_review_date (for due cards), created_at (for streak calculation)
 **RLS Policies:** 4 policies (see RLS section)
 
-**CRITICAL:** Column is `created_at`, NOT `reviewed_at` (caused runtime error on 2025-12-27)
+**CRITICAL — COLUMN NAME TRAPS (both caused production bugs):**
+- Column is `created_at`, NOT `reviewed_at` (caused runtime error on 2025-12-27)
+- Column is `easiness`, NOT `easiness_factor` (caused error 42703 on 2026-04-04)
+- Column is `repetition`, NOT `repetitions` (caused error 42703 on 2026-04-04)
+- Any SQL written against this table MUST be verified against `StudyMode.jsx` handleRating INSERT before deploying
 
 ---
 
