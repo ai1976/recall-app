@@ -1,11 +1,36 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-03-30
-**Current Phase:** Sprint 3.9 — Push Notification Infrastructure Fix
+**Last Updated:** 2026-04-04
+**Current Phase:** Sprint 4.0 — Skip Topic (24hr) Feature
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 4.0 — Skip Topic (24hr) + null topic bug fix (Apr 4, 2026)
+
+**Reported by:** Aryan Pamnani
+
+**Root cause diagnosed:** The "topic skipping" feature students described was never properly implemented. Only "Suspend Topic" (indefinite removal) existed in the `...` dropdown. Additionally, the topic-level dropdown items had a null bug — they only rendered when `currentCard.topic_id` was truthy, silently hiding the option for cards with `custom_topic` (no `topic_id` FK).
+
+**SQL deployed first (Supabase):**
+- `skip_topic_cards(p_user_id, p_topic_id, p_custom_topic)` — new SECURITY DEFINER RPC. Bulk-sets `skip_until = tomorrow` on all active review records for the topic, upserts new records for unseen cards. Leaves suspended cards untouched via `WHERE reviews.status = 'active'` guard.
+- `suspend_topic_cards` updated to v2 — added `p_custom_topic DEFAULT NULL` parameter so custom-topic cards can now be suspended via the same RPC. Backward compatible (existing callers unaffected).
+
+**Frontend changes (`StudyMode.jsx`):**
+- Added `handleSkipTopic`: calls `skip_topic_cards` RPC, shows "Topic snoozed" toast, removes same-topic cards from current session.
+- Fixed `handleSuspendTopic`: null guard now checks `!topicId && !customTopic`; passes both `p_topic_id` and `p_custom_topic` to updated RPC.
+- Fixed null bug: topic-level dropdown options now render when card has `topic_id` OR `custom_topic` (both question and answer side).
+- Restructured both `...` dropdowns: Skip Topic (24hr) at top as safe action with blue icon; Suspend Card and Suspend Topic moved below separator with red/destructive styling.
+- Confirm dialog: `skipTopic` uses default (safe) button variant + "Skip Topic" label; all suspend actions now use destructive variant.
+
+**Documentation updates:**
+- `helpContent.js` — `skip-suspend` section expanded to 5 bullets with accurate descriptions; added tip block; FAQ updated from "What does suspending a card do?" to "What is the difference between Skip and Suspend?"
+- `guideContent.js` — Added "One topic too heavy? Skip it for today." step to the "Falling Behind" situation.
+
+Files Changed: `src/pages/dashboard/Study/StudyMode.jsx`, `src/data/helpContent.js`, `src/data/guideContent.js`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 
 ### Sprint 3.9 — Push notification CRON_SECRET mismatch (Mar 30, 2026)
 
