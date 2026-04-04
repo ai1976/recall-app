@@ -7,8 +7,11 @@
 - **Symptom:** Tapping "Suspend Topic" in the `...` dropdown showed the red "Failed to suspend topic." error toast immediately. Affected all cards regardless of topic type.
 - **Root Cause:** PostgreSQL's `CREATE OR REPLACE FUNCTION` only replaces a function if the parameter signature is identical. The Sprint 4.0 SQL for `suspend_topic_cards` changed the signature from `(UUID, UUID)` to `(UUID, UUID DEFAULT NULL, TEXT DEFAULT NULL)` — a different signature. PostgreSQL created a second overloaded version rather than replacing the original. PostgREST then found two functions with the same name and refused to resolve the call, returning an ambiguity error. The frontend's `catch` block displayed "Failed to suspend topic."
 - **Confirmed via:** `SELECT pg_get_function_arguments(p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname = 'suspend_topic_cards'` — returned two rows.
-- **Fix:** `DROP FUNCTION IF EXISTS public.suspend_topic_cards(UUID, UUID)` — removed the stale 2-param overload. The new 3-param version handles all existing callers via `DEFAULT NULL` on the added parameter.
-- **Key lesson:** When adding parameters to an existing RPC, always explicitly DROP the old signature before or after the `CREATE OR REPLACE`. Never assume `CREATE OR REPLACE` replaces across signature changes — in PostgreSQL it does not.
+- **Fix (step 1):** `DROP FUNCTION IF EXISTS public.suspend_topic_cards(UUID, UUID)` — removed the stale 2-param overload. The new 3-param version handles all existing callers via `DEFAULT NULL` on the added parameter.
+- **Fix (step 2):** `NOTIFY pgrst, 'reload schema'` — PostgREST caches function signatures and continued serving the stale two-function schema even after the DROP. The NOTIFY forces an immediate schema reload, resolving the ambiguity error for live users.
+- **Key lessons:**
+  - When adding parameters to an existing RPC, always explicitly DROP the old signature before or after the `CREATE OR REPLACE`. Never assume `CREATE OR REPLACE` replaces across signature changes — in PostgreSQL it does not.
+  - After any DROP FUNCTION or signature change, always run `NOTIFY pgrst, 'reload schema'` immediately. Without it, PostgREST continues to serve the stale cache and users continue to see the error even though the database is already correct.
 - **Status:** ✅ RESOLVED
 
 ### [Apr 4, 2026] FlashcardCreate — Back button discards all unsaved cards with no warning
