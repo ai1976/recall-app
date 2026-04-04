@@ -154,6 +154,14 @@ export const SITUATIONS = [
         isSignup: false,
       },
       {
+        label: 'One topic too heavy? Skip it for today.',
+        detail:
+          'During a review session, tap the \u22ef menu on any card and choose Skip Topic (24hr). Every card from that topic disappears until tomorrow — your schedule is preserved and nothing is deleted. Use it to clear the overwhelming topic from today\'s queue and come back to it fresh.',
+        linkLabel: 'Review Flashcards',
+        linkTo: '/dashboard/review-flashcards',
+        isSignup: false,
+      },
+      {
         label: 'Watch your retention rate recover',
         detail:
           'After a few consistent days, open My Progress. Your retention rate will start climbing again. Use it as motivation, not judgment — a dip is normal and fully recoverable.',

@@ -471,20 +471,26 @@ export const HELP_TABS = [
       },
       {
         id: 'skip-suspend',
-        title: 'Skip, Suspend & Reset Cards',
+        title: 'Skip, Suspend & Reset',
         icon: 'Pause',
         content: [
           {
             type: 'paragraph',
-            text: 'Sometimes you need more control over individual cards in your review sessions:',
+            text: 'During a review session you have several ways to manage cards. Safe snooze actions are at the top of the \u22ef menu; destructive actions are below the separator.',
           },
           {
             type: 'list',
             items: [
-              'Skip \u2014 Temporarily skip a card during the current session. It will come back in your next review session as normal.',
-              'Suspend \u2014 Remove a card from future reviews entirely. Useful for outdated or irrelevant cards. You can unsuspend it later.',
-              'Reset \u2014 Reset a card\'s review history, treating it as if you have never studied it before. The card returns to the "New Cards" pool.',
+              'Skip 24hr \u2014 Hides this card until tomorrow. Your spaced repetition schedule is completely preserved \u2014 nothing is deleted or reset.',
+              'Skip Topic (24hr) \u2014 Available from the \u22ef menu when a card belongs to a topic. Hides every card in that topic until tomorrow in one tap. Useful when one topic feels too heavy for today.',
+              'Suspend Card \u2014 Removes this card from your review queue indefinitely. Unlike Skip, this does disrupt your spaced repetition schedule for that card. You can unsuspend it from the Progress page.',
+              'Suspend Topic \u2014 Removes all cards in the current topic indefinitely. Use with caution \u2014 this affects your entire review schedule for that topic. Reversible from the Progress page.',
+              'Reset Card \u2014 Deletes all review history for this card. It returns to the \u201cNew Cards\u201d pool as if never studied. This cannot be undone.',
             ],
+          },
+          {
+            type: 'tip',
+            text: 'When you are overwhelmed, reach for Skip (24hr) or Skip Topic (24hr) first \u2014 they are fully reversible and keep your schedule intact. Only use Suspend or Reset when you genuinely want to remove a card long-term.',
           },
         ],
       },
@@ -1306,8 +1312,8 @@ export const FAQ_ITEMS = [
     answer: 'By default, earned badges are public and visible on your profile and in Find People. You can toggle each badge individually from "My Achievements" to make it private. Private badges are only visible to you.',
   },
   {
-    question: 'What does suspending a card do?',
-    answer: 'Suspending a card removes it from all future review sessions. The card stays in your collection but will not appear during reviews. You can unsuspend it at any time to bring it back into your review rotation.',
+    question: 'What is the difference between Skip and Suspend?',
+    answer: 'Skip 24hr is a temporary snooze — the card comes back tomorrow and your spaced repetition schedule is fully preserved. Suspend is indefinite removal — the card disappears from your queue until you manually unsuspend it from the Progress page. Skip Topic (24hr) and Suspend Topic work the same way but apply to every card in a topic at once. Use Skip when you need a break; use Suspend when you genuinely want to remove a card or topic long-term.',
   },
   {
     question: 'Can I edit my notes and flashcards after creating them?',

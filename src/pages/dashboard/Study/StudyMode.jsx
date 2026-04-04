@@ -67,7 +67,7 @@ export default function StudyMode({
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
-    type: null, // 'suspend' | 'suspendTopic' | 'reset'
+    type: null, // 'suspend' | 'suspendTopic' | 'skipTopic' | 'reset'
     title: '',
     description: '',
   });
@@ -428,13 +428,73 @@ export default function StudyMode({
   };
 
   // ============================================================
-  // SUSPEND TOPIC: Bulk suspend all cards for this topic
+  // SKIP TOPIC: Bulk 24hr snooze for all cards in this topic
+  // ============================================================
+  const handleSkipTopic = async () => {
+    const currentCard = flashcards[currentIndex];
+    const topicId = currentCard.topic_id;
+    const customTopic = currentCard.custom_topic;
+
+    if (!topicId && !customTopic) {
+      toast({
+        title: "No topic",
+        description: "This card doesn't belong to a topic.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: count, error } = await supabase.rpc('skip_topic_cards', {
+        p_user_id: user.id,
+        p_topic_id: topicId || null,
+        p_custom_topic: customTopic || null,
+      });
+
+      if (error) throw error;
+
+      const topicName = currentCard.topics?.name || customTopic;
+      toast({
+        title: "Topic snoozed",
+        description: `${count} card${count !== 1 ? 's' : ''} in "${topicName}" hidden until tomorrow.`,
+      });
+
+      // Remove all cards from this topic from the current session
+      const remaining = flashcards.filter((c, idx) => {
+        if (idx <= currentIndex) return false;
+        const cTopic = c.topics?.name || c.custom_topic;
+        return cTopic !== topicName;
+      });
+
+      if (remaining.length > 0) {
+        setFlashcards([flashcards[currentIndex], ...remaining]);
+        setCurrentIndex(0);
+        advanceOrFinish();
+      } else {
+        finishSession();
+      }
+    } catch (error) {
+      console.error('Error skipping topic:', error);
+      toast({
+        title: "Error",
+        description: "Failed to skip topic.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // ============================================================
+  // SUSPEND TOPIC: Bulk suspend all cards for this topic (indefinite)
   // ============================================================
   const handleSuspendTopic = async () => {
     const currentCard = flashcards[currentIndex];
     const topicId = currentCard.topic_id;
+    const customTopic = currentCard.custom_topic;
 
-    if (!topicId) {
+    if (!topicId && !customTopic) {
       toast({
         title: "No topic",
         description: "This card doesn't belong to a topic.",
@@ -449,7 +509,8 @@ export default function StudyMode({
 
       const { data: count, error } = await supabase.rpc('suspend_topic_cards', {
         p_user_id: user.id,
-        p_topic_id: topicId
+        p_topic_id: topicId || null,
+        p_custom_topic: customTopic || null,
       });
 
       if (error) throw error;
@@ -460,7 +521,7 @@ export default function StudyMode({
       });
 
       // Remove all cards from this topic from current session
-      const topicName = currentCard.topics?.name || currentCard.custom_topic;
+      const topicName = currentCard.topics?.name || customTopic;
       const remaining = flashcards.filter((c, idx) => {
         if (idx <= currentIndex) return false;
         const cTopic = c.topics?.name || c.custom_topic;
@@ -597,6 +658,9 @@ export default function StudyMode({
       case 'suspendTopic':
         handleSuspendTopic();
         break;
+      case 'skipTopic':
+        handleSkipTopic();
+        break;
       case 'reset':
         handleReset();
         break;
@@ -616,7 +680,11 @@ export default function StudyMode({
       },
       suspendTopic: {
         title: `Suspend all "${topicName}" cards?`,
-        description: `All cards in this topic will be removed from your review queue. You can unsuspend them individually from the Progress page.`,
+        description: `All cards in this topic will be removed from your review queue indefinitely. You can unsuspend them individually from the Progress page.`,
+      },
+      skipTopic: {
+        title: `Skip all "${topicName}" cards today?`,
+        description: `All "${topicName}" cards will be hidden until tomorrow. Your review schedule is preserved — nothing is deleted.`,
       },
       reset: {
         title: 'Reset this card?',
@@ -873,13 +941,28 @@ export default function StudyMode({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openConfirmDialog('suspend')}>
-                          <PauseCircle className="h-4 w-4 mr-2 text-amber-600" />
+                        {(currentCard.topic_id || currentCard.custom_topic) && (
+                          <DropdownMenuItem onClick={() => openConfirmDialog('skipTopic')}>
+                            <SkipForward className="h-4 w-4 mr-2 text-blue-500" />
+                            Skip Topic (24hr)
+                          </DropdownMenuItem>
+                        )}
+                        {(currentCard.topic_id || currentCard.custom_topic) && (
+                          <DropdownMenuSeparator />
+                        )}
+                        <DropdownMenuItem
+                          onClick={() => openConfirmDialog('suspend')}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <PauseCircle className="h-4 w-4 mr-2" />
                           Suspend Card
                         </DropdownMenuItem>
-                        {(currentCard.topic_id) && (
-                          <DropdownMenuItem onClick={() => openConfirmDialog('suspendTopic')}>
-                            <PauseCircle className="h-4 w-4 mr-2 text-amber-600" />
+                        {(currentCard.topic_id || currentCard.custom_topic) && (
+                          <DropdownMenuItem
+                            onClick={() => openConfirmDialog('suspendTopic')}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <PauseCircle className="h-4 w-4 mr-2" />
                             Suspend Topic
                           </DropdownMenuItem>
                         )}
@@ -1006,13 +1089,28 @@ export default function StudyMode({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="center">
-                          <DropdownMenuItem onClick={() => openConfirmDialog('suspend')}>
-                            <PauseCircle className="h-4 w-4 mr-2 text-amber-600" />
+                          {(currentCard.topic_id || currentCard.custom_topic) && (
+                            <DropdownMenuItem onClick={() => openConfirmDialog('skipTopic')}>
+                              <SkipForward className="h-4 w-4 mr-2 text-blue-500" />
+                              Skip Topic (24hr)
+                            </DropdownMenuItem>
+                          )}
+                          {(currentCard.topic_id || currentCard.custom_topic) && (
+                            <DropdownMenuSeparator />
+                          )}
+                          <DropdownMenuItem
+                            onClick={() => openConfirmDialog('suspend')}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <PauseCircle className="h-4 w-4 mr-2" />
                             Suspend Card
                           </DropdownMenuItem>
-                          {(currentCard.topic_id) && (
-                            <DropdownMenuItem onClick={() => openConfirmDialog('suspendTopic')}>
-                              <PauseCircle className="h-4 w-4 mr-2 text-amber-600" />
+                          {(currentCard.topic_id || currentCard.custom_topic) && (
+                            <DropdownMenuItem
+                              onClick={() => openConfirmDialog('suspendTopic')}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <PauseCircle className="h-4 w-4 mr-2" />
                               Suspend Topic
                             </DropdownMenuItem>
                           )}
@@ -1059,10 +1157,12 @@ export default function StudyMode({
               Cancel
             </Button>
             <Button
-              variant={confirmDialog.type === 'reset' ? 'destructive' : 'default'}
+              variant={confirmDialog.type === 'skipTopic' ? 'default' : 'destructive'}
               onClick={handleConfirmAction}
             >
-              {confirmDialog.type === 'reset' ? 'Reset Card' : 'Suspend'}
+              {confirmDialog.type === 'reset' ? 'Reset Card'
+                : confirmDialog.type === 'skipTopic' ? 'Skip Topic'
+                : 'Suspend'}
             </Button>
           </DialogFooter>
         </DialogContent>
