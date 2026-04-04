@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useBlocker } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,14 +61,25 @@ export default function FlashcardCreate() {
   // Draft recovery state
   const [pendingDraft, setPendingDraft] = useState(null);
 
+  // Leave-confirmation dialog (replaces useBlocker — app uses <BrowserRouter>, not a data router)
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+
   // True when the user has entered card content or added extra cards
   const isDirty = flashcards.some(c => c.front.trim() || c.back.trim()) || flashcards.length > 1;
 
-  // Intercept in-app navigation (Back button, Cancel, browser back) when dirty
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      isDirty && currentLocation.pathname !== nextLocation.pathname
-  );
+  // Intercept browser back button when dirty via popstate
+  useEffect(() => {
+    if (!isDirty) return;
+    // Push current URL so we can catch the back gesture
+    window.history.pushState(null, '', window.location.pathname);
+    const handlePopState = () => {
+      // Push again to stay on the page, then show the dialog
+      window.history.pushState(null, '', window.location.pathname);
+      setShowLeaveDialog(true);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isDirty]);
 
   // Intercept tab close / page reload when dirty
   useEffect(() => {
@@ -534,6 +545,20 @@ export default function FlashcardCreate() {
     setPendingDraft(null);
   };
 
+  const handleBack = () => {
+    if (isDirty) {
+      setShowLeaveDialog(true);
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const handleLeaveConfirmed = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setShowLeaveDialog(false);
+    navigate(-1);
+  };
+
   const isSystemCourse = !showCustomCourse &&
     disciplines.some(d => d.name.toLowerCase() === (targetCourse || '').toLowerCase());
 
@@ -544,7 +569,7 @@ export default function FlashcardCreate() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Button
         variant="ghost"
-        onClick={() => navigate(-1)}
+        onClick={handleBack}
         className="mb-6"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -996,7 +1021,7 @@ export default function FlashcardCreate() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate(-1)}
+              onClick={handleBack}
               className="flex-1"
             >
               Cancel
@@ -1029,8 +1054,8 @@ export default function FlashcardCreate() {
       </div>
       </div>
 
-      {/* Navigation guard: shown when user tries to leave with unsaved cards */}
-      {blocker.state === 'blocked' && (
+      {/* Leave-confirmation dialog: shown when user tries to navigate away with unsaved cards */}
+      {showLeaveDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <Card className="max-w-sm w-full shadow-xl">
             <CardHeader>
@@ -1045,17 +1070,14 @@ export default function FlashcardCreate() {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => blocker.reset()}
+                  onClick={() => setShowLeaveDialog(false)}
                 >
                   Keep editing
                 </Button>
                 <Button
                   variant="destructive"
                   className="flex-1"
-                  onClick={() => {
-                    localStorage.removeItem(DRAFT_KEY);
-                    blocker.proceed();
-                  }}
+                  onClick={handleLeaveConfirmed}
                 >
                   Leave anyway
                 </Button>
