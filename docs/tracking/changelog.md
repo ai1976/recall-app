@@ -1,6 +1,23 @@
 # Changelog
 
 ---
+## [2026-04-04] feat: Sprint 4.1 — Unsaved work protection in FlashcardCreate
+
+### Added
+- **Navigation guard (`useBlocker`)** in `FlashcardCreate.jsx` — Intercepts all in-app navigation (Back button, Cancel, browser back swipe) when the form is dirty (any card has content or >1 cards). Shows an inline confirmation modal with "Keep editing" / "Leave anyway" options.
+- **`beforeunload` event listener** — Intercepts browser tab close and page reload with the browser's native warning when the form is dirty.
+- **localStorage autosave** — Saves card text and image URLs to `localStorage['flashcard_create_draft']` with a 1-second debounce as the user types. `setItem` wrapped in `try/catch` with `console.warn` for graceful degradation in Safari Private Browsing.
+- **Draft recovery banner** — Amber banner shown on page mount when a prior draft is detected. Displays card count and relative time ("Auto-saved 5 minutes ago"). Restore / Discard actions.
+- **Draft cleared on successful submit** — `localStorage.removeItem(DRAFT_KEY)` called before `navigate('/dashboard')` on successful save.
+
+### Changed
+- **Pro Tip card copy** — Updated to inform users upfront: "Your items are auto-saved as you type — if you accidentally leave this page, you can restore your work when you come back."
+- **`removeFlashcard` and image remove handlers** — Guard `URL.revokeObjectURL` to only fire on blob URLs, not on Supabase public URLs (which are used as previews when restoring a draft).
+
+### Files Changed
+`src/pages/dashboard/Content/FlashcardCreate.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md`
+
+---
 ## [2026-04-04] fix: Sprint 4.0 — Skip Topic (24hr) feature + null topic bug fix
 
 ### Added

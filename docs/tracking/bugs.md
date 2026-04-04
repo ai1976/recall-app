@@ -2,6 +2,12 @@
 
 ## Resolved Bugs
 
+### [Apr 4, 2026] FlashcardCreate — Back button discards all unsaved cards with no warning
+- **Symptom:** User creates multiple flashcards using "Add Another Flashcard", then accidentally taps the Back button. All card content is lost immediately. No confirmation, no recovery. Reported by Pareesa after losing 45 cards in a single session.
+- **Root Cause:** The Back button and Cancel button both called `navigate(-1)` directly with no navigation guard. No autosave existed.
+- **Fix:** Three-layer protection added to `FlashcardCreate.jsx`: (1) `useBlocker` intercepts in-app navigation when dirty and shows a confirmation modal; (2) `beforeunload` event intercepts tab close/reload; (3) localStorage autosave (1s debounce) persists card content, with a recovery banner shown on next visit. See Sprint 4.1 in changelog for full details.
+- **Status:** ✅ RESOLVED
+
 ### [Mar 30, 2026] Push notifications never delivered since Sprint 3.6 — CRON_SECRET mismatch
 - **Symptom:** No student received any push notification (nightly study summary or morning review reminder) since Sprint 3.6 shipped on 2026-03-25. Edge Function invocations all returned HTTP 401.
 - **Root Cause (primary):** `cron-daily-study-summary` pg_cron job was created with the literal placeholder `YOUR_CRON_SECRET_HERE` as the `x-cron-secret` header value, never replaced with the real secret. Function's auth guard rejected every call.

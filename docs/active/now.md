@@ -1,11 +1,30 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-04-04
-**Current Phase:** Sprint 4.0 — Skip Topic (24hr) Feature
+**Current Phase:** Sprint 4.1 — Flashcard Create: unsaved work protection
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 4.1 — Unsaved work protection in FlashcardCreate (Apr 4, 2026)
+
+**Reported by:** Pareesa (CA Foundation student) — lost 45 cards after accidentally tapping the Back button before saving.
+
+**Root cause:** `navigate(-1)` in the Back and Cancel buttons fired immediately with no guard. No autosave existed.
+
+**Three-layer fix (`FlashcardCreate.jsx`):**
+- **Navigation guard (`useBlocker`)** — React Router v7 `useBlocker` intercepts all in-app navigation (Back button, Cancel, browser back swipe) when `isDirty` is true (any card has content or >1 cards in the list). Shows an inline confirmation modal: "Keep editing" / "Leave anyway".
+- **`beforeunload` event** — Intercepts tab close and page reload with the browser's native warning dialog.
+- **localStorage autosave** — Saves all card text + image URLs to `localStorage` with a 1-second debounce as the user types. On next visit to the page, an amber banner offers "Restore X unsaved items from your last session." Draft is cleared on successful submit or explicit discard. `localStorage.setItem` wrapped in `try/catch` with `console.warn` — fails silently in Safari Private Browsing (0-byte quota) without breaking the render cycle. Navigation guard still protects the user if autosave is unavailable.
+
+**What is NOT saved in the draft (by design):** Subject/topic FK dropdowns (async-loaded, error-prone to restore). Cards are what take time; metadata takes 30 seconds to re-enter.
+
+**Pro Tip card updated** to inform users upfront that their work is auto-saved.
+
+Files Changed: `src/pages/dashboard/Content/FlashcardCreate.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md`
+
+---
 
 ### Sprint 4.0 — Skip Topic (24hr) + null topic bug fix (Apr 4, 2026)
 

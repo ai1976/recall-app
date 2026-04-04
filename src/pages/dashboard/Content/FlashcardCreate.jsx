@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useBlocker } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,18 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { notifyContentCreated } from '@/lib/notifyEdge';
 import imageCompression from 'browser-image-compression';
+
+const DRAFT_KEY = 'flashcard_create_draft';
+
+function formatDraftTime(isoString) {
+  const saved = new Date(isoString);
+  const diffMins = Math.floor((Date.now() - saved) / 60000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  return saved.toLocaleDateString();
+}
 
 export default function FlashcardCreate() {
   const navigate = useNavigate();
@@ -40,11 +52,72 @@ export default function FlashcardCreate() {
   const [flashcards, setFlashcards] = useState([
     { front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null }
   ]);
-  
+
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(null); // { index, side } | null
   const [subjectOpen, setSubjectOpen] = useState(false);
   const [topicOpen, setTopicOpen] = useState(false);
+
+  // Draft recovery state
+  const [pendingDraft, setPendingDraft] = useState(null);
+
+  // True when the user has entered card content or added extra cards
+  const isDirty = flashcards.some(c => c.front.trim() || c.back.trim()) || flashcards.length > 1;
+
+  // Intercept in-app navigation (Back button, Cancel, browser back) when dirty
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isDirty && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  // Intercept tab close / page reload when dirty
+  useEffect(() => {
+    const handler = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  // Autosave card content to localStorage (1s debounce)
+  useEffect(() => {
+    if (!isDirty) return;
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          savedAt: new Date().toISOString(),
+          flashcards: flashcards.map(c => ({
+            front: c.front,
+            back: c.back,
+            frontImageUrl: c.frontImageUrl || null,
+            backImageUrl: c.backImageUrl || null,
+          })),
+        }));
+      } catch (err) {
+        // Fails silently — common in Safari Private Browsing or when storage is full.
+        // The navigation guard (useBlocker) still protects the user's work.
+        console.warn('Could not autosave draft to localStorage:', err);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [flashcards, isDirty]);
+
+  // On mount: check for a saved draft and surface it
+  useEffect(() => {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.flashcards?.some(c => c.front?.trim() || c.back?.trim())) {
+        setPendingDraft(parsed);
+      }
+    } catch {
+      localStorage.removeItem(DRAFT_KEY);
+    }
+  }, []);
 
   useEffect(() => {
     fetchDisciplines();
@@ -179,8 +252,8 @@ export default function FlashcardCreate() {
       return;
     }
     const card = flashcards[index];
-    if (card.frontImagePreview) URL.revokeObjectURL(card.frontImagePreview);
-    if (card.backImagePreview) URL.revokeObjectURL(card.backImagePreview);
+    if (card.frontImagePreview && card.frontImagePreview !== card.frontImageUrl) URL.revokeObjectURL(card.frontImagePreview);
+    if (card.backImagePreview && card.backImagePreview !== card.backImageUrl) URL.revokeObjectURL(card.backImagePreview);
     setFlashcards(flashcards.filter((_, i) => i !== index));
   };
 
@@ -213,8 +286,9 @@ export default function FlashcardCreate() {
 
       const preview = URL.createObjectURL(compressedFile);
       const updated = [...flashcards];
-      // Revoke old preview if replacing
-      if (updated[index][`${side}ImagePreview`]) URL.revokeObjectURL(updated[index][`${side}ImagePreview`]);
+      // Revoke old preview only if it's a blob URL, not a stored Supabase URL
+      const oldPreview = updated[index][`${side}ImagePreview`];
+      if (oldPreview && oldPreview !== updated[index][`${side}ImageUrl`]) URL.revokeObjectURL(oldPreview);
       updated[index][`${side}ImageUrl`] = publicUrl;
       updated[index][`${side}ImagePreview`] = preview;
       setFlashcards(updated);
@@ -402,6 +476,9 @@ export default function FlashcardCreate() {
         if (shareError) console.error('Error sharing with groups:', shareError);
       }
 
+      // Clear saved draft on successful save
+      localStorage.removeItem(DRAFT_KEY);
+
       toast({
         title: 'Success!',
         description: visibility === 'study_groups'
@@ -436,8 +513,31 @@ export default function FlashcardCreate() {
     }
   };
 
+  const restoreDraft = () => {
+    setFlashcards(pendingDraft.flashcards.map(c => ({
+      front: c.front || '',
+      back: c.back || '',
+      frontImageUrl: c.frontImageUrl || null,
+      frontImagePreview: c.frontImageUrl || null, // use stored Supabase URL directly as preview
+      backImageUrl: c.backImageUrl || null,
+      backImagePreview: c.backImageUrl || null,
+    })));
+    setPendingDraft(null);
+    toast({
+      title: 'Draft restored',
+      description: `${pendingDraft.flashcards.length} item${pendingDraft.flashcards.length !== 1 ? 's' : ''} recovered from your last session`,
+    });
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setPendingDraft(null);
+  };
+
   const isSystemCourse = !showCustomCourse &&
     disciplines.some(d => d.name.toLowerCase() === (targetCourse || '').toLowerCase());
+
+  const unsavedCount = flashcards.filter(c => c.front.trim() || c.back.trim()).length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -459,8 +559,32 @@ export default function FlashcardCreate() {
           </p>
         </div>
 
+        {/* Draft recovery banner */}
+        {pendingDraft && (
+          <Card className="border-amber-300 bg-amber-50">
+            <CardContent className="pt-4 pb-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+              <div>
+                <p className="text-sm font-medium text-amber-900">
+                  You have {pendingDraft.flashcards.length} unsaved item{pendingDraft.flashcards.length !== 1 ? 's' : ''} from a previous session
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Auto-saved {formatDraftTime(pendingDraft.savedAt)}
+                </p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button size="sm" variant="outline" onClick={discardDraft} className="border-amber-300 hover:bg-amber-100">
+                  Discard
+                </Button>
+                <Button size="sm" onClick={restoreDraft} className="bg-amber-600 hover:bg-amber-700 text-white">
+                  Restore
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Who are these flashcards for?</CardTitle>
@@ -527,7 +651,7 @@ export default function FlashcardCreate() {
               <CardTitle>Subject & Topic</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              
+
               {/* Subject — FK dropdown for system courses, free text for custom courses */}
               {isSystemCourse ? (
                 <div className="space-y-2">
@@ -748,7 +872,7 @@ export default function FlashcardCreate() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                
+
                 <div className="space-y-2">
                   <Label htmlFor={`front-${index}`}>Front</Label>
                   <Textarea
@@ -758,7 +882,7 @@ export default function FlashcardCreate() {
                     placeholder="Question or prompt"
                     rows={3}
                   />
-                  
+
                   <div className="flex items-center gap-2">
                     {uploadingImage?.index === index && uploadingImage?.side === 'front' ? (
                       <div className="inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg opacity-75 cursor-wait">
@@ -788,7 +912,7 @@ export default function FlashcardCreate() {
                       <button
                         type="button"
                         onClick={() => {
-                          URL.revokeObjectURL(card.frontImagePreview);
+                          if (card.frontImagePreview !== card.frontImageUrl) URL.revokeObjectURL(card.frontImagePreview);
                           const updated = [...flashcards];
                           updated[index].frontImageUrl = null;
                           updated[index].frontImagePreview = null;
@@ -811,7 +935,7 @@ export default function FlashcardCreate() {
                     placeholder="Answer or explanation"
                     rows={3}
                   />
-                  
+
                   <div className="flex items-center gap-2">
                     {uploadingImage?.index === index && uploadingImage?.side === 'back' ? (
                       <div className="inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg opacity-75 cursor-wait">
@@ -841,7 +965,7 @@ export default function FlashcardCreate() {
                       <button
                         type="button"
                         onClick={() => {
-                          URL.revokeObjectURL(card.backImagePreview);
+                          if (card.backImagePreview !== card.backImageUrl) URL.revokeObjectURL(card.backImagePreview);
                           const updated = [...flashcards];
                           updated[index].backImageUrl = null;
                           updated[index].backImagePreview = null;
@@ -890,7 +1014,7 @@ export default function FlashcardCreate() {
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="pt-6">
             <p className="text-sm text-blue-800">
-              💡 <strong>Pro Tip:</strong> Need to create many flashcards?{' '}
+              💡 <strong>Pro Tip:</strong> Your items are auto-saved as you type — if you accidentally leave this page, you can restore your work when you come back. Need to create many flashcards at once?{' '}
               <Button
                 variant="link"
                 className="h-auto p-0 text-blue-600 hover:text-blue-700"
@@ -898,12 +1022,48 @@ export default function FlashcardCreate() {
               >
                 Try Bulk Upload
               </Button>
-              {' '}to upload via CSV
+              {' '}to upload via CSV.
             </p>
           </CardContent>
         </Card>
       </div>
       </div>
+
+      {/* Navigation guard: shown when user tries to leave with unsaved cards */}
+      {blocker.state === 'blocked' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="max-w-sm w-full shadow-xl">
+            <CardHeader>
+              <CardTitle>Leave without saving?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                You have {unsavedCount} unsaved item{unsavedCount !== 1 ? 's' : ''}.
+                Your work will be lost if you leave now.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => blocker.reset()}
+                >
+                  Keep editing
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => {
+                    localStorage.removeItem(DRAFT_KEY);
+                    blocker.proceed();
+                  }}
+                >
+                  Leave anyway
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
