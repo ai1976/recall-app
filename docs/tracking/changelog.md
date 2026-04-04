@@ -18,6 +18,15 @@
 `src/pages/dashboard/Content/FlashcardCreate.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md`
 
 ---
+## [2026-04-04] fix: Sprint 4.0 hotfix — Suspend Topic PostgREST ambiguity
+
+### Fixed
+- **`suspend_topic_cards` stale overload** — Sprint 4.0 added a `p_custom_topic TEXT DEFAULT NULL` parameter to `suspend_topic_cards`, which PostgreSQL treated as a new function rather than replacing the original `(UUID, UUID)` version. PostgREST could not resolve which overload to call and returned an error on every Suspend Topic attempt. Fix: `DROP FUNCTION IF EXISTS public.suspend_topic_cards(UUID, UUID)` in Supabase SQL Editor. No frontend changes required.
+
+### Files Changed
+`docs/tracking/bugs.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 ## [2026-04-04] fix: Sprint 4.0 — Skip Topic (24hr) feature + null topic bug fix
 
 ### Added

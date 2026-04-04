@@ -2,6 +2,15 @@
 
 ## Resolved Bugs
 
+### [Apr 4, 2026] Suspend Topic — "Failed to suspend topic" error after Sprint 4.0 deploy
+- **Reported by:** Aryan Pamnani (iOS, live session)
+- **Symptom:** Tapping "Suspend Topic" in the `...` dropdown showed the red "Failed to suspend topic." error toast immediately. Affected all cards regardless of topic type.
+- **Root Cause:** PostgreSQL's `CREATE OR REPLACE FUNCTION` only replaces a function if the parameter signature is identical. The Sprint 4.0 SQL for `suspend_topic_cards` changed the signature from `(UUID, UUID)` to `(UUID, UUID DEFAULT NULL, TEXT DEFAULT NULL)` — a different signature. PostgreSQL created a second overloaded version rather than replacing the original. PostgREST then found two functions with the same name and refused to resolve the call, returning an ambiguity error. The frontend's `catch` block displayed "Failed to suspend topic."
+- **Confirmed via:** `SELECT pg_get_function_arguments(p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname = 'suspend_topic_cards'` — returned two rows.
+- **Fix:** `DROP FUNCTION IF EXISTS public.suspend_topic_cards(UUID, UUID)` — removed the stale 2-param overload. The new 3-param version handles all existing callers via `DEFAULT NULL` on the added parameter.
+- **Key lesson:** When adding parameters to an existing RPC, always explicitly DROP the old signature before or after the `CREATE OR REPLACE`. Never assume `CREATE OR REPLACE` replaces across signature changes — in PostgreSQL it does not.
+- **Status:** ✅ RESOLVED
+
 ### [Apr 4, 2026] FlashcardCreate — Back button discards all unsaved cards with no warning
 - **Symptom:** User creates multiple flashcards using "Add Another Flashcard", then accidentally taps the Back button. All card content is lost immediately. No confirmation, no recovery. Reported by Pareesa after losing 45 cards in a single session.
 - **Root Cause:** The Back button and Cancel button both called `navigate(-1)` directly with no navigation guard. No autosave existed.

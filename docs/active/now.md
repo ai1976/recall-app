@@ -26,6 +26,17 @@ Files Changed: `src/pages/dashboard/Content/FlashcardCreate.jsx`, `docs/active/n
 
 ---
 
+### Sprint 4.0 (hotfix) — Suspend Topic PostgREST ambiguity (Apr 4, 2026)
+
+- **Symptom:** "Failed to suspend topic." error immediately on tapping Suspend Topic. Reported by Aryan Pamnani on iOS minutes after Sprint 4.0 deployed.
+- **Root cause:** `CREATE OR REPLACE FUNCTION suspend_topic_cards(UUID, UUID DEFAULT NULL, TEXT DEFAULT NULL)` did not replace the existing `suspend_topic_cards(UUID, UUID)` — PostgreSQL treats different parameter signatures as separate functions. Both existed simultaneously. PostgREST returned an ambiguity error on every call.
+- **Fix:** `DROP FUNCTION IF EXISTS public.suspend_topic_cards(UUID, UUID)` — run in Supabase SQL Editor. No code changes required.
+- **Key lesson added to bugs.md:** Always explicitly DROP the old signature when changing RPC parameters. `CREATE OR REPLACE` does not replace across signature changes.
+
+Files Changed: `docs/tracking/bugs.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
+
 ### Sprint 4.0 — Skip Topic (24hr) + null topic bug fix (Apr 4, 2026)
 
 **Reported by:** Aryan Pamnani
