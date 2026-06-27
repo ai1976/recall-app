@@ -1,8 +1,8 @@
-// Recall App — Service Worker
+// RevisOp App — Service Worker
 // Handles Web Push notifications and notification click events.
 // Offline caching is intentionally omitted — the app is always online.
 
-const APP_NAME = 'Recall';
+const APP_NAME = 'RevisOp';
 
 // ── Install & Activate ────────────────────────────────────────────────────────
 // Claim all clients immediately so the SW is active on first load.
@@ -30,7 +30,7 @@ self.addEventListener('push', (event) => {
     body: data.body || '',
     icon: '/android-chrome-192x192.png',
     badge: '/android-chrome-192x192.png',
-    tag: data.tag || 'recall-default',
+    tag: data.tag || 'revisop-default',
     renotify: isRenotify,
     // Only vibrate & play sound when genuinely alerting the user
     vibrate: isRenotify ? [200, 100, 200] : [],

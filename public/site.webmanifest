@@ -1,6 +1,6 @@
 {
-  "name": "Recall — CA Study App",
-  "short_name": "Recall",
+  "name": "RevisOp — CA Study App",
+  "short_name": "RevisOp",
   "description": "Spaced repetition flashcards and notes for CA students",
   "icons": [
     { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
