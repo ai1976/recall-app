@@ -76,7 +76,7 @@ export default function GroupJoin() {
             This invite link is invalid or the group no longer exists.
           </p>
           <Link to="/">
-            <Button variant="outline">Go to Recall</Button>
+            <Button variant="outline">Go to RevisOp</Button>
           </Link>
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function GroupJoin() {
             <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
               <span className="text-white font-bold text-lg">R</span>
             </div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Recall</h2>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">RevisOp</h2>
           </div>
           <p className="text-sm text-gray-500 mt-1">Spaced repetition, done together</p>
         </div>
@@ -159,7 +159,7 @@ export default function GroupJoin() {
                   Sign up free to join
                 </Button>
                 <p className="text-center text-xs text-gray-400">
-                  Already on Recall?{' '}
+                  Already on RevisOp?{' '}
                   <button
                     className="text-indigo-600 hover:underline inline-flex items-center gap-1"
                     onClick={() => {
@@ -173,7 +173,7 @@ export default function GroupJoin() {
                 </p>
                 <GuideInfoModal
                   situationId="social"
-                  triggerLabel="New to Recall? See how Groups work →"
+                  triggerLabel="New to RevisOp? See how Groups work →"
                 />
               </div>
             )}

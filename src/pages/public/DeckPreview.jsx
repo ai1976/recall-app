@@ -54,7 +54,7 @@ export default function DeckPreview() {
             This study set is private or doesn&apos;t exist.
           </p>
           <Link to="/">
-            <Button variant="outline">Go to Recall</Button>
+            <Button variant="outline">Go to RevisOp</Button>
           </Link>
         </div>
       </div>
@@ -72,11 +72,11 @@ export default function DeckPreview() {
             <div className="flex items-center justify-center w-7 h-7 bg-gradient-to-br from-blue-600 to-purple-600 rounded-md">
               <span className="text-white font-bold text-sm">R</span>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Recall</span>
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">RevisOp</span>
           </Link>
           {user ? (
             <Button size="sm" onClick={() => navigate('/dashboard/review-flashcards')}>
-              Study on Recall
+              Study on RevisOp
             </Button>
           ) : (
             <div className="flex gap-2">
@@ -137,7 +137,7 @@ export default function DeckPreview() {
         {!user && (
           <div className="text-center py-8 px-6 bg-white rounded-xl border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Start studying on Recall — it&apos;s free
+              Start studying on RevisOp — it&apos;s free
             </h3>
             <p className="text-sm text-gray-500 mb-5">
               Create a free account to study with spaced repetition and track your progress.
@@ -151,7 +151,7 @@ export default function DeckPreview() {
               </Button>
             </Link>
             <p className="text-xs text-gray-400 mt-3">
-              Already on Recall?{' '}
+              Already on RevisOp?{' '}
               <Link
                 to="/login"
                 className="text-indigo-600 hover:underline"
@@ -162,7 +162,7 @@ export default function DeckPreview() {
             </p>
             <GuideInfoModal
               situationId="studying"
-              triggerLabel="New to Recall? See how Study Sets work →"
+              triggerLabel="New to RevisOp? See how Study Sets work →"
             />
           </div>
         )}
@@ -171,7 +171,7 @@ export default function DeckPreview() {
         {user && (
           <div className="text-center py-6">
             <Button onClick={() => navigate(`/dashboard/review-flashcards?deck=${deckId}`)}>
-              Study this set on Recall
+              Study this set on RevisOp
             </Button>
           </div>
         )}

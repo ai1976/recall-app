@@ -79,11 +79,11 @@ export default function NotePreview() {
             <div className="flex items-center justify-center w-7 h-7 bg-gradient-to-br from-blue-600 to-purple-600 rounded-md">
               <span className="text-white font-bold text-sm">R</span>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Recall</span>
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">RevisOp</span>
           </Link>
           {user ? (
             <Button size="sm" onClick={() => navigate(`/dashboard/notes/${noteId}`)}>
-              Open on Recall
+              Open on RevisOp
             </Button>
           ) : (
             <div className="flex gap-2">
@@ -162,7 +162,7 @@ export default function NotePreview() {
         {!user && (
           <div className="text-center py-8 px-6 bg-white rounded-xl border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Start studying on Recall — it&apos;s free
+              Start studying on RevisOp — it&apos;s free
             </h3>
             <p className="text-sm text-gray-500 mb-5">
               Create a free account to read this note, make flashcards, and track your progress with spaced repetition.
@@ -174,7 +174,7 @@ export default function NotePreview() {
               Sign up free
             </Button>
             <p className="text-xs text-gray-400 mt-3">
-              Already on Recall?{' '}
+              Already on RevisOp?{' '}
               <button
                 className="text-indigo-600 hover:underline"
                 onClick={() => setRedirectAndNavigate('/login')}
@@ -184,7 +184,7 @@ export default function NotePreview() {
             </p>
             <GuideInfoModal
               situationId="content"
-              triggerLabel="New to Recall? See how Notes work →"
+              triggerLabel="New to RevisOp? See how Notes work →"
             />
           </div>
         )}
@@ -192,7 +192,7 @@ export default function NotePreview() {
         {user && (
           <div className="text-center py-6">
             <Button onClick={() => navigate(`/dashboard/notes/${noteId}`)}>
-              Open this note on Recall
+              Open this note on RevisOp
             </Button>
           </div>
         )}

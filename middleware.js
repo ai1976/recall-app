@@ -66,11 +66,11 @@ export default async function middleware(request) {
     }
 
     const title = deck
-      ? `${deck.name || 'Study Set'} — ${deck.subject || 'Recall'}`
-      : 'Study Set on Recall';
+      ? `${deck.name || 'Study Set'} — ${deck.subject || 'RevisOp'}`
+      : 'Study Set on RevisOp';
     const description = deck
-      ? `${deck.card_count ?? '?'} items · by ${deck.creator_name ?? 'Recall user'} · Study for free on Recall`
-      : 'Spaced repetition study sets on Recall';
+      ? `${deck.card_count ?? '?'} items · by ${deck.creator_name ?? 'RevisOp user'} · Study for free on RevisOp`
+      : 'Spaced repetition study sets on RevisOp';
 
     return buildOgResponse(title, description, pageUrl);
   }
@@ -109,13 +109,13 @@ export default async function middleware(request) {
       const memberCount = group.member_count ?? 0;
       const weeklyReviews = stats?.total_weekly_reviews ?? 0;
 
-      title = `${group.name} — Recall Study Group`;
+      title = `${group.name} — RevisOp Study Group`;
       description = memberCount > 0
-        ? `${memberCount} ${memberCount === 1 ? 'member' : 'members'} · ${weeklyReviews} items reviewed this week · Join on Recall`
-        : 'Study group on Recall · Join free';
+        ? `${memberCount} ${memberCount === 1 ? 'member' : 'members'} · ${weeklyReviews} items reviewed this week · Join on RevisOp`
+        : 'Study group on RevisOp · Join free';
     } else {
-      title = 'Study Group on Recall';
-      description = 'Join a spaced repetition study group on Recall.';
+      title = 'Study Group on RevisOp';
+      description = 'Join a spaced repetition study group on RevisOp.';
     }
 
     return buildOgResponse(title, description, pageUrl);
@@ -154,10 +154,10 @@ export default async function middleware(request) {
       note.topic_name   ? note.topic_name   : null,
       note.author_name  ? `By ${note.author_name}` : null,
     ].filter(Boolean);
-    const title = `${note.title} — Recall`;
+    const title = `${note.title} — RevisOp`;
     const description = descParts.length > 0
       ? descParts.join(' · ')
-      : 'Study note shared on Recall — spaced repetition for serious exam prep.';
+      : 'Study note shared on RevisOp — spaced repetition for serious exam prep.';
 
     return buildOgResponse(title, description, pageUrl);
   }
@@ -179,7 +179,7 @@ function buildOgResponse(title, description, pageUrl) {
   <meta http-equiv="refresh" content="0;url=${escapeHtml(pageUrl)}" />
 </head>
 <body>
-  <p>Redirecting to <a href="${escapeHtml(pageUrl)}">Recall</a>…</p>
+  <p>Redirecting to <a href="${escapeHtml(pageUrl)}">RevisOp</a>…</p>
 </body>
 </html>`;
 
