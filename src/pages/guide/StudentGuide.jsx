@@ -17,8 +17,8 @@ export default function StudentGuide() {
 
   // Set page title
   useEffect(() => {
-    document.title = 'Student Guide — Recall'
-    return () => { document.title = 'Recall' }
+    document.title = 'Student Guide — RevisOp'
+    return () => { document.title = 'RevisOp' }
   }, [])
 
   // Scroll spy — fires when a section enters the upper third of the viewport
@@ -62,7 +62,7 @@ export default function StudentGuide() {
               R
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Recall
+              RevisOp
             </span>
             <span className="text-gray-300 font-light text-xl">|</span>
             <span className="text-gray-500 text-sm font-medium">Student Guide</span>

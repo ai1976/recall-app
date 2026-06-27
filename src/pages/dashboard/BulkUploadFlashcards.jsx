@@ -249,7 +249,7 @@ IMPORTANT:
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `recall_valid_entries_${course.name.replace(/\s+/g, '_')}.csv`;
+      a.download = `revisop_valid_entries_${course.name.replace(/\s+/g, '_')}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
       setValidEntriesDownloaded(true);
@@ -515,7 +515,7 @@ IMPORTANT:
 
       if (validationErrors.length > 0) {
         setErrors([
-          'Bulk upload cannot create new subjects or topics. The following rows reference entries that don\'t exist in Recall:',
+          'Bulk upload cannot create new subjects or topics. The following rows reference entries that don\'t exist in RevisOp:',
           '',
           ...validationErrors,
           '',

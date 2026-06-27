@@ -678,7 +678,7 @@ export default function ReviewFlashcards() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     const link = `${window.location.origin}/deck/${deck.id}`;
-                                    const text = `Check out this Study Set on ${subject.name} — ${deck.name || deck.topicName} on Recall: ${link}`;
+                                    const text = `Check out this Study Set on ${subject.name} — ${deck.name || deck.topicName} on RevisOp: ${link}`;
                                     if (navigator.share) {
                                       navigator.share({ title: deck.name || deck.topicName, text, url: link }).catch(() => {});
                                     } else {

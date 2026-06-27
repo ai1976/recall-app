@@ -290,7 +290,7 @@ export default function Help() {
           Help & Guide
         </h1>
         <p className="text-gray-500 mt-1">
-          Learn how to use Recall to study smarter with spaced repetition.
+          Learn how to use RevisOp to study smarter with spaced repetition.
         </p>
       </div>
 

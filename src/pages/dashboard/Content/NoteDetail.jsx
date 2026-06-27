@@ -88,7 +88,7 @@ export default function NoteDetail() {
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/note/${id}`;
     const shareTitle = note?.title || 'Study note';
-    const shareText = `Check out this note on Recall: ${shareTitle}`;
+    const shareText = `Check out this note on RevisOp: ${shareTitle}`;
 
     if (navigator.share) {
       try {

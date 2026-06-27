@@ -695,7 +695,7 @@ export default function GroupDetail() {
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                     onClick={() => {
                       const link = `${window.location.origin}/join/${group.invite_token}`;
-                      const text = `Join our study group "${group.name}" on Recall: ${link}`;
+                      const text = `Join our study group "${group.name}" on RevisOp: ${link}`;
                       if (navigator.share) {
                         navigator.share({ title: group.name, text, url: link }).catch(() => {});
                       } else {

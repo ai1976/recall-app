@@ -11,17 +11,17 @@ export const HELP_TABS = [
     sections: [
       {
         id: 'welcome',
-        title: 'Welcome to Recall',
+        title: 'Welcome to RevisOp',
         icon: 'BookOpen',
         defaultExpanded: true,
         content: [
           {
             type: 'paragraph',
-            text: 'Recall is a study platform built around spaced repetition \u2014 a scientifically proven method to help you remember what you learn. Upload notes, create flashcards, review them at optimal intervals, and track your progress over time.',
+            text: 'RevisOp is a study platform built around spaced repetition \u2014 a scientifically proven method to help you remember what you learn. Upload notes, create flashcards, review them at optimal intervals, and track your progress over time.',
           },
           {
             type: 'paragraph',
-            text: 'Whether you are preparing for exams or just want to retain knowledge better, Recall helps you study smarter, not harder.',
+            text: 'Whether you are preparing for exams or just want to retain knowledge better, RevisOp helps you study smarter, not harder.',
           },
         ],
       },
@@ -32,7 +32,7 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'Here is how to get started with Recall in just a few minutes:',
+            text: 'Here is how to get started with RevisOp in just a few minutes:',
           },
           {
             type: 'steps',
@@ -79,12 +79,12 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'Recall tracks how long you spend studying so you can see your daily and weekly totals on the dashboard. Study time is captured in two ways:',
+            text: 'RevisOp tracks how long you spend studying so you can see your daily and weekly totals on the dashboard. Study time is captured in two ways:',
           },
           {
             type: 'list',
             items: [
-              'Auto-capture \u2014 When you complete a Study Set session (reviewing flashcards), Recall automatically logs the session duration. No action needed on your part.',
+              'Auto-capture \u2014 When you complete a Study Set session (reviewing flashcards), RevisOp automatically logs the session duration. No action needed on your part.',
               'Manual timer \u2014 For offline study \u2014 reading notes, textbooks, or practising problems on paper \u2014 use the Study Timer widget on your dashboard. Press Start when you begin and Stop when you finish.',
             ],
           },
@@ -268,8 +268,8 @@ export const HELP_TABS = [
             items: [
               'Private \u2014 Only you can see this content. Use this for personal notes or work-in-progress material.',
               'Study Groups \u2014 Share with specific study groups you belong to. When selected, you can pick which groups to share with from a checklist. If you are not in any groups yet, you will be prompted to create one.',
-              'Friends \u2014 Visible to your accepted friends on Recall. Good for sharing with classmates you trust.',
-              'Public \u2014 Visible to all Recall users. Ideal for sharing helpful material with the wider community.',
+              'Friends \u2014 Visible to your accepted friends on RevisOp. Good for sharing with classmates you trust.',
+              'Public \u2014 Visible to all RevisOp users. Ideal for sharing helpful material with the wider community.',
             ],
           },
           {
@@ -289,7 +289,7 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'All content in Recall is organized in a three-level hierarchy: Course \u2192 Subject \u2192 Topic. This makes it easy to find and browse specific material.',
+            text: 'All content in RevisOp is organized in a three-level hierarchy: Course \u2192 Subject \u2192 Topic. This makes it easy to find and browse specific material.',
           },
           {
             type: 'list',
@@ -340,7 +340,7 @@ export const HELP_TABS = [
           ]},
           { type: 'list', items: [
             'Content Error flags are sent to the educator who created the material to correct it.',
-            'Inappropriate flags go directly to the Recall admin team for review.',
+            'Inappropriate flags go directly to the RevisOp admin team for review.',
             'You can only submit one flag per item — duplicate reports from the same account are blocked.',
             'If 3 or more students flag the same item, it is automatically escalated to high priority.',
           ]},
@@ -369,7 +369,7 @@ export const HELP_TABS = [
           },
           {
             type: 'paragraph',
-            text: 'Recall uses a modified version of the SuperMemo-2 algorithm to schedule your reviews. Each time you review a card, you rate how well you remembered it, and the system adjusts the next review date accordingly.',
+            text: 'RevisOp uses a modified version of the SuperMemo-2 algorithm to schedule your reviews. Each time you review a card, you rate how well you remembered it, and the system adjusts the next review date accordingly.',
           },
           {
             type: 'list',
@@ -396,7 +396,7 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'Recall separates your study sessions into two distinct modes, because research shows that mixing review and new learning reduces effectiveness:',
+            text: 'RevisOp separates your study sessions into two distinct modes, because research shows that mixing review and new learning reduces effectiveness:',
           },
           {
             type: 'list',
@@ -511,13 +511,13 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'Connect with classmates and study partners on Recall. Friends can share content with each other and see each other\'s public achievement badges.',
+            text: 'Connect with classmates and study partners on RevisOp. Friends can share content with each other and see each other\'s public achievement badges.',
           },
           {
             type: 'steps',
             items: [
               'Click the Friends & Following icon in the navigation bar (or the people icon on mobile).',
-              'Go to "Find People" to browse other Recall users on your course.',
+              'Go to "Find People" to browse other RevisOp users on your course.',
               'Use the search bar to find specific people by name.',
               'Click "Add Friend" to send a friend request, or "Follow" to follow them without a mutual connection.',
             ],
@@ -582,7 +582,7 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'Every piece of content on Recall has a clickable author name. Clicking on an author\'s name takes you to their profile, where you can see:',
+            text: 'Every piece of content on RevisOp has a clickable author name. Clicking on an author\'s name takes you to their profile, where you can see:',
           },
           {
             type: 'list',
@@ -602,7 +602,7 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'Following is a one-way connection \u2014 no mutual agreement needed. Follow anyone on Recall: students from other courses, professors, or top performers you want to keep an eye on.',
+            text: 'Following is a one-way connection \u2014 no mutual agreement needed. Follow anyone on RevisOp: students from other courses, professors, or top performers you want to keep an eye on.',
           },
           {
             type: 'list',
@@ -653,7 +653,7 @@ export const HELP_TABS = [
               'Tied rows show the same rank number.',
               'Your row is highlighted in blue so it is easy to spot.',
               'Streak is not shown on the leaderboard — it is visible on your own dashboard only.',
-              'There is no platform-wide public leaderboard by design — Recall values privacy and does not surface global rankings.',
+              'There is no platform-wide public leaderboard by design — RevisOp values privacy and does not surface global rankings.',
               'Professors and admins are excluded — they are content creators, not reviewers, and their stats are not shown in any leaderboard context.',
             ],
           },
@@ -685,7 +685,7 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'You can share any public note or flashcard deck directly to WhatsApp. When the recipient taps the link, they see a preview card with the title, subject, and author — and a link to open it in Recall.',
+            text: 'You can share any public note or flashcard deck directly to WhatsApp. When the recipient taps the link, they see a preview card with the title, subject, and author — and a link to open it in RevisOp.',
           },
           {
             type: 'steps',
@@ -694,7 +694,7 @@ export const HELP_TABS = [
               'Click the Share button in the header (only visible on public content).',
               'On mobile: choose WhatsApp from the share sheet.',
               'On desktop: a WhatsApp link opens automatically in a new tab.',
-              'The recipient sees a link preview. Clicking it opens the note or study set in Recall.',
+              'The recipient sees a link preview. Clicking it opens the note or study set in RevisOp.',
             ],
           },
           {
@@ -726,7 +726,7 @@ export const HELP_TABS = [
             type: 'list',
             items: [
               'Create multiple groups for different subjects or study sessions.',
-              'Invite specific Recall users to join your group.',
+              'Invite specific RevisOp users to join your group.',
               'Share notes and flashcard decks directly with the group.',
               'All group members can share content, not just the group creator.',
               'Group-shared content appears in members\' browse pages.',
@@ -769,7 +769,7 @@ export const HELP_TABS = [
             items: [
               'Open your group detail page.',
               'Click "Invite Members".',
-              'Search for Recall users by name.',
+              'Search for RevisOp users by name.',
               'Select users and send invitations.',
               'Invited users receive a notification with Accept/Decline options.',
             ],
@@ -847,7 +847,7 @@ export const HELP_TABS = [
           {
             type: 'list',
             items: [
-              'Digitalizer \u2014 Upload your first note to Recall. Awarded for converting your study material to digital format.',
+              'Digitalizer \u2014 Upload your first note to RevisOp. Awarded for converting your study material to digital format.',
               'Memory Architect \u2014 Create 10 flashcards. Shows your commitment to building a strong study foundation.',
               'Streak Master \u2014 Maintain a 3-day study streak. Demonstrates consistent daily review habits.',
               'Night Owl \u2014 Complete a review between 11 PM and 4 AM (your local time). For the dedicated late-night studiers.',
@@ -905,7 +905,7 @@ export const HELP_TABS = [
               'Friend Accepted \u2014 When someone accepts your friend request.',
               'Group Invite \u2014 When you are invited to a study group. You can Accept or Decline directly from the notification.',
               'Content Upvoted \u2014 When someone upvotes your note or flashcard deck.',
-              'Welcome \u2014 A one-time welcome message when you first join Recall.',
+              'Welcome \u2014 A one-time welcome message when you first join RevisOp.',
             ],
           },
           {
@@ -921,7 +921,7 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'The "My Contributions" page (in the profile dropdown) shows all the content you have created on Recall:',
+            text: 'The "My Contributions" page (in the profile dropdown) shows all the content you have created on RevisOp:',
           },
           {
             type: 'list',
@@ -1088,7 +1088,7 @@ export const HELP_TABS = [
               'Open a note or study set you created.',
               'Click the Share button in the header (only available for Public content).',
               'On mobile: choose WhatsApp from the share sheet. On desktop: WhatsApp opens in a new tab.',
-              'Students receive a preview link. Clicking it takes them to the note or deck on Recall.',
+              'Students receive a preview link. Clicking it takes them to the note or deck on RevisOp.',
               'If a student is not yet signed up, they are prompted to create a free account before viewing.',
             ],
           },
@@ -1245,7 +1245,7 @@ export const HELP_TABS = [
         icon: 'Layers',
         roles: ['super_admin'],
         content: [
-          { type: 'paragraph', text: 'Hard delete permanently removes a user and ALL their data from Recall. This cannot be undone.' },
+          { type: 'paragraph', text: 'Hard delete permanently removes a user and ALL their data from RevisOp. This cannot be undone.' },
           { type: 'list', items: [
             'Deleted data: profile, all notes, all flashcards, all decks, all reviews, friend connections, group memberships.',
             'The deletion is logged in admin_audit_log before execution.',

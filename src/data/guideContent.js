@@ -10,7 +10,7 @@ export const SITUATIONS = [
     headline: 'I want to set up my account',
     steps: [
       {
-        label: 'Is your Institute on Recall?',
+        label: 'Is your Institute on RevisOp?',
         detail:
           'If your institute enrolled you, simply sign up using the email you provided them. Your class\'s premium study material is already waiting for you — no code needed.',
         linkLabel: 'Sign Up',
@@ -36,7 +36,7 @@ export const SITUATIONS = [
       {
         label: 'Received a group invite link?',
         detail:
-          'If someone shared a Recall group link with you via WhatsApp, email, or another channel — open it once you are signed in. It will drop you straight into the group where shared notes and study sets live.',
+          'If someone shared a RevisOp group link with you via WhatsApp, email, or another channel — open it once you are signed in. It will drop you straight into the group where shared notes and study sets live.',
         linkLabel: 'Groups',
         linkTo: '/dashboard/groups',
         isSignup: false,
@@ -132,7 +132,7 @@ export const SITUATIONS = [
       {
         label: "Don't panic — start small",
         detail:
-          "Recall queues cards so you don't forget them, but you don't have to clear everything in one day. Focus on reviewing just 20 cards today to protect your streak. That is enough to get moving again.",
+          "RevisOp queues cards so you don't forget them, but you don't have to clear everything in one day. Focus on reviewing just 20 cards today to protect your streak. That is enough to get moving again.",
         linkLabel: 'Review Flashcards',
         linkTo: '/dashboard/review-flashcards',
         isSignup: false,
@@ -148,7 +148,7 @@ export const SITUATIONS = [
       {
         label: 'Break it into short blocks',
         detail:
-          'You do not need to finish the whole queue in one sitting. Try two or three 15-minute sessions across the day. Recall reprioritises overdue cards automatically — just keep showing up.',
+          'You do not need to finish the whole queue in one sitting. Try two or three 15-minute sessions across the day. RevisOp reprioritises overdue cards automatically — just keep showing up.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
@@ -204,7 +204,7 @@ export const SITUATIONS = [
       {
         label: 'Set visibility thoughtfully',
         detail:
-          'Private = only you. Friends = people you follow. Public = anyone on Recall. Content you share inside a Group is visible to group members only — your private content is never visible to anyone else.',
+          'Private = only you. Friends = people you follow. Public = anyone on RevisOp. Content you share inside a Group is visible to group members only — your private content is never visible to anyone else.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
@@ -218,9 +218,9 @@ export const SITUATIONS = [
     headline: "I don't understand how scoring works",
     steps: [
       {
-        label: 'Recall uses a Memory Engine, not a fixed schedule',
+        label: 'RevisOp uses a Memory Engine, not a fixed schedule',
         detail:
-          'Instead of studying everything every day, Recall\'s Memory Engine shows you each card just before you are likely to forget it. If you mark a card Hard, it comes back tomorrow. If you mark it Easy, it will not bother you for a week — saving you time for cards that actually need work.',
+          'Instead of studying everything every day, RevisOp\'s Memory Engine shows you each card just before you are likely to forget it. If you mark a card Hard, it comes back tomorrow. If you mark it Easy, it will not bother you for a week — saving you time for cards that actually need work.',
         linkLabel: null,
         linkTo: null,
         isSignup: false,
@@ -308,7 +308,7 @@ export const SITUATIONS = [
       {
         label: 'Create a Group or join one',
         detail:
-          'Groups are shared spaces where members post notes and study sets. You can create your own group and invite people using a shareable link — send it via WhatsApp, email, or any messaging app. People who are not yet on Recall can sign up and join using your link.',
+          'Groups are shared spaces where members post notes and study sets. You can create your own group and invite people using a shareable link — send it via WhatsApp, email, or any messaging app. People who are not yet on RevisOp can sign up and join using your link.',
         linkLabel: 'Groups',
         linkTo: '/dashboard/groups',
         isSignup: false,
