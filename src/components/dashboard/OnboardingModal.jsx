@@ -67,7 +67,7 @@ export default function OnboardingModal({ open, onDismiss }) {
         </button>
 
         <DialogHeader className="sr-only">
-          <DialogTitle>Welcome to Recall</DialogTitle>
+          <DialogTitle>Welcome to RevisOp</DialogTitle>
           <DialogDescription>Get started with these key features</DialogDescription>
         </DialogHeader>
 

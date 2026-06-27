@@ -121,8 +121,8 @@ export default function AnonymousStats({
                   <div className="flex justify-between text-xs sm:text-sm mb-1">
                     <span className="font-medium text-muted-foreground">
                       {courseLevel
-                        ? `vs all Recall students studying ${courseLevel}`
-                        : 'vs all Recall students'}
+                        ? `vs all RevisOp students studying ${courseLevel}`
+                        : 'vs all RevisOp students'}
                     </span>
                     <span className="text-muted-foreground">{classAverage} reviews</span>
                   </div>

@@ -34,8 +34,12 @@ import { useToast } from '@/hooks/use-toast';
 const SHORT_BREAK_MS   = 4  * 60 * 60 * 1000; // < 4h  → auto-resume
 const PROMPT_CUTOFF_MS = 16 * 60 * 60 * 1000; // 4–16h → prompt, > 16h → discard
 
-const LS_STARTED = 'recall_session_started_at';
-const LS_SOURCE  = 'recall_session_source';
+const LS_STARTED = 'revisop_session_started_at';
+const LS_SOURCE  = 'revisop_session_source';
+
+// Old recall_* keys — read once on mount to migrate any in-flight session forward.
+const OLD_LS_STARTED = 'recall_session_started_at';
+const OLD_LS_SOURCE  = 'recall_session_source';
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
 
@@ -111,6 +115,22 @@ export default function StudyTimerWidget({ onSessionLogged }) {
 
   // ── Mount: classify any stale manual session ──────────────────────────────
   useEffect(() => {
+    // migrate-on-mount: recall_* → revisop_*
+    if (!localStorage.getItem(LS_STARTED)) {
+      const oldStarted = localStorage.getItem(OLD_LS_STARTED);
+      if (oldStarted) {
+        localStorage.setItem(LS_STARTED, oldStarted);
+        localStorage.removeItem(OLD_LS_STARTED);
+      }
+    }
+    if (!localStorage.getItem(LS_SOURCE)) {
+      const oldSource = localStorage.getItem(OLD_LS_SOURCE);
+      if (oldSource) {
+        localStorage.setItem(LS_SOURCE, oldSource);
+        localStorage.removeItem(OLD_LS_SOURCE);
+      }
+    }
+
     const startedAtStr = localStorage.getItem(LS_STARTED);
     const source       = localStorage.getItem(LS_SOURCE);
 

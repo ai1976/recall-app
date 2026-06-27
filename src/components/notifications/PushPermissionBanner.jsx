@@ -16,16 +16,26 @@ import { Button } from '@/components/ui/button';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 
-const DISMISSED_KEY = 'recall-push-banner-dismissed';
+const DISMISSED_KEY = 'revisop-push-banner-dismissed';
+const OLD_DISMISSED_KEY = 'recall-push-banner-dismissed';
 
 export default function PushPermissionBanner() {
   const { user } = useAuth();
   const { isSupported, isSubscribed, permission, needsIOSInstall, isLoading, subscribe } =
     usePushNotifications(user);
 
-  const [isDismissed, setIsDismissed] = useState(
-    () => localStorage.getItem(DISMISSED_KEY) === 'true'
-  );
+  const [isDismissed, setIsDismissed] = useState(() => {
+    // migrate-on-mount: recall-push-banner-dismissed → revisop-push-banner-dismissed
+    let value = localStorage.getItem(DISMISSED_KEY);
+    if (!value) {
+      value = localStorage.getItem(OLD_DISMISSED_KEY);
+      if (value) {
+        localStorage.setItem(DISMISSED_KEY, value);
+        localStorage.removeItem(OLD_DISMISSED_KEY);
+      }
+    }
+    return value === 'true';
+  });
   const [justEnabled, setJustEnabled] = useState(false);
 
   // Don't render during SSR / before hydration

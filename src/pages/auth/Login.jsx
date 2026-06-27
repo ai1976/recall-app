@@ -61,7 +61,7 @@ export default function Login() {
               <span className="text-white font-bold text-2xl">R</span>
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Recall
+              RevisOp
             </h1>
           </div>
           <p className="text-muted-foreground">

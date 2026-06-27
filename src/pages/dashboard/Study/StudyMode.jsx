@@ -88,8 +88,8 @@ export default function StudyMode({
   // The DB row is only written when the session ends (single INSERT pattern).
   useEffect(() => {
     if (!loading && flashcards.length > 0 && !previewModeParam) {
-      localStorage.setItem('recall_session_started_at', new Date().toISOString());
-      localStorage.setItem('recall_session_source', 'study_mode');
+      localStorage.setItem('revisop_session_started_at', new Date().toISOString());
+      localStorage.setItem('revisop_session_source', 'study_mode');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
@@ -601,8 +601,25 @@ export default function StudyMode({
   // finds empty keys and returns early — no double-logging possible.
   const logStudyModeSession = async () => {
     try {
-      const startedAtStr = localStorage.getItem('recall_session_started_at');
-      const source       = localStorage.getItem('recall_session_source');
+      // migrate-on-mount: recall_session_started_at → revisop_session_started_at
+      if (!localStorage.getItem('revisop_session_started_at')) {
+        const oldStarted = localStorage.getItem('recall_session_started_at');
+        if (oldStarted) {
+          localStorage.setItem('revisop_session_started_at', oldStarted);
+          localStorage.removeItem('recall_session_started_at');
+        }
+      }
+      // migrate-on-mount: recall_session_source → revisop_session_source
+      if (!localStorage.getItem('revisop_session_source')) {
+        const oldSource = localStorage.getItem('recall_session_source');
+        if (oldSource) {
+          localStorage.setItem('revisop_session_source', oldSource);
+          localStorage.removeItem('recall_session_source');
+        }
+      }
+
+      const startedAtStr = localStorage.getItem('revisop_session_started_at');
+      const source       = localStorage.getItem('revisop_session_source');
 
       if (!startedAtStr || source !== 'study_mode' || !user) return;
 
@@ -611,8 +628,8 @@ export default function StudyMode({
       const durationSeconds = Math.round((endedAt.getTime() - startedAt.getTime()) / 1000);
 
       // Clear localStorage before the DB call to prevent double-logging
-      localStorage.removeItem('recall_session_started_at');
-      localStorage.removeItem('recall_session_source');
+      localStorage.removeItem('revisop_session_started_at');
+      localStorage.removeItem('revisop_session_source');
 
       if (durationSeconds < 10) return;
 

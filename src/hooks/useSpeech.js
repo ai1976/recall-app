@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-const VOICE_STORAGE_KEY = 'recall-tts-voice-uri';
-const RATE_STORAGE_KEY = 'recall-tts-rate';
+const VOICE_STORAGE_KEY = 'revisop-tts-voice-uri';
+const RATE_STORAGE_KEY = 'revisop-tts-rate';
+
+// Old recall-* keys — read once to migrate existing preferences forward.
+const OLD_VOICE_STORAGE_KEY = 'recall-tts-voice-uri';
+const OLD_RATE_STORAGE_KEY = 'recall-tts-rate';
 
 /**
  * Split text into sentences for sequential reading.
@@ -28,7 +32,15 @@ export function useSpeech() {
   const [voices, setVoices] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState(null);
   const [rate, setRate] = useState(() => {
-    const stored = localStorage.getItem(RATE_STORAGE_KEY);
+    // migrate-on-mount: recall-tts-rate → revisop-tts-rate
+    let stored = localStorage.getItem(RATE_STORAGE_KEY);
+    if (!stored) {
+      stored = localStorage.getItem(OLD_RATE_STORAGE_KEY);
+      if (stored) {
+        localStorage.setItem(RATE_STORAGE_KEY, stored);
+        localStorage.removeItem(OLD_RATE_STORAGE_KEY);
+      }
+    }
     return stored ? parseFloat(stored) : 1.0;
   });
 
@@ -41,6 +53,15 @@ export function useSpeech() {
     const supported = 'speechSynthesis' in window;
     setIsSupported(supported);
     if (!supported) return;
+
+    // migrate-on-mount: recall-tts-voice-uri → revisop-tts-voice-uri
+    if (!localStorage.getItem(VOICE_STORAGE_KEY)) {
+      const oldVoice = localStorage.getItem(OLD_VOICE_STORAGE_KEY);
+      if (oldVoice) {
+        localStorage.setItem(VOICE_STORAGE_KEY, oldVoice);
+        localStorage.removeItem(OLD_VOICE_STORAGE_KEY);
+      }
+    }
 
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();

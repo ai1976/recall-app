@@ -239,9 +239,17 @@ export default function Dashboard() {
       }
 
       // Link access request ref token if stranger signed up via invite link
-      const accessRef = localStorage.getItem('recall_access_ref');
+      // migrate-on-mount: recall_access_ref → revisop_access_ref
+      let accessRef = localStorage.getItem('revisop_access_ref');
+      if (!accessRef) {
+        accessRef = localStorage.getItem('recall_access_ref');
+        if (accessRef) {
+          localStorage.setItem('revisop_access_ref', accessRef);
+          localStorage.removeItem('recall_access_ref');
+        }
+      }
       if (accessRef) {
-        localStorage.removeItem('recall_access_ref');
+        localStorage.removeItem('revisop_access_ref');
         supabase.rpc('link_access_request', { p_ref_token: accessRef }).catch(() => {});
       }
 
@@ -563,7 +571,7 @@ export default function Dashboard() {
             <DialogHeader>
               <DialogTitle>Complete Your Profile</DialogTitle>
               <DialogDescription>
-                Please set your course and institution to get the most out of Recall.
+                Please set your course and institution to get the most out of RevisOp.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-2">
@@ -834,7 +842,7 @@ export default function Dashboard() {
                 Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}!
               </h1>
               <p className="text-muted-foreground mt-2">
-                Manage the Recall platform — content, users, and topics.
+                Manage the RevisOp platform — content, users, and topics.
               </p>
             </div>
 
@@ -1069,7 +1077,7 @@ export default function Dashboard() {
             <div className="mb-6 sm:mb-8">
               <h1 className="text-2xl sm:text-3xl font-bold">
                 {isNewUser
-                  ? `Welcome to Recall${userName ? `, ${userName.split(' ')[0]}` : ''}! 👋`
+                  ? `Welcome to RevisOp${userName ? `, ${userName.split(' ')[0]}` : ''}! 👋`
                   : `Welcome back${userName ? `, ${userName.split(' ')[0]}` : ''}! 👋`
                 }
               </h1>

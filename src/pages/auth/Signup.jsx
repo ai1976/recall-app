@@ -18,9 +18,11 @@ export default function Signup() {
 
   useEffect(() => {
     fetchAllCourses();
-    // Preserve ref token from invite link so Dashboard can link it after login
+    // Preserve ref token from invite link so Dashboard can link it after login.
+    // This is a write-only point (the key is read in Dashboard.jsx, where the
+    // recall_* → revisop_* migrate-on-mount lives) — just write the new key here.
     const ref = searchParams.get('ref');
-    if (ref) localStorage.setItem('recall_access_ref', ref);
+    if (ref) localStorage.setItem('revisop_access_ref', ref);
   }, []);
 
   const fetchAllCourses = async () => {
@@ -141,7 +143,7 @@ export default function Signup() {
               <span className="text-white font-bold text-2xl">R</span>
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Recall
+              RevisOp
             </h1>
           </div>
           <p className="text-gray-600">Create your account</p>
