@@ -205,7 +205,7 @@ export default function TermsOfService() {
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">6.3 Exceptional Circumstances</h3>
             <p className="text-gray-700 leading-relaxed">
-              In rare cases of technical errors resulting in duplicate charges or overcharging, we may issue refunds at our sole discretion. Such requests must be submitted to <a href="mailto:support@recallapp.in" className="text-blue-600 hover:underline">support@recallapp.in</a> within 7 days of the charge with supporting evidence.
+              In rare cases of technical errors resulting in duplicate charges or overcharging, we may issue refunds at our sole discretion. Such requests must be submitted to <a href="mailto:hello@recallapp.co.in" className="text-blue-600 hover:underline">hello@recallapp.co.in</a> within 7 days of the charge with supporting evidence.
             </p>
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">6.4 Free Trial Conversion</h3>
@@ -407,7 +407,7 @@ export default function TermsOfService() {
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">15.3 Informal Resolution</h3>
             <p className="text-gray-700 leading-relaxed">
-              Before filing a legal claim, you agree to first contact us at <a href="mailto:support@recallapp.in" className="text-blue-600 hover:underline">support@recallapp.in</a> to attempt to resolve the dispute informally. We will make a good faith effort to resolve disputes amicably.
+              Before filing a legal claim, you agree to first contact us at <a href="mailto:hello@recallapp.co.in" className="text-blue-600 hover:underline">hello@recallapp.co.in</a> to attempt to resolve the dispute informally. We will make a good faith effort to resolve disputes amicably.
             </p>
           </section>
 
@@ -452,10 +452,10 @@ export default function TermsOfService() {
               <p className="text-gray-700">Operated by: More Classes Commerce</p>
               <p className="text-gray-700">Location: Pune, Maharashtra, India</p>
               <p className="text-gray-700 mt-2">
-                Email: <a href="mailto:support@recallapp.in" className="text-blue-600 hover:underline">support@recallapp.in</a>
+                Email: <a href="mailto:hello@recallapp.co.in" className="text-blue-600 hover:underline">hello@recallapp.co.in</a>
               </p>
               <p className="text-gray-700">
-                Website: <a href="https://recallapp.in" className="text-blue-600 hover:underline">https://recallapp.in</a>
+                Website: <a href="https://www.recallapp.co.in" className="text-blue-600 hover:underline">https://www.recallapp.co.in</a>
               </p>
             </div>
           </section>

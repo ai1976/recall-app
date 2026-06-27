@@ -169,9 +169,8 @@ export default function PrivacyPolicy() {
           <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-4">
             <li><strong>Supabase:</strong> Database hosting and authentication (USA, GDPR compliant)</li>
             <li><strong>Razorpay:</strong> Payment processing (India)</li>
-            <li><strong>PostHog:</strong> Analytics (self-hosted, data stays in India)</li>
             <li><strong>Vercel:</strong> Web hosting (USA, GDPR compliant)</li>
-            <li><strong>Resend:</strong> Email delivery (USA)</li>
+            <li><strong>Google Workspace:</strong> Email delivery (USA, GDPR compliant)</li>
           </ul>
 
           <h3 className="text-xl font-semibold text-gray-900 mb-3">4.2 Other Users</h3>
@@ -241,7 +240,7 @@ export default function PrivacyPolicy() {
           <h3 className="text-xl font-semibold text-gray-900 mb-3">6.1 Access and Portability</h3>
           <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-4">
             <li>View your account information in settings</li>
-            <li>Request a copy of your data (email recall@moreclassescommerce.com)</li>
+            <li>Request a copy of your data (email hello@recallapp.co.in)</li>
             <li>Download your flashcards and notes anytime</li>
           </ul>
 
@@ -255,7 +254,7 @@ export default function PrivacyPolicy() {
           <h3 className="text-xl font-semibold text-gray-900 mb-3">6.3 Deletion</h3>
           <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-4">
             <li>Delete your account and all associated data from settings</li>
-            <li>Request deletion by emailing recall@moreclassescommerce.com</li>
+            <li>Request deletion by emailing hello@recallapp.co.in</li>
             <li>We will delete your data within 30 days (some backup copies may persist up to 90 days)</li>
           </ul>
 
@@ -269,7 +268,7 @@ export default function PrivacyPolicy() {
           <h3 className="text-xl font-semibold text-gray-900 mb-3">6.5 Objection and Restriction</h3>
           <p className="text-gray-700">
             You can object to certain data processing activities or request restricted 
-            processing by contacting us at recall@moreclassescommerce.com.
+            processing by contacting us at hello@recallapp.co.in.
           </p>
         </section>
 
@@ -318,7 +317,7 @@ export default function PrivacyPolicy() {
           </p>
           <p className="text-gray-700">
             If we discover we have collected information from a child under 13, we will delete 
-            it immediately. Parents can contact us at recall@moreclassescommerce.com.
+            it immediately. Parents can contact us at hello@recallapp.co.in.
           </p>
         </section>
 
@@ -329,7 +328,7 @@ export default function PrivacyPolicy() {
             including:
           </p>
           <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-4">
-            <li><strong>USA:</strong> Supabase, Vercel, Resend (GDPR-compliant)</li>
+            <li><strong>USA:</strong> Supabase, Vercel, Google Workspace (GDPR-compliant)</li>
             <li><strong>India:</strong> Razorpay (primary payment processor)</li>
           </ul>
           <p className="text-gray-700">
@@ -375,9 +374,9 @@ export default function PrivacyPolicy() {
           <div className="bg-gray-50 p-6 rounded-lg">
             <p className="text-gray-900 font-semibold mb-2">Data Protection Officer</p>
             <p className="text-gray-700 mb-2">More Classes Commerce</p>
-            <p className="text-gray-700">Email: recall@moreclassescommerce.com</p>
+            <p className="text-gray-700">Email: hello@recallapp.co.in</p>
             <p className="text-gray-700">Location: Pune, Maharashtra, India</p>
-            <p className="text-gray-700">Website: recall.moreclassescommerce.com</p>
+            <p className="text-gray-700">Website: https://www.recallapp.co.in</p>
             <p className="text-gray-700 mt-3">
               <strong>Response Time:</strong> We aim to respond within 48 hours
             </p>

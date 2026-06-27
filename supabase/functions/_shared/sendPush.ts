@@ -3,7 +3,7 @@ import { supabaseAdmin } from "./supabaseAdmin.ts";
 
 // Configure VAPID once at module load
 webPush.setVapidDetails(
-  Deno.env.get("VAPID_SUBJECT") ?? "mailto:recall@moreclassescommerce.com",
+  Deno.env.get("VAPID_SUBJECT") ?? "mailto:hello@recallapp.co.in",
   Deno.env.get("VAPID_PUBLIC_KEY") ?? "",
   Deno.env.get("VAPID_PRIVATE_KEY") ?? ""
 );
