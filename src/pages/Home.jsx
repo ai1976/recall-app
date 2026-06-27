@@ -100,12 +100,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <div className="flex items-center space-x-2">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-xl px-3 py-1 rounded">
-                R
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                RevisOp
+            <div className="flex items-center">
+              <span className="text-2xl font-bold tracking-tight leading-none">
+                <span style={{ color: '#f59e0b' }}>Revis</span><span style={{ color: '#1e1b4b' }}>Op</span>
               </span>
             </div>
 
@@ -683,11 +680,10 @@ export default function Home() {
           <div className="grid md:grid-cols-4 gap-8">
             {/* Brand */}
             <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-xl px-3 py-1 rounded">
-                  R
-                </div>
-                <span className="text-xl font-bold text-white">RevisOp</span>
+              <div className="flex items-center mb-4">
+                <span className="text-xl font-bold tracking-tight leading-none">
+                  <span style={{ color: '#f59e0b' }}>Revis</span><span style={{ color: '#ffffff' }}>Op</span>
+                </span>
               </div>
               <p className="text-sm">
                 The revision operating system for serious exam preparation.
