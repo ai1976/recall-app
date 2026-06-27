@@ -57,9 +57,9 @@ export default function PrivacyPolicy() {
         <section className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
           <p className="text-gray-700 mb-4">
-            Welcome to Recall's Privacy Policy. This document explains how More Classes Commerce 
-            ("we," "us," or "our") collects, uses, stores, and protects your personal information 
-            when you use our platform at recall.moreclassescommerce.com ("Service").
+            Welcome to RevisOp's Privacy Policy. This document explains how More Classes Commerce
+            ("we," "us," or "our") collects, uses, stores, and protects your personal information
+            when you use our platform at revisop.com ("Service").
           </p>
           <p className="text-gray-700 mb-4">
             We are committed to protecting your privacy and complying with applicable data 
@@ -78,7 +78,7 @@ export default function PrivacyPolicy() {
           
           <h3 className="text-xl font-semibold text-gray-900 mb-3">2.1 Information You Provide</h3>
           <p className="text-gray-700 mb-4">
-            When you register and use Recall, we collect:
+            When you register and use RevisOp, we collect:
           </p>
           <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-4">
             <li><strong>Account Information:</strong> Name, email address, password (encrypted)</li>
@@ -240,7 +240,7 @@ export default function PrivacyPolicy() {
           <h3 className="text-xl font-semibold text-gray-900 mb-3">6.1 Access and Portability</h3>
           <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-4">
             <li>View your account information in settings</li>
-            <li>Request a copy of your data (email hello@recallapp.co.in)</li>
+            <li>Request a copy of your data (email hello@revisop.com)</li>
             <li>Download your flashcards and notes anytime</li>
           </ul>
 
@@ -254,7 +254,7 @@ export default function PrivacyPolicy() {
           <h3 className="text-xl font-semibold text-gray-900 mb-3">6.3 Deletion</h3>
           <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-4">
             <li>Delete your account and all associated data from settings</li>
-            <li>Request deletion by emailing hello@recallapp.co.in</li>
+            <li>Request deletion by emailing hello@revisop.com</li>
             <li>We will delete your data within 30 days (some backup copies may persist up to 90 days)</li>
           </ul>
 
@@ -268,7 +268,7 @@ export default function PrivacyPolicy() {
           <h3 className="text-xl font-semibold text-gray-900 mb-3">6.5 Objection and Restriction</h3>
           <p className="text-gray-700">
             You can object to certain data processing activities or request restricted 
-            processing by contacting us at hello@recallapp.co.in.
+            processing by contacting us at hello@revisop.com.
           </p>
         </section>
 
@@ -317,7 +317,7 @@ export default function PrivacyPolicy() {
           </p>
           <p className="text-gray-700">
             If we discover we have collected information from a child under 13, we will delete 
-            it immediately. Parents can contact us at hello@recallapp.co.in.
+            it immediately. Parents can contact us at hello@revisop.com.
           </p>
         </section>
 
@@ -374,9 +374,9 @@ export default function PrivacyPolicy() {
           <div className="bg-gray-50 p-6 rounded-lg">
             <p className="text-gray-900 font-semibold mb-2">Data Protection Officer</p>
             <p className="text-gray-700 mb-2">More Classes Commerce</p>
-            <p className="text-gray-700">Email: hello@recallapp.co.in</p>
+            <p className="text-gray-700">Email: hello@revisop.com</p>
             <p className="text-gray-700">Location: Pune, Maharashtra, India</p>
-            <p className="text-gray-700">Website: https://www.recallapp.co.in</p>
+            <p className="text-gray-700">Website: https://www.revisop.com</p>
             <p className="text-gray-700 mt-3">
               <strong>Response Time:</strong> We aim to respond within 48 hours
             </p>
@@ -386,7 +386,7 @@ export default function PrivacyPolicy() {
         <section className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">14. Your Consent</h2>
           <p className="text-gray-700">
-            By using Recall, you consent to the collection, use, and sharing of your information 
+            By using RevisOp, you consent to the collection, use, and sharing of your information
             as described in this Privacy Policy. If you do not agree, please do not use our Service.
           </p>
         </section>
@@ -394,7 +394,7 @@ export default function PrivacyPolicy() {
         <div className="border-t pt-8 mt-12">
           <p className="text-sm text-gray-600">
             This Privacy Policy is effective as of December 26, 2025, and applies to all 
-            information collected by Recall before and after this date.
+            information collected by RevisOp before and after this date.
           </p>
         </div>
 

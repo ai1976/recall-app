@@ -16,7 +16,7 @@ const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
 
 // Configure VAPID once at module load (same keys used by all other push functions)
 webPush.setVapidDetails(
-  Deno.env.get("VAPID_SUBJECT") ?? "mailto:hello@recallapp.co.in",
+  Deno.env.get("VAPID_SUBJECT") ?? "mailto:hello@revisop.com",
   Deno.env.get("VAPID_PUBLIC_KEY") ?? "",
   Deno.env.get("VAPID_PRIVATE_KEY") ?? ""
 );

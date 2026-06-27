@@ -135,7 +135,7 @@ export default function ProfessorTools() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `recall_valid_entries_${course.name.replace(/\s+/g, '_')}.csv`;
+      a.download = `revisop_valid_entries_${course.name.replace(/\s+/g, '_')}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
 
@@ -161,7 +161,7 @@ BULK UPLOAD LIMITATIONS:
 
 TO ADD NEW COURSE/SUBJECT/TOPIC:
 1. Close this file
-2. Go to Recall → Upload Note or Create Flashcard
+2. Go to RevisOp → Upload Note or Create Flashcard
 3. Create ONE flashcard/note with your custom entry
 4. Return to Bulk Upload page
 5. Download Valid Entries again (will include your new entry)

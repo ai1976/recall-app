@@ -33,10 +33,10 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. Agreement to Terms</h2>
             <p className="text-gray-700 leading-relaxed">
-              By accessing or using Recall ("the Platform", "Service", "we", "us", or "our"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not access or use the Service.
+              By accessing or using RevisOp ("the Platform", "Service", "we", "us", or "our"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not access or use the Service.
             </p>
             <p className="text-gray-700 leading-relaxed mt-4">
-              These Terms constitute a legally binding agreement between you ("User", "you", or "your") and Recall, operated by More Classes Commerce, located in Pune, Maharashtra, India.
+              These Terms constitute a legally binding agreement between you ("User", "you", or "your") and RevisOp, operated by More Classes Commerce, located in Pune, Maharashtra, India.
             </p>
           </section>
 
@@ -44,7 +44,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">2. Description of Service</h2>
             <p className="text-gray-700 leading-relaxed">
-              Recall is a web-based study platform designed for professional students, competitive exam aspirants, and lifelong learners across various disciplines including but not limited to professional certifications (CA, CMA, CS, CFA, ACCA), competitive exams (JEE, NEET, UPSC), and other educational programs.
+              RevisOp is a web-based study platform designed for professional students, competitive exam aspirants, and lifelong learners across various disciplines including but not limited to professional certifications (CA, CMA, CS, CFA, ACCA), competitive exams (JEE, NEET, UPSC), and other educational programs.
             </p>
             <p className="text-gray-700 leading-relaxed mt-4">
               The platform provides:
@@ -98,7 +98,7 @@ export default function TermsOfService() {
             
             <h3 className="text-lg font-semibold text-gray-800 mb-2">4.1 Freemium Model</h3>
             <p className="text-gray-700 leading-relaxed">
-              Recall operates on a freemium model with the following structure:
+              RevisOp operates on a freemium model with the following structure:
             </p>
             <ul className="list-disc list-inside text-gray-700 mt-2 space-y-1 ml-4">
               <li><strong>Free Tier:</strong> Basic access to core features with certain limitations on content, storage, or functionality</li>
@@ -193,7 +193,7 @@ export default function TermsOfService() {
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">6.2 Platform-as-a-Service Nature</h3>
             <p className="text-gray-700 leading-relaxed">
-              Recall is provided as a platform-as-a-service (PaaS). Upon payment, you receive immediate access to the subscribed features and content. Due to the nature of digital services and instant access provision, <strong>we do not offer refunds, returns, or exchanges</strong> under any circumstances, including but not limited to:
+              RevisOp is provided as a platform-as-a-service (PaaS). Upon payment, you receive immediate access to the subscribed features and content. Due to the nature of digital services and instant access provision, <strong>we do not offer refunds, returns, or exchanges</strong> under any circumstances, including but not limited to:
             </p>
             <ul className="list-disc list-inside text-gray-700 mt-2 space-y-1 ml-4">
               <li>Change of mind or dissatisfaction with content</li>
@@ -205,7 +205,7 @@ export default function TermsOfService() {
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">6.3 Exceptional Circumstances</h3>
             <p className="text-gray-700 leading-relaxed">
-              In rare cases of technical errors resulting in duplicate charges or overcharging, we may issue refunds at our sole discretion. Such requests must be submitted to <a href="mailto:hello@recallapp.co.in" className="text-blue-600 hover:underline">hello@recallapp.co.in</a> within 7 days of the charge with supporting evidence.
+              In rare cases of technical errors resulting in duplicate charges or overcharging, we may issue refunds at our sole discretion. Such requests must be submitted to <a href="mailto:hello@revisop.com" className="text-blue-600 hover:underline">hello@revisop.com</a> within 7 days of the charge with supporting evidence.
             </p>
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">6.4 Free Trial Conversion</h3>
@@ -220,7 +220,7 @@ export default function TermsOfService() {
             
             <h3 className="text-lg font-semibold text-gray-800 mb-2">7.1 Your Content</h3>
             <p className="text-gray-700 leading-relaxed">
-              You retain ownership of all content you upload, create, or share on Recall ("User Content"). By uploading User Content, you grant us a non-exclusive, worldwide, royalty-free license to:
+              You retain ownership of all content you upload, create, or share on RevisOp ("User Content"). By uploading User Content, you grant us a non-exclusive, worldwide, royalty-free license to:
             </p>
             <ul className="list-disc list-inside text-gray-700 mt-2 space-y-1 ml-4">
               <li>Store, display, and transmit your content within the platform</li>
@@ -265,7 +265,7 @@ export default function TermsOfService() {
             
             <h3 className="text-lg font-semibold text-gray-800 mb-2">8.1 Platform Ownership</h3>
             <p className="text-gray-700 leading-relaxed">
-              All content, features, functionality, software, and materials on Recall (excluding User Content) are owned by us or our licensors and are protected by copyright, trademark, and other intellectual property laws.
+              All content, features, functionality, software, and materials on RevisOp (excluding User Content) are owned by us or our licensors and are protected by copyright, trademark, and other intellectual property laws.
             </p>
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">8.2 Limited License</h3>
@@ -289,7 +289,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">9. Privacy and Data Protection</h2>
             <p className="text-gray-700 leading-relaxed">
-              Your use of the Service is also governed by our <Link to="/privacy-policy" className="text-blue-600 hover:underline">Privacy Policy</Link>, which explains how we collect, use, and protect your personal information. By using Recall, you consent to the practices described in the Privacy Policy.
+              Your use of the Service is also governed by our <Link to="/privacy-policy" className="text-blue-600 hover:underline">Privacy Policy</Link>, which explains how we collect, use, and protect your personal information. By using RevisOp, you consent to the practices described in the Privacy Policy.
             </p>
           </section>
 
@@ -312,7 +312,7 @@ export default function TermsOfService() {
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">11.2 No Guarantee of Results</h3>
             <p className="text-gray-700 leading-relaxed">
-              We do not guarantee that use of Recall will result in improved academic performance, exam success, or any specific learning outcomes. Your success depends on various factors including personal effort, study habits, and inherent ability.
+              We do not guarantee that use of RevisOp will result in improved academic performance, exam success, or any specific learning outcomes. Your success depends on various factors including personal effort, study habits, and inherent ability.
             </p>
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">11.3 Service Availability</h3>
@@ -333,7 +333,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">12. Indemnification</h2>
             <p className="text-gray-700 leading-relaxed">
-              You agree to indemnify, defend, and hold harmless Recall, More Classes Commerce, and our officers, directors, employees, and agents from any claims, liabilities, damages, losses, costs, or expenses (including reasonable attorneys' fees) arising from:
+              You agree to indemnify, defend, and hold harmless RevisOp, More Classes Commerce, and our officers, directors, employees, and agents from any claims, liabilities, damages, losses, costs, or expenses (including reasonable attorneys' fees) arising from:
             </p>
             <ul className="list-disc list-inside text-gray-700 mt-2 space-y-1 ml-4">
               <li>Your use or misuse of the Service</li>
@@ -407,7 +407,7 @@ export default function TermsOfService() {
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">15.3 Informal Resolution</h3>
             <p className="text-gray-700 leading-relaxed">
-              Before filing a legal claim, you agree to first contact us at <a href="mailto:hello@recallapp.co.in" className="text-blue-600 hover:underline">hello@recallapp.co.in</a> to attempt to resolve the dispute informally. We will make a good faith effort to resolve disputes amicably.
+              Before filing a legal claim, you agree to first contact us at <a href="mailto:hello@revisop.com" className="text-blue-600 hover:underline">hello@revisop.com</a> to attempt to resolve the dispute informally. We will make a good faith effort to resolve disputes amicably.
             </p>
           </section>
 
@@ -448,14 +448,14 @@ export default function TermsOfService() {
               If you have any questions, concerns, or complaints regarding these Terms or the Service, please contact us:
             </p>
             <div className="bg-gray-50 p-6 rounded-lg mt-4">
-              <p className="text-gray-700"><strong>Recall</strong></p>
+              <p className="text-gray-700"><strong>RevisOp</strong></p>
               <p className="text-gray-700">Operated by: More Classes Commerce</p>
               <p className="text-gray-700">Location: Pune, Maharashtra, India</p>
               <p className="text-gray-700 mt-2">
-                Email: <a href="mailto:hello@recallapp.co.in" className="text-blue-600 hover:underline">hello@recallapp.co.in</a>
+                Email: <a href="mailto:hello@revisop.com" className="text-blue-600 hover:underline">hello@revisop.com</a>
               </p>
               <p className="text-gray-700">
-                Website: <a href="https://www.recallapp.co.in" className="text-blue-600 hover:underline">https://www.recallapp.co.in</a>
+                Website: <a href="https://www.revisop.com" className="text-blue-600 hover:underline">https://www.revisop.com</a>
               </p>
             </div>
           </section>
@@ -463,7 +463,7 @@ export default function TermsOfService() {
           {/* Acceptance */}
           <section className="border-t pt-8">
             <p className="text-gray-700 leading-relaxed">
-              <strong>By creating an account and using Recall, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.</strong>
+              <strong>By creating an account and using RevisOp, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.</strong>
             </p>
           </section>
         </div>
