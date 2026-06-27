@@ -105,7 +105,7 @@ export default function Home() {
                 R
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Recall
+                RevisOp
               </span>
             </div>
 
@@ -171,7 +171,7 @@ export default function Home() {
 
           {/* Main Headline - Brand name first, tagline second */}
           <h1 className="text-6xl md:text-7xl font-bold mb-3 leading-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Recall
+            RevisOp
           </h1>
           <p className="text-2xl md:text-3xl font-semibold mb-6 text-gray-800">
             The Revision Operating System.
@@ -250,10 +250,10 @@ export default function Home() {
             <p className="text-gray-500 text-sm">
               Are you an institute or coaching class?{' '}
               <a
-                href="mailto:hello@recallapp.co.in?subject=Get My Institute on Recall&body=Hi, I'd like to get my institute on Recall. Please send me more details.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
+                href="mailto:hello@revisop.com?subject=Get My Institute on RevisOp&body=Hi, I'd like to get my institute on RevisOp. Please send me more details.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
                 className="text-blue-600 hover:underline font-medium"
               >
-                Get your institute on Recall
+                Get your institute on RevisOp
               </a>
             </p>
           </div>
@@ -265,7 +265,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How Recall Works
+              How RevisOp Works
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               From your first session to exam day — one continuous system
@@ -363,7 +363,7 @@ export default function Home() {
                 SM-2 Spaced Repetition
               </h3>
               <p className="text-gray-600 mb-4">
-                The gold standard algorithm used by top memory athletes. Recall schedules each item at the exact optimal interval — not too soon, not too late.
+                The gold standard algorithm used by top memory athletes. RevisOp schedules each item at the exact optimal interval — not too soon, not too late.
               </p>
               <ul className="space-y-2">
                 <li className="flex items-start space-x-2">
@@ -492,7 +492,7 @@ export default function Home() {
               For Institutes & Educators
             </h2>
             <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-              Bring your institute onto Recall. Auto-enrol your batch. Curate content once — every student benefits.
+              Bring your institute onto RevisOp. Auto-enrol your batch. Curate content once — every student benefits.
             </p>
           </div>
 
@@ -532,11 +532,11 @@ export default function Home() {
               </ul>
             </div>
 
-            {/* Why Institutes Choose Recall */}
+            {/* Why Institutes Choose RevisOp */}
             <div className="bg-white/10 backdrop-blur-sm p-8 rounded-xl">
-              <h3 className="text-2xl font-bold mb-2">Why Institutes Choose Recall</h3>
+              <h3 className="text-2xl font-bold mb-2">Why Institutes Choose RevisOp</h3>
               <p className="text-blue-100 text-sm mb-6">
-                When your institute is on Recall, all study sets are pre-loaded into your students' accounts. No setup. No waiting.
+                When your institute is on RevisOp, all study sets are pre-loaded into your students' accounts. No setup. No waiting.
               </p>
 
               <div className="space-y-4 mb-6">
@@ -571,13 +571,13 @@ export default function Home() {
 
               <div className="mt-8 pt-8 border-t border-white/20">
                 <a
-                  href="mailto:hello@recallapp.co.in?subject=Get My Institute on Recall&body=Hi, I'd like to get my institute on Recall.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
+                  href="mailto:hello@revisop.com?subject=Get My Institute on RevisOp&body=Hi, I'd like to get my institute on RevisOp.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
                   className="block w-full bg-white text-blue-600 text-center px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition"
                 >
-                  Get My Institute on Recall
+                  Get My Institute on RevisOp
                 </a>
                 <p className="text-center text-blue-100 text-sm mt-3">
-                  Email: hello@recallapp.co.in
+                  Email: hello@revisop.com
                 </p>
               </div>
             </div>
@@ -648,7 +648,7 @@ export default function Home() {
               Start free
             </Link>
             <a
-              href="mailto:hello@recallapp.co.in?subject=Questions About Recall&body=Hi, I have a question about Recall:%0D%0A%0D%0A"
+              href="mailto:hello@revisop.com?subject=Questions About RevisOp&body=Hi, I have a question about RevisOp:%0D%0A%0D%0A"
               className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white/10 transition"
             >
               Contact Us
@@ -665,7 +665,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-gray-50 border border-gray-200 rounded-lg px-6 py-4 flex items-center justify-between">
             <span className="text-gray-600 text-sm">
-              🗺️ <span className="font-medium text-gray-800">New to Recall?</span> Browse the Student Guide — no login needed.
+              🗺️ <span className="font-medium text-gray-800">New to RevisOp?</span> Browse the Student Guide — no login needed.
             </span>
             <Link
               to="/guide"
@@ -687,7 +687,7 @@ export default function Home() {
                 <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-xl px-3 py-1 rounded">
                   R
                 </div>
-                <span className="text-xl font-bold text-white">Recall</span>
+                <span className="text-xl font-bold text-white">RevisOp</span>
               </div>
               <p className="text-sm">
                 The revision operating system for serious exam preparation.
@@ -709,9 +709,9 @@ export default function Home() {
             <div>
               <h3 className="text-white font-semibold mb-4">For Educators</h3>
               <ul className="space-y-2 text-sm">
-                <li><a href="mailto:hello@recallapp.co.in?subject=Get My Institute on Recall" className="hover:text-white transition">Get My Institute on Recall</a></li>
+                <li><a href="mailto:hello@revisop.com?subject=Get My Institute on RevisOp" className="hover:text-white transition">Get My Institute on RevisOp</a></li>
                 <li><a href="#educators" className="hover:text-white transition">Benefits</a></li>
-                <li><a href="mailto:hello@recallapp.co.in" className="hover:text-white transition">Contact</a></li>
+                <li><a href="mailto:hello@revisop.com" className="hover:text-white transition">Contact</a></li>
               </ul>
             </div>
 
@@ -721,13 +721,13 @@ export default function Home() {
               <ul className="space-y-2 text-sm">
                 <li><Link to="/privacy-policy" className="hover:text-white transition">Privacy Policy</Link></li>
                 <li><Link to="/terms-of-service" className="hover:text-white transition">Terms of Service</Link></li>
-                <li><a href="mailto:hello@recallapp.co.in" className="hover:text-white transition">Support</a></li>
+                <li><a href="mailto:hello@revisop.com" className="hover:text-white transition">Support</a></li>
               </ul>
             </div>
           </div>
 
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-sm">
-            <p>© 2025 Recall. All rights reserved. Built for students who want to remember everything.</p>
+            <p>© 2025 RevisOp. All rights reserved. Built for students who want to remember everything.</p>
           </div>
         </div>
       </footer>
