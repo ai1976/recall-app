@@ -94,7 +94,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white">
       {/* Navigation */}
       <nav className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -108,19 +108,19 @@ export default function Home() {
 
             {/* Nav Links */}
             <div className="hidden md:flex items-center space-x-6">
-              <a href="#features" className="text-gray-700 hover:text-blue-600 transition">Features</a>
-              <a href="#how-it-works" className="text-gray-700 hover:text-blue-600 transition">How It Works</a>
-              <a href="#educators" className="text-gray-700 hover:text-blue-600 transition">For Educators</a>
-              <Link to="/login" className="text-gray-700 hover:text-blue-600 transition">Login</Link>
+              <a href="#features" className="text-gray-700 hover:text-amber-500 transition">Features</a>
+              <a href="#how-it-works" className="text-gray-700 hover:text-amber-500 transition">How It Works</a>
+              <a href="#educators" className="text-gray-700 hover:text-amber-500 transition">For Educators</a>
+              <Link to="/login" className="text-gray-700 hover:text-amber-500 transition">Login</Link>
               <Link
                 to="/signup"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:shadow-lg transition"
+                className="bg-[#1e1b4b] text-white px-6 py-2 rounded-lg hover:shadow-lg transition"
               >
                 Start free
               </Link>
               <Link
                 to="/guide"
-                className="border border-indigo-200 text-indigo-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-50 transition"
+                className="border border-amber-200 text-amber-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-50 transition"
               >
                 Student Guide
               </Link>
@@ -130,19 +130,19 @@ export default function Home() {
             <div className="md:hidden flex items-center space-x-3">
               <Link
                 to="/guide"
-                className="text-gray-700 hover:text-blue-600 text-sm font-medium transition"
+                className="text-gray-700 hover:text-amber-500 text-sm font-medium transition"
               >
                 Guide
               </Link>
               <Link
                 to="/login"
-                className="text-gray-700 hover:text-blue-600 text-sm font-medium transition"
+                className="text-gray-700 hover:text-amber-500 text-sm font-medium transition"
               >
                 Login
               </Link>
               <Link
                 to="/signup"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg text-sm"
+                className="bg-[#1e1b4b] text-white px-4 py-2 rounded-lg text-sm"
               >
                 Sign Up
               </Link>
@@ -155,7 +155,7 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
         <div className="max-w-4xl mx-auto">
           {/* Badge - Platform positioning */}
-          <div className="inline-flex items-center space-x-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full mb-6">
+          <div className="inline-flex items-center space-x-2 bg-amber-100 text-amber-800 px-4 py-2 rounded-full mb-6">
             <Users className="h-4 w-4" />
             <span className="text-sm font-semibold">
               {stats.isLoading ? (
@@ -201,7 +201,7 @@ export default function Home() {
           <div className="flex justify-center mb-3">
             <Link
               to="/signup"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-10 py-4 rounded-lg text-lg font-semibold hover:shadow-xl transition transform hover:-translate-y-1"
+              className="bg-[#1e1b4b] text-white px-10 py-4 rounded-lg text-lg font-semibold hover:shadow-xl transition transform hover:-translate-y-1"
             >
               Start free
             </Link>
@@ -209,7 +209,7 @@ export default function Home() {
 
           <p className="text-gray-500 text-sm">
             Already a student?{' '}
-            <Link to="/login" className="text-blue-600 hover:underline font-medium">
+            <Link to="/login" className="text-amber-600 hover:underline font-medium">
               Log in
             </Link>
           </p>
@@ -217,25 +217,25 @@ export default function Home() {
           {/* Real-time Stats */}
           <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
             <div>
-              <div className="text-4xl font-bold text-indigo-600">
+              <div className="text-4xl font-bold text-[#1e1b4b]">
                 {stats.students}
               </div>
               <div className="text-gray-600 mt-2">Active Students</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-indigo-600">
+              <div className="text-4xl font-bold text-[#1e1b4b]">
                 {stats.educators}
               </div>
               <div className="text-gray-600 mt-2">Expert Educators</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-indigo-600">
+              <div className="text-4xl font-bold text-[#1e1b4b]">
                 {stats.totalFlashcards}
               </div>
               <div className="text-gray-600 mt-2">Flashcards</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-indigo-600">
+              <div className="text-4xl font-bold text-[#1e1b4b]">
                 {stats.totalNotes}
               </div>
               <div className="text-gray-600 mt-2">Notes</div>
@@ -248,7 +248,7 @@ export default function Home() {
               Are you an institute or coaching class?{' '}
               <a
                 href="mailto:hello@revisop.com?subject=Get My Institute on RevisOp&body=Hi, I'd like to get my institute on RevisOp. Please send me more details.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
-                className="text-blue-600 hover:underline font-medium"
+                className="text-amber-600 hover:underline font-medium"
               >
                 Get your institute on RevisOp
               </a>
@@ -272,7 +272,7 @@ export default function Home() {
           <div className="grid md:grid-cols-4 gap-8">
             {/* Step 1 - Review First */}
             <div className="text-center">
-              <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mb-6 mx-auto">
+              <div className="bg-[#1e1b4b] text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mb-6 mx-auto">
                 <Brain className="h-8 w-8" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
@@ -285,7 +285,7 @@ export default function Home() {
 
             {/* Step 2 - Upload Notes */}
             <div className="text-center">
-              <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mb-6 mx-auto">
+              <div className="bg-[#f59e0b] text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mb-6 mx-auto">
                 <Camera className="h-8 w-8" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
@@ -328,7 +328,7 @@ export default function Home() {
           <div className="text-center mt-12">
             <Link 
               to="/signup" 
-              className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-xl transition transform hover:-translate-y-1"
+              className="inline-flex items-center space-x-2 bg-[#1e1b4b] text-white px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-xl transition transform hover:-translate-y-1"
             >
               <Zap className="h-5 w-5" />
               <span>Start Reviewing Now</span>
@@ -352,8 +352,8 @@ export default function Home() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Feature 1 - Spaced Repetition (moved to position 1) */}
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-xl hover:shadow-lg transition">
-              <div className="bg-blue-600 text-white p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+            <div className="bg-amber-50 p-8 rounded-xl hover:shadow-lg transition">
+              <div className="bg-[#1e1b4b] text-white p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
                 <Brain className="h-6 w-6" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
@@ -379,8 +379,8 @@ export default function Home() {
             </div>
 
             {/* Feature 2 - Note Upload */}
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-8 rounded-xl hover:shadow-lg transition">
-              <div className="bg-purple-600 text-white p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+            <div className="bg-slate-50 p-8 rounded-xl hover:shadow-lg transition">
+              <div className="bg-[#f59e0b] text-white p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
                 <Upload className="h-6 w-6" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
@@ -436,10 +436,10 @@ export default function Home() {
       </section>
 
       {/* Bonus: Educator Content Section */}
-      <section className="bg-blue-50 py-20">
+      <section className="bg-amber-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center space-x-2 bg-blue-200 text-blue-900 px-4 py-2 rounded-full mb-6">
+            <div className="inline-flex items-center space-x-2 bg-amber-100 text-amber-900 px-4 py-2 rounded-full mb-6">
               <Award className="h-4 w-4" />
               <span className="text-sm font-semibold">Free to Browse</span>
             </div>
@@ -454,13 +454,13 @@ export default function Home() {
             <div className="bg-white p-8 rounded-xl shadow-sm">
               <div className="grid md:grid-cols-3 gap-6 mb-6">
                 <div>
-                  <div className="text-3xl font-bold text-blue-600 mb-2">
+                  <div className="text-3xl font-bold text-[#f59e0b] mb-2">
                     {stats.educators}
                   </div>
                   <div className="text-gray-600">Educators</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-purple-600 mb-2">
+                  <div className="text-3xl font-bold text-[#1e1b4b] mb-2">
                     {stats.flashcards}
                   </div>
                   <div className="text-gray-600">Flashcards</div>
@@ -482,13 +482,13 @@ export default function Home() {
       </section>
 
       {/* For Educators Section */}
-      <section id="educators" className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-20">
+      <section id="educators" className="bg-[#1e1b4b] text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4">
               For Institutes & Educators
             </h2>
-            <p className="text-xl text-blue-100 max-w-2xl mx-auto">
+            <p className="text-xl text-amber-100 max-w-2xl mx-auto">
               Bring your institute onto RevisOp. Auto-enrol your batch. Curate content once — every student benefits.
             </p>
           </div>
@@ -502,28 +502,28 @@ export default function Home() {
                   <CheckCircle className="h-6 w-6 text-green-300 mt-0.5 flex-shrink-0" />
                   <div>
                     <div className="font-semibold">Dedicated Institute Setup</div>
-                    <div className="text-blue-100 text-sm">Batch groups auto-created, students auto-enrolled on registration</div>
+                    <div className="text-amber-100 text-sm">Batch groups auto-created, students auto-enrolled on registration</div>
                   </div>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="h-6 w-6 text-green-300 mt-0.5 flex-shrink-0" />
                   <div>
                     <div className="font-semibold">Free for Students</div>
-                    <div className="text-blue-100 text-sm">Social features, batch groups, and review tools are free for all enrolled students</div>
+                    <div className="text-amber-100 text-sm">Social features, batch groups, and review tools are free for all enrolled students</div>
                   </div>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="h-6 w-6 text-green-300 mt-0.5 flex-shrink-0" />
                   <div>
                     <div className="font-semibold">Curated Content Control</div>
-                    <div className="text-blue-100 text-sm">You control which flashcards and notes are visible to your batch</div>
+                    <div className="text-amber-100 text-sm">You control which flashcards and notes are visible to your batch</div>
                   </div>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="h-6 w-6 text-green-300 mt-0.5 flex-shrink-0" />
                   <div>
                     <div className="font-semibold">Bulk Upload or CSV</div>
-                    <div className="text-blue-100 text-sm">Upload your complete study material once via CSV — we handle the rest</div>
+                    <div className="text-amber-100 text-sm">Upload your complete study material once via CSV — we handle the rest</div>
                   </div>
                 </li>
               </ul>
@@ -532,7 +532,7 @@ export default function Home() {
             {/* Why Institutes Choose RevisOp */}
             <div className="bg-white/10 backdrop-blur-sm p-8 rounded-xl">
               <h3 className="text-2xl font-bold mb-2">Why Institutes Choose RevisOp</h3>
-              <p className="text-blue-100 text-sm mb-6">
+              <p className="text-amber-100 text-sm mb-6">
                 When your institute is on RevisOp, all study sets are pre-loaded into your students' accounts. No setup. No waiting.
               </p>
 
@@ -543,7 +543,7 @@ export default function Home() {
                   </div>
                   <div>
                     <div className="font-semibold">Ready in 48 Hours</div>
-                    <div className="text-blue-100 text-sm">Institute onboarding and batch setup done for you</div>
+                    <div className="text-amber-100 text-sm">Institute onboarding and batch setup done for you</div>
                   </div>
                 </div>
                 <div className="flex items-start space-x-4">
@@ -552,7 +552,7 @@ export default function Home() {
                   </div>
                   <div>
                     <div className="font-semibold">Students Auto-Enrolled</div>
-                    <div className="text-blue-100 text-sm">Students are automatically added to your batch on registration — no manual invites</div>
+                    <div className="text-amber-100 text-sm">Students are automatically added to your batch on registration — no manual invites</div>
                   </div>
                 </div>
                 <div className="flex items-start space-x-4">
@@ -561,7 +561,7 @@ export default function Home() {
                   </div>
                   <div>
                     <div className="font-semibold">Content Pre-loaded</div>
-                    <div className="text-blue-100 text-sm">Your CSV becomes your students' spaced repetition queue from Day 1</div>
+                    <div className="text-amber-100 text-sm">Your CSV becomes your students' spaced repetition queue from Day 1</div>
                   </div>
                 </div>
               </div>
@@ -569,11 +569,11 @@ export default function Home() {
               <div className="mt-8 pt-8 border-t border-white/20">
                 <a
                   href="mailto:hello@revisop.com?subject=Get My Institute on RevisOp&body=Hi, I'd like to get my institute on RevisOp.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
-                  className="block w-full bg-white text-blue-600 text-center px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition"
+                  className="block w-full bg-white text-[#1e1b4b] text-center px-6 py-3 rounded-lg font-semibold hover:bg-amber-50 transition"
                 >
                   Get My Institute on RevisOp
                 </a>
-                <p className="text-center text-blue-100 text-sm mt-3">
+                <p className="text-center text-amber-100 text-sm mt-3">
                   Email: hello@revisop.com
                 </p>
               </div>
@@ -629,18 +629,18 @@ export default function Home() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-20">
+      <section className="bg-[#1e1b4b] text-white py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
             Ready to Never Forget Again?
           </h2>
-          <p className="text-xl text-blue-100 mb-10">
+          <p className="text-xl text-amber-100 mb-10">
             Join {stats.students} students already using spaced repetition • Start free today
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
             <Link
               to="/signup"
-              className="bg-white text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-xl transition transform hover:-translate-y-1"
+              className="bg-white text-[#1e1b4b] px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-xl transition transform hover:-translate-y-1"
             >
               Start free
             </Link>
@@ -651,7 +651,7 @@ export default function Home() {
               Contact Us
             </a>
           </div>
-          <p className="mt-6 text-blue-100">
+          <p className="mt-6 text-amber-100">
             Free for students • Institute plans available
           </p>
         </div>
@@ -666,7 +666,7 @@ export default function Home() {
             </span>
             <Link
               to="/guide"
-              className="ml-4 flex-none bg-blue-600 text-white text-sm font-medium px-4 py-1.5 rounded-full hover:bg-blue-700 transition-colors whitespace-nowrap"
+              className="ml-4 flex-none bg-[#1e1b4b] text-white text-sm font-medium px-4 py-1.5 rounded-full hover:bg-[#2d2a6e] transition-colors whitespace-nowrap"
             >
               Open Guide →
             </Link>
