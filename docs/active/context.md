@@ -551,13 +551,13 @@ Recent development has focused on fixing the spaced repetition architecture, imp
 
 | Layer | Technology | Notes |
 |-------|------------|-------|
-| **Frontend** | React 18 + Vite | With TailwindCSS + shadcn/ui |
+| **Frontend** | React 19 + Vite 7 | With TailwindCSS + shadcn/ui |
 | **Backend** | Supabase | PostgreSQL + Auth + Storage + RLS |
 | **Hosting** | Vercel | Free tier, auto-deploy from GitHub |
-| **OCR** | Tesseract.js | Client-side, free |
-| **Email** | Resend | Free tier (3K/month) |
-| **Analytics** | PostHog | Free tier |
-| **Error Tracking** | Sentry | Free tier |
+| **OCR** | Tesseract.js | Client-side, free (package installed; useOCR.js hook deleted as dead code) |
+| **Email** | Google Workspace | All email — team + transactional (hello@recallapp.co.in). Resend removed. |
+| **Analytics** | PostHog | Listed in Privacy Policy; not yet integrated in codebase |
+| **Error Tracking** | Sentry | Listed in Privacy Policy; not yet integrated in codebase |
 
 ---
 
@@ -1008,12 +1008,62 @@ If you see "EXCEEDING USAGE LIMITS" banner in Supabase Dashboard → billing cyc
 ```
 VITE_SUPABASE_URL=https://xxxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJxxxxx
+VITE_VAPID_PUBLIC_KEY=Bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
+
+---
+
+## Supabase Dashboard Settings (Infrastructure — NOT in code)
+
+These settings live in the Supabase Dashboard and are not reflected anywhere in the codebase. Document changes here so they are not lost between sessions.
+
+### Email / SMTP
+- **Provider:** Google Workspace custom SMTP (configured in Supabase → Project Settings → Auth → SMTP Settings)
+- **From address:** hello@recallapp.co.in
+- **Sender name:** Recall
+- **SMTP host:** smtp.gmail.com, port 587
+- **Auth:** Google Workspace App Password for hello@recallapp.co.in
+- **Why:** Supabase's built-in SMTP is rate-limited to 3 emails/hour. Google Workspace handles all transactional email (password reset, magic links, etc.) reliably.
+- **⚠️ To verify it is working:** Supabase → Authentication → Email Templates → Reset Password — the redirect URL must be `https://www.recallapp.co.in` (not `recallapp.in` or localhost). If password reset emails are failing silently, the redirect URL is the first thing to check.
+
+### Auth Settings
+- **JWT Expiry:** [CHECK AND UPDATE — Supabase → Authentication → Settings → JWT Expiry]
+- **Refresh Token Expiry:** [CHECK AND UPDATE]
+- **Note:** Supabase does not support per-role session timeouts. A single global JWT expiry applies to all roles. The per-role timeout design (12h super_admin / 24h admin / 7d student) documented in earlier sessions was aspirational and was never implemented.
+
+### Realtime
+- `notifications` table has Realtime replication enabled (Supabase Dashboard → Database → Replication). Required for live bell icon badge updates and group invite notifications. If real-time notifications stop working, check this toggle first.
+
+### Storage Buckets
+- `notes` — note images (public read)
+- `flashcard-images` — flashcard images (public read, migrated from base64 in Feb 2026)
+- Image compression applied at upload time (NoteUpload: max 500KB / 1920px; FlashcardCreate: max 200KB / 1200px)
+
+### Edge Functions (Supabase)
+- `push-subscribe` — saves push subscriptions
+- `push-unsubscribe` — soft-deletes subscriptions
+- `notify-friend-event` — instant friend request/accept push
+- `notify-content-created` — 4-hour aggregated content push
+- `cron-review-reminders` — daily 08:00 IST (02:30 UTC) review reminder
+- `cron-daily-study-summary` — nightly 22:00 local-time study summary (runs every 15 min, finds users in that window)
+- **CRON_SECRET** is shared by all pg_cron-triggered Edge Functions. If rotated, ALL cron jobs must be resynced immediately or they return 401.
+- **JWT Verification:** Disabled on all Edge Functions (Supabase → Edge Functions → [function] → Details → "Verify JWT"). Auth is handled by `x-cron-secret` header inside each function.
+
+### pg_cron Jobs (Supabase)
+- `daily-review-reminders` — `30 2 * * *` (02:30 UTC daily)
+- `cron-daily-study-summary` — `*/15 * * * *` (every 15 min)
+
+### Supabase Secrets (set via CLI)
+- `VAPID_PUBLIC_KEY`
+- `VAPID_PRIVATE_KEY`
+- `VAPID_SUBJECT` = mailto:hello@recallapp.co.in
+- `CRON_SECRET`
+- `SUPABASE_SERVICE_ROLE_KEY` (also set as Vercel env var for middleware)
 
 ---
 
 ## Key Contacts
 
 - **Developer:** Anand (CA Faculty, Zero coding experience)
-- **Support:** recall@moreclassescommerce.com
+- **Support:** hello@recallapp.co.in
 - **Location:** Pune, Maharashtra, India

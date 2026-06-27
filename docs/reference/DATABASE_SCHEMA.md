@@ -1,9 +1,9 @@
-# DATABASE SCHEMA DOCUMENTATION - RECALL MVP
+# DATABASE SCHEMA DOCUMENTATION - RECALL
 
-**Last Updated:** January 2, 2026  
+**Last Updated:** June 2026 (Sprint 4.1)
 **Database:** PostgreSQL (Supabase)  
-**Project:** Recall - AI-Powered Study Platform for CA Students  
-**Version:** Phase 1 MVP
+**Project:** Recall - The Revision Operating System (course-agnostic spaced repetition platform)
+**Version:** Production (Phase 1 complete + ongoing sprints)
 
 ---
 
@@ -30,37 +30,51 @@
 - **Custom Functions:** 16 ⭐ (was 13, added get_friends_leaderboard + get_following_leaderboard + update_daily_goal — Sprint 3.5)
 - **RLS Policies:** 29 ⭐ (was 26, added 3 for follows — Sprint 3.4)
 - **Indexes:** 56+ ⭐ (was 54+, added follows_follower_id_idx + follows_followee_id_idx — Sprint 3.4)
-- **Triggers:** 0 (currently)
+- **Triggers:** 10+ active (trg_create_profile_on_signup / handle_new_user, trigger_update_deck_card_count, trg_aaa_counter_flashcards, trg_badge_flashcard_create, trg_badge_note_upload, trg_badge_review, trg_badge_upvote, trg_badge_friendship, trg_auto_resolve_note_flags, trg_auto_resolve_flashcard_flags)
 - **Database Size:** ~50 MB (estimated for 20 users)
 
 ### Core Tables
 - **profiles** - User accounts with 4-tier role system
-- **notes** - Student notes with OCR
-- **flashcards** - Spaced repetition cards with batch tracking ⭐ (now with creator attribution)
-- **reviews** - Review history for SuperMemo-2 algorithm
-- **disciplines, subjects, topics** - Course structure (CA Inter pre-loaded)
+- **notes** - Student notes with optional OCR text extraction
+- **flashcards** - Spaced repetition cards with batch tracking and full creator attribution
+- **reviews** - Per-student SRS progress (single source of truth for all spaced repetition state)
+- **flashcard_decks** - Auto-maintained deck groups (trigger-created, joined via 5 grouping columns NOT deck_id)
+- **disciplines, subjects, topics** - Course taxonomy (course-agnostic; CA/CMA/CS pre-loaded for beta)
 - **admin_audit_log** - Audit trail for admin actions
-- **role_change_log** - Role promotion/demotion history
 
-### Social Tables ⭐ NEW
-- **friendships** - Friend connections between users (pending/accepted/rejected)
-- **upvotes** - Upvote tracking for notes (already existed, moved here for clarity)
-- **comments** - Comments on shared notes (already existed, moved here for clarity)
+### Social Tables
+- **friendships** - Bidirectional friend connections (pending/accepted/rejected)
+- **follows** - One-way follow graph (separate from friendships)
+- **upvotes** - Polymorphic upvotes for notes and flashcard_decks
+- **study_groups** - Group metadata (name, type: batch/system_course/custom, invite_token)
+- **study_group_members** - Membership with invitation status (invited/active)
+- **content_group_shares** - Links notes/decks to groups (cascade-deletes on group delete, NOT original content)
+- **notifications** - All notification types with JSONB metadata and Realtime enabled
 
-### Revenue Tracking ⭐ NEW
-- **content_creators** - Content creators for revenue sharing (Vivitsu, professors)
+### Achievement & Activity
+- **badge_definitions** - Badge catalogue (key, icon_key, category, threshold)
+- **user_badges** - Awarded badges per user with per-badge privacy toggle
+- **user_activity_log** - Daily activity log used for streak and badge calculations
+- **user_stats** - Counter table (O(1) badge threshold checks; maintained by trg_aaa_counter_* triggers)
 
-### Multi-Course Teaching ⭐ NEW (Feb 21, 2026)
+### Study Tracking
+- **study_sessions** - Completed manual + auto-captured study time sessions (only completed rows stored)
+
+### Push Notifications
+- **push_subscriptions** - Device subscriptions with soft-delete on expiry
+- **push_notification_preferences** - Per-user boolean preferences (all default true)
+
+### Access Control
+- **access_requests** - WhatsApp lead capture + B2B institute access requests
+- **content_flags** - Content reporting (auto-escalates to 'high' at 3+ flags)
+
+### Revenue Tracking
+- **content_creators** - Revenue sharing attribution (Vivitsu partnership)
+
+### Multi-Course Teaching
 - **profile_courses** - Junction table: professors/admins/super_admins → multiple disciplines
-  - `profiles.course_level` kept as "primary course" for backward compat with all RLS
-  - `profile_courses` is additive — extends, does not replace, `course_level`
-  - `is_primary = TRUE` row always synced with `profiles.course_level` via `setPrimaryCourse()`
-  - SQL: run manually in Supabase SQL Editor (provided in chat)
-
-### Supporting Tables
-- **comments** - Comments on shared notes
-- **upvotes** - Upvote tracking for notes
-- **role_permissions** - Permission matrix for roles
+  - `profiles.course_level` kept as "primary course" for backward compat
+  - `is_primary = TRUE` always synced with `profiles.course_level` via `setPrimaryCourse()`
 
 ---
 

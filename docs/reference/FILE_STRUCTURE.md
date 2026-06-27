@@ -1,44 +1,34 @@
 # RECALL APP - FILE STRUCTURE
-**Structure as on 22 Feb 2026** (last updated: Push Notifications Phase 3)
+**Last Updated: June 2026 (Sprint 4.1)**
+
+---
+
 recall-app
 ├── supabase
 │   └── functions
-│       ├── _shared                        ← shared helpers (NOT deployed as functions)
-│       │   ├── supabaseAdmin.ts           ← service-role Supabase client
-│       │   └── sendPush.ts                ← VAPID web-push utility (sendPushToUsers)
+│       ├── _shared                              ← shared helpers (NOT deployed as standalone functions)
+│       │   ├── supabaseAdmin.ts                 ← service-role Supabase client (bypasses RLS)
+│       │   └── sendPush.ts                      ← VAPID web-push utility (sendPushToUsers)
 │       ├── push-subscribe
-│       │   └── index.ts                   ← save device push subscription
+│       │   └── index.ts                         ← save device push subscription to DB
 │       ├── push-unsubscribe
-│       │   └── index.ts                   ← soft-delete push subscription
+│       │   └── index.ts                         ← soft-delete push subscription (is_active = false)
 │       ├── notify-friend-event
-│       │   └── index.ts                   ← instant push for friend_request/accepted
+│       │   └── index.ts                         ← instant push for friend_request / friend_accepted
 │       ├── notify-content-created
-│       │   └── index.ts                   ← update-in-place aggregation + push
+│       │   └── index.ts                         ← update-in-place aggregation + push (4h grouping window)
 │       ├── cron-review-reminders
-│       │   └── index.ts                   ← daily 08:00 IST push for due review cards
+│       │   └── index.ts                         ← daily 08:00 IST push for due review cards (02:30 UTC cron)
 │       └── cron-daily-study-summary
-│           └── index.ts                   ← nightly 22:00 local-time study summary push (Sprint 3.6)
+│           └── index.ts                         ← nightly 22:00 local-time study summary push (*/15 cron)
 ├── .env.local
 ├── .gitignore
 ├── components.json
-├── dist
-│   ├── android-chrome-192x192.png
-│   ├── android-chrome-512x512.png
-│   ├── apple-touch-icon.png
-│   ├── assets
-│   │   ├── index-DHW_aIga.css
-│   │   └── index-FtNB4Wrq.js
-│   ├── favicon-16x16.png
-│   ├── favicon-32x32.png
-│   ├── favicon.ico
-│   ├── index.html
-│   ├── site.webmanifest
-│   └── vite.svg
 ├── docs
 │   ├── active
-│   │   ├── context.md
-│   │   ├── git-guide.md
-│   │   └── now.md
+│   │   ├── context.md                           ← project context, architecture decisions, bug protocols
+│   │   ├── git-guide.md                         ← bash git commit guide (printf syntax, NEVER PowerShell heredoc)
+│   │   └── now.md                               ← current sprint status + session notes
 │   ├── archive
 │   │   ├── APPROVED_DECISIONS.md
 │   │   ├── CONTEXT_FOR_CLAUDE.md
@@ -50,17 +40,17 @@ recall-app
 │   │   ├── SPACED_REPETITION_PHILOSOPHY.md
 │   │   └── UPVOTE_SYSTEM.md
 │   ├── reference
-│   │   ├── DATABASE_SCHEMA.md
-│   │   └── FILE_STRUCTURE.md
+│   │   ├── DATABASE_SCHEMA.md                   ← authoritative DB schema reference
+│   │   └── FILE_STRUCTURE.md                    ← this file
 │   └── tracking
 │       ├── bugs.md
 │       ├── changelog.md
 │       └── ideas.md
+├── middleware.js                                 ← Vercel Edge Middleware: OG tag injection for /deck/:id and /join/:token
 ├── eslint.config.js
 ├── index.html
 ├── jsconfig.json
-├── package-lock.json
-├── package.json
+├── package.json                                  ← react 19, react-router-dom v7, vite v7, recharts, tesseract.js
 ├── postcss.config.js
 ├── public
 │   ├── android-chrome-192x192.png
@@ -70,505 +60,215 @@ recall-app
 │   ├── favicon-32x32.png
 │   ├── favicon.ico
 │   ├── site.webmanifest
+│   ├── sw.js                                    ← Service Worker: push event handler + notificationclick + install/activate
 │   └── vite.svg
-├── README.md
-├── recall-favicon.svg
 ├── src
-│   ├── App.css
-│   ├── App.jsx
-│   ├── assets
-│   │   └── react.svg
+│   ├── App.jsx                                  ← all routes (lazy-loaded), CourseContextProvider, AppContent postAuthRedirect
+│   ├── contexts
+│   │   ├── AuthContext.jsx                      ← auth state, timezone sync, updateUserTimezone
+│   │   └── CourseContext.jsx                    ← multi-course teaching context for professors/admins; activeCourse session state
+│   ├── lib
+│   │   ├── supabase.js                          ← Supabase client
+│   │   ├── utils.js                             ← shadcn cn() utility
+│   │   └── notifyEdge.js                        ← fire-and-forget helpers: notifyContentCreated(), notifyFriendEvent()
+│   ├── hooks
+│   │   ├── use-toast.js                         ← shadcn toast hook
+│   │   ├── useActivityFeed.js                   ← recent content feed for dashboard activity section
+│   │   ├── useBadges.js                         ← badge data fetching (get_unnotified_badges RPC)
+│   │   ├── useFriendRequestCount.js             ← realtime pending friend request count
+│   │   ├── useNotifications.js                  ← realtime notifications (INSERT + UPDATE subscriptions)
+│   │   ├── usePushNotifications.js              ← Web Push: permission, VAPID subscribe/unsubscribe, iOS detect
+│   │   ├── useRole.js                           ← role helper (isAdmin, isSuperAdmin, isProfessor)
+│   │   └── useSpeech.js                         ← Web Speech API TTS with sentence chunking (Chrome 15s bug fix)
+│   ├── data
+│   │   ├── helpContent.js                       ← role-filtered help tabs/sections/FAQs (single source of truth for Help.jsx)
+│   │   └── guideContent.js                      ← SITUATIONS array for StudentGuide + GuideInfoModal (single source of truth)
 │   ├── components
 │   │   ├── badges
-│   │   │   ├── BadgeCard.jsx
-│   │   │   ├── BadgeIcon.jsx
-│   │   │   └── BadgeToast.jsx
-│   │   ├── progress
-│   │   │   ├── StudyHeatmap.jsx           ← 90-day per-user heatmap (get_study_heatmap RPC)
-│   │   │   ├── PlatformHeatmap.jsx        ← 52-week platform-wide heatmap (get_platform_heatmap RPC, super_admin only)
-│   │   │   └── SubjectMasteryTable.jsx    ← per-subject mastery table (get_subject_mastery_v1 RPC)
+│   │   │   ├── BadgeCard.jsx                    ← badge display with per-badge privacy toggle
+│   │   │   ├── BadgeIcon.jsx                    ← maps icon_key string to Lucide icon component
+│   │   │   └── BadgeToast.jsx                   ← toast notification shown on dashboard when new badge earned
 │   │   ├── dashboard
-│   │   │   ├── ActivityFeed.jsx
-│   │   │   ├── AnonymousStats.jsx
-│   │   │   ├── GoalProgressWidget.jsx     ← daily review/study-time goal vs today's actual (student only); writes via update_daily_goal RPC
-│   │   │   ├── LeaderboardWidget.jsx      ← friends + following leaderboard tabs (student only); isolated, zero parent re-renders
-│   │   │   └── StudyTimerWidget.jsx       ← manual offline study timer (student only); clock via DOM ref
+│   │   │   ├── ActivityFeed.jsx                 ← recent notes/decks from past 7 days (grouped by creator+date)
+│   │   │   ├── AnonymousStats.jsx               ← "You vs Class" comparison bars (min 5 users for averages)
+│   │   │   ├── GoalProgressWidget.jsx           ← daily review/study-time goal vs today's actual; writes via update_daily_goal RPC
+│   │   │   ├── LeaderboardWidget.jsx            ← friends + following leaderboard tabs; isolated, zero parent re-renders
+│   │   │   ├── OnboardingModal.jsx              ← 3-step first-login modal (shown when has_seen_onboarding = false)
+│   │   │   └── StudyTimerWidget.jsx             ← manual offline study timer; clock via DOM ref (zero React re-renders/tick)
 │   │   ├── flashcards
-│   │   │   ├── FlashcardCard.jsx
-│   │   │   ├── SpeakButton.jsx
-│   │   │   └── SpeechSettings.jsx
+│   │   │   ├── FlashcardCard.jsx                ← standalone flashcard display/edit card component
+│   │   │   ├── SpeakButton.jsx                  ← TTS volume icon with pulse animation
+│   │   │   └── SpeechSettings.jsx               ← voice selector + speed slider popover
 │   │   ├── layout
-│   │   │   ├── ActivityDropdown.jsx
-│   │   │   ├── FriendsDropdown.jsx
-│   │   │   ├── NavDesktop.jsx
-│   │   │   ├── Navigation.jsx
-│   │   │   ├── NavMobile.jsx
-│   │   │   ├── PageContainer.jsx
-│   │   │   └── ProfileDropdown.jsx
+│   │   │   ├── ActivityDropdown.jsx             ← bell icon + notifications dropdown (group_invite inline Accept/Decline)
+│   │   │   ├── CourseSwitcher.jsx               ← indigo pill dropdown for multi-course professors (session-only, no DB write)
+│   │   │   ├── FriendsDropdown.jsx              ← friends icon + friend requests + following links
+│   │   │   ├── NavDesktop.jsx                   ← desktop nav with dropdowns (Study▾, Create▾, Manage▾)
+│   │   │   ├── Navigation.jsx                   ← orchestrator (55 lines); renders NavDesktop + NavMobile
+│   │   │   ├── NavMobile.jsx                    ← hamburger sheet nav
+│   │   │   ├── PageContainer.jsx                ← wrapper with width prop (full/medium/narrow)
+│   │   │   └── ProfileDropdown.jsx              ← avatar dropdown (Settings, Help, Sign Out)
+│   │   ├── notifications
+│   │   │   └── PushPermissionBanner.jsx         ← one-time dismissible push prompt (Android: enable button; iOS: install guide)
+│   │   ├── progress
+│   │   │   ├── PlatformHeatmap.jsx              ← 52-week platform-wide heatmap (super_admin only; blue scale)
+│   │   │   ├── StudyHeatmap.jsx                 ← 90-day per-user study heatmap (green scale)
+│   │   │   └── SubjectMasteryTable.jsx          ← per-subject mastery %; responsive table + mobile card list
 │   │   └── ui
 │   │       ├── alert.jsx
 │   │       ├── button.jsx
 │   │       ├── card.jsx
 │   │       ├── command.jsx
-│   │       ├── dialog.jsx
+│   │       ├── ContentPreviewWall.jsx           ← Tier B preview wall after 10 professor cards (lead capture form)
+│   │       ├── dialog.jsx                       ← has hideCloseButton prop for non-dismissible modals
 │   │       ├── dropdown-menu.jsx
+│   │       ├── FlagButton.jsx                   ← "Report" button (content_error / inappropriate / other)
 │   │       ├── input.jsx
 │   │       ├── label.jsx
 │   │       ├── popover.jsx
 │   │       ├── progress.jsx
 │   │       ├── SearchableSelect.jsx
 │   │       ├── select.jsx
-│   │       ├── sheet.jsx
+│   │       ├── sheet.jsx                        ← Radix Dialog-based slide-in Sheet (used by NavMobile)
 │   │       ├── switch.jsx
 │   │       ├── tabs.jsx
 │   │       ├── textarea.jsx
 │   │       ├── toast.jsx
 │   │       ├── toaster.jsx
-│   │       └── UpvoteButton.jsx
-│   ├── contexts
-│   │   └── AuthContext.jsx
-│   ├── data
-│   │   ├── guideContent.js
-│   │   └── helpContent.js
-│   ├── hooks
-│   │   ├── use-toast.js
-│   │   ├── useActivityFeed.js
-│   │   ├── useBadges.js
-│   │   ├── useFriendRequestCount.js
-│   │   ├── useNotifications.js
-│   │   ├── useOCR.js
-│   │   ├── useRole.js
-│   │   └── useSpeech.js
-│   ├── index.css
-│   ├── lib
-│   │   ├── supabase.js
-│   │   └── utils.js
-│   ├── main.jsx
+│   │       └── UpvoteButton.jsx                 ← polymorphic upvote toggle (notes + flashcard_decks); optimistic UI
 │   ├── pages
-│   │   ├── admin
-│   │   │   ├── AdminDashboard.jsx
-│   │   │   ├── BulkUploadTopics.jsx
-│   │   │   ├── SuperAdminDashboard.jsx
-│   │   │   └── SuperAdminAnalytics.jsx    ← super_admin analytics (Sprint 5)
-│   │   ├── guide                          ← public wayfinding pages (no auth, no DB calls)
-│   │   │   └── StudentGuide.jsx           ← /guide — 9-situation student wayfinding page (Sprint P1)
-│   │   ├── public                         ← unauthenticated public pages (RPC-only data)
-│   │   │   ├── DeckPreview.jsx            ← /deck/:deckId — shareable study set preview
-│   │   │   ├── GroupJoin.jsx              ← /join/:token — group invite accept page
-│   │   │   └── NotePreview.jsx            ← /note/:noteId — shareable note preview (Sprint 2.8-A)
+│   │   ├── Home.jsx                             ← landing page (public, unauthenticated)
+│   │   ├── Dashboard.jsx                        ← role-specific hub (student / professor / admin / super_admin views)
+│   │   ├── PrivacyPolicy.jsx
+│   │   ├── TermsOfService.jsx
 │   │   ├── auth
 │   │   │   ├── ForgotPassword.jsx
-│   │   │   ├── Login.jsx
+│   │   │   ├── Login.jsx                        ← reads+clears postAuthRedirect from localStorage BEFORE signIn()
 │   │   │   ├── ResetPassword.jsx
 │   │   │   └── Signup.jsx
-│   │   ├── dashboard
-│   │   │   ├── Content
-│   │   │   │   ├── BrowseNotes.jsx
-│   │   │   │   ├── FlashcardCreate.jsx
-│   │   │   │   ├── MyContributions.jsx
-│   │   │   │   ├── MyFlashcards.jsx
-│   │   │   │   ├── MyNotes.jsx
-│   │   │   │   ├── NoteDetail.jsx
-│   │   │   │   ├── NoteEdit.jsx
-│   │   │   │   └── NoteUpload.jsx
-│   │   │   ├── Friends
-│   │   │   │   ├── FindFriends.jsx
-│   │   │   │   ├── Following.jsx
-│   │   │   │   ├── FriendRequests.jsx
-│   │   │   │   └── MyFriends.jsx
-│   │   │   ├── Groups
-│   │   │   │   ├── CreateGroup.jsx
-│   │   │   │   ├── GroupDetail.jsx
-│   │   │   │   └── MyGroups.jsx
-│   │   │   ├── Profile
-│   │   │   │   ├── AuthorProfile.jsx
-│   │   │   │   ├── MyAchievements.jsx
-│   │   │   │   └── ProfileSettings.jsx
-│   │   │   ├── BulkUploadFlashcards.jsx
-│   │   │   ├── Help.jsx
-│   │   │   ├── ProfessorAnalytics.jsx     ← Sprint 3: professor content engagement analytics
-│   │   │   └── Study
-│   │   │       ├── Progress.jsx
-│   │   │       ├── ReviewBySubject.jsx
-│   │   │       ├── ReviewFlashcards.jsx
-│   │   │       ├── ReviewSession.jsx
-│   │   │       └── StudyMode.jsx
+│   │   ├── guide
+│   │   │   └── StudentGuide.jsx                 ← public /guide page; 9 situations; scroll spy; no auth, no DB calls
+│   │   ├── public                               ← unauthenticated share/join pages (RPC-only data, no direct table access)
+│   │   │   ├── DeckPreview.jsx                  ← /deck/:deckId — shareable study set preview with OG tags
+│   │   │   ├── GroupJoin.jsx                    ← /join/:token — group invite accept page
+│   │   │   └── NotePreview.jsx                  ← /note/:noteId — shareable note preview with OG tags
+│   │   ├── admin
+│   │   │   ├── AdminAnalytics.jsx               ← /admin/analytics (admin + super_admin only)
+│   │   │   ├── AdminDashboard.jsx               ← /admin (user management, content moderation, access requests)
+│   │   │   ├── BulkUploadTopics.jsx             ← /admin/bulk-upload-topics (admin only)
+│   │   │   ├── MigrateNoteImages.jsx            ← TEMP — delete after note image migration is confirmed complete
+│   │   │   ├── SuperAdminAnalytics.jsx          ← /super-admin/analytics (super_admin only)
+│   │   │   └── SuperAdminDashboard.jsx          ← /super-admin (user management, role promotion, hard delete)
 │   │   ├── professor
-│   │   │   └── ProfessorTools.jsx
-│   │   │   (legacy — /professor/tools redirects to /dashboard/bulk-upload)
-│   │   ├── Dashboard.jsx
-│   │   ├── Home.jsx
-│   │   ├── PrivacyPolicy.jsx
-│   │   └── TermsOfService.jsx
-│   ├── store
-│   └── utils
+│   │   │   └── ProfessorTools.jsx               ← legacy; /professor/tools redirects to /dashboard/bulk-upload
+│   │   └── dashboard
+│   │       ├── BulkUploadFlashcards.jsx         ← /dashboard/bulk-upload (all users; 3-step CSV stepper)
+│   │       ├── Help.jsx                         ← /dashboard/help (role-filtered tabs, search, accordion mobile)
+│   │       ├── ProfessorAnalytics.jsx           ← /dashboard/professor-analytics (professor only)
+│   │       ├── Content
+│   │       │   ├── BrowseNotes.jsx              ← /dashboard/notes (subject-accordion layout, lazy images, pagination)
+│   │       │   ├── FlashcardCreate.jsx          ← /dashboard/flashcards/new (useBlocker guard, localStorage autosave)
+│   │       │   ├── MyContributions.jsx          ← /dashboard/my-contributions (upvote stats, who upvoted)
+│   │       │   ├── MyFlashcards.jsx             ← /dashboard/flashcards (own cards, null-topic nudge)
+│   │       │   ├── MyNotes.jsx                  ← /dashboard/my-notes
+│   │       │   ├── NoteDetail.jsx               ← /dashboard/notes/:id (WhatsApp share for public notes)
+│   │       │   ├── NoteEdit.jsx                 ← /dashboard/notes/edit/:id
+│   │       │   └── NoteUpload.jsx               ← /dashboard/notes/new (image compression via browser-image-compression)
+│   │       ├── Friends
+│   │       │   ├── FindFriends.jsx              ← /dashboard/find-friends (renamed "Find People"; course-filtered via RPC)
+│   │       │   ├── Following.jsx                ← /dashboard/following (one-way follows with stats)
+│   │       │   ├── FriendRequests.jsx           ← /dashboard/friend-requests
+│   │       │   └── MyFriends.jsx                ← /dashboard/my-friends (stats: streak, reviews, study time)
+│   │       ├── Groups
+│   │       │   ├── CreateGroup.jsx              ← /dashboard/groups/new
+│   │       │   ├── GroupDetail.jsx              ← /dashboard/groups/:groupId (batch performance view for professors)
+│   │       │   └── MyGroups.jsx                 ← /dashboard/groups (batch groups hidden from students server-side)
+│   │       ├── Profile
+│   │       │   ├── AuthorProfile.jsx            ← /dashboard/profile/:userId (follow button, teaching courses, public badges)
+│   │       │   ├── MyAchievements.jsx           ← /dashboard/achievements (per-badge privacy toggle)
+│   │       │   └── ProfileSettings.jsx          ← /dashboard/settings (name, course, institution, push notifications, teaching areas)
+│   │       └── Study
+│   │           ├── Progress.jsx                 ← /dashboard/progress (heatmap, subject mastery, due forecast, question type perf)
+│   │           ├── ReviewBySubject.jsx          ← /dashboard/review-by-subject
+│   │           ├── ReviewFlashcards.jsx         ← /dashboard/review-flashcards (deck browser; "My Cards" pinned; share button)
+│   │           ├── ReviewSession.jsx            ← /dashboard/review-session (due cards only)
+│   │           └── StudyMode.jsx                ← /dashboard/study (SRS engine; TTS; Skip/Suspend/Reset; study time logging)
+│   ├── GuideInfoModal.jsx                       ← shared contextual info modal for DeckPreview / NotePreview / GroupJoin
+│   ├── App.css
+│   ├── index.css
+│   └── main.jsx                                 ← registers /sw.js service worker on window load (non-blocking)
 ├── tailwind.config.js
 ├── vercel.json
-└── vite.config.js
-
-
+└── vite.config.js                               ← manualChunks: vendor-react, vendor-supabase, vendor-radix
 
 ---
 
-## 🎯 KEY FILE LOCATIONS
+## KEY FILE LOCATIONS
 
-### **Authentication:**
-- `src/contexts/AuthContext.jsx` - Auth state management
-- `src/components/pages/auth/Login.jsx` - Login page
-- `src/components/pages/auth/Signup.jsx` - Signup page
+### Authentication
+- `src/contexts/AuthContext.jsx` — auth state, timezone auto-sync on login
+- `src/pages/auth/Login.jsx` — postAuthRedirect captured BEFORE signIn() to avoid race
+- `src/pages/auth/Signup.jsx` — profile created by DB trigger, NOT client-side insert
 
-### **Navigation:**
-- `src/components/layout/Navigation.jsx` - Main navigation bar
+### Navigation
+- `src/components/layout/Navigation.jsx` — orchestrator (thin, ~55 lines)
+- `src/components/layout/NavDesktop.jsx` — desktop layout with dropdowns
+- `src/components/layout/NavMobile.jsx` — hamburger + Sheet
 
-### **Dashboard:**
-- `src/pages/Dashboard.jsx` - Main dashboard (student-first design)
-- `src/pages/dashboard/Content/MyContributions.jsx` - User's stats
-- `src/pages/dashboard/Content/MyNotes.jsx` - User's personal notes
-- `src/pages/dashboard/Content/BrowseNotes.jsx` - Browse public notes
-- `src/pages/dashboard/Study/Progress.jsx` - Analytics page
+### Dashboard
+- `src/pages/Dashboard.jsx` — 4-way role conditional (student / professor / admin / super_admin)
+- `src/components/dashboard/StudyTimerWidget.jsx` — clock via DOM ref, not React state (zero re-renders/tick)
+- `src/components/dashboard/LeaderboardWidget.jsx` — isolated; Following tab lazy-fetched
+- `src/components/dashboard/GoalProgressWidget.jsx` — inline edit, no modal
 
-### **Notes:**
-- `src/pages/dashboard/Content/NoteUpload.jsx` - Upload note page
-- `src/pages/dashboard/Content/NoteDetail.jsx` - View note details
-- `src/pages/dashboard/Content/NoteEdit.jsx` - Edit note
+### Study / SRS
+- `src/pages/dashboard/Study/StudyMode.jsx` — SRS engine, TTS, Skip/Suspend/Reset/Skip-Topic, study time logging, visibilitychange listener
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx` — deck browser; deep-link via ?deck= param
+- `src/pages/dashboard/Study/ReviewSession.jsx` — due-cards-only session
 
-### **Flashcards:**
-- `src/pages/dashboard/Content/FlashcardCreate.jsx` - Create flashcard
-- `src/pages/dashboard/Content/MyFlashcards.jsx` - User's flashcards
-- `src/pages/dashboard/Study/StudyMode.jsx` - Review session
-- `src/components/flashcards/FlashcardCard.jsx` - Reusable flashcard display card
-- `src/components/flashcards/SpeakButton.jsx` - TTS volume icon button
-- `src/components/flashcards/SpeechSettings.jsx` - Voice/speed settings popover
-- `src/hooks/useSpeech.js` - Web Speech API hook (TTS)
+### Content Creation
+- `src/pages/dashboard/Content/FlashcardCreate.jsx` — useBlocker guard + beforeunload + localStorage autosave (1s debounce)
+- `src/pages/dashboard/Content/NoteUpload.jsx` — image compression (maxSizeMB: 0.5, maxWidthOrHeight: 1920)
 
-### **Admin:**
-- `src/pages/admin/AdminDashboard.jsx` - Admin panel
-- `src/pages/admin/SuperAdminDashboard.jsx` - Super admin panel
-- `src/pages/admin/SuperAdminAnalytics.jsx` - Super admin analytics page (Sprint 5)
-- `src/pages/admin/BulkUploadTopics.jsx` - Bulk upload subjects & topics (admin only)
+### Public / Share Pages
+- `src/pages/public/DeckPreview.jsx` — /deck/:deckId (OG tags via middleware.js)
+- `src/pages/public/NotePreview.jsx` — /note/:noteId (OG tags via middleware.js)
+- `src/pages/public/GroupJoin.jsx` — /join/:token
+- `middleware.js` — Vercel Edge Middleware injects OG tags for bots on /deck/* and /note/* and /join/*
 
-### **Bulk Upload:**
-- `src/pages/dashboard/BulkUploadFlashcards.jsx` - Bulk upload flashcards via CSV (all users)
-- `src/pages/professor/ProfessorTools.jsx` - Legacy (redirects to BulkUploadFlashcards)
+### Admin
+- `src/pages/admin/AdminDashboard.jsx` — user management, content flags, access requests, batch groups
+- `src/pages/admin/SuperAdminDashboard.jsx` — role promotion, hard delete via admin_delete_user_data RPC
+- `src/pages/admin/MigrateNoteImages.jsx` — **TEMP: delete after note image migration confirmed complete**
 
-### **Public Share Pages:**
-- `src/pages/public/DeckPreview.jsx` - Public study set preview (viral share page, /deck/:id)
-- `src/pages/public/NotePreview.jsx` - Public note preview (viral share page, /note/:id)
-- `src/pages/public/GroupJoin.jsx` - Public group invite page (/join/:token)
+### Supabase / Backend
+- `src/lib/supabase.js` — Supabase client
+- `src/lib/notifyEdge.js` — fire-and-forget helpers for Edge Function calls
+- `src/hooks/usePushNotifications.js` — Web Push permission + VAPID subscribe/unsubscribe
+- `src/components/notifications/PushPermissionBanner.jsx` — one-time push opt-in prompt on Dashboard
 
-### **Shared UI Helpers:**
-- `src/components/GuideInfoModal.jsx` - Contextual info modal for public pages; pulls content from guideContent.js by situationId; no navigation, preserves postAuthRedirect funnel
+### Course Context (Multi-Course Professors)
+- `src/contexts/CourseContext.jsx` — activeCourse session state, addCourse/removeCourse/setPrimaryCourse
+- `src/components/layout/CourseSwitcher.jsx` — indigo pill dropdown (only when ≥2 courses)
 
-### **Student Guide:**
-- `src/pages/guide/StudentGuide.jsx` - Public /guide page (no auth required)
-- `src/data/guideContent.js` - SITUATIONS data array (single source of truth for all guide content)
+### Help & Guide
+- `src/pages/dashboard/Help.jsx` — role-filtered, searchable, accordion mobile / sidebar desktop
+- `src/data/helpContent.js` — single source of truth for all help content
+- `src/pages/guide/StudentGuide.jsx` — public /guide page (no auth, no DB)
+- `src/data/guideContent.js` — single source of truth for Student Guide + GuideInfoModal
+- `src/components/GuideInfoModal.jsx` — contextual modal on DeckPreview / NotePreview / GroupJoin
 
-### **Configuration:**
-- `src/lib/supabase.js` - Supabase client setup
-- `vite.config.js` - Vite configuration
-- `package.json` - Dependencies
+### Configuration
+- `vite.config.js` — manualChunks splits vendor bundles for caching
+- `public/sw.js` — service worker (push + notificationclick + install/activate)
+- `vercel.json` — routing config
+- `package.json` — React 19, React Router v7, Vite 7, Recharts, Tesseract.js
 
 ---
 
-## 📝 NOTES
-
-### **Recent Changes (Dec 22, 2025):**
-- ✅ Fixed topic dropdown scrolling in:
-  - `src/components/notes/NoteUpload.jsx`
-  - `src/components/flashcards/FlashcardCreate.jsx`
-
-### **File Naming Convention:**
+## FILE NAMING CONVENTIONS
 - Pages (routes): PascalCase (e.g., `Dashboard.jsx`, `MyNotes.jsx`)
-- Components: PascalCase (e.g., `Navigation.jsx`, `NoteUpload.jsx`)
-- Utilities: camelCase (e.g., `supabase.js`, `use-toast.js`)
-
----
-
-## 🔄 HOW TO UPDATE THIS FILE
-
-When you add/move files:
-1. Open this file in VS Code
-2. Find the relevant section
-3. Add the new file with appropriate emoji/marker
-4. Add date in "Recent Changes" section
-5. Save and commit to Git
-
-Example:
-```markdown
-### **Recent Changes (Dec 23, 2025):**
-- ✅ Added new component: `src/components/flashcards/BulkUpload.jsx`
-```
-
----
-
-## 💾 GIT COMMANDS FOR THIS FILE
-
-**After updating:**
-```bash
-git add FILE_STRUCTURE.md
-git commit -m "Update file structure documentation"
-git push
-```
-## 🔧 RECENTLY MODIFIED (Jan 2, 2026)
-
-### **Critical Bug Fixes & Feature Additions:**
-- ✅ src/components/flashcards/MyFlashcards.jsx (Delete Group + Edit Group Info)
-- ✅ src/components/professor/ProfessorTools.jsx (UTF-8 CSV encoding)
-
-### **New Features:**
-- ✅ Delete entire group button (cascade delete all cards in batch)
-- ✅ Edit group info dialog (update course/subject/topic/description)
-- ✅ UTF-8 CSV encoding support (₹ symbol displays correctly)
-
-### **Bug Fixes:**
-- ✅ Fixed shadcn Select crash (replaced with native HTML select)
-- ✅ Fixed CSV encoding (UTF-8 BOM + explicit FileReader encoding)
-- ✅ Fixed Edit dialog blank screen issue
-
----
-## 🔧 RECENTLY MODIFIED (Jan 3, 2026 - Evening)
-
-### **Review Session Route & StudyMode Props:**
-- ✅ src/pages/dashboard/review-session.jsx (NEW - dedicated review route)
-- ✅ src/components/flashcards/StudyMode.jsx (accepts flashcards prop)
-- ✅ src/pages/Dashboard.jsx (button navigation updated)
-- ✅ src/App.jsx (added ReviewSession route)
-
-### **New Features:**
-- ✅ Dedicated review session for due cards only
-- ✅ StudyMode flexible: accepts props OR fetches data
-- ✅ Backwards compatible with existing routes
-- ✅ Clean separation: Review Session vs Browse Flashcards
-
-## 🗄️ DATABASE DOCUMENTATION (NEW)
-
-### **Root Level Files:**
-- DATABASE_SCHEMA.md (NEW - Jan 9, 2026)
-  - Complete schema reference
-  - Table relationships
-  - Column definitions
-  - Schema change log
-
-### **Supabase SQL Folders:**
-- SCHEMA/ (12 queries)
-  - All Database Tables
-  - All Columns for Major Tables
-  - Add Creator ID to Flashcards (NEW)
-  - Backfill Creator ID for Existing Flashcards (NEW)
-  - Create Friendships Table (NEW)
-  - Add Indexes for Friendships Table (NEW)
-  - Create Content Creators Table (NEW)
-  - Link Flashcards to Content Creators (NEW)
-
-- DATA/ (queries for viewing data)
-- DIAGNOSTIC/ (troubleshooting queries)
-- FIX/ (one-time data corrections)
-- REPORTS/ (analytics queries)
-
----
-
-## 📋 RECENT ADDITIONS (Jan 9, 2026)
-
-### Database:
-- ✅ friendships table (social features)
-- ✅ content_creators table (revenue tracking)
-- ✅ flashcards.creator_id (user attribution)
-- ✅ flashcards.content_creator_id (financial attribution)
-
-### Documentation:
-- ✅ DATABASE_SCHEMA.md (new file)
-- ✅ APPROVED_DECISIONS.md (3 new entries)
-- ✅ CONTEXT_FOR_CLAUDE.md (updated status)
-
----
----
-## 🔧 RECENTLY MODIFIED (Feb 3, 2026)
-
-### **Bug Fixes:**
-- ✅ src/components/notes/NoteEdit.jsx (Image/PDF replacement feature)
-- ✅ src/components/flashcards/MyFlashcards.jsx (Cursor jumping fix)
-
-### **New Files:**
-- ✅ src/components/flashcards/FlashcardCard.jsx (NEW - extracted component)
-
-### **Changes:**
-- ✅ NoteEdit.jsx: Added ability to replace uploaded image/PDF with preview, validation, and old file cleanup
-- ✅ MyFlashcards.jsx: Refactored to use external FlashcardCard component with isolated edit state
-- ✅ FlashcardCard.jsx: Standalone flashcard display/edit component (fixes cursor jumping anti-pattern)
-
----
-
-
----
-## 🔧 RECENTLY MODIFIED (Feb 6, 2026) - Study Groups
-
-### **New Files:**
-- ✅ src/pages/dashboard/Groups/MyGroups.jsx (NEW - Study groups list)
-- ✅ src/pages/dashboard/Groups/CreateGroup.jsx (NEW - Create group form)
-- ✅ src/pages/dashboard/Groups/GroupDetail.jsx (NEW - Group detail with members/content)
-- ✅ docs/database/study-groups/ (8 SQL files - schema, RLS, functions)
-
-### **Changes:**
-- ✅ src/App.jsx (Added 3 Groups routes)
-- ✅ src/components/layout/NavDesktop.jsx (Added Groups nav link)
-- ✅ src/components/layout/NavMobile.jsx (Added Study Groups section)
-- ✅ src/pages/dashboard/Content/NoteUpload.jsx (Study Groups visibility + group multi-select)
-- ✅ src/pages/dashboard/Content/FlashcardCreate.jsx (Study Groups visibility + group multi-select)
-- ✅ src/pages/dashboard/Content/BrowseNotes.jsx (Merge group-shared notes)
-- ✅ src/pages/dashboard/Study/ReviewFlashcards.jsx (Merge group-shared decks)
-
----
-## 🔧 RECENTLY MODIFIED (Feb 7, 2026) - Allow All Members to Share Content
-
-### **New SQL Files:**
-- ✅ docs/database/study-groups/27_FIX_allow_all_members_to_share_content.sql (NEW)
-
-### **Changes:**
-- ✅ src/pages/dashboard/Groups/GroupDetail.jsx (Share button for all members, delete own/admin logic)
-
----
-## 🔧 RECENTLY MODIFIED (Feb 6, 2026) - Invitation Flow + Notifications Backend
-
-### **New SQL Files:**
-- ✅ docs/database/study-groups/13_SCHEMA_notifications_table.sql (NEW)
-- ✅ docs/database/study-groups/14_FUNCTIONS_notification_rpcs.sql (NEW - 5 RPCs + cleanup)
-- ✅ docs/database/study-groups/15_SCHEMA_add_invitation_status.sql (NEW)
-- ✅ docs/database/study-groups/16_FUNCTION_invite_to_group_v2.sql (NEW)
-- ✅ docs/database/study-groups/17_FUNCTION_accept_group_invite.sql (NEW)
-- ✅ docs/database/study-groups/18_FUNCTION_decline_group_invite.sql (NEW)
-- ✅ docs/database/study-groups/19_FUNCTION_get_pending_group_invites.sql (NEW)
-- ✅ docs/database/study-groups/20_FUNCTION_get_user_groups_v2.sql (NEW)
-- ✅ docs/database/study-groups/21_FUNCTION_get_group_detail_v2.sql (NEW)
-- ✅ docs/database/study-groups/22_FUNCTION_get_browsable_notes_v2.sql (NEW)
-- ✅ docs/database/study-groups/23_FUNCTION_get_browsable_decks_v2.sql (NEW)
-- ✅ docs/database/study-groups/24_FUNCTION_leave_group_v2.sql (NEW)
-- ✅ docs/database/study-groups/25_FIX_notifications_missing_columns_and_ambiguous_ref.sql (NEW)
-- ✅ docs/database/study-groups/26_FIX_notifications_type_check_constraint.sql (NEW)
-
-### **New Reference Doc:**
-- ✅ docs/reference/STUDY_GROUPS.md (NEW - Complete groups + notifications logic reference)
-
-### **Changes:**
-- ✅ src/components/layout/ActivityDropdown.jsx (REWRITTEN - group_invite with inline Accept/Decline)
-- ✅ src/components/layout/Navigation.jsx (Added deleteNotification, refetchNotifications props)
-- ✅ src/components/layout/NavDesktop.jsx (Added new props + Network icon for Groups)
-- ✅ src/components/layout/NavMobile.jsx (Added new props + Network icon for Groups)
-- ✅ src/pages/dashboard/Groups/MyGroups.jsx (Added pending invitations section)
-- ✅ src/pages/dashboard/Groups/GroupDetail.jsx (Invite flow, pending section, cancel invite)
-
----
-## 🔧 RECENTLY MODIFIED (Feb 6, 2026) - Author Profile
-
-### **New Files:**
-- ✅ src/pages/dashboard/Profile/AuthorProfile.jsx (NEW - Author profile page)
-
-### **Changes:**
-- ✅ src/App.jsx (Added AuthorProfile route)
-- ✅ src/pages/dashboard/Content/BrowseNotes.jsx (Clickable author names)
-- ✅ src/pages/dashboard/Study/ReviewFlashcards.jsx (Clickable author names)
-- ✅ src/pages/dashboard/Content/NoteDetail.jsx (Clickable author badge)
-- ✅ src/pages/dashboard/Friends/FindFriends.jsx (Clickable user names)
-- ✅ src/pages/dashboard/Friends/MyFriends.jsx (Clickable friend names)
-- ✅ src/pages/dashboard/Content/MyContributions.jsx (Clickable upvoter names)
-
----
-
-## 🔧 RECENTLY MODIFIED (Feb 7, 2026) - Help & Guide Page
-
-### **New Files:**
-- ✅ src/data/helpContent.js (NEW - Structured help content data)
-- ✅ src/pages/dashboard/Help.jsx (NEW - Help & Guide page)
-
-### **Changes:**
-- ✅ src/App.jsx (Added Help import + route)
-- ✅ src/components/layout/ProfileDropdown.jsx (Added Help & Guide menu item)
-- ✅ src/components/layout/NavMobile.jsx (Added Help & Guide button)
-- ✅ src/index.css (Added scrollbar-hide utility)
-
----
-
-## 🔧 RECENTLY MODIFIED (Feb 8, 2026) - File Structure Refactor
-
-### **Moved Files (pages out of components/):**
-- ✅ `src/components/notes/NoteUpload.jsx` → `src/pages/dashboard/Content/NoteUpload.jsx`
-- ✅ `src/components/notes/NoteDetail.jsx` → `src/pages/dashboard/Content/NoteDetail.jsx`
-- ✅ `src/components/notes/NoteEdit.jsx` → `src/pages/dashboard/Content/NoteEdit.jsx`
-- ✅ `src/components/flashcards/FlashcardCreate.jsx` → `src/pages/dashboard/Content/FlashcardCreate.jsx`
-- ✅ `src/components/flashcards/MyFlashcards.jsx` → `src/pages/dashboard/Content/MyFlashcards.jsx`
-- ✅ `src/components/flashcards/StudyMode.jsx` → `src/pages/dashboard/Study/StudyMode.jsx`
-- ✅ `src/components/admin/SuperAdminDashboard.jsx` → `src/pages/admin/SuperAdminDashboard.jsx`
-- ✅ `src/components/admin/AdminDashboard.jsx` → `src/pages/admin/AdminDashboard.jsx`
-- ✅ `src/components/professor/ProfessorTools.jsx` → `src/pages/professor/ProfessorTools.jsx`
-
-### **Deleted:**
-- ✅ `src/components/notes/index.jsx` (dead placeholder)
-
-### **Route Fix:**
-- ✅ `/notes/edit/:id` → `/dashboard/notes/edit/:id` (added missing `/dashboard` prefix)
-- ✅ Legacy redirect from old path preserved
-
----
-
-## 🔧 RECENTLY MODIFIED (Feb 8, 2026) - Flashcard Text-to-Speech
-
-### **New Files:**
-- ✅ src/hooks/useSpeech.js (NEW - Web Speech API hook with sentence chunking + localStorage persistence)
-- ✅ src/components/flashcards/SpeakButton.jsx (NEW - Reusable volume icon button with pulse animation)
-- ✅ src/components/flashcards/SpeechSettings.jsx (NEW - Voice/speed settings popover)
-
-### **Changes:**
-- ✅ src/pages/dashboard/Study/StudyMode.jsx (Added TTS: SpeakButton on question + answer sides, SpeechSettings popover)
-
----
-
-## 🔧 RECENTLY MODIFIED (Feb 9, 2026) - Profile Completion Modal
-
-### **Changes:**
-- ✅ src/pages/Dashboard.jsx (Non-dismissible profile completion modal when course/institution is NULL)
-- ✅ src/pages/dashboard/Profile/ProfileSettings.jsx (Course label → "Primary Course")
-- ✅ src/components/ui/dialog.jsx (Added `hideCloseButton` prop to DialogContent)
-
----
-
-## 🔧 RECENTLY MODIFIED (Feb 8, 2026) - FindFriends Privacy & Profile Settings
-
-### **New Files:**
-- ✅ src/pages/dashboard/Profile/ProfileSettings.jsx (NEW - Profile settings page: name, course, institution)
-
-### **Changes:**
-- ✅ src/pages/dashboard/Friends/FindFriends.jsx (Masked emails, added institution + joined year, name-only search)
-- ✅ src/App.jsx (Added ProfileSettings import + /dashboard/settings route)
-- ✅ src/components/layout/ProfileDropdown.jsx (Added Settings menu item with gear icon)
-- ✅ src/components/layout/NavMobile.jsx (Added Settings link to mobile hamburger menu)
-
----
-
----
-## 🔧 RECENTLY MODIFIED (Feb 21, 2026) - Phase A: Professor Multi-Course
-
-### New Files:
-- ✅ `src/contexts/CourseContext.jsx` (NEW — multi-course teaching context for professors/admins)
-- ✅ `src/components/layout/CourseSwitcher.jsx` (NEW — indigo pill dropdown in nav bar)
-
-### Changes:
-- ✅ `src/App.jsx` (Added CourseContextProvider import + wrapping)
-- ✅ `src/components/layout/NavDesktop.jsx` (Added CourseSwitcher to right section)
-- ✅ `src/components/layout/NavMobile.jsx` (Added Course Context section in hamburger sheet)
-- ✅ `src/pages/dashboard/Profile/ProfileSettings.jsx` (Added Teaching Areas card for professors/admins)
-- ✅ `src/pages/dashboard/Profile/AuthorProfile.jsx` (Shows teaching courses as indigo chips)
-- ✅ `src/pages/Dashboard.jsx` (Class stats use activeCourse from context; reactive useEffect for course switch)
-
-### New Key File Locations:
-- **Course Context:** `src/contexts/CourseContext.jsx`
-- **Course Switcher UI:** `src/components/layout/CourseSwitcher.jsx`
-
----
-## 🔧 RECENTLY MODIFIED (Mar 23, 2026) - Sprint P1: Public /guide Student Guide
-
-### New Files:
-- ✅ `src/pages/guide/StudentGuide.jsx` (NEW — public /guide wayfinding page, 9 situations, no auth)
-
-### Changes:
-- ✅ `src/App.jsx` (Added StudentGuide lazy import + `/guide` route in public block)
-
-**END OF FILE STRUCTURE DOCUMENT**
+- Components: PascalCase (e.g., `Navigation.jsx`, `StudyTimerWidget.jsx`)
+- Hooks: camelCase with `use` prefix (e.g., `useBadges.js`, `use-toast.js`)
+- Utilities / libs: camelCase (e.g., `supabase.js`, `notifyEdge.js`)
+- Data files: camelCase (e.g., `helpContent.js`, `guideContent.js`)
