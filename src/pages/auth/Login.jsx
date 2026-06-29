@@ -56,12 +56,9 @@ export default function Login() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
         <div className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
-              <span className="text-white font-bold text-2xl">R</span>
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              RevisOp
+          <div className="flex items-center justify-center mb-2">
+            <h1 className="text-4xl font-bold tracking-tight leading-none">
+              <span style={{ color: '#f59e0b' }}>Revis</span><span style={{ color: '#1e1b4b' }}>Op</span>
             </h1>
           </div>
           <p className="text-muted-foreground">
