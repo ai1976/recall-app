@@ -1,7 +1,6 @@
 # RevisOp — Complete Project Blueprint
-**Prepared:** June 26, 2026 | **Based on:** Full codebase audit + documentation review
-**Status:** Pre-rebrand (currently live as Recall / recallapp.co.in)
-**Prepared for:** Quality auditor handoff
+**Prepared:** June 26, 2026 | **Last updated:** June 29, 2026
+**Status:** Live at `https://www.revisop.com` (rebrand from Recall complete)
 
 ---
 
@@ -11,7 +10,8 @@
 
 **Core proposition:** Students review flashcards and notes using SM-2 spaced repetition; the system schedules what to study each day so nothing is forgotten. Professors/educators publish content; students consume it. Institutions can onboard entire batches and monitor engagement.
 
-**Live URL:** `https://www.recallapp.co.in` (being migrated to `https://www.revisop.com`)
+**Live URL:** `https://www.revisop.com`
+**Old domain:** `www.recallapp.co.in` → 301 redirects to `https://www.revisop.com`
 
 **Current scale (June 2026):** 161 active students, 3 expert educators, 2,182 flashcards, 128 notes. ~130 more students expected imminently.
 
@@ -33,14 +33,32 @@
 | OCR | tesseract.js | 6.0.1 (in package.json — likely dead dependency, useOCR.js deleted) |
 | Command palette | cmdk | 1.1.1 |
 | Deployment | Vercel | — |
-| Email | Google Workspace SMTP via Supabase auth settings | hello@recallapp.co.in |
+| Email | Google Workspace SMTP via Supabase auth settings | hello@revisop.com |
 | Push notifications | Web Push API + VAPID + Supabase Edge Functions | — |
 | Error tracking | Not integrated (mentioned in Privacy Policy only) | — |
 | Analytics | Not integrated (mentioned in Privacy Policy only) | — |
 
 ---
 
-## 3. User Roles
+## 3. Brand Identity
+
+**Name:** RevisOp
+**Domain:** revisop.com
+**Email:** hello@revisop.com
+**Brand colors:** Amber `#f59e0b` + Dark navy `#1e1b4b`
+
+**Wordmark (used in nav, auth pages, public share pages):**
+```jsx
+<span className="font-bold tracking-tight leading-none">
+  <span style={{ color: '#f59e0b' }}>Revis</span><span style={{ color: '#1e1b4b' }}>Op</span>
+</span>
+```
+
+**Favicon / app icon:** Dark navy square (`#1e1b4b`) with "RevisOp" text (amber "Revis" + white "Op") in DM Sans Bold. Source SVG at `public/logo-concepts/icon-dark-bg.svg`. Export script at `scripts/export-favicon.cjs`.
+
+---
+
+## 4. User Roles
 
 | Role | Who | Access |
 |------|-----|--------|
@@ -55,7 +73,7 @@ Sub-types within students:
 
 ---
 
-## 4. Architecture
+## 5. Architecture
 
 ### Frontend
 - **React 19 SPA** served via Vercel
@@ -74,15 +92,18 @@ Sub-types within students:
 - **Supabase Edge Functions** (Deno) — 5 functions + 2 cron functions + shared utilities
 
 ### Infrastructure
-- **SMTP:** Google Workspace, `smtp.gmail.com:587`, sender `hello@recallapp.co.in`, configured in Supabase Dashboard auth settings
+- **SMTP:** Google Workspace, `smtp.gmail.com:587`, sender `hello@revisop.com`, username `hello@revisop.com`, configured in Supabase Dashboard auth settings. App Password (2SV) configured June 29, 2026.
+- **Email authentication:** SPF, DKIM, and DMARC records all configured for `revisop.com`. New domain — inbox delivery improves as domain reputation builds.
 - **Push notifications:** VAPID keys stored as Supabase secrets; `CRON_SECRET` shared across all cron Edge Functions (rotating it breaks all cron until resynced)
 - **pg_cron jobs:** Two scheduled jobs — `daily-review-reminders` (02:30 UTC = 08:00 IST daily) and `cron-daily-study-summary` (every 15 minutes, delivers to users whose local time is 22:00)
 - **Vercel env vars:** `SUPABASE_SERVICE_ROLE_KEY` (marked Sensitive), `SUPABASE_URL` — used by `middleware.js`
 - **Frontend env vars:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY`
+- **Supabase Site URL:** `https://www.revisop.com`
+- **Vercel domains:** `www.revisop.com` (primary), `recallapp.co.in` / `www.recallapp.co.in` → 301 redirect to `https://www.revisop.com`
 
 ---
 
-## 5. Complete Feature Inventory
+## 6. Complete Feature Inventory
 
 ### Public (no login required)
 - Landing page (`/`) — hero, feature pitch, institute B2B pitch, live stats, educator profiles
@@ -139,7 +160,7 @@ Sub-types within students:
 
 ---
 
-## 6. Database — Table Inventory
+## 7. Database — Table Inventory
 
 All tables are RLS-enabled. All public data served via SECURITY DEFINER RPCs.
 
@@ -187,7 +208,7 @@ All tables are RLS-enabled. All public data served via SECURITY DEFINER RPCs.
 
 ---
 
-## 7. Edge Functions
+## 8. Edge Functions
 
 | Function | Purpose |
 |----------|---------|
@@ -202,21 +223,22 @@ All tables are RLS-enabled. All public data served via SECURITY DEFINER RPCs.
 
 ---
 
-## 8. Key Design Decisions (Permanent — Do Not Revert)
+## 9. Key Design Decisions (Permanent — Do Not Revert)
 
-1. **"Recall/RevisOp" h1 gets the gradient, tagline is solid text** — eye lands on brand name first (Home.jsx). Intentional hierarchy. Do not revert.
-2. **Batch groups hidden from student MyGroups** — server-side filtered via RPC, never hits client.
-3. **`postAuthRedirect` via localStorage** — set before `signIn()` call to beat AppContent race condition.
-4. **Study time deduplication** — localStorage cleared BEFORE DB write; second caller finds empty keys and returns early. Do not change order.
-5. **LocalStorage autosave on FlashcardCreate** — Safari Private Browsing (0-byte quota) fails silently with try/catch; navigation guard still protects the user.
-6. **"Needs Attention" professor card is always visible** (even when empty shows "All clear" state) — settled design, never conditionally hide without explicit approval. Same rule for admin "Needs Review" card.
-7. **Leaderboard 3-tier session protection** — sessions over 16h silently discarded; 4–16h triggers honest-session prompt; under 4h auto-resumes.
-8. **UI nomenclature:** "Items" (not "Cards"), "Study Sets" (not "Flashcard Decks") — decided March 2026.
-9. **Educator profiles on landing page** served via `get_public_educators()` SECURITY DEFINER RPC (not direct table query — would return 0 rows for anon users).
+1. **Amber/navy color scheme** — `#f59e0b` (amber) + `#1e1b4b` (dark navy) are the brand colors. No blue/purple gradients anywhere. Do not revert.
+2. **Two-color wordmark only — no icon** — nav and auth pages use the wordmark span pattern above. There is no separate icon element next to the wordmark. Do not add one.
+3. **Batch groups hidden from student MyGroups** — server-side filtered via RPC, never hits client.
+4. **`postAuthRedirect` via localStorage** — set before `signIn()` call to beat AppContent race condition.
+5. **Study time deduplication** — localStorage cleared BEFORE DB write; second caller finds empty keys and returns early. Do not change order.
+6. **LocalStorage autosave on FlashcardCreate** — Safari Private Browsing (0-byte quota) fails silently with try/catch; navigation guard still protects the user.
+7. **"Needs Attention" professor card is always visible** (even when empty shows "All clear" state) — settled design, never conditionally hide without explicit approval. Same rule for admin "Needs Review" card.
+8. **Leaderboard 3-tier session protection** — sessions over 16h silently discarded; 4–16h triggers honest-session prompt; under 4h auto-resumes.
+9. **UI nomenclature:** "Items" (not "Cards"), "Study Sets" (not "Flashcard Decks") — decided March 2026.
+10. **Educator profiles on landing page** served via `get_public_educators()` SECURITY DEFINER RPC (not direct table query — would return 0 rows for anon users).
 
 ---
 
-## 9. All Routes
+## 10. All Routes
 
 ### Public (no auth required)
 | Path | Component |
@@ -272,165 +294,44 @@ All tables are RLS-enabled. All public data served via SECURITY DEFINER RPCs.
 
 ---
 
-## 10. Rebranding Work — Complete Inventory
-
-### A. Infrastructure (do before code changes)
-
-| Step | Action |
-|------|--------|
-| 1 | Create `hello@revisop.com` mailbox in Google Workspace |
-| 2 | Add `www.revisop.com` as custom domain in Vercel |
-| 3 | Configure DNS CNAME/A in GoDaddy for revisop.com → Vercel |
-| 4 | Promote `www.revisop.com` to primary domain in Vercel |
-| 5 | Set 301 redirect: `www.recallapp.co.in` → `https://www.revisop.com` |
-| 6 | Supabase → Auth → Email Templates → update all redirect URLs to `https://www.revisop.com` |
-| 7 | Supabase secrets: update `VAPID_SUBJECT` to `mailto:hello@revisop.com` |
-
-### B. Source Files Requiring Brand Name Changes (28 files)
-
-**App shell & PWA:**
-- `index.html` — `<title>` tag
-- `public/site.webmanifest` — `name` and `short_name`
-- `public/sw.js` — comment, `APP_NAME` const, default notification tag
-
-**Navigation (visible to all logged-in users):**
-- `src/components/layout/NavDesktop.jsx` — logo text "RECALL" → "REVISOP"
-- `src/components/layout/NavMobile.jsx` — logo text "RECALL" → "REVISOP"
-
-**Auth pages:**
-- `src/pages/auth/Login.jsx` — brand name in form UI
-- `src/pages/auth/Signup.jsx` — brand name in form UI
-
-**Dashboard & onboarding:**
-- `src/pages/Dashboard.jsx` — 3 user-visible strings + localStorage key names
-- `src/components/dashboard/OnboardingModal.jsx` — "Welcome to Recall" dialog title
-- `src/components/dashboard/AnonymousStats.jsx` — "vs all Recall students" labels
-
-**Public share pages (high impact — these are what WhatsApp recipients see):**
-- `src/pages/public/DeckPreview.jsx` — logo, CTA copy, all product references
-- `src/pages/public/NotePreview.jsx` — logo, CTA copy, all product references
-- `src/pages/public/GroupJoin.jsx` — logo, CTA copy, all product references
-
-**Landing page:**
-- `src/pages/Home.jsx` — 20+ occurrences; all `mailto:hello@recallapp.co.in` links
-
-**Legal pages:**
-- `src/pages/TermsOfService.jsx` — all product name, domain, and email references
-- `src/pages/PrivacyPolicy.jsx` — all product name, domain, email references + stale `recall.moreclassescommerce.com` on line 62
-
-**In-app content:**
-- `src/pages/guide/StudentGuide.jsx` — `document.title` calls + header wordmark
-- `src/pages/dashboard/Help.jsx` — product description text
-- `src/pages/dashboard/Groups/GroupDetail.jsx` — WhatsApp share text
-- `src/pages/dashboard/Study/ReviewFlashcards.jsx` — WhatsApp share text
-- `src/pages/dashboard/Content/NoteDetail.jsx` — WhatsApp share text
-- `src/pages/dashboard/BulkUploadFlashcards.jsx` — CSV filename + error message
-- `src/pages/professor/ProfessorTools.jsx` — CSV filename + instruction text
-
-**Data files (user-facing help/guide text):**
-- `src/data/helpContent.js` — 29 occurrences in help center copy
-- `src/data/guideContent.js` — 9 occurrences in student guide copy
-
-**Vercel Edge Middleware:**
-- `middleware.js` (root-level) — OG tag text for WhatsApp previews contains "Recall" brand name in all three handlers (deck, join, note). Specific occurrences: fallback titles ("Study Set on Recall", "Study Group on Recall"), description strings ("Study for free on Recall", "Join on Recall", "Study note shared on Recall"), and the body redirect anchor text. No `og:image` tag exists in this file — the auditor's og:image concern does not apply. Note: the page URL in OG tags is derived dynamically from `request.url`, so it will automatically reflect revisop.com after the domain cutover with no code change required.
-
-**Edge Functions:**
-- `supabase/functions/_shared/sendPush.ts` — fallback VAPID email
-- `supabase/functions/cron-daily-study-summary/index.ts` — fallback VAPID email
-
-**package.json:**
-- `"name": "recall-app"` → `"name": "revisop"` (low priority, not user-facing)
-
-### C. localStorage Key Renames (affects existing user sessions)
-
-Changing these keys will reset existing users' preferences. Use a **migrate-on-mount** pattern: on first read, check for the new key; if absent, read the old key, write it to the new key, and delete the old key. This silently migrates each user on their next session with zero data loss.
-
-**Implementation pattern (apply to every key rename):**
-
-```js
-// Example for recall_session_started_at → revisop_session_started_at
-let value = localStorage.getItem('revisop_session_started_at');
-if (!value) {
-  value = localStorage.getItem('recall_session_started_at');
-  if (value) {
-    localStorage.setItem('revisop_session_started_at', value);
-    localStorage.removeItem('recall_session_started_at');
-  }
-}
-```
-
-Remove the old-key fallback reads in the sprint after the rebrand deploys (all active users will have migrated by then).
-
-| Current Key | New Key | User Impact Without Migration |
-|-------------|---------|-------------------------------|
-| `recall_access_ref` | `revisop_access_ref` | Loses in-flight referral tracking |
-| `recall_session_started_at` | `revisop_session_started_at` | Loses in-progress manual timer sessions |
-| `recall_session_source` | `revisop_session_source` | Same |
-| `recall-push-banner-dismissed` | `revisop-push-banner-dismissed` | Users see push banner once more |
-| `recall-tts-voice-uri` | `revisop-tts-voice-uri` | Loses TTS voice preference |
-| `recall-tts-rate` | `revisop-tts-rate` | Loses TTS speed preference |
-
-Files containing these keys: `Signup.jsx`, `Dashboard.jsx`, `StudyMode.jsx`, `StudyTimerWidget.jsx`, `PushPermissionBanner.jsx`, `useSpeech.js`
-
-### D. Brand Assets — New Artwork Required
-
-| File | Action |
-|------|--------|
-| `public/favicon.ico` | Replace with RevisOp favicon |
-| `public/favicon-16x16.png` | Replace |
-| `public/favicon-32x32.png` | Replace |
-| `public/apple-touch-icon.png` | Replace |
-| `public/android-chrome-192x192.png` | Replace |
-| `public/android-chrome-512x512.png` | Replace |
-
----
-
 ## 11. Known Issues & Pending Work
 
 ### Technical Debt
 - **`tesseract.js` likely dead dependency** — `useOCR.js` was deleted; package.json still lists `tesseract.js 6.0.1`. Verify no imports remain, then remove from package.json.
 - **`MigrateNoteImages.jsx`** — Temp admin page for one-time note image migration (Feb 2026). If migration confirmed complete: delete file + remove route from `App.jsx`.
 - **`public/vite.svg`** — Default Vite asset, unused. Safe to delete.
+- **`public/logo-concepts/`** — Working folder from favicon design session. Safe to delete once favicon assets are confirmed good on production.
 
 ### Infrastructure Pending
-- **DKIM for `recallapp.co.in`** — Gmail activated, MX done, but DKIM step was shown as optional-but-recommended on the Workspace activation screen. Complete to cover email during migration transition.
-- **GitHub PAT "recall-app-push"** — Expires ~July 2, 2026. Regenerate with "No expiration" before rebrand sprint starts.
+- **Email inbox delivery** — `revisop.com` is a new domain; SPF/DKIM/DMARC are configured but Gmail may still route to spam for a few weeks until domain reputation builds. Monitor and click "Not spam" when it occurs. Google Postmaster Tools (`postmaster.google.com`) can be used to track reputation.
 - **Sentry** — Not integrated. User confirmed intent. Requires: DSN from sentry.io, install `@sentry/react`, initialize in `src/main.jsx`.
 - **PostHog** — Not integrated. User confirmed intent. Requires: API key from posthog.com, install `posthog-js`, initialize in `src/main.jsx`.
 - **JWT expiry** — Actual value in Supabase Dashboard → Authentication → Settings unconfirmed. Per-role session timeouts are NOT implemented in code; Supabase has one global setting.
+- **GitHub PAT "recall-app-push"** — Expires ~July 2, 2026. Regenerate before it lapses.
 
 ### Sprint Backlog
 - Data Contract UI enforcement for FlashcardCreate
 - Content notification preferences UI (backend `push_notification_preferences` table exists; no settings UI)
 - Full flagging resolution UI for professors
+- Remove localStorage old-key fallback reads (one sprint after rebrand — all active users will have migrated by then): keys `recall_access_ref`, `recall_session_started_at`, `recall_session_source`, `recall-push-banner-dismissed`, `recall-tts-voice-uri`, `recall-tts-rate`
 
 ---
 
-## 12. Rebrand Sprint — Recommended Execution Order
+## 12. Rebrand — Completed June 29, 2026
 
-**Phase 1 — Infrastructure (no code push needed)**
-1. Create `hello@revisop.com` mailbox in Google Workspace
-2. Add revisop.com domain to Vercel; configure DNS in GoDaddy
-3. Update Supabase → Authentication → Email Templates → all redirect URLs to `https://www.revisop.com`
-4. Update Supabase `VAPID_SUBJECT` secret to `mailto:hello@revisop.com`
-5. Confirm Vercel env var names — current vars are `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. None contain "RECALL" so no Vercel env var renames are needed. If any new env var is added during the rebrand sprint that references the brand name, add it to Vercel before pushing code that uses it.
-> **Note on CORS:** Supabase does not require a CORS origins setting for API calls — the JS client communicates with the Supabase project URL (`*.supabase.co`) which is managed by Supabase. The only domain-sensitive Supabase setting is the auth redirect URL covered in step 3 above.
+All 28 source files updated, 6 favicon/icon assets regenerated, full color scheme replaced, domain cutover complete, SMTP updated. See git log for individual sprint commits (R1–R7).
 
-**Phase 2 — Code changes (single PR)**
-5. Replace all brand references in 28 files (§10B)
-6. Update localStorage keys with backward-compatible fallback reads (§10C)
-7. Replace all 6 brand asset files in `/public` (§10D)
+**localStorage keys migrated** (migrate-on-mount pattern applied; old keys can be removed one sprint from now):
 
-**Phase 3 — Cutover**
-8. Promote `www.revisop.com` to primary domain in Vercel
-9. Set `www.recallapp.co.in` → 301 redirect to `https://www.revisop.com`
-10. Verify on live URL
-
-**Phase 4 — Cleanup (one week later)**
-11. Remove localStorage fallback reads
-12. Delete `MigrateNoteImages.jsx` if migration confirmed complete
-13. Remove `tesseract.js` from package.json if confirmed unused
+| Old Key | New Key |
+|---------|---------|
+| `recall_access_ref` | `revisop_access_ref` |
+| `recall_session_started_at` | `revisop_session_started_at` |
+| `recall_session_source` | `revisop_session_source` |
+| `recall-push-banner-dismissed` | `revisop-push-banner-dismissed` |
+| `recall-tts-voice-uri` | `revisop-tts-voice-uri` |
+| `recall-tts-rate` | `revisop-tts-rate` |
 
 ---
 
-*Blueprint prepared June 26, 2026. All file references, version numbers, and feature descriptions verified against live source code via full codebase audit.*
+*Blueprint prepared June 26, 2026. Last updated June 29, 2026 — rebrand complete.*
