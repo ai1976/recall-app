@@ -406,7 +406,7 @@ export default function GroupDetail() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]"></div>
       </div>
     );
   }
@@ -468,7 +468,7 @@ export default function GroupDetail() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
-            <span className="flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+            <span className="flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-[#1e1b4b] text-sm font-medium rounded-full">
               <Shield className="h-3.5 w-3.5" />
               Batch Performance
             </span>
@@ -600,13 +600,13 @@ export default function GroupDetail() {
               {members.map((member) => (
                 <div key={member.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                    <div className="h-8 w-8 rounded-full bg-[#1e1b4b] flex items-center justify-center text-white text-sm font-bold shrink-0">
                       {member.profile.full_name?.charAt(0)?.toUpperCase() || '?'}
                     </div>
                     <div className="min-w-0">
                       <Link
                         to={`/dashboard/profile/${member.user_id}`}
-                        className="text-sm font-medium text-gray-900 hover:text-blue-600 truncate block"
+                        className="text-sm font-medium text-gray-900 hover:text-amber-600 truncate block"
                       >
                         {member.profile.full_name || 'Unknown User'}
                         {member.user_id === user.id && ' (You)'}
@@ -732,13 +732,13 @@ export default function GroupDetail() {
                   {sharedContent.notes.map((note) => (
                     <div
                       key={note.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:border-blue-300 transition-colors"
+                      className="flex items-center justify-between p-3 border rounded-lg hover:border-amber-300 transition-colors"
                     >
                       <div
                         className="min-w-0 flex-1 cursor-pointer"
                         onClick={() => navigate(`/dashboard/notes/${note.id}`)}
                       >
-                        <p className="font-medium text-gray-900 truncate hover:text-blue-600">
+                        <p className="font-medium text-gray-900 truncate hover:text-amber-600">
                           {note.title || 'Untitled Note'}
                         </p>
                         <p className="text-xs text-gray-500">
@@ -746,7 +746,7 @@ export default function GroupDetail() {
                           by{' '}
                           <Link
                             to={`/dashboard/profile/${note.author_id}`}
-                            className="hover:text-blue-600"
+                            className="hover:text-amber-600"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {note.author_name}
@@ -790,7 +790,7 @@ export default function GroupDetail() {
                   {sharedContent.decks.map((deck) => (
                     <div
                       key={deck.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:border-blue-300 transition-colors"
+                      className="flex items-center justify-between p-3 border rounded-lg hover:border-amber-300 transition-colors"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-gray-900 truncate">
@@ -800,7 +800,7 @@ export default function GroupDetail() {
                           {deck.card_count} cards - by{' '}
                           <Link
                             to={`/dashboard/profile/${deck.author_id}`}
-                            className="hover:text-blue-600"
+                            className="hover:text-amber-600"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {deck.author_name}
@@ -889,7 +889,7 @@ export default function GroupDetail() {
           </DialogHeader>
           {loadingUserContent ? (
             <div className="py-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e1b4b] mx-auto"></div>
             </div>
           ) : (
             <div className="space-y-4 max-h-96 overflow-y-auto">

@@ -737,7 +737,7 @@ export default function StudyMode({
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]"></div>
       </div>
     );
   }
@@ -767,7 +767,7 @@ export default function StudyMode({
   const progress = ((currentIndex + 1) / progressDenominator) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
+    <div className="min-h-screen bg-amber-50">
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -801,7 +801,7 @@ export default function StudyMode({
             <div className="overflow-hidden h-2 text-xs flex rounded-full bg-gray-200">
               <div
                 style={{ width: `${progress}%` }}
-                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-purple-600 transition-all duration-300"
+                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-[#1e1b4b] transition-all duration-300"
               />
             </div>
           </div>
@@ -827,7 +827,7 @@ export default function StudyMode({
           previewModeParam ? (
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <div className="p-8 text-center border-b border-gray-100">
-                <Brain className="h-12 w-12 text-purple-400 mx-auto mb-3" />
+                <Brain className="h-12 w-12 text-amber-400 mx-auto mb-3" />
                 <h2 className="text-xl font-bold text-gray-900 mb-1">
                   You&apos;ve previewed {PREVIEW_LIMIT} items
                 </h2>
@@ -849,7 +849,7 @@ export default function StudyMode({
           ) : (
           <div className="bg-white rounded-xl shadow-lg p-12 text-center">
             <div className="mb-6">
-              <Brain className="h-20 w-20 text-purple-600 mx-auto mb-4" />
+              <Brain className="h-20 w-20 text-amber-600 mx-auto mb-4" />
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
                 Study Session Complete!
               </h2>
@@ -904,7 +904,7 @@ export default function StudyMode({
               {!showAnswer ? (
                 <div className="w-full text-center">
                   <div className="mb-6 flex items-center justify-center gap-2">
-                    <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-full">
+                    <span className="inline-block px-3 py-1 bg-amber-100 text-amber-700 text-sm font-semibold rounded-full">
                       QUESTION
                     </span>
                     {currentCard.front_text && (
@@ -960,7 +960,7 @@ export default function StudyMode({
                       <DropdownMenuContent align="end">
                         {(currentCard.topic_id || currentCard.custom_topic) && (
                           <DropdownMenuItem onClick={() => openConfirmDialog('skipTopic')}>
-                            <SkipForward className="h-4 w-4 mr-2 text-blue-500" />
+                            <SkipForward className="h-4 w-4 mr-2 text-amber-500" />
                             Skip Topic (24hr)
                           </DropdownMenuItem>
                         )}
@@ -1108,7 +1108,7 @@ export default function StudyMode({
                         <DropdownMenuContent align="center">
                           {(currentCard.topic_id || currentCard.custom_topic) && (
                             <DropdownMenuItem onClick={() => openConfirmDialog('skipTopic')}>
-                              <SkipForward className="h-4 w-4 mr-2 text-blue-500" />
+                              <SkipForward className="h-4 w-4 mr-2 text-amber-500" />
                               Skip Topic (24hr)
                             </DropdownMenuItem>
                           )}

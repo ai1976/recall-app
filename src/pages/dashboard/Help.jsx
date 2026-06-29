@@ -82,9 +82,9 @@ function ContentBlock({ item }) {
       );
     case 'tip':
       return (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex gap-3">
-          <HelpCircle className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-          <p className="text-sm text-blue-800 leading-relaxed">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex gap-3">
+          <HelpCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-[#1e1b4b] leading-relaxed">
             <span className="font-semibold">Tip:</span> {item.text}
           </p>
         </div>
@@ -104,7 +104,7 @@ function CollapsibleSection({ section, isExpanded, onToggle, tabLabel }) {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <DynamicIcon name={section.icon} className="h-5 w-5 text-blue-600" />
+            <DynamicIcon name={section.icon} className="h-5 w-5 text-amber-600" />
             <CardTitle className="text-base font-semibold">{section.title}</CardTitle>
             {tabLabel && (
               <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
@@ -278,7 +278,7 @@ export default function Help() {
       {/* Header */}
       <Link
         to="/dashboard"
-        className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4 text-sm"
+        className="inline-flex items-center text-amber-600 hover:text-amber-700 mb-4 text-sm"
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
         Back to Dashboard
@@ -286,7 +286,7 @@ export default function Help() {
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <HelpCircle className="h-7 w-7 text-blue-600" />
+          <HelpCircle className="h-7 w-7 text-amber-600" />
           Help & Guide
         </h1>
         <p className="text-gray-500 mt-1">
@@ -348,7 +348,7 @@ export default function Help() {
                   onClick={() => setActiveTab(tab.key)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium rounded-lg text-left transition-colors ${
                     activeTab === tab.key
-                      ? 'bg-blue-50 text-blue-700'
+                      ? 'bg-amber-50 text-amber-700'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}
                 >
@@ -372,7 +372,7 @@ export default function Help() {
             {activeTab === 'more' && (
               <div className="mt-8">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <HelpCircle className="h-5 w-5 text-blue-600" />
+                  <HelpCircle className="h-5 w-5 text-amber-600" />
                   Frequently Asked Questions
                 </h2>
                 {FAQ_ITEMS.map((faq, idx) => (
@@ -395,7 +395,7 @@ export default function Help() {
                   onClick={() => toggleMobileTab(tab.key)}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     activeTab === tab.key
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-[#1e1b4b] text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -421,7 +421,7 @@ export default function Help() {
                     {tab.key === 'more' && (
                       <div className="mt-4">
                         <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                          <HelpCircle className="h-5 w-5 text-blue-600" />
+                          <HelpCircle className="h-5 w-5 text-amber-600" />
                           Frequently Asked Questions
                         </h2>
                         {FAQ_ITEMS.map((faq, idx) => (
@@ -447,7 +447,7 @@ export default function Help() {
       {showBackToTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-50"
+          className="fixed bottom-6 right-6 bg-[#1e1b4b] text-white p-3 rounded-full shadow-lg hover:bg-[#1e1b4b] transition-colors z-50"
           aria-label="Back to top"
         >
           <ArrowUp className="h-5 w-5" />

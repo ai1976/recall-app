@@ -724,7 +724,7 @@ export default function FlashcardCreate() {
                     Subject must match the official syllabus. Can't find yours?{' '}
                     <button
                       type="button"
-                      className="text-blue-600 hover:underline"
+                      className="text-amber-600 hover:underline"
                       onClick={() => { setShowCustomCourse(true); setTargetCourse(''); }}
                     >
                       Switch to custom course →
@@ -846,7 +846,7 @@ export default function FlashcardCreate() {
                       You are not in any study groups.{' '}
                       <button
                         type="button"
-                        className="text-blue-600 hover:underline"
+                        className="text-amber-600 hover:underline"
                         onClick={() => navigate('/dashboard/groups/new')}
                       >
                         Create one
@@ -863,7 +863,7 @@ export default function FlashcardCreate() {
                             type="checkbox"
                             checked={selectedGroupIds.includes(group.id)}
                             onChange={() => toggleGroupSelection(group.id)}
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-400"
                           />
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-gray-900 truncate">{group.name}</p>
@@ -1036,13 +1036,13 @@ export default function FlashcardCreate() {
           </div>
         </form>
 
-        <Card className="bg-blue-50 border-blue-200">
+        <Card className="bg-amber-50 border-amber-200">
           <CardContent className="pt-6">
-            <p className="text-sm text-blue-800">
+            <p className="text-sm text-[#1e1b4b]">
               💡 <strong>Pro Tip:</strong> Your items are auto-saved as you type — if you accidentally leave this page, you can restore your work when you come back. Need to create many flashcards at once?{' '}
               <Button
                 variant="link"
-                className="h-auto p-0 text-blue-600 hover:text-blue-700"
+                className="h-auto p-0 text-amber-600 hover:text-amber-700"
                 onClick={() => navigate('/dashboard/bulk-upload')}
               >
                 Try Bulk Upload

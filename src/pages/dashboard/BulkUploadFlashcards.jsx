@@ -15,7 +15,7 @@ import { Upload, CheckCircle, XCircle, Download, ChevronDown, ChevronUp, FileTex
 // ─── Stepper step component ───
 function Step({ number, title, subtitle, isOpen, isComplete, onToggle, children }) {
   return (
-    <div className={`border rounded-lg transition-colors ${isOpen ? 'border-blue-300 bg-blue-50/30' : isComplete ? 'border-green-200 bg-green-50/20' : 'border-gray-200'}`}>
+    <div className={`border rounded-lg transition-colors ${isOpen ? 'border-amber-300 bg-amber-50/30' : isComplete ? 'border-green-200 bg-green-50/20' : 'border-gray-200'}`}>
       <button
         type="button"
         onClick={onToggle}
@@ -24,14 +24,14 @@ function Step({ number, title, subtitle, isOpen, isComplete, onToggle, children 
         {/* Step circle */}
         <div className={`
           w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold
-          ${isComplete ? 'bg-green-500 text-white' : isOpen ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}
+          ${isComplete ? 'bg-green-500 text-white' : isOpen ? 'bg-[#1e1b4b] text-white' : 'bg-gray-200 text-gray-600'}
         `}>
           {isComplete ? <CheckCircle className="h-5 w-5" /> : number}
         </div>
 
         {/* Title + subtitle */}
         <div className="flex-1 min-w-0">
-          <p className={`font-medium ${isOpen ? 'text-blue-900' : isComplete ? 'text-green-800' : 'text-gray-700'}`}>
+          <p className={`font-medium ${isOpen ? 'text-[#1e1b4b]' : isComplete ? 'text-green-800' : 'text-gray-700'}`}>
             {title}
           </p>
           {subtitle && !isOpen && (
@@ -662,7 +662,7 @@ IMPORTANT:
       <PageContainer width="medium">
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#1e1b4b] mx-auto mb-3"></div>
             <p className="text-gray-500 text-sm">Loading...</p>
           </div>
         </div>
@@ -808,11 +808,11 @@ IMPORTANT:
             {/* Inline hint about missing entries */}
             <p className="text-xs text-gray-500 border-t pt-3">
               Don't see your subject/topic? Create one via{' '}
-              <button type="button" className="text-blue-600 hover:underline font-medium" onClick={() => navigate('/dashboard/flashcards/new')}>
+              <button type="button" className="text-amber-600 hover:underline font-medium" onClick={() => navigate('/dashboard/flashcards/new')}>
                 Create Flashcard
               </button>{' '}
               or{' '}
-              <button type="button" className="text-blue-600 hover:underline font-medium" onClick={() => navigate('/dashboard/notes/new')}>
+              <button type="button" className="text-amber-600 hover:underline font-medium" onClick={() => navigate('/dashboard/notes/new')}>
                 Upload Note
               </button>{' '}
               first, then re-download Valid Entries.
@@ -851,10 +851,10 @@ IMPORTANT:
             <div className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2">
               <p className="text-xs text-gray-600">
                 <span className="font-semibold">Required columns:</span>{' '}
-                <code className="text-blue-700 bg-blue-50 px-1 rounded">target_course</code>,{' '}
-                <code className="text-blue-700 bg-blue-50 px-1 rounded">subject</code>,{' '}
-                <code className="text-blue-700 bg-blue-50 px-1 rounded">front</code>,{' '}
-                <code className="text-blue-700 bg-blue-50 px-1 rounded">back</code>{' '}
+                <code className="text-amber-700 bg-amber-50 px-1 rounded">target_course</code>,{' '}
+                <code className="text-amber-700 bg-amber-50 px-1 rounded">subject</code>,{' '}
+                <code className="text-amber-700 bg-amber-50 px-1 rounded">front</code>,{' '}
+                <code className="text-amber-700 bg-amber-50 px-1 rounded">back</code>{' '}
                 <span className="text-gray-400 ml-1">|</span>{' '}
                 <span className="text-gray-500">Optional:</span>{' '}
                 <code className="text-gray-500 bg-gray-100 px-1 rounded">topic</code>,{' '}
@@ -904,8 +904,8 @@ IMPORTANT:
                   file:mr-4 file:py-2 file:px-4
                   file:rounded-md file:border-0
                   file:text-sm file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100
+                  file:bg-amber-50 file:text-amber-700
+                  hover:file:bg-amber-100
                   cursor-pointer"
               />
               {csvFile && (

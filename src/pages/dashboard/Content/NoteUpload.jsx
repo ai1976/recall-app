@@ -656,7 +656,7 @@ export default function NoteUpload() {
                       You are not in any study groups.{' '}
                       <button
                         type="button"
-                        className="text-blue-600 hover:underline"
+                        className="text-amber-600 hover:underline"
                         onClick={() => navigate('/dashboard/groups/new')}
                       >
                         Create one
@@ -673,7 +673,7 @@ export default function NoteUpload() {
                             type="checkbox"
                             checked={selectedGroupIds.includes(group.id)}
                             onChange={() => toggleGroupSelection(group.id)}
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-400"
                           />
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-gray-900 truncate">{group.name}</p>
@@ -709,7 +709,7 @@ export default function NoteUpload() {
                         />
                       ) : compressing ? (
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4" />
+                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#1e1b4b] mb-4" />
                           <p className="text-sm text-muted-foreground">Compressing image…</p>
                         </div>
                       ) : (

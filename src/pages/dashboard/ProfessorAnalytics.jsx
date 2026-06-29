@@ -23,7 +23,7 @@ function WeeklyTooltip({ active, payload, label }) {
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 text-sm">
       <p className="font-medium text-gray-700">Week of {label}</p>
-      <p className="text-indigo-600 font-bold mt-0.5">
+      <p className="text-amber-600 font-bold mt-0.5">
         {count} new student{count !== 1 ? 's' : ''}
       </p>
     </div>
@@ -181,7 +181,7 @@ export default function ProfessorAnalytics() {
   if (roleLoading || courseLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]" />
       </div>
     );
   }
@@ -213,12 +213,12 @@ export default function ProfessorAnalytics() {
                   onClick={() => setSelectedCourse(name)}
                   className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
                     isActive
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600'
+                      ? 'bg-[#1e1b4b] text-white border-[#1e1b4b] shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-300 hover:border-amber-400 hover:text-amber-600'
                   }`}
                 >
                   {name}
-                  {isActive && <span className="ml-1.5 text-indigo-200 text-xs">●</span>}
+                  {isActive && <span className="ml-1.5 text-amber-200 text-xs">●</span>}
                 </button>
               );
             })}
@@ -229,13 +229,13 @@ export default function ProfessorAnalytics() {
       {/* ── Stat strip (always visible) ──────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
-          icon={<BookOpen className="h-7 w-7 text-blue-500" />}
+          icon={<BookOpen className="h-7 w-7 text-amber-500" />}
           value={loading ? null : totalCards}
           label="Cards Published"
           sub={selectedCourse ?? ''}
         />
         <StatCard
-          icon={<Users className="h-7 w-7 text-purple-500" />}
+          icon={<Users className="h-7 w-7 text-amber-500" />}
           value={loading ? null : (overview?.total_students_reached ?? 0)}
           label="Students Reached"
           sub="Reviewed at least once"
@@ -260,18 +260,18 @@ export default function ProfessorAnalytics() {
 
       {/* ── Zero-cards empty state ────────────────────────────────────────── */}
       {noCards && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-10 text-center">
-          <Upload className="h-12 w-12 text-blue-400 mx-auto mb-4" />
-          <h3 className="text-base font-semibold text-blue-900 mb-1">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-10 text-center">
+          <Upload className="h-12 w-12 text-amber-400 mx-auto mb-4" />
+          <h3 className="text-base font-semibold text-[#1e1b4b] mb-1">
             No cards published yet
           </h3>
-          <p className="text-sm text-blue-700 mb-5">
+          <p className="text-sm text-amber-700 mb-5">
             Publish flashcards for{' '}
             <span className="font-medium">{selectedCourse}</span> to start seeing
             engagement data here.
           </p>
           <Link to="/dashboard/bulk-upload">
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button size="sm" className="bg-[#1e1b4b] hover:bg-[#1e1b4b] text-white">
               Go to Bulk Upload
             </Button>
           </Link>
@@ -450,7 +450,7 @@ export default function ProfessorAnalytics() {
                           <Tooltip content={WeeklyTooltip} cursor={{ fill: '#f5f3ff' }} />
                           <Bar
                             dataKey="new_students"
-                            fill="#6366f1"
+                            fill="#f59e0b"
                             radius={[4, 4, 0, 0]}
                             maxBarSize={48}
                           />
@@ -538,7 +538,7 @@ export default function ProfessorAnalytics() {
                               : 'Quality: —'
                           }
                           onCopy={() => copyCardId(card.card_id)}
-                          rankColor="text-indigo-500"
+                          rankColor="text-amber-500"
                         />
                       ))}
                     </div>

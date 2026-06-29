@@ -45,7 +45,7 @@ function LeaderboardRow({ row, isLast }) {
     <div
       className={`flex items-center gap-3 px-3 py-2.5 text-sm ${
         row.is_self
-          ? 'bg-blue-50 rounded-lg'
+          ? 'bg-amber-50 rounded-lg'
           : !isLast
           ? 'border-b border-gray-100'
           : ''
@@ -61,7 +61,7 @@ function LeaderboardRow({ row, isLast }) {
       >
         {row.full_name || 'Unknown'}
         {row.is_self && (
-          <span className="ml-1 text-[10px] text-blue-500 font-normal">(you)</span>
+          <span className="ml-1 text-[10px] text-amber-500 font-normal">(you)</span>
         )}
       </span>
       <span className="text-gray-600 text-xs whitespace-nowrap">

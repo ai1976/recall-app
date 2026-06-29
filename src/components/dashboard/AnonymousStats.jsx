@@ -32,7 +32,7 @@ export default function AnonymousStats({
     if (!hasUserActivity || userReviewsThisWeek === 0) {
       return {
         text: `Your classmates are already building their streaks. Start your first review session today — even 5 cards makes a difference!`,
-        color: 'text-indigo-600'
+        color: 'text-amber-600'
       };
     }
 
@@ -57,7 +57,7 @@ export default function AnonymousStats({
     } else {
       return {
         text: `You're right at the class average. One more session today and you'll be ahead of the pack. 🚀`,
-        color: 'text-blue-600'
+        color: 'text-amber-600'
       };
     }
   };
@@ -70,7 +70,7 @@ export default function AnonymousStats({
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
             You vs Class
           </CardTitle>
         </CardHeader>
@@ -110,7 +110,7 @@ export default function AnonymousStats({
                   </div>
                   <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                      className="h-full bg-amber-500 rounded-full transition-all duration-500"
                       style={{ width: `${userPercentage}%` }}
                     />
                   </div>

@@ -51,7 +51,7 @@ function toTitleCase(str) {
 // ─── Stepper step component (shared design with BulkUploadFlashcards) ───
 function Step({ number, title, subtitle, isOpen, isComplete, onToggle, children }) {
   return (
-    <div className={`border rounded-lg transition-colors ${isOpen ? 'border-blue-300 bg-blue-50/30' : isComplete ? 'border-green-200 bg-green-50/20' : 'border-gray-200'}`}>
+    <div className={`border rounded-lg transition-colors ${isOpen ? 'border-amber-300 bg-amber-50/30' : isComplete ? 'border-green-200 bg-green-50/20' : 'border-gray-200'}`}>
       <button
         type="button"
         onClick={onToggle}
@@ -59,13 +59,13 @@ function Step({ number, title, subtitle, isOpen, isComplete, onToggle, children 
       >
         <div className={`
           w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold
-          ${isComplete ? 'bg-green-500 text-white' : isOpen ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}
+          ${isComplete ? 'bg-green-500 text-white' : isOpen ? 'bg-[#1e1b4b] text-white' : 'bg-gray-200 text-gray-600'}
         `}>
           {isComplete ? <CheckCircle className="h-5 w-5" /> : number}
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className={`font-medium ${isOpen ? 'text-blue-900' : isComplete ? 'text-green-800' : 'text-gray-700'}`}>
+          <p className={`font-medium ${isOpen ? 'text-[#1e1b4b]' : isComplete ? 'text-green-800' : 'text-gray-700'}`}>
             {title}
           </p>
           {subtitle && !isOpen && (
@@ -767,7 +767,7 @@ DATA HYGIENE:
       <PageContainer width="medium">
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#1e1b4b] mx-auto mb-3"></div>
             <p className="text-gray-500 text-sm">Loading...</p>
           </div>
         </div>
@@ -912,7 +912,7 @@ DATA HYGIENE:
                     size="sm"
                     variant="ghost"
                     onClick={() => { setShowCreateCourse(true); setCreateCourseError(''); setNewCourseName(''); }}
-                    className="text-blue-600 hover:text-blue-700 h-9 px-2"
+                    className="text-amber-600 hover:text-amber-700 h-9 px-2"
                   >
                     <Plus className="h-3.5 w-3.5 mr-1" />
                     New Course
@@ -922,9 +922,9 @@ DATA HYGIENE:
 
               {/* Inline Create Course form */}
               {showCreateCourse && (
-                <div className="mt-3 p-3 border border-blue-200 bg-blue-50/50 rounded-md space-y-2">
+                <div className="mt-3 p-3 border border-amber-200 bg-amber-50/50 rounded-md space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-medium text-blue-800">Create New Course</Label>
+                    <Label className="text-xs font-medium text-[#1e1b4b]">Create New Course</Label>
                     <button
                       type="button"
                       onClick={() => { setShowCreateCourse(false); setCreateCourseError(''); }}
@@ -951,7 +951,7 @@ DATA HYGIENE:
                     </Button>
                   </div>
                   {newCourseName.trim() && newCourseName.trim() !== toTitleCase(newCourseName.trim()) && (
-                    <p className="text-xs text-blue-700">
+                    <p className="text-xs text-amber-700">
                       Will be saved as: <strong>{toTitleCase(newCourseName.trim())}</strong>
                     </p>
                   )}
@@ -1040,8 +1040,8 @@ DATA HYGIENE:
             <div className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2">
               <p className="text-xs text-gray-600">
                 <span className="font-semibold">Required columns:</span>{' '}
-                <code className="text-blue-700 bg-blue-50 px-1 rounded">subject</code>,{' '}
-                <code className="text-blue-700 bg-blue-50 px-1 rounded">topic</code>{' '}
+                <code className="text-amber-700 bg-amber-50 px-1 rounded">subject</code>,{' '}
+                <code className="text-amber-700 bg-amber-50 px-1 rounded">topic</code>{' '}
                 <span className="text-gray-400 ml-1">|</span>{' '}
                 <span className="text-gray-500">Optional:</span>{' '}
                 <code className="text-gray-500 bg-gray-100 px-1 rounded">description</code>,{' '}
@@ -1065,8 +1065,8 @@ DATA HYGIENE:
                   file:mr-4 file:py-2 file:px-4
                   file:rounded-md file:border-0
                   file:text-sm file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100
+                  file:bg-amber-50 file:text-amber-700
+                  hover:file:bg-amber-100
                   cursor-pointer"
               />
               {csvFile && (

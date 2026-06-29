@@ -32,7 +32,7 @@ export default function SpeechSettings({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-gray-400 hover:text-purple-600"
+          className="h-7 w-7 text-gray-400 hover:text-amber-600"
           title="Speech settings"
           aria-label="Speech settings"
         >

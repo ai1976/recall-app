@@ -20,7 +20,7 @@ function WeeklyTooltip({ active, payload, label }) {
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 text-sm">
       <p className="font-medium text-gray-700">Week of {label}</p>
-      <p className="text-indigo-600 font-bold mt-0.5">
+      <p className="text-amber-600 font-bold mt-0.5">
         {count} review{count !== 1 ? 's' : ''}
       </p>
     </div>
@@ -120,7 +120,7 @@ export default function AdminAnalytics() {
   if (roleLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]" />
       </div>
     );
   }
@@ -147,7 +147,7 @@ export default function AdminAnalytics() {
       {/* ── Overview stat strip ───────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
-          icon={<Users className="h-7 w-7 text-blue-500" />}
+          icon={<Users className="h-7 w-7 text-amber-500" />}
           value={loading ? null : Number(overview?.total_users ?? 0)}
           label="Total Users"
           sub="All roles"
@@ -165,7 +165,7 @@ export default function AdminAnalytics() {
           sub="Shared by users"
         />
         <StatCard
-          icon={<BookOpen className="h-7 w-7 text-purple-500" />}
+          icon={<BookOpen className="h-7 w-7 text-amber-500" />}
           value={loading ? null : Number(overview?.published_items ?? 0)}
           label="Published Items"
           sub="Public flashcards"
@@ -257,7 +257,7 @@ export default function AdminAnalytics() {
               </p>
               <Link
                 to="/admin"
-                className="text-xs font-medium text-indigo-600 hover:text-indigo-800 underline-offset-2 hover:underline shrink-0"
+                className="text-xs font-medium text-amber-600 hover:text-[#1e1b4b] underline-offset-2 hover:underline shrink-0"
               >
                 Review content in Admin →
               </Link>
@@ -276,7 +276,7 @@ export default function AdminAnalytics() {
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             <FunnelCard
               loading={loading}
-              icon={<Users className="h-5 w-5 text-blue-500" />}
+              icon={<Users className="h-5 w-5 text-amber-500" />}
               value={onboarding?.new_this_week ?? 0}
               label="New This Week"
               sub={`${onboarding?.new_this_month ?? 0} in last 30 days`}
@@ -298,7 +298,7 @@ export default function AdminAnalytics() {
             />
             <FunnelCard
               loading={loading}
-              icon={<Users className="h-5 w-5 text-purple-500" />}
+              icon={<Users className="h-5 w-5 text-amber-500" />}
               value={onboarding?.total_students ?? 0}
               label="Total Students"
               sub="Registered accounts"
@@ -352,7 +352,7 @@ export default function AdminAnalytics() {
                     <Tooltip content={WeeklyTooltip} cursor={{ fill: '#f5f3ff' }} />
                     <Bar
                       dataKey="review_count"
-                      fill="#6366f1"
+                      fill="#f59e0b"
                       radius={[4, 4, 0, 0]}
                       maxBarSize={48}
                     />

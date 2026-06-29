@@ -135,7 +135,7 @@ export default function NoteDetail() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]"></div>
       </div>
     );
   }
@@ -239,14 +239,14 @@ export default function NoteDetail() {
               {authorProfile && (
                 <Link
                   to={`/dashboard/profile/${authorProfile.id}`}
-                  className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                  className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full hover:bg-amber-50 hover:text-amber-700 transition-colors"
                 >
                   {authorProfile.role === 'professor' && (
-                    <Users className="h-4 w-4 text-purple-600" />
+                    <Users className="h-4 w-4 text-amber-600" />
                   )}
                   <span>{authorProfile.full_name}</span>
                   {authorProfile.role === 'professor' && (
-                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
                       Professor
                     </span>
                   )}
@@ -286,7 +286,7 @@ export default function NoteDetail() {
                 {note.tags.map(tag => (
                   <span
                     key={tag}
-                    className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full"
+                    className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full"
                   >
                     {tag}
                   </span>
@@ -307,7 +307,7 @@ export default function NoteDetail() {
               <div className="p-6 border-b border-gray-200 bg-gray-50">
                 {isPDF ? (
                   <div className="text-center py-8">
-                    <File className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+                    <File className="h-16 w-16 text-amber-600 mx-auto mb-4" />
                     <p className="text-gray-700 font-medium mb-4">{note.title}.pdf</p>
                     <Button
                       onClick={() => window.open(note.image_url, '_blank')}
@@ -354,7 +354,7 @@ export default function NoteDetail() {
           <div className="p-6 border-b border-gray-200 bg-gray-50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Brain className="h-6 w-6 text-purple-600" />
+                <Brain className="h-6 w-6 text-amber-600" />
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Linked Flashcards</h2>
                   <p className="text-sm text-gray-600">{flashcards.length} flashcard{flashcards.length !== 1 ? 's' : ''} created from this note</p>
@@ -423,7 +423,7 @@ export default function NoteDetail() {
                     </div>
 
                     {/* Back Side */}
-                    <div className="p-4 bg-blue-50">
+                    <div className="p-4 bg-amber-50">
                       <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Back (Answer)</p>
                       {card.back_image_url && (
                         <img

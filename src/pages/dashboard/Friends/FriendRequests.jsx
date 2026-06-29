@@ -160,7 +160,7 @@ export default function FriendRequests() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     {/* Avatar */}
-                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-lg">
+                    <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-semibold text-lg">
                       {request.sender?.full_name?.charAt(0) || '?'}
                     </div>
                     
@@ -169,7 +169,7 @@ export default function FriendRequests() {
                       <CardTitle className="text-lg">
                         {request.sender?.full_name || 'Unknown User'}
                         {request.sender?.role === 'professor' && (
-                          <span className="ml-2 text-sm font-normal text-blue-600">
+                          <span className="ml-2 text-sm font-normal text-amber-600">
                             👨‍🏫 Professor
                           </span>
                         )}

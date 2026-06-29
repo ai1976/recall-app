@@ -207,7 +207,7 @@ export default function MigrateNoteImages() {
         {status === 'idle' && (
           <button
             onClick={run}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 font-medium"
+            className="bg-[#1e1b4b] text-white px-6 py-2 rounded-lg hover:bg-[#1e1b4b] font-medium"
           >
             Start Migration
           </button>
@@ -243,7 +243,7 @@ export default function MigrateNoteImages() {
             <div className="text-yellow-400 animate-pulse">Processing…</div>
           )}
           {status === 'done' && (
-            <div className="text-blue-400 mt-2">Migration complete. Scroll up to review failures.</div>
+            <div className="text-amber-400 mt-2">Migration complete. Scroll up to review failures.</div>
           )}
         </div>
 

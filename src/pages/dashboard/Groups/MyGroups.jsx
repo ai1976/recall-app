@@ -191,7 +191,7 @@ export default function MyGroups() {
   if (loading && inviteLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]"></div>
       </div>
     );
   }
@@ -294,7 +294,7 @@ export default function MyGroups() {
           {visibleGroups.map((group) => (
             <Card
               key={group.id}
-              className="hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+              className="hover:border-amber-300 hover:shadow-md transition-all cursor-pointer"
               onClick={() => navigate(`/dashboard/groups/${group.id}`)}
             >
               <CardHeader className="pb-3">
@@ -302,7 +302,7 @@ export default function MyGroups() {
                   <CardTitle className="text-lg line-clamp-1">{group.name}</CardTitle>
                   <div className="flex items-center gap-1 shrink-0">
                     {group.is_batch_group && (
-                      <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-[#1e1b4b] text-xs font-medium rounded-full">
                         <Shield className="h-3 w-3" />
                         Official
                       </span>
@@ -316,7 +316,7 @@ export default function MyGroups() {
                   </div>
                 </div>
                 {group.is_batch_group && group.batch_course && (
-                  <p className="text-xs text-blue-600 font-medium mt-1">{group.batch_course}</p>
+                  <p className="text-xs text-amber-600 font-medium mt-1">{group.batch_course}</p>
                 )}
               </CardHeader>
               <CardContent>

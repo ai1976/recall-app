@@ -312,7 +312,7 @@ export default function StudyTimerWidget({ onSessionLogged }) {
     <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-xs sm:text-sm font-medium">Study Timer</CardTitle>
-        <Timer className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+        <Timer className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
       </CardHeader>
       <CardContent>
 
@@ -426,7 +426,7 @@ export default function StudyTimerWidget({ onSessionLogged }) {
             <div>
               <div
                 ref={clockRef}
-                className="text-xl sm:text-2xl font-bold font-mono text-blue-600"
+                className="text-xl sm:text-2xl font-bold font-mono text-amber-600"
               >
                 00:00
               </div>

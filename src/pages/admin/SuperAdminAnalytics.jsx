@@ -21,9 +21,9 @@ import {
 // ─── Role badge helper ────────────────────────────────────────────────────────
 function RoleBadge({ role }) {
   const cfg = {
-    super_admin: 'bg-purple-100 text-purple-800',
+    super_admin: 'bg-amber-100 text-[#1e1b4b]',
     admin:       'bg-red-100    text-red-800',
-    professor:   'bg-blue-100   text-blue-800',
+    professor:   'bg-amber-100   text-[#1e1b4b]',
     student:     'bg-green-100  text-green-800',
   };
   const label = {
@@ -173,7 +173,7 @@ export default function SuperAdminAnalytics() {
   if (roleLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]" />
       </div>
     );
   }
@@ -197,7 +197,7 @@ export default function SuperAdminAnalytics() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Shield className="h-6 w-6 text-purple-600" />
+            <Shield className="h-6 w-6 text-amber-600" />
             Super Admin Analytics
           </h1>
           <p className="text-sm text-gray-500 mt-1">Platform-wide health, cohort performance, and creator activity</p>
@@ -228,10 +228,10 @@ export default function SuperAdminAnalytics() {
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            icon={<Users className="h-5 w-5 text-blue-600" />}
+            icon={<Users className="h-5 w-5 text-amber-600" />}
             label="Total Users"
             value={headerStats?.total_users ?? 0}
-            bg="bg-blue-50"
+            bg="bg-amber-50"
           />
           <StatCard
             icon={<TrendingUp className="h-5 w-5 text-green-600" />}
@@ -240,10 +240,10 @@ export default function SuperAdminAnalytics() {
             bg="bg-green-50"
           />
           <StatCard
-            icon={<BarChart3 className="h-5 w-5 text-purple-600" />}
+            icon={<BarChart3 className="h-5 w-5 text-amber-600" />}
             label="Reviews This Month"
             value={Number(headerStats?.reviews_this_month ?? 0).toLocaleString()}
-            bg="bg-purple-50"
+            bg="bg-amber-50"
           />
           <StatCard
             icon={<GraduationCap className="h-5 w-5 text-amber-600" />}

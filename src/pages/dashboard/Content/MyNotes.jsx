@@ -358,7 +358,7 @@ export default function MyNotes() {
               {note.tags.slice(0, 3).map((tag, idx) => (
                 <span 
                   key={idx}
-                  className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded"
+                  className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded"
                 >
                   {tag}
                 </span>
@@ -398,7 +398,7 @@ export default function MyNotes() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <FileText className="h-8 w-8 text-blue-600" />
+              <FileText className="h-8 w-8 text-amber-600" />
               My Notes
             </h1>
             <p className="mt-2 text-gray-600">
@@ -605,7 +605,7 @@ export default function MyNotes() {
                 <Card key={subjectKey}>
                   {/* Subject Header */}
                   <CardHeader
-                    className="cursor-pointer select-none bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors"
+                    className="cursor-pointer select-none bg-amber-50 transition-colors"
                     onClick={() => toggleGroupCollapse(subjectKey)}
                   >
                     <div className="flex items-center justify-between">

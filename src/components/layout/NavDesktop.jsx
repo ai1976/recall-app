@@ -78,7 +78,7 @@ export default function NavDesktop({
               className={`
                 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
                 ${isActive('/dashboard')
-                  ? 'bg-blue-50 text-blue-700'
+                  ? 'bg-amber-50 text-amber-700'
                   : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 }
               `}
@@ -94,7 +94,7 @@ export default function NavDesktop({
                   className={`
                     px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
                     ${isStudyActive()
-                      ? 'bg-blue-50 text-blue-700'
+                      ? 'bg-amber-50 text-amber-700'
                       : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                     }
                   `}
@@ -127,7 +127,7 @@ export default function NavDesktop({
                   className={`
                     px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
                     ${isCreateActive()
-                      ? 'bg-blue-50 text-blue-700'
+                      ? 'bg-amber-50 text-amber-700'
                       : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                     }
                   `}
@@ -165,7 +165,7 @@ export default function NavDesktop({
               className={`
                 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
                 ${isActive('/dashboard/groups') || location.pathname.startsWith('/dashboard/groups/')
-                  ? 'bg-blue-50 text-blue-700'
+                  ? 'bg-amber-50 text-amber-700'
                   : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 }
               `}
@@ -181,7 +181,7 @@ export default function NavDesktop({
                 className={`
                   px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
                   ${isActive('/dashboard/professor-analytics')
-                    ? 'bg-blue-50 text-blue-700'
+                    ? 'bg-amber-50 text-amber-700'
                     : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                   }
                 `}
@@ -199,7 +199,7 @@ export default function NavDesktop({
                     className={`
                       px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
                       ${isManageActive()
-                        ? 'bg-blue-50 text-blue-700'
+                        ? 'bg-amber-50 text-amber-700'
                         : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                       }
                     `}

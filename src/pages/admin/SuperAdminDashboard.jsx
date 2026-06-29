@@ -598,7 +598,7 @@ Search "${targetUser.email}" and delete the auth record.
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading dashboard...</p>
         </div>
       </div>
@@ -726,7 +726,7 @@ Search "${targetUser.email}" and delete the auth record.
       {/* User Retention Cards */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
-          <Clock className="h-5 w-5 text-purple-600" />
+          <Clock className="h-5 w-5 text-amber-600" />
           <h2 className="text-xl font-bold text-gray-900">User Growth & Retention</h2>
         </div>
         {reportErrors.retention && (
@@ -786,14 +786,14 @@ Search "${targetUser.email}" and delete the auth record.
           >
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Target className="h-5 w-5 text-blue-600" />
+                <Target className="h-5 w-5 text-amber-600" />
                 7-Day Retention
               </CardTitle>
               <CardDescription>Users who came back after signup</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-blue-600">
+                <span className="text-4xl font-bold text-amber-600">
                   {Math.round(retentionStats?.seven_day_retention_rate || 0)}%
                 </span>
                 <span className="text-xl text-gray-500">
@@ -811,7 +811,7 @@ Search "${targetUser.email}" and delete the auth record.
       {/* User Activity Report */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
-          <Activity className="h-5 w-5 text-blue-600" />
+          <Activity className="h-5 w-5 text-amber-600" />
           <h2 className="text-xl font-bold text-gray-900">User Activity Report</h2>
         </div>
         
@@ -947,7 +947,7 @@ Search "${targetUser.email}" and delete the auth record.
       {/* Content Creation Report */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
-          <BookOpen className="h-5 w-5 text-indigo-600" />
+          <BookOpen className="h-5 w-5 text-amber-600" />
           <h2 className="text-xl font-bold text-gray-900">Content Creation Report</h2>
         </div>
         {reportErrors.content && (
@@ -1047,7 +1047,7 @@ Search "${targetUser.email}" and delete the auth record.
       {/* Study Engagement Report */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
-          <CreditCard className="h-5 w-5 text-purple-600" />
+          <CreditCard className="h-5 w-5 text-amber-600" />
           <h2 className="text-xl font-bold text-gray-900">Study Engagement Report</h2>
         </div>
         {reportErrors.engagement && (
@@ -1166,7 +1166,7 @@ Search "${targetUser.email}" and delete the auth record.
                       placeholder="Search by name or email..."
                       value={searchTerm}
                       onChange={(e) => { setSearchTerm(e.target.value); setActiveFilter(null); }}
-                      className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400"
                     />
                     <svg
                       className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
@@ -1181,7 +1181,7 @@ Search "${targetUser.email}" and delete the auth record.
                   <select
                     value={roleFilter}
                     onChange={(e) => { setRoleFilter(e.target.value); setActiveFilter(null); }}
-                    className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400"
                   >
                     <option value="all">All Roles</option>
                     <option value="student">Students Only</option>
@@ -1194,13 +1194,13 @@ Search "${targetUser.email}" and delete the auth record.
                 {activeFilter && (
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm text-gray-500">Active filter:</span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-[#1e1b4b] text-sm font-medium rounded-full">
                       {activeFilter === 'new_this_week' && '🆕 New this week'}
                       {activeFilter === 'inactive' && '💤 Inactive (signed up 30+ days ago, never reviewed)'}
                       {activeFilter === 'retained' && '✅ 7-day retained (signed up & reviewed this week)'}
                       <button
                         onClick={() => setActiveFilter(null)}
-                        className="ml-1 text-blue-600 hover:text-blue-900 font-bold leading-none"
+                        className="ml-1 text-amber-600 hover:text-[#1e1b4b] font-bold leading-none"
                         title="Clear filter"
                       >
                         ×
@@ -1258,9 +1258,9 @@ Search "${targetUser.email}" and delete the auth record.
                           <td className="px-4 py-4">
                             <span className={`
                               inline-flex px-2 py-1 text-xs font-semibold rounded-full
-                              ${user.role === 'super_admin' ? 'bg-purple-100 text-purple-800' : ''}
+                              ${user.role === 'super_admin' ? 'bg-amber-100 text-[#1e1b4b]' : ''}
                               ${user.role === 'admin' ? 'bg-red-100 text-red-800' : ''}
-                              ${user.role === 'professor' ? 'bg-blue-100 text-blue-800' : ''}
+                              ${user.role === 'professor' ? 'bg-amber-100 text-[#1e1b4b]' : ''}
                               ${user.role === 'student' ? 'bg-green-100 text-green-800' : ''}
                             `}>
                               {user.role || 'student'}
@@ -1392,7 +1392,7 @@ Search "${targetUser.email}" and delete the auth record.
                         <span className={`
                           px-3 py-1 text-sm font-medium rounded-full
                           ${admin.role === 'super_admin' 
-                            ? 'bg-purple-100 text-purple-800' 
+                            ? 'bg-amber-100 text-[#1e1b4b]' 
                             : 'bg-red-100 text-red-800'}
                         `}>
                           {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
@@ -1475,7 +1475,7 @@ function TabButton({ label, active, onClick }) {
       onClick={onClick}
       className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
         active
-          ? 'border-indigo-600 text-indigo-600'
+          ? 'border-[#1e1b4b] text-amber-600'
           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
       }`}
     >

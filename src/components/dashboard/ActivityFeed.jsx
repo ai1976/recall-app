@@ -149,11 +149,11 @@ export default function ActivityFeed({ limit = 5 }) {
                 {/* Icon */}
                 <div className={`p-2 rounded-lg flex-shrink-0 ${
                   activity.content_type === 'note' 
-                    ? 'bg-purple-100' 
+                    ? 'bg-amber-100' 
                     : 'bg-green-100'
                 }`}>
                   {activity.content_type === 'note' ? (
-                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                   ) : (
                     <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                   )}

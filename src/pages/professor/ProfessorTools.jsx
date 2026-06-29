@@ -512,7 +512,7 @@ IMPORTANT NOTES:
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
@@ -553,7 +553,7 @@ IMPORTANT NOTES:
         <CardContent className="space-y-4">
           <div className="space-y-3">
             <div className="flex items-start gap-3">
-              <div className="bg-blue-100 text-blue-800 rounded-full w-8 h-8 flex items-center justify-center font-bold flex-shrink-0">
+              <div className="bg-amber-100 text-[#1e1b4b] rounded-full w-8 h-8 flex items-center justify-center font-bold flex-shrink-0">
                 1
               </div>
               <div>
@@ -565,7 +565,7 @@ IMPORTANT NOTES:
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="bg-blue-100 text-blue-800 rounded-full w-8 h-8 flex items-center justify-center font-bold flex-shrink-0">
+              <div className="bg-amber-100 text-[#1e1b4b] rounded-full w-8 h-8 flex items-center justify-center font-bold flex-shrink-0">
                 2
               </div>
               <div>
@@ -581,7 +581,7 @@ IMPORTANT NOTES:
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="bg-blue-100 text-blue-800 rounded-full w-8 h-8 flex items-center justify-center font-bold flex-shrink-0">
+              <div className="bg-amber-100 text-[#1e1b4b] rounded-full w-8 h-8 flex items-center justify-center font-bold flex-shrink-0">
                 3
               </div>
               <div>
@@ -596,7 +596,7 @@ IMPORTANT NOTES:
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="bg-blue-100 text-blue-800 rounded-full w-8 h-8 flex items-center justify-center font-bold flex-shrink-0">
+              <div className="bg-amber-100 text-[#1e1b4b] rounded-full w-8 h-8 flex items-center justify-center font-bold flex-shrink-0">
                 4
               </div>
               <div>
@@ -608,8 +608,8 @@ IMPORTANT NOTES:
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
-            <p className="text-sm text-blue-800">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-4">
+            <p className="text-sm text-[#1e1b4b]">
               <strong>💡 Pro Tip:</strong> Keep both CSV files open side-by-side. 
               Copy exact Course, Subject, Topic names from Valid Entries to avoid spelling errors!
             </p>
@@ -769,8 +769,8 @@ IMPORTANT NOTES:
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-md file:border-0
                 file:text-sm file:font-semibold
-                file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100
+                file:bg-amber-50 file:text-amber-700
+                hover:file:bg-amber-100
                 cursor-pointer"
             />
             {csvFile && (

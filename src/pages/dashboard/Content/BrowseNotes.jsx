@@ -384,7 +384,7 @@ export default function BrowseNotes() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]"></div>
       </div>
     );
   }
@@ -402,7 +402,7 @@ export default function BrowseNotes() {
           {searchParams.get('topic') && (
             <button
               onClick={() => navigate('/dashboard/notes')}
-              className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mb-3 font-medium"
+              className="flex items-center gap-1 text-sm text-amber-600 hover:text-[#1e1b4b] mb-3 font-medium"
             >
               ← Back to all notes
             </button>
@@ -439,7 +439,7 @@ export default function BrowseNotes() {
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">
                     Course
-                    {isStudent && <span className="ml-1 text-xs text-blue-500 font-normal">(Current Syllabus)</span>}
+                    {isStudent && <span className="ml-1 text-xs text-amber-500 font-normal">(Current Syllabus)</span>}
                   </label>
                   <Select value={filterCourse} onValueChange={setFilterCourse} disabled={isStudent}>
                     <SelectTrigger>
@@ -585,7 +585,7 @@ export default function BrowseNotes() {
                 <Card key={subject.name}>
                   {/* Collapsible Subject Header */}
                   <CardHeader
-                    className="cursor-pointer select-none bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors"
+                    className="cursor-pointer select-none bg-amber-50 transition-colors"
                     onClick={() => toggleGroupCollapse(subjectKey)}
                   >
                     <div className="flex items-center justify-between">
@@ -646,7 +646,7 @@ export default function BrowseNotes() {
                                 {displayedNotes.map((note) => (
                                   <div
                                     key={note.id}
-                                    className="text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all overflow-hidden group"
+                                    className="text-left border border-gray-200 rounded-lg hover:border-amber-300 hover:shadow-md transition-all overflow-hidden group"
                                   >
                                     {/* Clickable Image Area */}
                                     {note.image_url && (
@@ -671,7 +671,7 @@ export default function BrowseNotes() {
                                         onClick={() => navigate(`/dashboard/notes/${note.id}`)}
                                         className="text-left w-full"
                                       >
-                                        <h4 className="font-medium text-gray-900 group-hover:text-blue-700 mb-2 line-clamp-2">
+                                        <h4 className="font-medium text-gray-900 group-hover:text-amber-700 mb-2 line-clamp-2">
                                           {note.title || 'Untitled Note'}
                                         </h4>
 
@@ -687,7 +687,7 @@ export default function BrowseNotes() {
                                           {note.tags.slice(0, 2).map((tag, tagIdx) => (
                                             <span
                                               key={tagIdx}
-                                              className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded"
+                                              className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded"
                                             >
                                               {tag}
                                             </span>
@@ -704,11 +704,11 @@ export default function BrowseNotes() {
                                       <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
                                         <Link
                                           to={`/dashboard/profile/${note.user_id}`}
-                                          className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                                          className="flex items-center gap-1 hover:text-amber-600 transition-colors"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           {note.user?.role === 'professor' && (
-                                            <Users className="h-3 w-3 text-purple-600" />
+                                            <Users className="h-3 w-3 text-amber-600" />
                                           )}
                                           {note.user?.full_name || 'Unknown'}
                                         </Link>
@@ -740,7 +740,7 @@ export default function BrowseNotes() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="text-blue-600 hover:text-blue-800 text-sm font-medium px-0"
+                                      className="text-amber-600 hover:text-[#1e1b4b] text-sm font-medium px-0"
                                       onClick={() => navigate(`/dashboard/notes?subject=${encodeURIComponent(subject.name)}&topic=${encodeURIComponent(topic.name)}`)}
                                     >
                                       View all {topic.notes.length} notes →

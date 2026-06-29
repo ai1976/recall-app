@@ -29,10 +29,10 @@ import { useCourseContext } from '@/contexts/CourseContext';
 // Cycles if a professor teaches more courses than there are entries.
 const COURSE_COLORS = [
   {
-    pill:  'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 focus-visible:ring-indigo-400',
-    dot:   'bg-indigo-500',
-    label: 'text-indigo-700',
-    badge: 'text-indigo-600 bg-indigo-50',
+    pill:  'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 focus-visible:ring-amber-400',
+    dot:   'bg-amber-500',
+    label: 'text-amber-700',
+    badge: 'text-amber-600 bg-amber-50',
   },
   {
     pill:  'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 focus-visible:ring-emerald-400',

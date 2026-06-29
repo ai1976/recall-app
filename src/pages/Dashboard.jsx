@@ -651,8 +651,8 @@ export default function Dashboard() {
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-purple-100 rounded-lg">
-                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                        <div className="p-2 bg-amber-100 rounded-lg">
+                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">My Notes</p>
@@ -668,8 +668,8 @@ export default function Dashboard() {
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                        <div className="p-2 bg-amber-100 rounded-lg">
+                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">My Flashcards</p>
@@ -710,8 +710,8 @@ export default function Dashboard() {
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                        <div className="p-2 bg-amber-100 rounded-lg">
+                          <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Create Flashcard</p>
@@ -744,8 +744,8 @@ export default function Dashboard() {
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-100 rounded-lg">
-                          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
+                        <div className="p-2 bg-amber-100 rounded-lg">
+                          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Analytics</p>
@@ -859,8 +859,8 @@ export default function Dashboard() {
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                        <div className="p-2 bg-amber-100 rounded-lg">
+                          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Admin Dashboard</p>
@@ -876,8 +876,8 @@ export default function Dashboard() {
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-100 rounded-lg">
-                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
+                        <div className="p-2 bg-amber-100 rounded-lg">
+                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Admin Analytics</p>
@@ -955,8 +955,8 @@ export default function Dashboard() {
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                        <div className="p-2 bg-amber-100 rounded-lg">
+                          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Admin Dashboard</p>
@@ -972,8 +972,8 @@ export default function Dashboard() {
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-100 rounded-lg">
-                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
+                        <div className="p-2 bg-amber-100 rounded-lg">
+                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Admin Analytics</p>
@@ -1098,7 +1098,7 @@ export default function Dashboard() {
 
               {/* ===== NEW USER ONBOARDING ===== */}
               {isNewUser && (
-                <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
+                <Card className="bg-amber-50 border-amber-200">
                   <CardHeader>
                     <CardTitle className="text-base sm:text-lg">Get Started</CardTitle>
                   </CardHeader>
@@ -1106,7 +1106,7 @@ export default function Dashboard() {
                     <div className="space-y-4">
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
+                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                           <h3 className="font-semibold text-sm sm:text-base">Browse Content</h3>
                         </div>
                         <p className="text-xs sm:text-sm text-gray-700 mb-3">
@@ -1158,14 +1158,14 @@ export default function Dashboard() {
 
               {/* ===== ALL CAUGHT UP STATE ===== */}
               {!isNewUser && reviewsDue === 0 && (
-                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                <Card className="bg-amber-50 border-amber-200">
                   <CardContent className="pt-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
-                        <p className="text-lg sm:text-xl font-bold text-blue-800">
+                        <p className="text-lg sm:text-xl font-bold text-[#1e1b4b]">
                           🎉 All caught up!
                         </p>
-                        <p className="text-sm text-blue-600">
+                        <p className="text-sm text-amber-600">
                           No scheduled reviews. Time to learn something new?
                         </p>
                       </div>
@@ -1216,7 +1216,7 @@ export default function Dashboard() {
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-xs sm:text-sm font-medium">Accuracy</CardTitle>
-                        <Target className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+                        <Target className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
                       </CardHeader>
                       <CardContent>
                         <div className="text-xl sm:text-2xl font-bold">{accuracy}%</div>
@@ -1227,7 +1227,7 @@ export default function Dashboard() {
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-xs sm:text-sm font-medium">Mastered</CardTitle>
-                        <Award className="h-3 w-3 sm:h-4 sm:w-4 text-purple-500" />
+                        <Award className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
                       </CardHeader>
                       <CardContent>
                         <div className="text-xl sm:text-2xl font-bold">{cardsMastered}</div>
@@ -1250,7 +1250,7 @@ export default function Dashboard() {
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-xs sm:text-sm font-medium">Today</CardTitle>
-                        <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+                        <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
                       </CardHeader>
                       <CardContent>
                         <div className="text-xl sm:text-2xl font-bold">
@@ -1266,7 +1266,7 @@ export default function Dashboard() {
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-xs sm:text-sm font-medium">This Week</CardTitle>
-                        <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-500" />
+                        <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
                       </CardHeader>
                       <CardContent>
                         <div className="text-xl sm:text-2xl font-bold">
@@ -1339,8 +1339,8 @@ export default function Dashboard() {
                     >
                       <CardContent className="pt-4 pb-4">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-purple-100 rounded-lg">
-                            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                          <div className="p-2 bg-amber-100 rounded-lg">
+                            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                           </div>
                           <div>
                             <p className="font-medium text-sm sm:text-base">Browse Notes</p>
@@ -1390,8 +1390,8 @@ export default function Dashboard() {
                     >
                       <CardContent className="pt-4 pb-4">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                          <div className="p-2 bg-amber-100 rounded-lg">
+                            <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                           </div>
                           <div>
                             <p className="font-medium text-sm sm:text-base">Create Flashcard</p>
@@ -1420,7 +1420,7 @@ export default function Dashboard() {
                         onClick={() => navigate('/dashboard/my-notes')}
                       >
                         <div className="flex items-center gap-2 sm:gap-3">
-                          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                           <div>
                             <p className="font-medium text-xs sm:text-sm">My Notes</p>
                             <p className="text-[10px] sm:text-xs text-muted-foreground">
@@ -1436,7 +1436,7 @@ export default function Dashboard() {
                         onClick={() => navigate('/dashboard/flashcards')}
                       >
                         <div className="flex items-center gap-2 sm:gap-3">
-                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                           <div>
                             <p className="font-medium text-xs sm:text-sm">My Flashcards</p>
                             <p className="text-[10px] sm:text-xs text-muted-foreground">

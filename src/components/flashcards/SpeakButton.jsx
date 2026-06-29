@@ -21,8 +21,8 @@ export default function SpeakButton({
         onClick?.(e);
       }}
       className={cn(
-        'h-7 w-7 text-gray-400 hover:text-purple-600',
-        isSpeaking && 'text-purple-600 animate-pulse',
+        'h-7 w-7 text-gray-400 hover:text-amber-600',
+        isSpeaking && 'text-amber-600 animate-pulse',
         className
       )}
       title={isSpeaking ? 'Stop reading' : 'Read aloud'}

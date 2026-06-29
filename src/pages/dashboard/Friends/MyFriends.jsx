@@ -175,7 +175,7 @@ export default function MyFriends() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     {/* Avatar */}
-                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-lg">
+                    <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-semibold text-lg">
                       {friend.full_name?.charAt(0) || '?'}
                     </div>
 
@@ -184,12 +184,12 @@ export default function MyFriends() {
                       <CardTitle className="text-lg">
                         <Link
                           to={`/dashboard/profile/${friend.user_id}`}
-                          className="hover:text-blue-600 transition-colors"
+                          className="hover:text-amber-600 transition-colors"
                         >
                           {friend.full_name || 'Unknown'}
                         </Link>
                         {friend.role === 'professor' && (
-                          <span className="ml-2 text-sm font-normal text-blue-600">
+                          <span className="ml-2 text-sm font-normal text-amber-600">
                             👨‍🏫 Professor
                           </span>
                         )}
@@ -225,7 +225,7 @@ export default function MyFriends() {
                     <span className="text-gray-400">streak</span>
                   </span>
                   <span className="flex items-center gap-1">
-                    <BookOpen className="h-3.5 w-3.5 text-blue-400" />
+                    <BookOpen className="h-3.5 w-3.5 text-amber-400" />
                     <span className="font-medium">{Number(friend.reviews_this_week)}</span>
                     <span className="text-gray-400">reviews this week</span>
                   </span>

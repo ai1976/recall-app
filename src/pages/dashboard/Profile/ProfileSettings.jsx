@@ -352,7 +352,7 @@ export default function ProfileSettings() {
         <Card className="mt-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-indigo-600" />
+              <GraduationCap className="h-5 w-5 text-amber-600" />
               My Teaching Areas
             </CardTitle>
             <CardDescription>
@@ -379,7 +379,7 @@ export default function ProfileSettings() {
                       key={course.id}
                       className={`flex items-center justify-between px-3 py-2.5 rounded-lg border ${
                         isPrimary
-                          ? 'border-indigo-200 bg-indigo-50'
+                          ? 'border-amber-200 bg-amber-50'
                           : 'border-gray-200 bg-white'
                       }`}
                     >
@@ -387,7 +387,7 @@ export default function ProfileSettings() {
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-sm font-medium text-gray-900 truncate">{name}</span>
                         {isPrimary && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-700 flex-shrink-0">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 flex-shrink-0">
                             <Star className="h-3 w-3" />
                             Primary
                           </span>
@@ -401,7 +401,7 @@ export default function ProfileSettings() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-xs text-gray-500 hover:text-indigo-700 hover:bg-indigo-50"
+                            className="h-7 px-2 text-xs text-gray-500 hover:text-amber-700 hover:bg-amber-50"
                             onClick={() => handleSetPrimary(course.id, name)}
                             disabled={settingPrimaryId === course.id}
                             title="Set as primary course"
@@ -487,7 +487,7 @@ export default function ProfileSettings() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Bell className="h-4 w-4 text-indigo-600" />
+            <Bell className="h-4 w-4 text-amber-600" />
             Push Notifications
           </CardTitle>
         </CardHeader>
@@ -498,11 +498,11 @@ export default function ProfileSettings() {
               or Safari 16.4+ on iPhone.
             </p>
           ) : needsIOSInstall ? (
-            <div className="flex items-start gap-3 p-3 bg-indigo-50 rounded-lg text-sm text-indigo-800">
+            <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg text-sm text-[#1e1b4b]">
               <Smartphone className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-medium">Install the app to enable push notifications</p>
-                <p className="text-indigo-600 mt-1">
+                <p className="text-amber-600 mt-1">
                   Tap <strong>Share</strong> →{' '}
                   <strong>Add to Home Screen</strong> in Safari, then open the app from your home
                   screen.
@@ -538,7 +538,7 @@ export default function ProfileSettings() {
               </p>
               <Button
                 size="sm"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white h-8"
+                className="bg-[#1e1b4b] hover:bg-[#1e1b4b] text-white h-8"
                 onClick={async () => {
                   const ok = await pushSubscribe();
                   if (ok) toast({ title: 'Push notifications enabled!' });

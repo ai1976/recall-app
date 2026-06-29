@@ -161,9 +161,9 @@ export default function MyAchievements() {
   }, {});
 
   const categoryInfo = {
-    content: { name: 'Content Creator', icon: BookOpen, color: 'text-blue-600' },
+    content: { name: 'Content Creator', icon: BookOpen, color: 'text-amber-600' },
     study:   { name: 'Study Habits',    icon: Flame,    color: 'text-orange-600' },
-    social:  { name: 'Community',       icon: Users,    color: 'text-purple-600' },
+    social:  { name: 'Community',       icon: Users,    color: 'text-amber-600' },
     special: { name: 'Special',         icon: Star,     color: 'text-yellow-600' },
   };
 
@@ -175,7 +175,7 @@ export default function MyAchievements() {
     return (
       <PageContainer width="full">
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]"></div>
         </div>
       </PageContainer>
     );
@@ -199,7 +199,7 @@ export default function MyAchievements() {
       </div>
 
       {/* Privacy Info */}
-      <div className="mb-6 p-3 rounded-lg text-sm bg-blue-50 text-blue-700">
+      <div className="mb-6 p-3 rounded-lg text-sm bg-amber-50 text-amber-700">
         <p>
           🎛️ Toggle visibility for each badge. {publicBadgeCount} of {totalEarned} badges are visible to others in Find Friends.
         </p>
@@ -285,12 +285,12 @@ export default function MyAchievements() {
 
       {/* Empty state */}
       {totalEarned === 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center mt-8">
-          <Trophy className="h-12 w-12 text-blue-400 mx-auto mb-3" />
-          <p className="text-blue-800 font-medium mb-1">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center mt-8">
+          <Trophy className="h-12 w-12 text-amber-400 mx-auto mb-3" />
+          <p className="text-[#1e1b4b] font-medium mb-1">
             Start earning badges!
           </p>
-          <p className="text-sm text-blue-700">
+          <p className="text-sm text-amber-700">
             Upload notes, create flashcards, and study regularly to unlock achievements.
           </p>
         </div>

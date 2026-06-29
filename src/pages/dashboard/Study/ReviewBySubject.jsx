@@ -128,7 +128,7 @@ export default function ReviewBySubject() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading subjects...</p>
         </div>
       </div>
@@ -222,7 +222,7 @@ export default function ReviewBySubject() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-xl flex items-center gap-2 mb-1">
-                      <BookOpen className="h-5 w-5 text-blue-600" />
+                      <BookOpen className="h-5 w-5 text-amber-600" />
                       {subject.name}
                     </CardTitle>
                     <div className="flex items-center gap-3 text-sm text-gray-600">
@@ -249,16 +249,16 @@ export default function ReviewBySubject() {
         </div>
 
         {/* Review All Button */}
-        <Card className="border-2 border-blue-200 bg-blue-50">
+        <Card className="border-2 border-amber-200 bg-amber-50">
           <CardContent className="py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="font-semibold text-blue-900 mb-1">
+                  <h3 className="font-semibold text-[#1e1b4b] mb-1">
                     Review All Subjects Together
                   </h3>
-                  <p className="text-sm text-blue-700">
+                  <p className="text-sm text-amber-700">
                     Study all {totalDueCards} cards from {subjectGroups.length} subject{subjectGroups.length > 1 ? 's' : ''} in one session
                   </p>
                 </div>

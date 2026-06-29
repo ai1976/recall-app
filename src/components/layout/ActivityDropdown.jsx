@@ -20,21 +20,21 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
     switch (type) {
       case 'friend_request':
       case 'friend_accepted':
-        return <UserPlus className="h-4 w-4 text-blue-500" />;
+        return <UserPlus className="h-4 w-4 text-amber-500" />;
       case 'badge_earned':
         return <Trophy className="h-4 w-4 text-yellow-500" />;
       case 'upvote':
         return <ThumbsUp className="h-4 w-4 text-green-500" />;
       case 'comment':
-        return <MessageSquare className="h-4 w-4 text-purple-500" />;
+        return <MessageSquare className="h-4 w-4 text-amber-500" />;
       case 'group_invite':
-        return <Users className="h-4 w-4 text-indigo-500" />;
+        return <Users className="h-4 w-4 text-amber-500" />;
       case 'access_request':
         return <UserPlus className="h-4 w-4 text-orange-500" />;
       case 'access_granted':
         return <CheckCheck className="h-4 w-4 text-green-500" />;
       case 'follow':
-        return <UserPlus className="h-4 w-4 text-indigo-500" />;
+        return <UserPlus className="h-4 w-4 text-amber-500" />;
       default:
         return <Bell className="h-4 w-4 text-gray-500" />;
     }
@@ -159,7 +159,7 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
         key={notification.id}
         className={`
           flex items-start gap-3 px-3 py-3
-          ${!notification.is_read ? 'bg-blue-50' : ''}
+          ${!notification.is_read ? 'bg-amber-50' : ''}
         `}
       >
         <div className="flex-shrink-0 mt-0.5">
@@ -206,7 +206,7 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
         </div>
         {!notification.is_read && (
           <div className="flex-shrink-0">
-            <div className="h-2 w-2 bg-blue-500 rounded-full" />
+            <div className="h-2 w-2 bg-amber-500 rounded-full" />
           </div>
         )}
       </div>
@@ -233,7 +233,7 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-xs text-blue-600 hover:text-blue-700"
+              className="h-7 text-xs text-amber-600 hover:text-amber-700"
               onClick={markAllRead}
             >
               <CheckCheck className="h-3 w-3 mr-1" />
@@ -264,7 +264,7 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
                     to={getNotificationLink(notification)}
                     className={`
                       flex items-start gap-3 px-3 py-3 cursor-pointer
-                      ${!notification.is_read ? 'bg-blue-50' : ''}
+                      ${!notification.is_read ? 'bg-amber-50' : ''}
                     `}
                   >
                     <div className="flex-shrink-0 mt-0.5">
@@ -285,7 +285,7 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
                     </div>
                     {!notification.is_read && (
                       <div className="flex-shrink-0">
-                        <div className="h-2 w-2 bg-blue-500 rounded-full" />
+                        <div className="h-2 w-2 bg-amber-500 rounded-full" />
                       </div>
                     )}
                   </Link>

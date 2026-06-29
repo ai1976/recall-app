@@ -69,9 +69,9 @@ export default function NavMobile({
   // Get role badge color
   const getRoleBadgeClass = () => {
     switch (role) {
-      case 'super_admin': return 'bg-purple-100 text-purple-800';
+      case 'super_admin': return 'bg-amber-100 text-[#1e1b4b]';
       case 'admin': return 'bg-red-100 text-red-800';
-      case 'professor': return 'bg-blue-100 text-blue-800';
+      case 'professor': return 'bg-amber-100 text-[#1e1b4b]';
       default: return 'bg-green-100 text-green-800';
     }
   };
@@ -122,7 +122,7 @@ export default function NavMobile({
                 {/* User Header */}
                 <div className="p-4 border-b bg-gray-50">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+                    <div className="h-10 w-10 rounded-full bg-[#1e1b4b] flex items-center justify-center text-white font-bold">
                       {getInitials()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -171,19 +171,19 @@ export default function NavMobile({
                                   setOpen(false);
                                 }}
                                 className={`w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50 ${
-                                  isActive ? 'bg-indigo-50' : ''
+                                  isActive ? 'bg-amber-50' : ''
                                 }`}
                               >
                                 <span
                                   className={`h-2 w-2 rounded-full flex-shrink-0 ${
-                                    isActive ? 'bg-indigo-500' : 'bg-gray-300'
+                                    isActive ? 'bg-amber-500' : 'bg-gray-300'
                                   }`}
                                 />
-                                <span className={`text-sm flex-1 ${isActive ? 'text-indigo-700 font-medium' : 'text-gray-700'}`}>
+                                <span className={`text-sm flex-1 ${isActive ? 'text-amber-700 font-medium' : 'text-gray-700'}`}>
                                   {name}
                                 </span>
                                 {isActive && (
-                                  <span className="text-[10px] font-medium text-indigo-600">Active</span>
+                                  <span className="text-[10px] font-medium text-amber-600">Active</span>
                                 )}
                                 {course.is_primary && !isActive && (
                                   <span className="text-[10px] text-gray-400">Primary</span>
@@ -375,14 +375,14 @@ export default function NavMobile({
                             onClick={() => handleNavClick('/super-admin')}
                             className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"
                           >
-                            <Shield className="h-4 w-4 text-purple-400" />
+                            <Shield className="h-4 w-4 text-amber-400" />
                             <span className="text-sm text-gray-700">Dashboard</span>
                           </button>
                           <button
                             onClick={() => handleNavClick('/super-admin/analytics')}
                             className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"
                           >
-                            <BarChart3 className="h-4 w-4 text-purple-400" />
+                            <BarChart3 className="h-4 w-4 text-amber-400" />
                             <span className="text-sm text-gray-700">SA Analytics</span>
                           </button>
                         </>

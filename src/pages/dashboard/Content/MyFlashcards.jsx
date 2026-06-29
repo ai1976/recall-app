@@ -628,7 +628,7 @@ export default function MyFlashcards() {
     if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]"></div>
       </div>
     );
   }
@@ -645,7 +645,7 @@ export default function MyFlashcards() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Brain className="h-8 w-8 text-purple-600" />
+              <Brain className="h-8 w-8 text-amber-600" />
               My Flashcards
             </h1>
             <p className="mt-2 text-gray-600">
@@ -803,8 +803,8 @@ export default function MyFlashcards() {
         </Card>
 
         {viewMode === 'grouped' && selectedBatches.size > 0 && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-            <p className="text-sm text-blue-800">
+          <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between">
+            <p className="text-sm text-[#1e1b4b]">
               {selectedBatches.size} batch{selectedBatches.size !== 1 ? 'es' : ''} selected
             </p>
             <div className="flex gap-2">
@@ -860,13 +860,13 @@ export default function MyFlashcards() {
 
               return (
                 <Card key={groupKey}>
-                  <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
+                  <CardHeader className="bg-amber-50">
                     <div className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         checked={selectedBatches.has(group.batchId)}
                         onChange={() => toggleBatchSelection(group.batchId)}
-                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="h-5 w-5 rounded border-gray-300 text-amber-600 focus:ring-amber-400"
                       />
 
                       <div className="flex-1">
@@ -883,7 +883,7 @@ export default function MyFlashcards() {
                         </p>
 
                         {group.batchDescription && (
-                          <p className="text-sm text-blue-600 mt-1 font-medium flex items-center gap-1">
+                          <p className="text-sm text-amber-600 mt-1 font-medium flex items-center gap-1">
                             <Package className="h-3 w-3" />
                             {group.batchDescription}
                           </p>
@@ -916,7 +916,7 @@ export default function MyFlashcards() {
                           }
                           data-group-id={group.batchId}
                           onChange={(e) => handleGroupVisibilityChange(group, e.target.value)}
-                          className="px-4 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                          className="px-4 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 cursor-pointer"
                         >
                           <option value="mixed" disabled>Mixed Visibility</option>
                           <option value="private">Private</option>
@@ -1063,7 +1063,7 @@ export default function MyFlashcards() {
                   <select
                     value={editGroupForm.course || ''}
                     onChange={(e) => setEditGroupForm(prev => ({ ...prev, course: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500"
                   >
                     <option value="">Select course...</option>
                     {allCourses.map(course => (
@@ -1089,7 +1089,7 @@ export default function MyFlashcards() {
                   <select
                     value={editGroupForm.subject || ''}
                     onChange={(e) => setEditGroupForm(prev => ({ ...prev, subject: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500"
                   >
                     <option value="">Select subject...</option>
                     {allSubjects.map(subject => (
@@ -1115,7 +1115,7 @@ export default function MyFlashcards() {
                   <select
                     value={editGroupForm.topic || ''}
                     onChange={(e) => setEditGroupForm(prev => ({ ...prev, topic: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500"
                   >
                     <option value="">Select a topic...</option>
                     {allTopics

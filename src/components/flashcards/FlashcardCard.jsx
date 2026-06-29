@@ -14,7 +14,7 @@ const getVisibilityBadge = (visibility) => {
       );
     case 'friends':
       return (
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700">
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-700">
           <Users className="h-3 w-3 mr-0.5" />
           Friends
         </span>
@@ -50,7 +50,7 @@ export default function FlashcardCard({
   onVisibilityChange
 }) {
   return (
-    <Card className={`hover:shadow-lg transition-shadow ${isEditing ? 'ring-2 ring-blue-500' : ''}`}>
+    <Card className={`hover:shadow-lg transition-shadow ${isEditing ? 'ring-2 ring-amber-400' : ''}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -75,7 +75,7 @@ export default function FlashcardCard({
                 variant="ghost"
                 size="sm"
                 onClick={() => onStartEdit(card)}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 -mt-2"
+                className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 -mt-2"
                 title="Edit"
               >
                 <Edit2 className="h-4 w-4" />
@@ -85,7 +85,7 @@ export default function FlashcardCard({
                 value={card.visibility || 'private'}
                 onChange={(e) => onVisibilityChange(card.id, e.target.value, e)}
                 onClick={(e) => e.stopPropagation()}
-                className="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                className="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer"
                 title="Change visibility"
               >
                 <option value="private">Private</option>
@@ -166,7 +166,7 @@ export default function FlashcardCard({
                 {card.front_text}
               </p>
             </div>
-            <div className="bg-blue-50 -mx-6 -mb-6 p-4 rounded-b-lg">
+            <div className="bg-amber-50 -mx-6 -mb-6 p-4 rounded-b-lg">
               <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Answer</p>
               {card.back_image_url && (
                 <img

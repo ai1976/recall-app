@@ -130,7 +130,7 @@ export default function CreateGroup() {
             </CardHeader>
             <CardContent className="space-y-3">
               {userCourseLevel && (
-                <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:border-blue-400 transition-colors"
+                <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:border-amber-400 transition-colors"
                   style={{ borderColor: selectedOption === 'system_course' ? '#3b82f6' : undefined,
                            background: selectedOption === 'system_course' ? '#eff6ff' : undefined }}>
                   <input
@@ -147,7 +147,7 @@ export default function CreateGroup() {
                   </div>
                 </label>
               )}
-              <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:border-blue-400 transition-colors"
+              <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:border-amber-400 transition-colors"
                 style={{ borderColor: selectedOption === 'custom' ? '#3b82f6' : undefined,
                          background: selectedOption === 'custom' ? '#eff6ff' : undefined }}>
                 <input
@@ -175,9 +175,9 @@ export default function CreateGroup() {
             </CardContent>
           </Card>
 
-          <Card className="bg-blue-50 border-blue-200">
+          <Card className="bg-amber-50 border-amber-200">
             <CardContent className="pt-6">
-              <p className="text-sm text-blue-800">
+              <p className="text-sm text-[#1e1b4b]">
                 You will be the admin of this group. After creating it, you can invite members and share your notes/flashcards with them.
               </p>
             </CardContent>

@@ -447,7 +447,7 @@ export default function NoteEdit() {
                           href={currentImageUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline"
+                          className="text-sm text-amber-600 hover:underline"
                         >
                           View PDF
                         </a>

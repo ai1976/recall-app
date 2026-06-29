@@ -55,16 +55,16 @@ export default function PushPermissionBanner() {
   if (needsIOSInstall) {
     if (isDismissed) return null;
     return (
-      <div className="flex items-start gap-3 px-4 py-3 mb-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
+      <div className="flex items-start gap-3 px-4 py-3 mb-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-[#1e1b4b]">
         <Smartphone className="h-4 w-4 mt-0.5 flex-shrink-0" />
         <div className="flex-1">
           <p className="font-medium">Get push notifications on iPhone</p>
-          <p className="text-indigo-600 mt-0.5">
+          <p className="text-amber-600 mt-0.5">
             Tap <strong>Share</strong> → <strong>Add to Home Screen</strong>, then open the app
             from your home screen.
           </p>
         </div>
-        <button onClick={handleDismiss} className="text-indigo-400 hover:text-indigo-600 flex-shrink-0">
+        <button onClick={handleDismiss} className="text-amber-400 hover:text-amber-600 flex-shrink-0">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -103,7 +103,7 @@ export default function PushPermissionBanner() {
 
   // Default: Android / Desktop prompt
   return (
-    <div className="flex items-center gap-3 px-4 py-3 mb-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
+    <div className="flex items-center gap-3 px-4 py-3 mb-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-[#1e1b4b]">
       <Bell className="h-4 w-4 flex-shrink-0" />
       <span className="flex-1">
         Get notified when your professor adds new notes or flashcards.
@@ -111,13 +111,13 @@ export default function PushPermissionBanner() {
       <div className="flex items-center gap-2 flex-shrink-0">
         <Button
           size="sm"
-          className="h-7 px-3 text-xs bg-indigo-600 hover:bg-indigo-700 text-white"
+          className="h-7 px-3 text-xs bg-[#1e1b4b] hover:bg-[#1e1b4b] text-white"
           onClick={handleEnable}
           disabled={isLoading}
         >
           {isLoading ? 'Enabling…' : 'Enable'}
         </Button>
-        <button onClick={handleDismiss} className="text-indigo-400 hover:text-indigo-600">
+        <button onClick={handleDismiss} className="text-amber-400 hover:text-amber-600">
           <X className="h-4 w-4" />
         </button>
       </div>

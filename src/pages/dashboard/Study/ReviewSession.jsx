@@ -157,7 +157,7 @@ export default function ReviewSession() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b] mx-auto mb-4"></div>
           <p className="text-gray-600">Checking your schedule...</p>
         </div>
       </div>
@@ -186,10 +186,10 @@ export default function ReviewSession() {
               </div>
             </div>
 
-            <div className="bg-blue-100 border border-blue-300 rounded-lg p-3 mb-4">
+            <div className="bg-amber-100 border border-amber-300 rounded-lg p-3 mb-4">
               <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-blue-600" />
-                <span className="font-medium text-blue-800">
+                <Clock className="h-5 w-5 text-amber-600" />
+                <span className="font-medium text-[#1e1b4b]">
                   Reviewing: {activeSessionCards.length} card{activeSessionCards.length > 1 ? 's' : ''} due
                 </span>
               </div>
@@ -264,8 +264,8 @@ export default function ReviewSession() {
             <Card key={subject} className="hover:shadow-md transition-shadow">
               <div className="p-6 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <BookOpen className="h-6 w-6 text-blue-600" />
+                  <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
+                    <BookOpen className="h-6 w-6 text-amber-600" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{subject}</h3>

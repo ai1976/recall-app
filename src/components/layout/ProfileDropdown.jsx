@@ -52,9 +52,9 @@ export default function ProfileDropdown({ user, role, isLoading, handleSignOut }
   // Get role badge color
   const getRoleBadgeClass = () => {
     switch (role) {
-      case 'super_admin': return 'bg-purple-100 text-purple-800';
+      case 'super_admin': return 'bg-amber-100 text-[#1e1b4b]';
       case 'admin': return 'bg-red-100 text-red-800';
-      case 'professor': return 'bg-blue-100 text-blue-800';
+      case 'professor': return 'bg-amber-100 text-[#1e1b4b]';
       default: return 'bg-green-100 text-green-800';
     }
   };
@@ -63,7 +63,7 @@ export default function ProfileDropdown({ user, role, isLoading, handleSignOut }
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="flex items-center gap-2 px-2">
-          <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+          <div className="h-8 w-8 rounded-full bg-[#1e1b4b] flex items-center justify-center text-white font-bold text-sm">
             {getInitials()}
           </div>
           <ChevronDown className="h-4 w-4 text-gray-500" />

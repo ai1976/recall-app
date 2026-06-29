@@ -12,7 +12,7 @@ import { Users, Share2, BookOpen, ChevronRight, ChevronLeft, X } from 'lucide-re
 
 const STEPS = [
   {
-    icon: <Users className="h-12 w-12 text-indigo-500" />,
+    icon: <Users className="h-12 w-12 text-amber-500" />,
     title: 'Join your course batch group',
     description:
       'You\'ve been auto-enrolled in a batch group for your course. Head to Study Groups to connect with classmates, share notes, and study together.',
@@ -22,7 +22,7 @@ const STEPS = [
     },
   },
   {
-    icon: <Users className="h-12 w-12 text-blue-500" />,
+    icon: <Users className="h-12 w-12 text-amber-500" />,
     title: 'Create your own study group',
     description:
       'Study with a smaller circle — create a group and invite friends via link or WhatsApp. Share notes and study sets exclusively with your group.',
@@ -77,7 +77,7 @@ export default function OnboardingModal({ open, onDismiss }) {
             <div
               key={i}
               className={`h-1.5 rounded-full transition-all ${
-                i === step ? 'w-6 bg-indigo-600' : 'w-1.5 bg-gray-200'
+                i === step ? 'w-6 bg-[#1e1b4b]' : 'w-1.5 bg-gray-200'
               }`}
             />
           ))}

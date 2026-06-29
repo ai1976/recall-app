@@ -379,7 +379,7 @@ export default function ReviewFlashcards() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]"></div>
       </div>
     );
   }
@@ -425,7 +425,7 @@ export default function ReviewFlashcards() {
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">
                     Course
-                    {isStudent && <span className="ml-1 text-xs text-blue-500 font-normal">(Current Syllabus)</span>}
+                    {isStudent && <span className="ml-1 text-xs text-amber-500 font-normal">(Current Syllabus)</span>}
                   </label>
                   <Select value={filterCourse} onValueChange={setFilterCourse} disabled={isStudent}>
                     <SelectTrigger>
@@ -572,7 +572,7 @@ export default function ReviewFlashcards() {
                 <Card key={idx}>
                   {/* Collapsible Subject Header */}
                   <CardHeader
-                    className="cursor-pointer select-none bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors"
+                    className="cursor-pointer select-none bg-amber-50 transition-colors"
                     onClick={() => toggleGroupCollapse(subjectKey)}
                   >
                     <div className="flex items-center justify-between">
@@ -610,7 +610,7 @@ export default function ReviewFlashcards() {
                         {subject.decks.map((deck) => (
                           <div
                             key={deck.id}
-                            className="text-left p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                            className="text-left p-4 border border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-colors group"
                           >
                             {/* Clickable Study Area */}
                             <button
@@ -619,7 +619,7 @@ export default function ReviewFlashcards() {
                             >
                               <div className="flex items-start justify-between mb-2">
                                 <div className="flex-1">
-                                  <h4 className="font-medium text-gray-900 group-hover:text-blue-700">
+                                  <h4 className="font-medium text-gray-900 group-hover:text-amber-700">
                                     {deck.topicName}
                                   </h4>
                                   <p className="text-sm text-gray-600 mt-1">
@@ -628,7 +628,7 @@ export default function ReviewFlashcards() {
                                       : `${deck.card_count} cards`}
                                   </p>
                                 </div>
-                                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 flex-shrink-0" />
+                                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-amber-600 flex-shrink-0" />
                               </div>
                             </button>
 
@@ -638,7 +638,7 @@ export default function ReviewFlashcards() {
                                 by{' '}
                                 <Link
                                   to={`/dashboard/profile/${deck.user_id}`}
-                                  className="hover:text-blue-600 transition-colors"
+                                  className="hover:text-amber-600 transition-colors"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   {deck.owner.full_name}
@@ -650,13 +650,13 @@ export default function ReviewFlashcards() {
                             <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
                               <div className="flex gap-2 flex-wrap">
                                 {deck.owner?.role === 'professor' && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded">
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded">
                                     <Users className="h-3 w-3" />
                                     Verified
                                   </span>
                                 )}
                                 {deck.user_id === user.id && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded">
                                     <User className="h-3 w-3" />
                                     Yours
                                   </span>

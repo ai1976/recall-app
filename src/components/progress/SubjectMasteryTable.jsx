@@ -90,7 +90,7 @@ export default function SubjectMasteryTable({ userId, courseLevel }) {
                   <div className="flex items-center gap-2">
                     <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
                       <div
-                        className="h-2 rounded-full bg-blue-500 transition-all"
+                        className="h-2 rounded-full bg-amber-500 transition-all"
                         style={{ width: `${Math.min(row.mastery_pct, 100)}%` }}
                       />
                     </div>
@@ -133,7 +133,7 @@ export default function SubjectMasteryTable({ userId, courseLevel }) {
             <div className="flex items-center gap-2">
               <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
                 <div
-                  className="h-1.5 rounded-full bg-blue-500"
+                  className="h-1.5 rounded-full bg-amber-500"
                   style={{ width: `${Math.min(row.mastery_pct, 100)}%` }}
                 />
               </div>

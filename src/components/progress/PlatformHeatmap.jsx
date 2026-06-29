@@ -5,10 +5,10 @@ import { supabase } from '@/lib/supabase';
 const getColor = (count) => {
   if (count < 0)   return 'bg-transparent';   // future date
   if (count === 0) return 'bg-gray-100';
-  if (count <= 10) return 'bg-blue-200';
-  if (count <= 30) return 'bg-blue-400';
-  if (count <= 70) return 'bg-blue-600';
-  return 'bg-blue-800';
+  if (count <= 10) return 'bg-amber-200';
+  if (count <= 30) return 'bg-amber-400';
+  if (count <= 70) return 'bg-[#1e1b4b]';
+  return 'bg-[#1e1b4b]';
 };
 
 // ─── Build 52-week grid (Sun→Sat columns, today in last column) ──────────────

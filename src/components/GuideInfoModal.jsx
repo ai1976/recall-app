@@ -29,7 +29,7 @@ export default function GuideInfoModal({ situationId, triggerLabel }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-xs text-gray-400 hover:text-indigo-600 underline underline-offset-2 transition-colors mt-3 block mx-auto"
+        className="text-xs text-gray-400 hover:text-amber-600 underline underline-offset-2 transition-colors mt-3 block mx-auto"
       >
         {triggerLabel}
       </button>
@@ -46,7 +46,7 @@ export default function GuideInfoModal({ situationId, triggerLabel }) {
           <div className="space-y-5 py-2">
             {situation.steps.map((step, i) => (
               <div key={i} className="flex gap-3">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center mt-0.5">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold flex items-center justify-center mt-0.5">
                   {i + 1}
                 </div>
                 <div>

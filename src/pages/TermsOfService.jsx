@@ -9,7 +9,7 @@ export default function TermsOfService() {
         {/* Back to Home */}
         <Link 
           to="/" 
-          className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8"
+          className="inline-flex items-center text-amber-600 hover:text-[#1e1b4b] mb-8"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Home
@@ -205,7 +205,7 @@ export default function TermsOfService() {
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">6.3 Exceptional Circumstances</h3>
             <p className="text-gray-700 leading-relaxed">
-              In rare cases of technical errors resulting in duplicate charges or overcharging, we may issue refunds at our sole discretion. Such requests must be submitted to <a href="mailto:hello@revisop.com" className="text-blue-600 hover:underline">hello@revisop.com</a> within 7 days of the charge with supporting evidence.
+              In rare cases of technical errors resulting in duplicate charges or overcharging, we may issue refunds at our sole discretion. Such requests must be submitted to <a href="mailto:hello@revisop.com" className="text-amber-600 hover:underline">hello@revisop.com</a> within 7 days of the charge with supporting evidence.
             </p>
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">6.4 Free Trial Conversion</h3>
@@ -289,7 +289,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">9. Privacy and Data Protection</h2>
             <p className="text-gray-700 leading-relaxed">
-              Your use of the Service is also governed by our <Link to="/privacy-policy" className="text-blue-600 hover:underline">Privacy Policy</Link>, which explains how we collect, use, and protect your personal information. By using RevisOp, you consent to the practices described in the Privacy Policy.
+              Your use of the Service is also governed by our <Link to="/privacy-policy" className="text-amber-600 hover:underline">Privacy Policy</Link>, which explains how we collect, use, and protect your personal information. By using RevisOp, you consent to the practices described in the Privacy Policy.
             </p>
           </section>
 
@@ -407,7 +407,7 @@ export default function TermsOfService() {
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">15.3 Informal Resolution</h3>
             <p className="text-gray-700 leading-relaxed">
-              Before filing a legal claim, you agree to first contact us at <a href="mailto:hello@revisop.com" className="text-blue-600 hover:underline">hello@revisop.com</a> to attempt to resolve the dispute informally. We will make a good faith effort to resolve disputes amicably.
+              Before filing a legal claim, you agree to first contact us at <a href="mailto:hello@revisop.com" className="text-amber-600 hover:underline">hello@revisop.com</a> to attempt to resolve the dispute informally. We will make a good faith effort to resolve disputes amicably.
             </p>
           </section>
 
@@ -452,10 +452,10 @@ export default function TermsOfService() {
               <p className="text-gray-700">Operated by: More Classes Commerce</p>
               <p className="text-gray-700">Location: Pune, Maharashtra, India</p>
               <p className="text-gray-700 mt-2">
-                Email: <a href="mailto:hello@revisop.com" className="text-blue-600 hover:underline">hello@revisop.com</a>
+                Email: <a href="mailto:hello@revisop.com" className="text-amber-600 hover:underline">hello@revisop.com</a>
               </p>
               <p className="text-gray-700">
-                Website: <a href="https://www.revisop.com" className="text-blue-600 hover:underline">https://www.revisop.com</a>
+                Website: <a href="https://www.revisop.com" className="text-amber-600 hover:underline">https://www.revisop.com</a>
               </p>
             </div>
           </section>
@@ -472,7 +472,7 @@ export default function TermsOfService() {
         <div className="mt-8 text-center">
           <Link 
             to="/" 
-            className="inline-flex items-center text-blue-600 hover:text-blue-800"
+            className="inline-flex items-center text-amber-600 hover:text-[#1e1b4b]"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home

@@ -9,7 +9,7 @@ export default function PrivacyPolicy() {
       {/* Header */}
       <Link 
         to="/" 
-        className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4"
+        className="inline-flex items-center text-amber-600 hover:text-amber-700 mb-4"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Home
@@ -18,12 +18,12 @@ export default function PrivacyPolicy() {
       <p className="text-gray-600 mt-2 mb-8">Last updated: December 26, 2025</p>
 
       {/* Quick Summary */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-        <h2 className="text-xl font-bold text-blue-900 mb-4 flex items-center">
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-8">
+        <h2 className="text-xl font-bold text-[#1e1b4b] mb-4 flex items-center">
           <Shield className="h-5 w-5 mr-2" />
           Privacy at a Glance
         </h2>
-        <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-900">
+        <div className="grid md:grid-cols-2 gap-4 text-sm text-[#1e1b4b]">
           <div className="flex items-start space-x-2">
             <Lock className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <div>

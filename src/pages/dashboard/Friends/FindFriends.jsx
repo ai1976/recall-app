@@ -187,7 +187,7 @@ export default function FindFriends() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
                       {/* Avatar */}
-                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-lg">
+                      <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-semibold text-lg">
                         {person.full_name?.charAt(0) || '?'}
                       </div>
 
@@ -196,12 +196,12 @@ export default function FindFriends() {
                         <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
                           <Link
                             to={`/dashboard/profile/${person.user_id}`}
-                            className="hover:text-blue-600 transition-colors"
+                            className="hover:text-amber-600 transition-colors"
                           >
                             {person.full_name || 'Unknown'}
                           </Link>
                           {person.role === 'professor' && (
-                            <span className="text-sm font-normal text-blue-600">
+                            <span className="text-sm font-normal text-amber-600">
                               👨‍🏫 Professor
                             </span>
                           )}

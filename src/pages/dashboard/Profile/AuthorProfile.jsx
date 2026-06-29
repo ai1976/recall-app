@@ -207,13 +207,13 @@ export default function AuthorProfile() {
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case 'professor':
-        return 'bg-purple-100 text-purple-700';
+        return 'bg-amber-100 text-amber-700';
       case 'admin':
         return 'bg-red-100 text-red-700';
       case 'super_admin':
         return 'bg-red-100 text-red-700';
       default:
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-amber-100 text-amber-700';
     }
   };
 
@@ -233,7 +233,7 @@ export default function AuthorProfile() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]"></div>
       </div>
     );
   }
@@ -280,7 +280,7 @@ export default function AuthorProfile() {
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-start gap-4">
             {/* Avatar */}
-            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-2xl flex-shrink-0">
+            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-2xl flex-shrink-0">
               {profile.full_name?.charAt(0) || '?'}
             </div>
 
@@ -314,7 +314,7 @@ export default function AuthorProfile() {
                   {teachingCourses.map((courseName) => (
                     <span
                       key={courseName}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200"
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200"
                     >
                       {courseName}
                     </span>
@@ -454,7 +454,7 @@ export default function AuthorProfile() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <BookOpen className="h-5 w-5 text-blue-600" />
+              <BookOpen className="h-5 w-5 text-amber-600" />
               {isOwnProfile && !showPreview
                 ? 'Your Content'
                 : 'Contributions You Can Access'}
@@ -501,7 +501,7 @@ export default function AuthorProfile() {
                               {subject.notes > 0 && (
                                 <Link
                                   to={`/dashboard/notes?author=${userId}&subject=${encodeURIComponent(subject.name)}`}
-                                  className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                                  className="flex items-center gap-1 hover:text-amber-600 transition-colors"
                                 >
                                   <FileText className="h-3.5 w-3.5" />
                                   {subject.notes} notes
@@ -510,7 +510,7 @@ export default function AuthorProfile() {
                               {subject.flashcards > 0 && (
                                 <Link
                                   to={`/dashboard/review-flashcards?author=${userId}&subject=${encodeURIComponent(subject.name)}`}
-                                  className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                                  className="flex items-center gap-1 hover:text-amber-600 transition-colors"
                                 >
                                   <Brain className="h-3.5 w-3.5" />
                                   {subject.flashcards} flashcards

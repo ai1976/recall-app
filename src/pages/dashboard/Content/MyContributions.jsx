@@ -238,7 +238,7 @@ export default function MyContributions() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-          <BarChart3 className="h-8 w-8 text-blue-600" />
+          <BarChart3 className="h-8 w-8 text-amber-600" />
           My Contributions
         </h1>
         <p className="mt-2 text-gray-600">
@@ -254,8 +254,8 @@ export default function MyContributions() {
         >
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <FileText className="h-8 w-8 text-blue-600" />
+              <div className="p-3 bg-amber-100 rounded-lg">
+                <FileText className="h-8 w-8 text-amber-600" />
               </div>
               <div>
                 <p className="text-3xl font-bold text-gray-900">{stats.notesCount}</p>
@@ -271,8 +271,8 @@ export default function MyContributions() {
         >
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <CreditCard className="h-8 w-8 text-purple-600" />
+              <div className="p-3 bg-amber-100 rounded-lg">
+                <CreditCard className="h-8 w-8 text-amber-600" />
               </div>
               <div>
                 <p className="text-3xl font-bold text-gray-900">{stats.flashcardsCount}</p>
@@ -309,10 +309,10 @@ export default function MyContributions() {
           {hasUpvotes ? (
             <div className="space-y-6">
               {/* Impact Message */}
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-100">
+              <div className="bg-amber-50 rounded-lg p-6 border border-amber-100">
                 <div className="flex items-center gap-4">
                   <div className="p-4 bg-white rounded-full shadow-sm">
-                    <ThumbsUp className="h-10 w-10 text-blue-600" />
+                    <ThumbsUp className="h-10 w-10 text-amber-600" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-gray-900">
@@ -337,12 +337,12 @@ export default function MyContributions() {
                       <Link
                         key={upvoter.id}
                         to={`/dashboard/profile/${upvoter.id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-green-200 rounded-full text-sm hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-green-200 rounded-full text-sm hover:border-amber-300 hover:bg-amber-50 transition-colors"
                       >
                         <User className="h-3.5 w-3.5 text-gray-500" />
                         <span className="text-gray-700">{upvoter.name}</span>
                         {upvoter.role === 'professor' && (
-                          <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">
+                          <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
                             Prof
                           </span>
                         )}
@@ -355,14 +355,14 @@ export default function MyContributions() {
               {/* Upvote Breakdown */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                  <FileText className="h-6 w-6 text-blue-600" />
+                  <FileText className="h-6 w-6 text-amber-600" />
                   <div>
                     <p className="text-xl font-semibold text-gray-900">{stats.totalNoteUpvotes}</p>
                     <p className="text-sm text-gray-600">Note Upvotes</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                  <CreditCard className="h-6 w-6 text-purple-600" />
+                  <CreditCard className="h-6 w-6 text-amber-600" />
                   <div>
                     <p className="text-xl font-semibold text-gray-900">{stats.totalDeckUpvotes}</p>
                     <p className="text-sm text-gray-600">Study Set Upvotes</p>
@@ -393,7 +393,7 @@ export default function MyContributions() {
                               </span>
                             </button>
                             <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                              <div className="flex items-center gap-1 text-blue-600">
+                              <div className="flex items-center gap-1 text-amber-600">
                                 <ThumbsUp className="h-4 w-4" />
                                 <span className="font-semibold">{note.upvotes}</span>
                               </div>
@@ -419,14 +419,14 @@ export default function MyContributions() {
                           
                           {/* Expanded Upvoters List */}
                           {expandedNotes[note.id] && note.upvoters.length > 0 && (
-                            <div className="px-3 pb-3 pt-2 bg-blue-50 border-t border-blue-100">
+                            <div className="px-3 pb-3 pt-2 bg-amber-50 border-t border-amber-100">
                               <p className="text-xs text-gray-500 mb-2 font-medium">Upvoted by:</p>
                               <div className="flex flex-wrap gap-1.5">
                                 {note.upvoters.map((upvoter, upvoterIdx) => (
                                   <Link
                                     key={`${upvoter.id}-${upvoterIdx}`}
                                     to={`/dashboard/profile/${upvoter.id}`}
-                                    className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-blue-200 rounded text-xs hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                                    className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-amber-200 rounded text-xs hover:border-amber-400 hover:bg-amber-50 transition-colors"
                                   >
                                     <User className="h-3 w-3 text-gray-400" />
                                     <span className="font-medium">{upvoter.name}</span>
@@ -463,7 +463,7 @@ export default function MyContributions() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                              <div className="flex items-center gap-1 text-purple-600">
+                              <div className="flex items-center gap-1 text-amber-600">
                                 <ThumbsUp className="h-4 w-4" />
                                 <span className="font-semibold">{deck.upvotes}</span>
                               </div>
@@ -489,14 +489,14 @@ export default function MyContributions() {
                           
                           {/* Expanded Upvoters List */}
                           {expandedDecks[deck.id] && deck.upvoters.length > 0 && (
-                            <div className="px-3 pb-3 pt-2 bg-purple-50 border-t border-purple-100">
+                            <div className="px-3 pb-3 pt-2 bg-amber-50 border-t border-amber-100">
                               <p className="text-xs text-gray-500 mb-2 font-medium">Upvoted by:</p>
                               <div className="flex flex-wrap gap-1.5">
                                 {deck.upvoters.map((upvoter, upvoterIdx) => (
                                   <Link
                                     key={`${upvoter.id}-${upvoterIdx}`}
                                     to={`/dashboard/profile/${upvoter.id}`}
-                                    className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-purple-200 rounded text-xs hover:border-purple-400 hover:bg-purple-50 transition-colors"
+                                    className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-amber-200 rounded text-xs hover:border-amber-400 hover:bg-amber-50 transition-colors"
                                   >
                                     <User className="h-3 w-3 text-gray-400" />
                                     <span className="font-medium">{upvoter.name}</span>
@@ -557,7 +557,7 @@ export default function MyContributions() {
               className="h-auto py-4 flex flex-col gap-2"
               onClick={() => navigate('/dashboard/notes/new')}
             >
-              <FileText className="h-6 w-6 text-blue-600" />
+              <FileText className="h-6 w-6 text-amber-600" />
               <span>Upload Note</span>
             </Button>
             <Button 
@@ -565,7 +565,7 @@ export default function MyContributions() {
               className="h-auto py-4 flex flex-col gap-2"
               onClick={() => navigate('/dashboard/flashcards/new')}
             >
-              <CreditCard className="h-6 w-6 text-purple-600" />
+              <CreditCard className="h-6 w-6 text-amber-600" />
               <span>Create Flashcard</span>
             </Button>
             <Button 

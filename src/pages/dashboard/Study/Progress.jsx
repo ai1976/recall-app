@@ -349,14 +349,14 @@ export default function MyProgress() {
         {tab === 'course' && (
           <div className="space-y-6">
             {courseOptions.length === 0 ? (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                <BookOpen className="h-8 w-8 text-blue-400 mx-auto mb-3" />
-                <p className="text-sm font-medium text-blue-800 mb-1">No course set</p>
-                <p className="text-sm text-blue-700 mb-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
+                <BookOpen className="h-8 w-8 text-amber-400 mx-auto mb-3" />
+                <p className="text-sm font-medium text-[#1e1b4b] mb-1">No course set</p>
+                <p className="text-sm text-amber-700 mb-4">
                   Select your course in Settings to see course-specific progress.
                 </p>
                 <Link to="/dashboard/settings">
-                  <Button size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100">
+                  <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100">
                     Go to Settings
                   </Button>
                 </Link>
@@ -374,8 +374,8 @@ export default function MyProgress() {
                           onClick={() => setSelectedCourse(name)}
                           className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
                             selectedCourse === name
-                              ? 'bg-indigo-600 text-white border-indigo-600'
-                              : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600'
+                              ? 'bg-[#1e1b4b] text-white border-[#1e1b4b]'
+                              : 'bg-white text-gray-600 border-gray-300 hover:border-amber-400 hover:text-amber-600'
                           }`}
                         >
                           {name}
@@ -469,7 +469,7 @@ function ProgressBody({
           loading={statsLoading}
         />
         <StatCard
-          icon={<TrendingUp className="h-7 w-7 text-blue-500" />}
+          icon={<TrendingUp className="h-7 w-7 text-amber-500" />}
           value={statsLoading ? '—' : windowStats.reviewed}
           label="Items Reviewed"
           sub={windowLabel}
@@ -483,7 +483,7 @@ function ProgressBody({
           loading={statsLoading}
         />
         <StatCard
-          icon={<Award className="h-7 w-7 text-purple-500" />}
+          icon={<Award className="h-7 w-7 text-amber-500" />}
           value={statsLoading ? '—' : lifetimeStats.mastered}
           label="Items Mastered"
           sub="All time"
@@ -510,7 +510,7 @@ function ProgressBody({
           <ForecastCard
             label="Next 30 Days"
             value={forecastLoading ? null : (forecast?.due_next_30 ?? 0)}
-            accent="text-blue-600 bg-blue-50 border-blue-200"
+            accent="text-amber-600 bg-amber-50 border-amber-200"
           />
         </div>
       </div>
@@ -614,9 +614,9 @@ function ProgressBody({
 
       {/* Empty state */}
       {!statsLoading && windowStats.reviewed === 0 && suspendedCards.length === 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-          <p className="text-blue-800 mb-1 font-medium">No reviews yet!</p>
-          <p className="text-sm text-blue-700">Start reviewing items to see your progress statistics.</p>
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
+          <p className="text-[#1e1b4b] mb-1 font-medium">No reviews yet!</p>
+          <p className="text-sm text-amber-700">Start reviewing items to see your progress statistics.</p>
         </div>
       )}
     </>
@@ -663,7 +663,7 @@ function QuestionTypeRow({ row }) {
       </div>
       <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
         <div
-          className="h-2 rounded-full bg-indigo-500 transition-all"
+          className="h-2 rounded-full bg-amber-500 transition-all"
           style={{ width: `${Math.min(pct, 100)}%` }}
         />
       </div>

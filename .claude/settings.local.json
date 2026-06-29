@@ -73,7 +73,12 @@
       "Bash(grep -r \"skip_card\\\\|suspend_topic_cards\\\\|suspend_card\" C:UsersAnandDesktoprecall-appdocs --include=*.md)",
       "WebFetch(domain:claude.ai)",
       "mcp__Claude_in_Chrome__tabs_context_mcp",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "mcp__visualize__read_me",
+      "mcp__visualize__show_widget",
+      "Bash(curl -s \"https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywxg089UriCZOIHQ.woff2\" -o scripts/DMSans-Bold.woff2)",
+      "Bash(node scripts/export-favicon.cjs)",
+      "Bash(awk -F: '{print $1}')"
     ]
   }
 }
