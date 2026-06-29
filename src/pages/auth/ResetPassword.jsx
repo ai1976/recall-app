@@ -67,9 +67,14 @@ export default function ResetPassword() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-amber-50 px-4">
         <Card className="w-full max-w-md">
           <CardHeader>
+            <div className="flex justify-center mb-2">
+              <span className="text-3xl font-bold tracking-tight leading-none">
+                <span style={{ color: '#f59e0b' }}>Revis</span><span style={{ color: '#1e1b4b' }}>Op</span>
+              </span>
+            </div>
             <div className="flex justify-center mb-4">
               <CheckCircle className="h-12 w-12 text-green-500" />
             </div>
@@ -84,9 +89,14 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-amber-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
+          <div className="flex justify-center mb-4">
+            <span className="text-3xl font-bold tracking-tight leading-none">
+              <span style={{ color: '#f59e0b' }}>Revis</span><span style={{ color: '#1e1b4b' }}>Op</span>
+            </span>
+          </div>
           <CardTitle>Reset Your Password</CardTitle>
           <CardDescription>
             Enter your new password below

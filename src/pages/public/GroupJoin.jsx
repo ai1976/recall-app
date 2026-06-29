@@ -61,7 +61,7 @@ export default function GroupJoin() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500" />
       </div>
     );
   }
@@ -86,15 +86,14 @@ export default function GroupJoin() {
   const { group, stats } = preview;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-amber-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
-              <span className="text-white font-bold text-lg">R</span>
-            </div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">RevisOp</h2>
+          <div className="flex items-center justify-center mb-1">
+            <span className="text-2xl font-bold tracking-tight leading-none">
+              <span style={{ color: '#f59e0b' }}>Revis</span><span style={{ color: '#1e1b4b' }}>Op</span>
+            </span>
           </div>
           <p className="text-sm text-gray-500 mt-1">Spaced repetition, done together</p>
         </div>
@@ -102,8 +101,8 @@ export default function GroupJoin() {
         <Card className="shadow-lg">
           <CardContent className="pt-8 pb-8 px-8">
             <div className="text-center mb-6">
-              <div className="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-4">
-                <Users className="h-8 w-8 text-indigo-600" />
+              <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8 text-amber-600" />
               </div>
               <h1 className="text-xl font-bold text-gray-900">{group.name}</h1>
               {group.description && (
@@ -118,8 +117,8 @@ export default function GroupJoin() {
             {/* Stats */}
             {stats && (
               <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-blue-50 rounded-lg p-3 text-center">
-                  <TrendingUp className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                <div className="bg-amber-50 rounded-lg p-3 text-center">
+                  <TrendingUp className="h-5 w-5 text-amber-600 mx-auto mb-1" />
                   <p className="text-xs text-gray-500">Weekly Reviews</p>
                   <p className="font-bold text-gray-900">{stats.total_weekly_reviews ?? 0}</p>
                 </div>
@@ -161,7 +160,7 @@ export default function GroupJoin() {
                 <p className="text-center text-xs text-gray-400">
                   Already on RevisOp?{' '}
                   <button
-                    className="text-indigo-600 hover:underline inline-flex items-center gap-1"
+                    className="text-amber-600 hover:underline inline-flex items-center gap-1"
                     onClick={() => {
                       localStorage.setItem('postAuthRedirect', `/join/${token}`);
                       navigate('/login');
