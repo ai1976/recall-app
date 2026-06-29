@@ -38,7 +38,7 @@ export default function DeckPreview() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500" />
       </div>
     );
@@ -46,7 +46,7 @@ export default function DeckPreview() {
 
   if (notFound) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="text-center max-w-md">
           <CreditCard className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Study set not found</h1>
@@ -64,7 +64,7 @@ export default function DeckPreview() {
   const { deck, preview_items } = preview;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Top bar */}
       <div className="bg-white border-b">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">

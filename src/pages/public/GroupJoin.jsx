@@ -60,7 +60,7 @@ export default function GroupJoin() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500" />
       </div>
     );
@@ -68,7 +68,7 @@ export default function GroupJoin() {
 
   if (notFound) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="text-center max-w-md">
           <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Link not found</h1>
@@ -86,7 +86,7 @@ export default function GroupJoin() {
   const { group, stats } = preview;
 
   return (
-    <div className="min-h-screen bg-amber-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
@@ -117,7 +117,7 @@ export default function GroupJoin() {
             {/* Stats */}
             {stats && (
               <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-amber-50 rounded-lg p-3 text-center">
+                <div className="bg-background rounded-lg p-3 text-center">
                   <TrendingUp className="h-5 w-5 text-amber-600 mx-auto mb-1" />
                   <p className="text-xs text-gray-500">Weekly Reviews</p>
                   <p className="font-bold text-gray-900">{stats.total_weekly_reviews ?? 0}</p>
@@ -128,7 +128,7 @@ export default function GroupJoin() {
                   <p className="font-bold text-gray-900">{stats.avg_streak ?? 0} days</p>
                 </div>
                 {stats.top_badge_name && (
-                  <div className="col-span-2 bg-amber-50 rounded-lg p-3 text-center">
+                  <div className="col-span-2 bg-background rounded-lg p-3 text-center">
                     <Award className="h-5 w-5 text-amber-600 mx-auto mb-1" />
                     <p className="text-xs text-gray-500">Top Badge</p>
                     <p className="font-semibold text-gray-900 text-sm">{stats.top_badge_name}</p>
