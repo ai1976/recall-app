@@ -157,7 +157,7 @@ export default function Signup() {
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent"
               placeholder="Rahul Kumar"
             />
           </div>
@@ -172,7 +172,7 @@ export default function Signup() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent"
               placeholder="your.email@example.com"
             />
           </div>
@@ -187,7 +187,7 @@ export default function Signup() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent"
               placeholder="••••••••"
             />
             <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
@@ -202,7 +202,7 @@ export default function Signup() {
               value={courseLevel}
               onChange={(e) => setCourseLevel(e.target.value)}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent"
             >
               <option value="">Select your course...</option>
               
@@ -278,7 +278,7 @@ export default function Signup() {
                 required
                 value={customCourse}
                 onChange={(e) => setCustomCourse(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent"
                 placeholder="e.g., CFA Level 1, ACCA, JEE, NEET, MSc Economics, etc."
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -296,7 +296,7 @@ export default function Signup() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="w-full bg-[#1e1b4b] text-white py-3 rounded-lg font-semibold hover:bg-[#2d2a6e] disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
@@ -305,7 +305,7 @@ export default function Signup() {
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             Already have an account?{' '}
-            <Link to="/login" className="text-indigo-600 font-semibold hover:text-indigo-700">
+            <Link to="/login" className="text-amber-600 font-semibold hover:text-amber-700">
               Log in
             </Link>
           </p>

@@ -37,9 +37,14 @@ export default function ForgotPassword() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-amber-50 px-4">
         <Card className="w-full max-w-md">
           <CardHeader>
+            <div className="flex justify-center mb-2">
+              <span className="text-3xl font-bold tracking-tight leading-none">
+                <span style={{ color: '#f59e0b' }}>Revis</span><span style={{ color: '#1e1b4b' }}>Op</span>
+              </span>
+            </div>
             <div className="flex justify-center mb-4">
               <CheckCircle className="h-12 w-12 text-green-500" />
             </div>
@@ -69,9 +74,14 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-amber-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
+          <div className="flex justify-center mb-4">
+            <span className="text-3xl font-bold tracking-tight leading-none">
+              <span style={{ color: '#f59e0b' }}>Revis</span><span style={{ color: '#1e1b4b' }}>Op</span>
+            </span>
+          </div>
           <CardTitle>Forgot Password?</CardTitle>
           <CardDescription>
             Enter your email address and we'll send you a link to reset your password.
