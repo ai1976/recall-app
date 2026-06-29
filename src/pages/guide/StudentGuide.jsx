@@ -58,18 +58,15 @@ export default function StudentGuide() {
       <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-xl px-3 py-1 rounded">
-              R
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              RevisOp
+            <span className="text-2xl font-bold tracking-tight leading-none">
+              <span style={{ color: '#f59e0b' }}>Revis</span><span style={{ color: '#1e1b4b' }}>Op</span>
             </span>
             <span className="text-gray-300 font-light text-xl">|</span>
             <span className="text-gray-500 text-sm font-medium">Student Guide</span>
           </Link>
           <Link
             to="/login"
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+            className="text-sm font-medium text-amber-600 hover:text-amber-800 transition-colors"
           >
             Log in
           </Link>
@@ -88,8 +85,8 @@ export default function StudentGuide() {
                 onClick={() => scrollToSection(s.id)}
                 className={`flex-none px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
                   activeId === s.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-indigo-100 hover:text-indigo-700'
+                    ? 'bg-[#1e1b4b] text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-amber-100 hover:text-amber-700'
                 }`}
               >
                 {s.emoji} {s.sidebarLabel}
@@ -101,14 +98,14 @@ export default function StudentGuide() {
 
       {/* Intro block */}
       <div className="max-w-5xl mx-auto w-full px-4 pt-8">
-        <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-8 py-6 mb-10">
+        <div className="bg-amber-50 border border-amber-100 rounded-xl px-8 py-6 mb-10">
           <h1 className="text-2xl font-bold text-gray-900 mb-3">You are here.</h1>
           <p className="text-gray-600 leading-relaxed mb-4">
             Pick the situation that matches where you are right now. Each one gives you the exact next steps — nothing more, nothing less.
           </p>
           <p className="text-gray-600">
             Already have an account?{' '}
-            <Link to="/login" className="text-indigo-600 font-medium underline">
+            <Link to="/login" className="text-amber-600 font-medium underline">
               Log in →
             </Link>
           </p>
@@ -129,8 +126,8 @@ export default function StudentGuide() {
                 onClick={() => scrollToSection(s.id)}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
                   activeId === s.id
-                    ? 'bg-blue-50 text-blue-700 font-semibold border-l-2 border-blue-500'
-                    : 'text-gray-700 hover:bg-indigo-50 hover:text-indigo-700'
+                    ? 'bg-amber-50 text-amber-700 font-semibold border-l-2 border-amber-500'
+                    : 'text-gray-700 hover:bg-amber-50 hover:text-amber-700'
                 }`}
               >
                 <span className="text-base">{s.emoji}</span>
@@ -163,7 +160,7 @@ export default function StudentGuide() {
                   {s.steps.map((step, stepIdx) => (
                     <li key={stepIdx} className="flex gap-4">
                       {/* Step number */}
-                      <span className="flex-none mt-0.5 w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">
+                      <span className="flex-none mt-0.5 w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold flex items-center justify-center">
                         {stepIdx + 1}
                       </span>
 
@@ -178,7 +175,7 @@ export default function StudentGuide() {
                         {step.linkTo && (
                           <button
                             onClick={() => handleStepLink(step.linkTo, step.isSignup)}
-                            className="mt-2 inline-block text-sm font-medium text-blue-600 border border-blue-200 rounded-full px-3 py-0.5 hover:bg-blue-50 transition-colors"
+                            className="mt-2 inline-block text-sm font-medium text-[#1e1b4b] border border-amber-200 rounded-full px-3 py-0.5 hover:bg-amber-50 transition-colors"
                           >
                             {step.linkLabel} →
                           </button>
