@@ -1,6 +1,80 @@
 # Changelog
 
 ---
+## [2026-06-30] docs: Logged Supabase Advisor findings + started landing-page pivot scoping
+
+### Added (blueprint.md §1.11)
+- **Supabase Advisor (Security) findings logged:** 🔴 CRITICAL — `vw_study_items` is a SECURITY DEFINER view (bypasses caller RLS; currently used only server-side, not client-facing). 🟡 Sev 3 — ~80 functions flagged "Function Search Path Mutable" (batch hardening). Both relevant to the upcoming public-content pivot; fixes deferred (need dependency checks first).
+
+### Context
+- **Pivot under exploration (not finalized):** "show don't tell" landing page — let content creators opt in to display work to anonymous visitors; separate value tracks for students vs B2B educators. Leans toward a dedicated public-facing opt-in flag rather than reusing `is_public`/`visibility`. This makes Landmine #2 (notes RLS) and the `vw_study_items` view part of the pivot foundation.
+
+### Files Changed
+`docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
+## [2026-06-30] fix: Pre-pivot cleanup — dropped duplicate notification RPC overloads (Landmine #3)
+
+### Fixed (live DB)
+- **Removed duplicate overloads of `delete_notification` and `mark_single_notification_read`.** Each existed in `(uuid)` and `(uuid, uuid)` signatures — a PostgREST ambiguity risk (same class as the `suspend_topic_cards` outage). The frontend (`useNotifications.js`) calls only the single-arg `(p_notification_id)` versions, so dropped the `(uuid, uuid)` overload of each and ran `NOTIFY pgrst, 'reload schema'`. Verified one signature each remains.
+
+### Files Changed
+`docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
+## [2026-06-30] fix: Pre-pivot cleanup — removed duplicate signup trigger (Landmine #1)
+
+### Fixed (live DB)
+- **Duplicate profile-creation trigger on `auth.users` removed.** Two triggers (`on_auth_user_created → handle_new_user()` and `trg_create_profile_on_signup → fn_create_profile_on_signup()`) both created a profile on every signup. Dropped `on_auth_user_created` + `handle_new_user()`; kept `fn_create_profile_on_signup` (referenced by `AuthContext.jsx`). Root cause: same orphaned-profile bug fixed twice (Mar 19 + Mar 20, 2026) without dropping the first fix. Dormant (both had `ON CONFLICT DO NOTHING`; the first-firing one won), but a hazard for any pivot touching signup.
+- **Verification:** confirmed a single signup trigger remains, then validated end-to-end — a fresh signup auto-creates a correct profile (`role=student`, `account_type=self_registered`, `status=active`).
+
+### Found (logged, not yet fixed)
+- **`profiles.id → auth.users.id` is `ON DELETE NO ACTION`** while every other user-referencing FK is `CASCADE`. Deleting a user from the Supabase Auth dashboard fails until the `profiles` row is deleted first. Catalogued in blueprint §1.11; fix deferred pending a `profiles(id)` reference audit.
+
+### Files Changed
+`docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
+## [2026-06-29] docs: Blueprint DB Verification — reconciled against live database
+
+### Summary
+Completed the verification the previous entry could not: the blueprint's backend half was reconciled against the **live Supabase database** (4 read-only `[DIAGNOSTIC]` introspection queries — columns, triggers, functions, RLS policies). This closes the "frontend-only verification" gap. The blueprint is now an evidence-backed Single Source of Truth for both frontend AND database layers, with all known DB-level problems explicitly catalogued.
+
+### Changed (blueprint.md)
+- **Header counts corrected:** 24 → **30 tables + 1 view**; triggers 10+ → 18 public + 2 on `auth.users`; functions 16+ → 90+.
+- **§1.1 schema fixes:** Removed non-existent `notes.is_verified`. Added undocumented columns: `notes.description/course/subject/topic`, `profiles.access_request_ref/updated_at`, `upvotes.note_id` (legacy). Corrected `reviews.easiness` type (numeric → **double precision**). Confirmed flashcards vestigial SRS columns + `reviews.next_review_date = date` against DB.
+- **§1.4 trigger table rewritten:** Corrected the `auto_resolve_content_error_flags` trigger (fires on flashcards/notes to CLEAR flags on edit — NOT escalation on content_flags). Added 4 previously undocumented triggers. Flagged the duplicate `auth.users` profile-creation triggers.
+- **New §1.11 DB Cleanup Backlog & Landmines:** Catalogues 3 🔴 landmines (duplicate signup triggers, load-bearing `is_public`, overloaded RPCs), 3 🟡 dead/orphaned object groups, undocumented legacy columns, and type inconsistencies. Includes verification provenance.
+- **§2.5 corrected:** `is_public` reclassified from "removable backward-compat column" to load-bearing (notes public RLS depends on it).
+
+### Action items surfaced for the user (DB changes, not doc changes)
+- 🔴 Resolve duplicate profile-creation triggers on `auth.users` before pivot (signup risk).
+- 🔴 Rewrite notes/flashcards public RLS onto `visibility` before dropping `is_public`.
+- 🔴 Drop the unused overloads of `delete_notification` / `mark_single_notification_read`.
+
+### Files Changed
+`docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
+## [2026-06-29] docs: Foundation Reconciliation & Documentation Sync
+
+### Summary
+The master blueprint (`docs/active/blueprint.md`) was audited line-by-line against the actual source code (via repomix export of the full repo) and corrected so it now serves as the **100% reliable Single Source of Truth for the upcoming pivot**. Several discrepancies where the blueprint described intent rather than the shipped code have been reconciled to "as-built, warts and all."
+
+### Changed (blueprint.md)
+- **Schema (§1.1)** — Documented the 4 **vestigial SRS columns** still written to the `flashcards` table on INSERT (`next_review`, `interval`, `ease_factor`, `repetitions`) — write-only initialization defaults that are never read for scheduling (all live SRS reads come from `reviews`). Flagged the `ease_factor`/`repetitions` (flashcards) vs `easiness`/`repetition` (reviews) name divergence. Corrected `reviews.next_review_date` data type from `timestamptz` → **`date`** (stored as `YYYY-MM-DD` local-date string; treating it as a timestamp causes "wrong day" bugs).
+- **RPC Inventory (§1.4)** — Header corrected from "16+" to **70+ functions**. Added a complete "Additional RPCs found in code" table (domain-grouped) capturing ~50 previously undocumented SECURITY DEFINER RPCs found via a full `.rpc()` sweep — incl. `get_public_educators`, `get_platform_stats`, `admin_delete_user_data`, card suspend/skip/reset family, professor/admin/super-admin analytics, heatmaps, author profile, upvote, and B2B batch-enrollment RPCs. Expanded the previously-collapsed "Group RPCs (14)" / "Notification RPCs (6)" lines.
+- **localStorage keys (§3.1, new D-09)** — Added a complete 9-key inventory. Documented that the rebrand (D-08) only renamed the 6 `recall_*` → `revisop_*` keys, and that **3 active keys use inconsistent naming and were never branded**: `postAuthRedirect`, `myNotes_viewMode`, `flashcard_create_draft`.
+- **Security / Tech Debt (§1.4 RLS)** — Flagged that `Home.jsx` mixes correct RPC use with **direct anon `.from()` count reads** (RLS-filtered, unreliable) as Technical Debt to resolve.
+- **Utility logic (§1.8)** — Documented `useSpeech.js` `splitIntoChunks()` sentence-chunking as a deliberate workaround for the Chrome/Edge ~15s `speechSynthesis` cutoff bug.
+
+### Verified (no change needed)
+- **Routes (§1.5)** — Audited all 47 routes in `App.jsx`; the table was already complete, incl. `/dashboard/friend-requests` and `/dashboard/profile/:userId` (the audit flagged these as missing, but the blueprint had already been updated). Left existing correct content untouched.
+
+### Files Changed
+`docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 ## [2026-04-04] feat: Sprint 4.1 — Unsaved work protection in FlashcardCreate
 
 ### Added

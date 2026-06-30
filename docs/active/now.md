@@ -1,11 +1,69 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-04-04
-**Current Phase:** Sprint 4.1 — Flashcard Create: unsaved work protection
+**Last Updated:** 2026-06-30
+**Current Phase:** Pre-pivot DB cleanup (Landmines #1, #3 done) → scoping the landing-page "show don't tell" pivot (creator-controlled public content)
 
 ---
 
 ## Just Completed ✅
+
+### Pre-Pivot Cleanup — Landmine #1 resolved (Jun 30, 2026)
+
+**Done in the live DB:** Removed the duplicate signup trigger. Dropped `on_auth_user_created` trigger + `handle_new_user()` function; kept `trg_create_profile_on_signup → fn_create_profile_on_signup()` (the one app code references). Verified one trigger remains, then confirmed end-to-end: a fresh signup auto-creates a correct profile (`role=student`, `account_type=self_registered`, `status=active`).
+
+**Root cause (for the record):** the same orphaned-profile bug was fixed twice, Mar 19 + Mar 20, 2026 — the second fix added a duplicate trigger without dropping the first. Both had `ON CONFLICT DO NOTHING`, so `handle_new_user` (fires first, alphabetically) silently won and the duplicate no-op'd. Dormant, not breaking — but a trap for any pivot that edits the signup path. NOT related to B2C/B2B routes (there is only one signup path; B2B = same signup + admin "Grant Access" flips `account_type`).
+
+**Bonus finding (logged in blueprint §1.11):** `profiles.id → auth.users.id` is `ON DELETE NO ACTION` while every other user table is `CASCADE` — so deleting a user from the Auth dashboard blocks until the profile row is removed first. Cleanup candidate; needs a `profiles(id)` reference audit before flipping to CASCADE.
+
+**Landmine #3 also DONE (Jun 30):** dropped the unused `(uuid, uuid)` overloads of `delete_notification` and `mark_single_notification_read` + `NOTIFY pgrst, 'reload schema'`. Verified one signature each.
+
+**Next / remaining:** Landmine #2 (notes `is_public` → `visibility` RLS migration) — gated on pivot scope + a data-sync diagnostic before touching live RLS. Also pending: the `profiles` `ON DELETE NO ACTION` cleanup (needs a `profiles(id)` reference audit).
+
+Files Changed: `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
+
+### Blueprint DB Verification (Jun 29, 2026)
+
+**Goal:** Close the gap the doc-sync couldn't — verify the blueprint's backend against the **actual Supabase database**, not just the frontend.
+
+**Method:** Ran 4 read-only `[DIAGNOSTIC]` introspection queries (columns, triggers, functions, RLS policies) and reconciled every result against the blueprint.
+
+**Outcome:** The two prior schema edits (vestigial flashcards SRS columns, `reviews.next_review_date = date`) are now **DB-confirmed correct.** Found and fixed ~13 further discrepancies, and surfaced 3 real production landmines.
+
+**🔴 DB action items for the pivot (these are DB changes, not doc changes — decide before migrating):**
+1. **Duplicate profile-creation triggers** on `auth.users` (`handle_new_user` + `fn_create_profile_on_signup`) — both create a profile on signup. Drop one. Highest-risk path.
+2. **`is_public` is load-bearing** — notes public RLS keys solely on it. Rewrite RLS onto `visibility` before dropping it.
+3. **Overloaded RPCs** (`delete_notification`, `mark_single_notification_read`) — PostgREST ambiguity risk; drop unused overloads.
+
+**Blueprint changes:** removed non-existent `notes.is_verified`; added undocumented columns; corrected `reviews.easiness` type; rewrote the trigger table (incl. the mislabeled `auto_resolve` trigger); added **§1.11 DB Cleanup Backlog & Landmines** cataloguing all dead/orphaned/legacy objects; reclassified `is_public` in §2.5.
+
+**Status:** Blueprint is now evidence-backed for frontend + DB. Remaining unverified items are limited to owner-only RLS on `user_badges`/`user_stats`/`user_activity_log` (low-risk).
+
+Files Changed: `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
+
+### Foundation Reconciliation & Documentation Sync (Jun 29, 2026)
+
+**Goal:** Make `docs/active/blueprint.md` a 100% reliable Single Source of Truth for the upcoming pivot, by auditing it against the actual source code instead of intent.
+
+**What happened:** An external audit claimed the blueprint diverged from the code. I verified every claim directly against the source (not just the audit) — most were correct, a few were already fixed in the blueprint, and two of the audit's severity labels were overstated. The blueprint was then updated to describe the code exactly as-built, warts and all.
+
+**Areas corrected in the blueprint:**
+- **Schema (§1.1):** Documented the 4 vestigial SRS columns still written to `flashcards` (`next_review`, `interval`, `ease_factor`, `repetitions`) — write-only, never read; live SRS lives in `reviews`. Corrected `reviews.next_review_date` from `timestamptz` → **`date`** (`YYYY-MM-DD` local string). Flagged the `ease_factor`/`repetitions` vs `easiness`/`repetition` name divergence between the two tables.
+- **RPC Inventory (§1.4):** "16+" → **70+ RPCs**. Added a domain-grouped table of ~50 previously undocumented SECURITY DEFINER functions found via a full `.rpc()` sweep (`get_public_educators`, `get_platform_stats`, `admin_delete_user_data`, card suspend/skip/reset, professor/admin/super-admin analytics, heatmaps, etc.).
+- **localStorage keys (§3.1, D-09):** Full 9-key inventory. Noted that only the 6 `recall_*`→`revisop_*` rebrand keys were renamed; `postAuthRedirect`, `myNotes_viewMode`, `flashcard_create_draft` use inconsistent, unbranded naming.
+
+**Also added:** Home.jsx direct-anon-read counts flagged as Technical Debt (§1.4); `useSpeech.js` TTS sentence-chunking (Chrome/Edge 15s cutoff workaround) documented (§1.8).
+
+**Verified, no change needed:** Routes (§1.5) — all 47 `App.jsx` routes already present, incl. the two the audit flagged.
+
+**Note on doc dates:** `now.md` and `changelog.md` were stamped Apr 2026 but actual project state is Jun 2026; this entry brings the "Last Updated" stamp current.
+
+Files Changed: `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 
 ### Sprint 4.1 — Unsaved work protection in FlashcardCreate (Apr 4, 2026)
 
