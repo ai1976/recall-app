@@ -17,7 +17,11 @@
 
 **Landmine #3 also DONE (Jun 30):** dropped the unused `(uuid, uuid)` overloads of `delete_notification` and `mark_single_notification_read` + `NOTIFY pgrst, 'reload schema'`. Verified one signature each.
 
-**Next / remaining:** Landmine #2 (notes `is_public` → `visibility` RLS migration) — gated on pivot scope + a data-sync diagnostic before touching live RLS. Also pending: the `profiles` `ON DELETE NO ACTION` cleanup (needs a `profiles(id)` reference audit).
+**Landmine — `vw_study_items` exposure CLOSED (Jun 30):** the SECURITY DEFINER view had `SELECT` granted to `anon`/`authenticated` → was an active leak (anon key could scrape all flashcards via PostgREST). Fixed with `REVOKE` + `security_invoker=on`. This was the Phase-1 security prerequisite for the landing-page pivot — now done.
+
+**Next / remaining:** Landmine #2 (notes `is_public` → `visibility` RLS migration) — deferred to a dedicated post-launch sprint (high-risk live RLS). `search_path` hardening on ~80 functions — deferred batch. `profiles` `ON DELETE NO ACTION` cleanup — needs a `profiles(id)` reference audit. None block the pivot.
+
+**Pivot decision (Path B):** new `is_featured_on_landing` opt-in flag (default OFF, only if already `visibility='public'`, admin/professor-curated) + a SECURITY DEFINER RPC for the landing page — isolates the feature from the `is_public`/`visibility` tech debt. UX/redesign brainstorm (benchmarking Skool/Quizlet/Coursera/Unacademy/Khan/Duolingo) to happen in a separate thread.
 
 Files Changed: `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
 

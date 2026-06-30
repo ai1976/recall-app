@@ -1,6 +1,17 @@
 # Changelog
 
 ---
+## [2026-06-30] fix: Closed vw_study_items SECURITY DEFINER view exposure (was CRITICAL)
+
+### Fixed (live DB) — active data leak
+- **`vw_study_items` was actively exposed.** The SECURITY DEFINER view had `SELECT` granted to `anon` and `authenticated`, so anyone with the public anon key could query `/rest/v1/vw_study_items` via PostgREST and read **all flashcards including private ones**, bypassing RLS. Confirmed via `information_schema.role_table_grants`.
+- **Fix:** `REVOKE ALL ON public.vw_study_items FROM anon, authenticated` + `ALTER VIEW public.vw_study_items SET (security_invoker = on)`. Verified only `postgres`/`service_role` retain SELECT and `reloptions = security_invoker=on`. Sole consumer `get_anonymous_class_stats` (SECURITY DEFINER) is unaffected — it runs as the owner, so the view still returns all rows inside it.
+- This was the Phase-1 security prerequisite ahead of the "show don't tell" landing-page pivot. (`search_path` hardening on ~80 functions remains as deferred, lower-priority batch work.)
+
+### Files Changed
+`docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 ## [2026-06-30] docs: Logged Supabase Advisor findings + started landing-page pivot scoping
 
 ### Added (blueprint.md §1.11)
