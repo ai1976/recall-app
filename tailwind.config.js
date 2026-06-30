@@ -46,6 +46,28 @@ export default {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
+  			// --- RevisOp brand tokens (additive; see src/index.css) ---
+  			brand: {
+  				navy: {
+  					DEFAULT: 'hsl(var(--brand-navy))',
+  					foreground: 'hsl(var(--brand-navy-foreground))'
+  				},
+  				amber: {
+  					DEFAULT: 'hsl(var(--brand-amber))',
+  					foreground: 'hsl(var(--brand-amber-foreground))'
+  				},
+  				success: {
+  					DEFAULT: 'hsl(var(--brand-success))',
+  					foreground: 'hsl(var(--brand-success-foreground))'
+  				}
+  			},
+  			surface: {
+  				card: 'hsl(var(--surface-card))',
+  				muted: 'hsl(var(--surface-muted))',
+  				border: 'hsl(var(--surface-border))',
+  				amber: 'hsl(var(--surface-amber))',
+  				navy: 'hsl(var(--surface-navy))'
+  			},
   			chart: {
   				'1': 'hsl(var(--chart-1))',
   				'2': 'hsl(var(--chart-2))',

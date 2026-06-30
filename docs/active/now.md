@@ -7,6 +7,20 @@
 
 ## Just Completed ✅
 
+### Phase 5 Sprint 1 — Design-system foundation (Jun 30, 2026)
+
+**Scope:** presentational tokens + components only (no DB, no behaviour, no landing/page changes).
+
+- **Brand token layer (additive)** added to `src/index.css` (`:root` + `.dark`) and exposed in `tailwind.config.js`: `brand.navy/amber/success` (+ `*-foreground`) and `surface.card/muted/border/amber/navy`. Hexes converted to precise HSL (navy `243.8 47.1% 20%`, amber `37.7 92.1% 50.2%`, success/green-600 `142.1 76.2% 36.3%`). **No existing shadcn token value changed** → existing pages render identically. This retires the inline-hex debt in `Home.jsx` for Phase 4/6 surfaces.
+- **New presentational components:** `StudyItemCard` (deck/study-set card) and `FlipCard` (controlled `isFlipped`, no SRS logic). Both match the shadcn `card.jsx` pattern.
+- **Flip CSS utilities** added to `@layer utilities` with `prefers-reduced-motion` respected.
+- **DEV-ONLY showcase** at `/__design` (`src/pages/dev/DesignShowcase.jsx`, no auth/no DB, not in nav) for QA.
+- **DB gate N/A:** zero SQL prerequisites, zero anon-data paths. `npm run build` passes.
+
+Files Changed: `src/index.css`, `tailwind.config.js`, `src/components/ui/StudyItemCard.jsx`, `src/components/ui/FlipCard.jsx`, `src/pages/dev/DesignShowcase.jsx`, `src/App.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/FILE_STRUCTURE.md`, `docs/active/blueprint.md`
+
+---
+
 ### Pre-Pivot Cleanup — Landmine #1 resolved (Jun 30, 2026)
 
 **Done in the live DB:** Removed the duplicate signup trigger. Dropped `on_auth_user_created` trigger + `handle_new_user()` function; kept `trg_create_profile_on_signup → fn_create_profile_on_signup()` (the one app code references). Verified one trigger remains, then confirmed end-to-end: a fresh signup auto-creates a correct profile (`role=student`, `account_type=self_registered`, `status=active`).

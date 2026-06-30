@@ -28,7 +28,23 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem
+    --radius: 0.5rem;
+
+    /* --- RevisOp brand tokens (ADDITIVE — do NOT change any shadcn token VALUE above) --- */
+    /* Core brand palette, hexes converted to precise HSL */
+    --brand-navy: 243.8 47.1% 20%;            /* #1e1b4b */
+    --brand-navy-foreground: 0 0% 100%;
+    --brand-amber: 37.7 92.1% 50.2%;          /* #f59e0b */
+    --brand-amber-foreground: 243.8 47.1% 20%;
+    --brand-success: 142.1 76.2% 36.3%;       /* green-600 #16a34a — matches Home.jsx green accents */
+    --brand-success-foreground: 0 0% 100%;
+
+    /* Supporting surfaces for cards / list items */
+    --surface-card: 0 0% 100%;                /* neutral card surface */
+    --surface-muted: 240 20% 98%;             /* subtle off-white */
+    --surface-border: 240 16% 90%;            /* card / list border */
+    --surface-amber: 48 100% 96.1%;           /* amber-50 tint #fffbeb */
+    --surface-navy: 240 33% 96%;              /* light navy tint */
   }
   .dark {
     --background: 222.2 84% 4.9%;
@@ -54,7 +70,22 @@
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%
+    --chart-5: 340 75% 55%;
+
+    /* --- RevisOp brand tokens (dark) — public pages render light-only today, so these
+       are kept reasonable but not heavily tuned (ADDITIVE — no shadcn values changed) --- */
+    --brand-navy: 243.8 47.1% 26%;
+    --brand-navy-foreground: 0 0% 100%;
+    --brand-amber: 37.7 92.1% 55%;
+    --brand-amber-foreground: 243.8 47.1% 12%;
+    --brand-success: 142.1 70% 45%;
+    --brand-success-foreground: 0 0% 100%;
+
+    --surface-card: 222.2 47% 11%;
+    --surface-muted: 222 30% 16%;
+    --surface-border: 222 20% 24%;
+    --surface-amber: 38 30% 16%;
+    --surface-navy: 243 30% 18%;
   }
 }
 
@@ -74,5 +105,28 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* 3D card-flip utilities (presentational; consumed by FlipCard) */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+  .flip-transition {
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flip-transition {
+      transition: none;
+    }
   }
 }

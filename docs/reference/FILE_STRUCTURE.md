@@ -123,6 +123,7 @@ recall-app
 │   │       ├── dialog.jsx                       ← has hideCloseButton prop for non-dismissible modals
 │   │       ├── dropdown-menu.jsx
 │   │       ├── FlagButton.jsx                   ← "Report" button (content_error / inappropriate / other)
+│   │       ├── FlipCard.jsx                     ← presentational 3D flip (controlled isFlipped; front/back faces) — Phase 5 S1
 │   │       ├── input.jsx
 │   │       ├── label.jsx
 │   │       ├── popover.jsx
@@ -130,6 +131,7 @@ recall-app
 │   │       ├── SearchableSelect.jsx
 │   │       ├── select.jsx
 │   │       ├── sheet.jsx                        ← Radix Dialog-based slide-in Sheet (used by NavMobile)
+│   │       ├── StudyItemCard.jsx                ← presentational deck/study-set list card (prop-driven, brand tokens) — Phase 5 S1
 │   │       ├── switch.jsx
 │   │       ├── tabs.jsx
 │   │       ├── textarea.jsx
@@ -146,6 +148,8 @@ recall-app
 │   │   │   ├── Login.jsx                        ← reads+clears postAuthRedirect from localStorage BEFORE signIn()
 │   │   │   ├── ResetPassword.jsx
 │   │   │   └── Signup.jsx
+│   │   ├── dev                                  ← DEV-ONLY pages (not in nav; safe to remove)
+│   │   │   └── DesignShowcase.jsx               ← /__design — Phase 5 S1 token + component QA (no auth, no DB)
 │   │   ├── guide
 │   │   │   └── StudentGuide.jsx                 ← public /guide page; 9 situations; scroll spy; no auth, no DB calls
 │   │   ├── public                               ← unauthenticated share/join pages (RPC-only data, no direct table access)

@@ -1,7 +1,7 @@
 # REVISOP — MASTER BLUEPRINT
 
 **Prepared:** December 2025  
-**Last Updated:** June 29, 2026  
+**Last Updated:** June 30, 2026  
 **Stack:** React 19 + Vite 7 · TailwindCSS + shadcn/ui · Supabase (PostgreSQL + Auth + RLS + Storage + Edge Functions) · Vercel  
 **Live URL:** https://www.revisop.com (redirects from https://www.recallapp.co.in)  
 **Repository:** https://github.com/ai1976/recall-app
@@ -15,6 +15,7 @@
 - **Sprint 5 (May 2026):** Push notification infrastructure (Edge Functions, VAPID, cron)
 - **Sprint 6 (Jun 2026):** 10 question types documented (MCQ, T/F, concept_card, etc.), Gemini import source
 - **Sprint R7 (Jun 2026):** Full rebrand Recall → RevisOp — brand colors (#f59e0b amber + #1e1b4b navy), wordmark, PWA icons, domain migration, SMTP moved to hello@revisop.com
+- **Phase 5 — Sprint 1 (Jun 2026):** Design-system foundation (presentational only). Additive brand HSL tokens (`brand.navy/amber/success` + `surface.*`) in `index.css` + `tailwind.config.js`; new `StudyItemCard` (deck/study-set card) and controlled `FlipCard` components; 3D flip utilities (reduced-motion aware); dev-only `/__design` QA route. **No DB changes; no existing shadcn token value changed.**
 
 ---
 
@@ -784,6 +785,10 @@ Key pages with data flows:
 
 #### UI Primitives (shadcn/ui, `src/components/ui/`)
 `alert, button, card, command, dialog, dropdown-menu, input, label, popover, progress, select, sheet, switch, tabs, textarea, toast, toaster`
+
+**Phase 5 S1 additions (presentational, brand-token-styled):**
+- `StudyItemCard` — prop-driven deck/study-set list card (title, subject/topic chips, item count, author, optional Featured/Expert badge, optional lucide icon, optional `onClick`). No data fetching.
+- `FlipCard` — controlled 3D flip (`isFlipped` prop) with front=question / back=answer faces. No SRS/rating logic (deferred to a later study-flow sprint). Backed by `@layer utilities` flip helpers in `index.css` (reduced-motion aware).
 
 ---
 

@@ -1,6 +1,26 @@
 # Changelog
 
 ---
+## [2026-06-30] feat(design-system): Phase 5 Sprint 1 — brand tokens + StudyItemCard + FlipCard
+
+### Added
+- **Additive brand token layer** in `src/index.css` (`:root` + `.dark`) and wired into `tailwind.config.js` `theme.extend.colors`:
+  - `brand.navy` (#1e1b4b → `243.8 47.1% 20%`), `brand.amber` (#f59e0b → `37.7 92.1% 50.2%`), `brand.success` (green-600 #16a34a → `142.1 76.2% 36.3%`), each with a `*-foreground` pair.
+  - `surface.card` / `surface.muted` / `surface.border` / `surface.amber` (amber-50 #fffbeb) / `surface.navy` (light navy tint).
+  - **No existing shadcn token VALUE changed** — purely additive, so existing pages render byte-identically.
+- **`StudyItemCard`** (`src/components/ui/StudyItemCard.jsx`) — presentational, prop-driven deck/study-set list card (title, subject/topic chips, item count, author, optional Featured/Expert badge, optional lucide icon, optional `onClick`). Matches the shadcn `card.jsx` pattern (`forwardRef`, `cn`, `displayName`).
+- **`FlipCard`** (`src/components/ui/FlipCard.jsx`) — presentational 3D flip with a **controlled `isFlipped` prop** (front=question, back=answer). No SRS/rating logic (Sprint 4's job).
+- **3D flip utilities** in `src/index.css` `@layer utilities` (`perspective-1000`, `preserve-3d`, `backface-hidden`, `rotate-y-180`, `flip-transition`) with `prefers-reduced-motion` respected.
+- **DEV-ONLY showcase** `src/pages/dev/DesignShowcase.jsx` at route `/__design` (no auth, no DB, not in any nav) for QA of tokens + components. Sprint 4 may remove/keep.
+
+### Notes
+- **Zero DB/SQL prerequisites and zero anon-data paths** — the SQL-before-frontend deployment gate is N/A for this sprint.
+- `npm run build` passes; existing pages visually unchanged (tokens are additive only).
+
+### Files Changed
+`src/index.css`, `tailwind.config.js`, `src/components/ui/StudyItemCard.jsx` (new), `src/components/ui/FlipCard.jsx` (new), `src/pages/dev/DesignShowcase.jsx` (new), `src/App.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/FILE_STRUCTURE.md`, `docs/active/blueprint.md`
+
+---
 ## [2026-06-30] fix: Closed vw_study_items SECURITY DEFINER view exposure (was CRITICAL)
 
 ### Fixed (live DB) — active data leak

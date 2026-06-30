@@ -63,6 +63,10 @@ const DeckPreview = lazy(() => import('@/pages/public/DeckPreview'))
 const NotePreview = lazy(() => import('@/pages/public/NotePreview'))
 const StudentGuide = lazy(() => import('@/pages/guide/StudentGuide'))
 
+// DEV-ONLY design-system showcase (Phase 5 Sprint 1) — route /__design, not in any nav.
+// No auth, no DB. Sprint 4 may remove or keep this.
+const DesignShowcase = lazy(() => import('@/pages/dev/DesignShowcase'))
+
 // Admin Pages
 const SuperAdminDashboard = lazy(() => import('@/pages/admin/SuperAdminDashboard'))
 const SuperAdminAnalytics = lazy(() => import('@/pages/admin/SuperAdminAnalytics'))
@@ -172,6 +176,9 @@ if (!user || loading) return
           <Route path="/deck/:deckId" element={<DeckPreview />} />
           <Route path="/note/:noteId" element={<NotePreview />} />
           <Route path="/guide" element={<StudentGuide />} />
+
+          {/* DEV-ONLY design-system showcase — no auth, no DB, not linked in nav (Sprint 1) */}
+          <Route path="/__design" element={<DesignShowcase />} />
 
           {/* Dashboard Route */}
           <Route
