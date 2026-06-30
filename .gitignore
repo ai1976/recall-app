@@ -25,3 +25,9 @@ dist-ssr
 
 # Documentation archive (old files, not needed in git)
 docs/archive/
+
+# Repomix export (generated, not needed in git)
+repomix-output.xml
+
+# Claude Code temporary worktrees
+.claude/worktrees/
