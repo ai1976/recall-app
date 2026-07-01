@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, Users, TrendingUp, CheckCircle, BookOpen, Award, Zap, Upload, Share2, Camera } from 'lucide-react';
+import { Brain, Users, TrendingUp, CheckCircle, BookOpen, Award, Zap, Upload, Share2, Camera, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { StudyItemCard } from '@/components/ui/StudyItemCard';
+import HeroFlipDemo from '@/components/landing/HeroFlipDemo';
 
 export default function Home() {
-  // Real-time stats from database
+  // Real-time stats from database — all sourced from SECURITY DEFINER RPCs.
+  // Home.jsx is unauthenticated: direct .from() table reads are RLS-filtered and unreliable.
   const [stats, setStats] = useState({
     students: 0,
     educators: 0,
@@ -17,65 +20,49 @@ export default function Home() {
 
   // Store educator data for display
   const [educators, setEducators] = useState([]);
-  
+
+  // Curated featured content for the hero demo + featured rail (get_featured_landing_content)
+  const [featured, setFeatured] = useState({ decks: [], notes: [] });
+
   // Fetch real data when page loads
   useEffect(() => {
     async function fetchStats() {
       try {
-        // Count students
-        const { count: studentCount } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'student');
-        
-        // Count educators (professors)
-        const { count: educatorCount } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'professor');
-
         // Fetch educator profiles for display
         // Uses SECURITY DEFINER RPC — Home.jsx is unauthenticated, direct .from() would be RLS-blocked
         const { data: educatorData } = await supabase
           .rpc('get_public_educators');
-        
+
         if (educatorData && educatorData.length > 0) {
           setEducators(educatorData);
         }
-        
+
         // Use SECURITY DEFINER RPC for all counts that need to bypass RLS.
         // Direct table queries from unauthenticated context are RLS-filtered,
-        // so profiles (student/educator counts) and all-visibility totals must go through RPC.
+        // so student/educator counts, all-visibility totals, and public-only
+        // totals must all go through this RPC.
         const { data: platformStats } = await supabase
           .rpc('get_platform_stats');
-        const totalFlashcardCount = platformStats?.total_flashcards ?? 0;
-        const totalNoteCount = platformStats?.total_notes ?? 0;
-        // student_count and educator_count now returned by the RPC (bypasses RLS for anon users)
-        const rpcStudentCount = platformStats?.student_count ?? studentCount ?? 0;
-        const rpcEducatorCount = platformStats?.educator_count ?? educatorCount ?? 0;
 
-        // Count PUBLIC flashcards only (what new users can browse — for educator section)
-        const { count: flashcardCount } = await supabase
-          .from('flashcards')
-          .select('*', { count: 'exact', head: true })
-          .eq('visibility', 'public');
+        // Curated featured decks/notes for the hero demo + featured rail
+        const { data: featuredContent } = await supabase
+          .rpc('get_featured_landing_content');
 
-        // Count PUBLIC notes only (what new users can browse — for educator section)
-        const { count: noteCount } = await supabase
-          .from('notes')
-          .select('*', { count: 'exact', head: true })
-          .eq('visibility', 'public');
+        setFeatured({
+          decks: featuredContent?.decks ?? [],
+          notes: featuredContent?.notes ?? [],
+        });
 
         setStats({
-          students: rpcStudentCount,
-          educators: rpcEducatorCount,
-          flashcards: flashcardCount || 0,
-          notes: noteCount || 0,
-          totalFlashcards: totalFlashcardCount || 0,
-          totalNotes: totalNoteCount || 0,
+          students: platformStats?.student_count ?? 0,
+          educators: platformStats?.educator_count ?? 0,
+          flashcards: platformStats?.public_flashcards ?? 0,
+          notes: platformStats?.public_notes ?? 0,
+          totalFlashcards: platformStats?.total_flashcards ?? 0,
+          totalNotes: platformStats?.total_notes ?? 0,
           isLoading: false
         });
-        
+
       } catch (err) {
         console.error('Error fetching stats:', err);
         setStats({
@@ -89,9 +76,13 @@ export default function Home() {
         });
       }
     }
-    
+
     fetchStats();
   }, []);
+
+  // First featured deck that actually has teaser cards drives the hero demo.
+  // HeroFlipDemo falls back to its own hardcoded cards if this is undefined/empty.
+  const heroDeck = featured.decks.find((d) => d.cards?.length > 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white">
@@ -214,6 +205,11 @@ export default function Home() {
             </Link>
           </p>
 
+          {/* Live Flip-Card Demo — show, don't tell */}
+          <div className="mt-14">
+            <HeroFlipDemo deck={heroDeck} />
+          </div>
+
           {/* Real-time Stats */}
           <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
             <div>
@@ -256,6 +252,49 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Featured Content Rail — real curated decks/notes, omitted gracefully if empty */}
+      {(featured.decks.length > 0 || featured.notes.length > 0) && (
+        <section className="bg-white py-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                Featured Study Sets
+              </h2>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                Curated by our expert educators — browse and start reviewing today
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featured.decks.map((deck) => (
+                <Link key={`deck-${deck.id}`} to={`/deck/${deck.id}`} className="block h-full">
+                  <StudyItemCard
+                    title={deck.name}
+                    subjectLabel={deck.subject}
+                    topicLabel={deck.topic}
+                    itemCount={deck.card_count}
+                    authorName={deck.creator_name}
+                    badgeLabel="Featured"
+                  />
+                </Link>
+              ))}
+              {featured.notes.map((note) => (
+                <Link key={`note-${note.id}`} to={`/note/${note.id}`} className="block h-full">
+                  <StudyItemCard
+                    title={note.title}
+                    subjectLabel={note.subject}
+                    topicLabel={note.topic}
+                    authorName={note.author_name}
+                    badgeLabel="Featured"
+                    icon={FileText}
+                  />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* How It Works Section - Platform journey */}
       <section id="how-it-works" className="bg-white py-20">
@@ -577,52 +616,6 @@ export default function Home() {
                   Email: hello@revisop.com
                 </p>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              What Students Are Saying
-            </h2>
-            <p className="text-xl text-gray-600">
-              Real feedback from early adopters
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-xl shadow-lg">
-              <div className="text-yellow-500 mb-4">★★★★★</div>
-              <p className="text-gray-700 italic mb-4">
-                "I uploaded my CA notes in 10 minutes and created 20 flashcards. 
-                So much easier than Anki!"
-              </p>
-              <div className="font-semibold text-gray-900">— Student</div>
-              <div className="text-sm text-gray-600">Early Access</div>
-            </div>
-
-            <div className="bg-white p-8 rounded-xl shadow-lg">
-              <div className="text-yellow-500 mb-4">★★★★★</div>
-              <p className="text-gray-700 italic mb-4">
-                "Spaced repetition actually works! I'm remembering concepts from 2 weeks ago. 
-                Game changer."
-              </p>
-              <div className="font-semibold text-gray-900">— Student</div>
-              <div className="text-sm text-gray-600">Early Access</div>
-            </div>
-
-            <div className="bg-white p-8 rounded-xl shadow-lg">
-              <div className="text-yellow-500 mb-4">★★★★★</div>
-              <p className="text-gray-700 italic mb-4">
-                "The educator flashcards helped me get started. Now I'm creating my own 
-                and sharing with classmates."
-              </p>
-              <div className="font-semibold text-gray-900">— Student</div>
-              <div className="text-sm text-gray-600">Early Access</div>
             </div>
           </div>
         </div>

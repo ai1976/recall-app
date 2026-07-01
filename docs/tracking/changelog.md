@@ -1,6 +1,30 @@
 # Changelog
 
 ---
+## [2026-07-01] feat(landing): Phase 5 Sprint 4 — hero live-demo + featured rail + stats consolidation (SQL written, NOT yet deployed)
+
+### Added — SQL, saved to repo, not run against live DB
+- **`docs/database/phase5/13_FUNCTIONS_extend_get_platform_stats_public_counts.sql`** — `CREATE OR REPLACE` of `get_platform_stats()` (same signature) adding `public_flashcards`/`public_notes` (`visibility = 'public'` counts). Existing `student_count`/`educator_count`/`total_flashcards`/`total_notes` fields preserved as-is.
+
+### Added — Frontend
+- **`src/components/landing/HeroFlipDemo.jsx`** (new) — anonymous, no-DB-write hero demo. Fetches `get_featured_landing_content()` via `Home.jsx`; drives the flip from the first featured deck with teaser cards, falling back to 3 hardcoded generic cards if none exist so the hero is never blank. `FlipCard` (controlled) → Hard/Medium/Easy rating buttons styled after `StudyMode.jsx`'s rating UI (cosmetic only) → advances to next card → soft wall ("Sign up to save your progress" → `/signup`) after the last card.
+- **`src/pages/Home.jsx`** — new "Featured Study Sets" rail renders `get_featured_landing_content()` decks + notes as `StudyItemCard`s (badge "Featured") linking to `/deck/:id` / `/note/:id`; omitted entirely when nothing is curated (no broken empty state).
+
+### Changed
+- **`src/pages/Home.jsx`** — **deleted all direct `.from()` table reads**: the two `profiles` role-count queries and the two `flashcards`/`notes` public-count queries. Replaced with `get_platform_stats()`'s new `public_flashcards`/`public_notes` fields (gated on SQL 13 deployment) and the RPC's existing `student_count`/`educator_count`. Home.jsx now has zero direct `.from()` calls — closes the Technical Debt item flagged in `blueprint.md` §1.4.
+
+### Removed
+- **`src/pages/Home.jsx`** — deleted the 3 placeholder "— Student / Early Access" testimonial cards and their section wrapper (no replacement copy invented).
+
+### Notes
+- **SQL 13 is a hard prerequisite for pushing this sprint's frontend.** Until deployed, `get_platform_stats()` returns `undefined` for the two new fields, so the "Free to Browse" section renders `0`/`0` instead of real public counts (not a crash, but visibly wrong — do not push until deployed).
+- Verified in-browser: the real already-curated "Business Laws — ICA 1872" deck (live via S3) exercised the has-featured-content path end-to-end (flip → rate → advance × 5 → soft wall; rail rendered correctly). The no-featured-content fallback was verified by stubbing the RPC response and remounting client-side (no full reload) — rail disappeared, hero showed the 3-card fallback. No console errors in either state. `npm run build` passes.
+- "For Institutes & Educators" section + its `mailto:` CTA left untouched — real `/educators` route is Sprint 5, not this sprint.
+
+### Files Changed
+`docs/database/phase5/13_FUNCTIONS_extend_get_platform_stats_public_counts.sql` (new), `src/components/landing/HeroFlipDemo.jsx` (new), `src/pages/Home.jsx`, `.claude/launch.json` (new, dev-server preview config), `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`, `docs/active/now.md`
+
+---
 ## [2026-07-01] feat(landing): Phase 5 Sprint 3 — curation UI: nominate → admin-approve (SQL written, NOT yet deployed)
 
 ### Added — SQL (Part A), saved to repo, not run against live DB

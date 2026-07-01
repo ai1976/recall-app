@@ -1,11 +1,30 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-07-01
-**Current Phase:** Phase 5 Sprint 3 SQL + frontend written, awaiting SQL deployment → then Sprint 4
+**Current Phase:** Phase 5 Sprint 4 frontend written, awaiting `docs/database/phase5/13` SQL deployment before push
 
 ---
 
 ## Just Completed ✅
+
+### Phase 5 Sprint 4 — Landing rebuild: hero live-demo + featured rail + stats consolidation (Jul 1, 2026)
+
+**Scope:** rebuild the anonymous `Home.jsx` to show, not tell — live card-flip demo, real featured-content rail, stats consolidation, testimonial removal. Consumed S1 (`FlipCard`/`StudyItemCard`) and S2 (`get_featured_landing_content()`).
+
+**⚠️ SQL NOT YET DEPLOYED.** `docs/database/phase5/13_FUNCTIONS_extend_get_platform_stats_public_counts.sql` is saved to the repo but not run against the live DB. **This is a hard prerequisite for pushing this sprint's frontend** — until deployed, `get_platform_stats()` doesn't return `public_flashcards`/`public_notes`, so the "Free to Browse" section shows `0`/`0` instead of the real public counts.
+
+- **Stats consolidation (SQL route, closes a real tech-debt item):** `13_FUNCTIONS` extends `get_platform_stats()` (`CREATE OR REPLACE`, same signature, existing 4 fields untouched) with `public_flashcards`/`public_notes`. `Home.jsx` deleted its two `profiles` role-count reads and two `flashcards`/`notes` public-count reads — **zero direct `.from()` calls left in Home.jsx.** This closes the exact violation blueprint.md §1.4 had flagged as Technical Debt.
+- **Hero live-demo:** new `src/components/landing/HeroFlipDemo.jsx`. Fetches `get_featured_landing_content()` on mount; drives the flip demo from the first featured deck with teaser cards. Flow: question → tap to flip (`FlipCard`, controlled) → answer + Hard/Medium/Easy rating buttons (styled after `StudyMode.jsx`'s rating UI, cosmetic only — no SRS write) → advance. After the last card: soft wall "Sign up to save your progress" → `/signup`. **Fallback (verified):** if no featured deck has cards, falls back to 3 hardcoded generic cards so the hero is never blank.
+- **Featured rail:** new "Featured Study Sets" section renders `get_featured_landing_content()` decks + notes as `StudyItemCard`s (badge "Featured") linking to `/deck/:id` / `/note/:id`. Omitted entirely (no broken empty state) when nothing is curated.
+- **Testimonials removed:** deleted the 3 fake "— Student / Early Access" cards and the section wrapper.
+- **Unchanged this sprint:** "For Institutes & Educators" section + its `mailto:` CTA — real `/educators` route is Sprint 5.
+- **Verified in-browser (dev server):** live featured content case used the real already-curated "Business Laws — ICA 1872" deck (S3 nomination/approval already live) — flip → rate → advance through all 5 cards → soft wall rendered correctly; rail rendered the real deck with correct badge/chips/count/author. Empty-featured case simulated via a stubbed fetch response + client-side remount (no full reload) — rail correctly disappeared, hero correctly showed the 3-card fallback with "· demo" label and no "From ..." attribution line. No console errors either state. `npm run build` passes.
+
+**Next:** founder deploys `docs/database/phase5/13` in the Supabase SQL Editor, confirms with the phasebuilder — only then does this sprint's frontend get pushed live. Sprint 5 (`/educators` B2B route) is next after that.
+
+Files Changed: `docs/database/phase5/13_FUNCTIONS_extend_get_platform_stats_public_counts.sql` (new), `src/components/landing/HeroFlipDemo.jsx` (new), `src/pages/Home.jsx`, `.claude/launch.json` (new, dev-server preview config), `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 
 ### Phase 5 Sprint 3 — Curation UI: nominate → admin-approve (Jul 1, 2026)
 

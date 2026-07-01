@@ -2345,11 +2345,20 @@ SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
 
 ---
 
+### get_platform_stats()
+**Purpose:** Public headline stats for the unauthenticated landing page (and AdminDashboard, which hits the same RLS wall)
+**Security:** DEFINER — `GRANT EXECUTE TO anon, authenticated`
+**Added:** 2026-02-20 (all-visibility totals). **Extended:** 2026-07-01 (Phase 5 Sprint 4) — added `public_flashcards`/`public_notes`. ⏳ **SQL authored — not yet deployed.** See `docs/database/phase5/13_FUNCTIONS_extend_get_platform_stats_public_counts.sql`.
+**Returns:** `jsonb` — `{ student_count, educator_count, total_flashcards, total_notes, public_flashcards, public_notes }`. `total_*` counts all visibility levels (bypasses RLS); `public_*` counts `visibility = 'public'` rows only (added S4 to remove Home.jsx's direct anon `.from()` count reads, which were RLS-filtered/unreliable — see blueprint.md §1.4).
+**Caller:** `Home.jsx` (hero badge/grid stats use `total_*`; "Free to Browse" educator section uses `public_*`), `AdminDashboard.jsx` (uses `total_*` — direct table counts undercounted vs this RPC, see changelog 2026-06-XX admin stat fix)
+
+---
+
 ### get_featured_landing_content()
 **Purpose:** Curated public decks + notes for the unauthenticated landing page (hero demo / teaser section)
 **Security:** DEFINER — `GRANT EXECUTE TO anon, authenticated`
-**Added:** 2026-07-01 (Phase 5 Sprint 2) — ⚠️ **SQL written but NOT yet deployed.** See `docs/database/phase5/06_FUNCTIONS_get_featured_landing_content.sql`.
-**Caller:** Landing page (Sprint 3/4 frontend, not yet built)
+**Added:** 2026-07-01 (Phase 5 Sprint 2) — ✅ deployed 2026-07-01. See `docs/database/phase5/06_FUNCTIONS_get_featured_landing_content.sql`.
+**Caller:** `Home.jsx` (Phase 5 Sprint 4) — drives `HeroFlipDemo.jsx` (first deck with teaser cards; falls back to hardcoded cards if none) and the "Featured Study Sets" rail (`StudyItemCard`s linking to `/deck/:id`/`/note/:id`)
 
 **Returns:** `jsonb` — `{ decks: [...], notes: [...] }`
 - `decks` (max 12, ordered `upvote_count DESC, created_at DESC`): `id, name, subject, topic, card_count, upvote_count, creator_name, cards`. `cards` is hard-capped at exactly 5 items (`front_text, back_text, question_type`), fetched via the 5-grouping-column join (see ⚠️ CRITICAL join block above) — never `fc.deck_id`.

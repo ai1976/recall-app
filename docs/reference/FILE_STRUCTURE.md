@@ -235,6 +235,9 @@ recall-app
 - `src/pages/dashboard/Content/NoteUpload.jsx` — image compression (maxSizeMB: 0.5, maxWidthOrHeight: 1920)
 - `src/components/content/FeatureNominationButton.jsx` — Phase 5 S3 curation control (3 states: nominate/pending/live); used in `MyFlashcards.jsx` + `NoteDetail.jsx`; gated on `docs/database/phase5/09–11` deployment
 
+### Landing
+- `src/components/landing/HeroFlipDemo.jsx` — Phase 5 S4 anonymous hero flip-card demo; controlled `FlipCard` + cosmetic Hard/Medium/Easy rating (no SRS writes); falls back to 3 hardcoded generic cards when no featured deck has teaser cards; ends with a "Sign up to save your progress" soft wall linking to `/signup`
+
 ### Public / Share Pages
 - `src/pages/public/DeckPreview.jsx` — /deck/:deckId (OG tags via middleware.js)
 - `src/pages/public/NotePreview.jsx` — /note/:noteId (OG tags via middleware.js)
