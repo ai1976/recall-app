@@ -1,11 +1,31 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-06-30
-**Current Phase:** Pre-pivot DB cleanup (Landmines #1, #3 done) → scoping the landing-page "show don't tell" pivot (creator-controlled public content)
+**Last Updated:** 2026-07-01
+**Current Phase:** Phase 5 Sprint 2 SQL written, awaiting deployment → then Sprint 3 (curation UI)
 
 ---
 
 ## Just Completed ✅
+
+### Phase 5 Sprint 2 — Featured-flag schema + get_featured_landing_content RPC (Jul 1, 2026)
+
+**Scope:** SQL-first sprint. Schema + SECURITY DEFINER RPC only — no frontend, no `Home.jsx` changes.
+
+**⚠️ NOT YET DEPLOYED.** All 8 scripts are saved to `docs/database/phase5/` but have not been run against the live DB. This is a hard prerequisite for Sprint 3/4 frontend work.
+
+- **Ground truth first:** introspected the live `get_public_deck_preview` (jsonb, deck + `preview_items` — was capped at 10, not 5) and `get_public_note_preview` (TABLE, revealed an undocumented `notes.description` column) via `pg_get_functiondef`, plus a trigger collision scan (`flashcard_decks` has zero existing triggers; `notes` has no `BEFORE UPDATE` trigger) — so the new triggers are collision-free.
+- **`is_featured_on_landing` column** added to `flashcard_decks` and `notes` — `DEFAULT false`, inline `CHECK (is_featured_on_landing = false OR visibility = 'public')`. Curation UI (who sets this flag) is Sprint 3's job, not this one.
+- **Auto-clear trigger** (`BEFORE UPDATE`, shared function `fn_autoclear_featured_on_visibility_change()`) on both tables — clears the flag the instant visibility leaves `'public'`, so the CHECK can never reject a legitimate visibility-downgrade update.
+- **Partial indexes** on `(is_featured_on_landing) WHERE is_featured_on_landing = true` for both tables.
+- **New RPC `get_featured_landing_content()`** — anon-callable, `GRANT EXECUTE TO anon, authenticated`. Returns curated public decks (max 12) each with a 5-card hard cap (`front_text`/`back_text`/`question_type`, fetched via the standard 5-grouping-column join — never `fc.deck_id`) and curated public notes (max 12, metadata + 200-char description snippet, never the note body).
+- **`get_public_deck_preview` teaser depth aligned to 5** (was 10) via `CREATE OR REPLACE`, same signature — matches the locked "teaser depth = 5" product decision for both the hero demo and `DeckPreview.jsx`.
+- **`[TEST]` script** verifies the CHECK rejection, the auto-clear trigger, and the RPC shape/cap — all wrapped in `BEGIN`/`ROLLBACK`, no data left committed.
+
+**Next:** founder deploys `docs/database/phase5/03` → `07` in order in the Supabase SQL Editor, runs `08` to verify, then Sprint 3 (curation UI for professors/admins to set the flag) can start.
+
+Files Changed: `docs/database/phase5/*.sql` (8 new files), `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`
+
+---
 
 ### Phase 5 Sprint 1 — Design-system foundation (Jun 30, 2026)
 

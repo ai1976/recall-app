@@ -1,6 +1,26 @@
 # Changelog
 
 ---
+## [2026-07-01] feat(db): Phase 5 Sprint 2 — featured-flag schema + get_featured_landing_content RPC (SQL written, NOT yet deployed)
+
+### Added — SQL only, saved to repo, not run against live DB
+- **`docs/database/phase5/01_DIAGNOSTIC_introspect_preview_rpcs.sql`** — read-only `pg_get_functiondef` calls, run by founder; confirmed `get_public_deck_preview` (jsonb, deck + `preview_items` capped at 10) and `get_public_note_preview` (TABLE, incl. an undocumented `description` column) exact bodies.
+- **`docs/database/phase5/02_DIAGNOSTIC_trigger_collision_scan.sql`** — confirmed `flashcard_decks` has zero existing triggers and `notes` has no `BEFORE UPDATE` trigger, so the new auto-clear triggers below have no collision risk.
+- **`docs/database/phase5/03_SCHEMA_add_is_featured_on_landing_column.sql`** — `is_featured_on_landing boolean NOT NULL DEFAULT false` on `flashcard_decks` and `notes`, with inline `CHECK (is_featured_on_landing = false OR visibility = 'public')`. Safe on live data (all rows default false).
+- **`docs/database/phase5/04_SCHEMA_featured_landing_autoclear_triggers.sql`** — shared `fn_autoclear_featured_on_visibility_change()` + `BEFORE UPDATE` triggers on both tables (`trg_autoclear_featured_flashcard_decks`, `trg_autoclear_featured_notes`) that clear the flag the moment `visibility <> 'public'`.
+- **`docs/database/phase5/05_SCHEMA_featured_landing_partial_indexes.sql`** — partial indexes `idx_flashcard_decks_featured` / `idx_notes_featured` on `(is_featured_on_landing) WHERE is_featured_on_landing = true`.
+- **`docs/database/phase5/06_FUNCTIONS_get_featured_landing_content.sql`** — new `get_featured_landing_content()` SECURITY DEFINER RPC, `GRANT EXECUTE TO anon, authenticated`. Returns `{ decks: [...], notes: [...] }`; decks capped at 12, each with a `cards` array hard-capped at exactly 5 (`front_text`, `back_text`, `question_type`) fetched via the 5-grouping-column join (never `fc.deck_id`); notes capped at 12, metadata + a 200-char `description` snippet only (no note body). Double-guards `visibility = 'public'` even though the trigger already enforces it.
+- **`docs/database/phase5/07_FUNCTIONS_cap_public_deck_preview_at_5.sql`** — `CREATE OR REPLACE` of `get_public_deck_preview`, dropping its `preview_items` cap from 10 to 5 to match the locked teaser-depth decision. Signature unchanged; rest of the body reproduced verbatim.
+- **`docs/database/phase5/08_TEST_verify_featured_landing.sql`** — verification: CHECK rejects featured+non-public, trigger clears flag on visibility downgrade, baseline + populated RPC calls (wrapped in `BEGIN`/`ROLLBACK`, no data left committed).
+
+### Notes
+- **SQL-only sprint — nothing was deployed.** ⚠️ This SQL must be run in Supabase (in file order 03→07, then 08 to verify) before any Sprint 3/4 frontend work begins.
+- No frontend changes this sprint.
+
+### Files Changed
+`docs/database/phase5/01_DIAGNOSTIC_introspect_preview_rpcs.sql` (new), `docs/database/phase5/02_DIAGNOSTIC_trigger_collision_scan.sql` (new), `docs/database/phase5/03_SCHEMA_add_is_featured_on_landing_column.sql` (new), `docs/database/phase5/04_SCHEMA_featured_landing_autoclear_triggers.sql` (new), `docs/database/phase5/05_SCHEMA_featured_landing_partial_indexes.sql` (new), `docs/database/phase5/06_FUNCTIONS_get_featured_landing_content.sql` (new), `docs/database/phase5/07_FUNCTIONS_cap_public_deck_preview_at_5.sql` (new), `docs/database/phase5/08_TEST_verify_featured_landing.sql` (new), `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`
+
+---
 ## [2026-06-30] feat(design-system): Phase 5 Sprint 1 — brand tokens + StudyItemCard + FlipCard
 
 ### Added

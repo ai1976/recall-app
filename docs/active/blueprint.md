@@ -16,6 +16,7 @@
 - **Sprint 6 (Jun 2026):** 10 question types documented (MCQ, T/F, concept_card, etc.), Gemini import source
 - **Sprint R7 (Jun 2026):** Full rebrand Recall → RevisOp — brand colors (#f59e0b amber + #1e1b4b navy), wordmark, PWA icons, domain migration, SMTP moved to hello@revisop.com
 - **Phase 5 — Sprint 1 (Jun 2026):** Design-system foundation (presentational only). Additive brand HSL tokens (`brand.navy/amber/success` + `surface.*`) in `index.css` + `tailwind.config.js`; new `StudyItemCard` (deck/study-set card) and controlled `FlipCard` components; 3D flip utilities (reduced-motion aware); dev-only `/__design` QA route. **No DB changes; no existing shadcn token value changed.**
+- **Phase 5 — Sprint 2 (Jul 2026):** ⏳ *SQL authored — not yet deployed* (`docs/database/phase5/03–08`). Adds `is_featured_on_landing` flag to `flashcard_decks`+`notes` (default false, `CHECK (featured => visibility='public')`), a BEFORE UPDATE auto-clear trigger that revokes the flag when content leaves public, partial indexes, and `get_featured_landing_content()` — a SECURITY DEFINER anon RPC returning curated public decks/notes with a **5-card hard cap** (via the 5-grouping-column join, never `deck_id`) and metadata-only notes. Also caps `get_public_deck_preview` teaser at 5 (was 10). **No frontend yet — hard prerequisite for S3/S4.**
 
 ---
 
@@ -512,7 +513,8 @@ These were called by the frontend but missing from the blueprint. Grouped by dom
 | **Landing / public (anon)** | | |
 | `get_public_educators()` | Public educator list for landing page | Home.jsx |
 | `get_platform_stats()` | Public headline stats (users/cards/notes counts) | Home.jsx, AdminDashboard.jsx |
-| `get_public_deck_preview(p_deck_id)` | Public deck metadata for share page (no auth) | DeckPreview.jsx |
+| `get_public_deck_preview(p_deck_id)` | Public deck metadata + first **5** cards (front_text only) for share page (no auth) | DeckPreview.jsx |
+| `get_featured_landing_content()` ⏳ | Curated featured public decks/notes for landing hero+teaser (anon). 5-card hard cap per deck (front/back/type) via 5-grouping-column join; notes metadata-only. **⏳ SQL authored `docs/database/phase5/06`, not yet deployed** | landing (S4) |
 | **Dashboard / activity** | | |
 | `get_recent_activity_feed(...)` | Recent content feed for dashboard widget | useActivityFeed.js |
 | `link_access_request(...)` | Links a captured access-request lead to the new account on first login | Dashboard.jsx |

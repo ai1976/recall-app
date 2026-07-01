@@ -148,9 +148,11 @@
 | extracted_text | text | YES | NULL | OCR extracted text |
 | tags | text[] | YES | NULL | Array of tags (#important, #revision) |
 | visibility | text | NO | 'private' | Three-tier visibility system ⭐ NEW |
+| description | text | YES | NULL | Short note description/snippet. Previously undocumented — confirmed live via `pg_get_functiondef('get_public_note_preview')` on 2026-07-01 (Phase 5 Sprint 2 introspection). Distinct from `extracted_text` (full OCR body). |
 | is_verified | boolean | NO | false | Professor-verified content badge |
 | view_count | integer | NO | 0 | Engagement tracking |
 | upvote_count | integer | NO | 0 | Quality signal |
+| is_featured_on_landing | boolean | NO | false | ⭐ NEW (Phase 5 Sprint 2, SQL not yet deployed — see `docs/database/phase5/03_SCHEMA_add_is_featured_on_landing_column.sql`). Curated by professors/admins (Sprint 3 UI). `CHECK (is_featured_on_landing = false OR visibility = 'public')`. Auto-cleared to false by `trg_autoclear_featured_notes` (BEFORE UPDATE) the moment `visibility` leaves `'public'`. Partial index `idx_notes_featured` on `WHERE is_featured_on_landing = true`. |
 | created_at | timestamp | NO | NOW() | Upload timestamp |
 | updated_at | timestamp | NO | NOW() | Last modified |
 
@@ -2339,6 +2341,22 @@ SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
 
 ---
 
+### get_featured_landing_content()
+**Purpose:** Curated public decks + notes for the unauthenticated landing page (hero demo / teaser section)
+**Security:** DEFINER — `GRANT EXECUTE TO anon, authenticated`
+**Added:** 2026-07-01 (Phase 5 Sprint 2) — ⚠️ **SQL written but NOT yet deployed.** See `docs/database/phase5/06_FUNCTIONS_get_featured_landing_content.sql`.
+**Caller:** Landing page (Sprint 3/4 frontend, not yet built)
+
+**Returns:** `jsonb` — `{ decks: [...], notes: [...] }`
+- `decks` (max 12, ordered `upvote_count DESC, created_at DESC`): `id, name, subject, topic, card_count, upvote_count, creator_name, cards`. `cards` is hard-capped at exactly 5 items (`front_text, back_text, question_type`), fetched via the 5-grouping-column join (see ⚠️ CRITICAL join block above) — never `fc.deck_id`.
+- `notes` (max 12, ordered `upvote_count DESC, created_at DESC`): `id, title, subject, topic, author_name, upvote_count, description` (description truncated to 200 chars). Metadata only — never the note body.
+
+**Guards:** `WHERE is_featured_on_landing = true AND visibility = 'public'` on both queries (double-guard — `visibility = 'public'` is also enforced by the auto-clear trigger, see `flashcard_decks`/`notes` column docs).
+
+**Related:** `get_public_deck_preview` was also re-capped from 10 → 5 `preview_items` in the same sprint (`docs/database/phase5/07_FUNCTIONS_cap_public_deck_preview_at_5.sql`) to match the locked "teaser depth = 5" decision.
+
+---
+
 ## flashcard_decks (Added 2026-01-24)
 
 Groups flashcards into logical decks by user/subject/topic. Enables upvoting at deck level.
@@ -2357,6 +2375,7 @@ Groups flashcards into logical decks by user/subject/topic. Enables upvoting at 
 | description | TEXT | nullable | |
 | card_count | INTEGER | DEFAULT 0 | Auto-updated by trigger |
 | upvote_count | INTEGER | DEFAULT 0 | Auto-updated by trigger |
+| is_featured_on_landing | BOOLEAN | NOT NULL, DEFAULT false | ⭐ NEW (Phase 5 Sprint 2, SQL not yet deployed — see `docs/database/phase5/03_SCHEMA_add_is_featured_on_landing_column.sql`). Curated by professors/admins (Sprint 3 UI). `CHECK (is_featured_on_landing = false OR visibility = 'public')`. Auto-cleared to false by `trg_autoclear_featured_flashcard_decks` (BEFORE UPDATE) the moment `visibility` leaves `'public'`. Partial index `idx_flashcard_decks_featured` on `WHERE is_featured_on_landing = true`. |
 | created_at | TIMESTAMPTZ | DEFAULT NOW() | |
 | updated_at | TIMESTAMPTZ | DEFAULT NOW() | |
 
