@@ -1,6 +1,28 @@
 # Changelog
 
 ---
+## [2026-07-01] feat(landing): Phase 5 Sprint 3 — curation UI: nominate → admin-approve (SQL written, NOT yet deployed)
+
+### Added — SQL (Part A), saved to repo, not run against live DB
+- **`docs/database/phase5/09_SCHEMA_add_featured_nomination_columns.sql`** — 4 new nullable columns on `flashcard_decks` + `notes`: `featured_nominated_by`/`featured_nominated_at`, `featured_approved_by`/`featured_approved_at` (FK → `profiles.id`). Additive on top of the deployed S2 `is_featured_on_landing` flag.
+- **`docs/database/phase5/10_SCHEMA_featured_autoclear_nomination_reset.sql`** — `CREATE OR REPLACE` of the existing `fn_autoclear_featured_on_visibility_change()` so the S2 auto-clear trigger also nulls the 4 new columns when a row's visibility leaves `'public'`. No new trigger — the S2 triggers already point at this function.
+- **`docs/database/phase5/11_FUNCTIONS_featured_nomination_rpcs.sql`** — 6 new SECURITY DEFINER RPCs: `nominate_featured_content(p_content_type, p_content_id)` (professor/admin/super_admin, own row or admin, public-only, idempotent), `approve_featured_nomination(...)` (admin/super_admin only, returns the resulting `is_featured_on_landing` boolean), `reject_featured_nomination(...)`, `unfeature_content(...)` (leaves nomination fields intact so the item re-enters the Pending queue), `get_pending_featured_nominations()`, `get_live_featured_content_admin()` (both UNION ALL decks + notes into one shape for the admin queues).
+- **`docs/database/phase5/12_TEST_verify_featured_nomination_curation.sql`** — verifies role gates, the public-only nomination guard, the approve→live transition, the non-public-mid-flight guard, the unpublish reset, and the unfeature re-entry behavior — all wrapped in `BEGIN`/`ROLLBACK`.
+
+### Added — Frontend (Part B), gated on Part A SQL deployment
+- **`src/components/content/FeatureNominationButton.jsx`** (new) — shared 3-state control (not nominated → "Feature on landing" button; pending → non-interactive "Pending review" badge; live → "Featured ✓" badge). Calls `nominate_featured_content` and optimistically reflects the pending state.
+- **`src/pages/dashboard/Content/MyFlashcards.jsx`** — grouped-view deck header now fetches the caller's `flashcard_decks` rows (id, visibility, `is_featured_on_landing`, `featured_nominated_at`) and matches each batch group to its deck via the standard 5-grouping-column join (never `deck_id`, which is never populated). Renders `FeatureNominationButton` for public decks when `isProfessor || isAdmin`.
+- **`src/pages/dashboard/Content/NoteDetail.jsx`** — header actions render `FeatureNominationButton` for public notes when the caller is admin, or is the professor owner.
+- **`src/pages/admin/AdminDashboard.jsx`** — new "Landing Page Content" section in Content Moderation: **Pending Nominations** (Approve/Reject; Approve checks the RPC's returned boolean and shows an error toast if the content went non-public mid-click) and **Currently Live** (Unfeature). Both are always-visible with a zero-state message, matching the existing Flagged Content card's pattern — that card is untouched.
+
+### Notes
+- **Part A SQL is a hard prerequisite for Part B going live.** The frontend calls RPCs (`nominate_featured_content`, etc.) that do not exist on the live DB until 09→11 are deployed and 12 is run to verify. Do not push/deploy the frontend until the founder confirms.
+- S2 objects (`is_featured_on_landing` column/CHECK, partial indexes, `get_featured_landing_content()`, capped `get_public_deck_preview`) are unmodified.
+
+### Files Changed
+`docs/database/phase5/09_SCHEMA_add_featured_nomination_columns.sql` (new), `docs/database/phase5/10_SCHEMA_featured_autoclear_nomination_reset.sql` (new), `docs/database/phase5/11_FUNCTIONS_featured_nomination_rpcs.sql` (new), `docs/database/phase5/12_TEST_verify_featured_nomination_curation.sql` (new), `src/components/content/FeatureNominationButton.jsx` (new), `src/pages/dashboard/Content/MyFlashcards.jsx`, `src/pages/dashboard/Content/NoteDetail.jsx`, `src/pages/admin/AdminDashboard.jsx`, `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/now.md`, `docs/reference/FILE_STRUCTURE.md`
+
+---
 ## [2026-07-01] feat(db): Phase 5 Sprint 2 — featured-flag schema + get_featured_landing_content RPC (SQL written, NOT yet deployed)
 
 ### Added — SQL only, saved to repo, not run against live DB

@@ -1,11 +1,31 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-07-01
-**Current Phase:** Phase 5 Sprint 2 SQL written, awaiting deployment → then Sprint 3 (curation UI)
+**Current Phase:** Phase 5 Sprint 3 SQL + frontend written, awaiting SQL deployment → then Sprint 4
 
 ---
 
 ## Just Completed ✅
+
+### Phase 5 Sprint 3 — Curation UI: nominate → admin-approve (Jul 1, 2026)
+
+**Scope:** SQL-first, then UI. Adds a nomination/approval layer on top of the deployed S2 `is_featured_on_landing` flag.
+
+**⚠️ Part A SQL NOT YET DEPLOYED.** `docs/database/phase5/09`–`12` are saved to the repo but have not been run against the live DB. **This is a hard prerequisite for pushing the Part B frontend live** — the professor "Feature on landing" action and the admin approval queues will error against the live DB until the founder runs 09→11 and verifies with 12.
+
+- **Two-step gate (locked decision):** professors/admins nominate their own already-public content; admins/super_admins approve to put it live. No self-serve instant featuring for professors.
+- **09_SCHEMA** — 4 new nullable columns on `flashcard_decks` + `notes`: `featured_nominated_by`/`_at`, `featured_approved_by`/`_at` (FK → `profiles.id`). Purely additive on top of the deployed S2 `is_featured_on_landing` — `is_featured_on_landing = true` still means "approved & live."
+- **10_SCHEMA** — `CREATE OR REPLACE` of the existing `fn_autoclear_featured_on_visibility_change()` (S2's trigger function) so it also nulls all four new columns on unpublish — full reset, no new trigger added.
+- **11_FUNCTIONS** — 6 new SECURITY DEFINER RPCs: `nominate_featured_content`, `approve_featured_nomination` (returns the resulting `is_featured_on_landing` boolean so the UI can detect a race where content went non-public mid-click), `reject_featured_nomination`, `unfeature_content` (deliberately leaves nomination fields intact, so an unfeatured item re-enters the Pending queue), `get_pending_featured_nominations`, `get_live_featured_content_admin`.
+- **12_TEST** — role gates (student blocked, professor can nominate own public content but not approve), public-only guard, approve→live transition via the RPC's own return value, non-public-mid-flight guard, and the unpublish reset — all wrapped in `BEGIN`/`ROLLBACK`.
+- **Frontend (written, gated on SQL deploy):** new shared `FeatureNominationButton` (`src/components/content/FeatureNominationButton.jsx`) with 3 states (not nominated / pending review / featured ✓). Wired into `MyFlashcards.jsx` (grouped-view deck header, matched to its `flashcard_decks` row via the standard 5-grouping-column join — never `deck_id`) and `NoteDetail.jsx` (owner/admin header actions). `AdminDashboard.jsx` gets a new always-visible "Landing Page Content" section (Pending Nominations + Currently Live tables) inside Content Moderation, following the same always-visible/zero-state rule as the existing Flagged Content card — untouched.
+- **S2 objects untouched:** `is_featured_on_landing` column/CHECK, partial indexes, `get_featured_landing_content()`, and the capped `get_public_deck_preview` are unmodified.
+
+**Next:** founder deploys `docs/database/phase5/09`→`11` in order in the Supabase SQL Editor, runs `12` to verify, confirms with the phasebuilder — only then does the Part B frontend get pushed live.
+
+Files Changed: `docs/database/phase5/09_SCHEMA_add_featured_nomination_columns.sql` (new), `docs/database/phase5/10_SCHEMA_featured_autoclear_nomination_reset.sql` (new), `docs/database/phase5/11_FUNCTIONS_featured_nomination_rpcs.sql` (new), `docs/database/phase5/12_TEST_verify_featured_nomination_curation.sql` (new), `src/components/content/FeatureNominationButton.jsx` (new), `src/pages/dashboard/Content/MyFlashcards.jsx`, `src/pages/dashboard/Content/NoteDetail.jsx`, `src/pages/admin/AdminDashboard.jsx`, `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/reference/FILE_STRUCTURE.md`
+
+---
 
 ### Phase 5 Sprint 2 — Featured-flag schema + get_featured_landing_content RPC (Jul 1, 2026)
 

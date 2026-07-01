@@ -152,7 +152,11 @@
 | is_verified | boolean | NO | false | Professor-verified content badge |
 | view_count | integer | NO | 0 | Engagement tracking |
 | upvote_count | integer | NO | 0 | Quality signal |
-| is_featured_on_landing | boolean | NO | false | ⭐ NEW (Phase 5 Sprint 2, ✅ deployed 2026-07-01 — see `docs/database/phase5/03_SCHEMA_add_is_featured_on_landing_column.sql`). Curated by professors/admins (Sprint 3 UI). `CHECK (is_featured_on_landing = false OR visibility = 'public')`. Auto-cleared to false by `trg_autoclear_featured_notes` (BEFORE UPDATE) the moment `visibility` leaves `'public'`. Partial index `idx_notes_featured` on `WHERE is_featured_on_landing = true`. |
+| is_featured_on_landing | boolean | NO | false | ⭐ (Phase 5 Sprint 2, ✅ deployed 2026-07-01 — see `docs/database/phase5/03_SCHEMA_add_is_featured_on_landing_column.sql`). `CHECK (is_featured_on_landing = false OR visibility = 'public')`. Set to `true` only by `approve_featured_nomination()` (Sprint 3). Auto-cleared to false by `fn_autoclear_featured_on_visibility_change()` (BEFORE UPDATE, `trg_autoclear_featured_notes`) the moment `visibility` leaves `'public'`. Partial index `idx_notes_featured` on `WHERE is_featured_on_landing = true`. |
+| featured_nominated_by | uuid | YES | NULL | ⭐ NEW (Phase 5 Sprint 3, ⏳ SQL authored — not yet deployed — see `docs/database/phase5/09_SCHEMA_add_featured_nomination_columns.sql`). FK → `profiles.id`. Set by `nominate_featured_content()`. Nulled by the auto-clear trigger on unpublish, and by `reject_featured_nomination()`. |
+| featured_nominated_at | timestamptz | YES | NULL | ⭐ NEW (Phase 5 Sprint 3, ⏳ not yet deployed). Set alongside `featured_nominated_by`. A non-NULL value with `is_featured_on_landing = false` is what makes a row appear in `get_pending_featured_nominations()`. |
+| featured_approved_by | uuid | YES | NULL | ⭐ NEW (Phase 5 Sprint 3, ⏳ not yet deployed). FK → `profiles.id`. Set by `approve_featured_nomination()`. Nulled by `reject_featured_nomination()` and `unfeature_content()`. |
+| featured_approved_at | timestamptz | YES | NULL | ⭐ NEW (Phase 5 Sprint 3, ⏳ not yet deployed). Set alongside `featured_approved_by`. |
 | created_at | timestamp | NO | NOW() | Upload timestamp |
 | updated_at | timestamp | NO | NOW() | Last modified |
 
@@ -2357,6 +2361,60 @@ SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
 
 ---
 
+### nominate_featured_content(p_content_type text, p_content_id uuid)
+**Purpose:** Professor/admin nominates their own already-public deck/note for landing-page featuring (step 1 of the two-step curation gate)
+**Security:** DEFINER. Role gate: caller must be `professor`/`admin`/`super_admin`, AND must own the row unless caller is admin/super_admin. Public-only guard: raises if `visibility <> 'public'`.
+**Added:** 2026-07-01 (Phase 5 Sprint 3) — ⚠️ **SQL written but NOT yet deployed.** See `docs/database/phase5/11_FUNCTIONS_featured_nomination_rpcs.sql`.
+**Returns:** `void`. Sets `featured_nominated_by = auth.uid()`, `featured_nominated_at = now()`. Does NOT set `is_featured_on_landing`. Idempotent.
+**Caller:** `FeatureNominationButton.jsx` (used in `MyFlashcards.jsx`, `NoteDetail.jsx`)
+
+---
+
+### approve_featured_nomination(p_content_type text, p_content_id uuid)
+**Purpose:** Admin/super_admin approves a pending nomination (step 2) — puts the content live on the landing
+**Security:** DEFINER. Role gate: `admin`/`super_admin` only. Requires a pending nomination (`featured_nominated_at IS NOT NULL`) and `visibility = 'public'`.
+**Added:** 2026-07-01 (Phase 5 Sprint 3) — ⚠️ not yet deployed.
+**Returns:** `boolean` — the resulting `is_featured_on_landing` value. The caller must check this: if the row went non-public between page load and click, the CHECK/trigger keep it `false` even though no exception is raised at the boundary that matters to the UI.
+**Caller:** `AdminDashboard.jsx` (Landing Page Content → Pending Nominations → Approve)
+
+---
+
+### reject_featured_nomination(p_content_type text, p_content_id uuid)
+**Purpose:** Admin/super_admin dismisses a pending nomination
+**Security:** DEFINER, `admin`/`super_admin` only.
+**Added:** 2026-07-01 (Phase 5 Sprint 3) — ⚠️ not yet deployed.
+**Returns:** `void`. Nulls all four nomination/approval fields; `is_featured_on_landing` stays `false`.
+**Caller:** `AdminDashboard.jsx` (Landing Page Content → Pending Nominations → Reject)
+
+---
+
+### unfeature_content(p_content_type text, p_content_id uuid)
+**Purpose:** Admin/super_admin removes live content from the landing page
+**Security:** DEFINER, `admin`/`super_admin` only.
+**Added:** 2026-07-01 (Phase 5 Sprint 3) — ⚠️ not yet deployed.
+**Returns:** `void`. Sets `is_featured_on_landing = false`; nulls only the two approval fields. **Nomination fields are deliberately left intact**, so the item reappears in `get_pending_featured_nominations()` rather than vanishing outright.
+**Caller:** `AdminDashboard.jsx` (Landing Page Content → Currently Live → Unfeature)
+
+---
+
+### get_pending_featured_nominations()
+**Purpose:** Admin/super_admin queue of nominated-but-not-yet-live decks + notes
+**Security:** DEFINER, `admin`/`super_admin` only.
+**Added:** 2026-07-01 (Phase 5 Sprint 3) — ⚠️ not yet deployed.
+**Returns:** `TABLE (content_type, content_id, title, subject, topic, card_count, owner_name, nominated_by_name, nominated_at)` — `UNION ALL` of decks + notes (`card_count` NULL for notes), ordered `nominated_at ASC`.
+**Caller:** `AdminDashboard.jsx`
+
+---
+
+### get_live_featured_content_admin()
+**Purpose:** Admin/super_admin view of currently-live featured decks + notes, for unfeaturing
+**Security:** DEFINER, `admin`/`super_admin` only.
+**Added:** 2026-07-01 (Phase 5 Sprint 3) — ⚠️ not yet deployed.
+**Returns:** `TABLE (content_type, content_id, title, subject, topic, card_count, owner_name, nominated_by_name, nominated_at, approved_at, approved_by_name)` — `UNION ALL` of decks + notes, ordered `approved_at DESC`.
+**Caller:** `AdminDashboard.jsx`
+
+---
+
 ## flashcard_decks (Added 2026-01-24)
 
 Groups flashcards into logical decks by user/subject/topic. Enables upvoting at deck level.
@@ -2375,7 +2433,11 @@ Groups flashcards into logical decks by user/subject/topic. Enables upvoting at 
 | description | TEXT | nullable | |
 | card_count | INTEGER | DEFAULT 0 | Auto-updated by trigger |
 | upvote_count | INTEGER | DEFAULT 0 | Auto-updated by trigger |
-| is_featured_on_landing | BOOLEAN | NOT NULL, DEFAULT false | ⭐ NEW (Phase 5 Sprint 2, ✅ deployed 2026-07-01 — see `docs/database/phase5/03_SCHEMA_add_is_featured_on_landing_column.sql`). Curated by professors/admins (Sprint 3 UI). `CHECK (is_featured_on_landing = false OR visibility = 'public')`. Auto-cleared to false by `trg_autoclear_featured_flashcard_decks` (BEFORE UPDATE) the moment `visibility` leaves `'public'`. Partial index `idx_flashcard_decks_featured` on `WHERE is_featured_on_landing = true`. |
+| is_featured_on_landing | BOOLEAN | NOT NULL, DEFAULT false | ⭐ (Phase 5 Sprint 2, ✅ deployed 2026-07-01 — see `docs/database/phase5/03_SCHEMA_add_is_featured_on_landing_column.sql`). `CHECK (is_featured_on_landing = false OR visibility = 'public')`. Set to `true` only by `approve_featured_nomination()` (Sprint 3). Auto-cleared to false by `fn_autoclear_featured_on_visibility_change()` (BEFORE UPDATE, `trg_autoclear_featured_flashcard_decks`) the moment `visibility` leaves `'public'`. Partial index `idx_flashcard_decks_featured` on `WHERE is_featured_on_landing = true`. |
+| featured_nominated_by | UUID | FK → profiles.id, nullable | ⭐ NEW (Phase 5 Sprint 3, ⏳ SQL authored — not yet deployed — see `docs/database/phase5/09_SCHEMA_add_featured_nomination_columns.sql`). Set by `nominate_featured_content()`. Nulled by the auto-clear trigger on unpublish, and by `reject_featured_nomination()`. |
+| featured_nominated_at | TIMESTAMPTZ | nullable | ⭐ NEW (Phase 5 Sprint 3, ⏳ not yet deployed). Non-NULL + `is_featured_on_landing = false` is what makes a deck appear in `get_pending_featured_nominations()`. |
+| featured_approved_by | UUID | FK → profiles.id, nullable | ⭐ NEW (Phase 5 Sprint 3, ⏳ not yet deployed). Set by `approve_featured_nomination()`. Nulled by `reject_featured_nomination()` and `unfeature_content()`. |
+| featured_approved_at | TIMESTAMPTZ | nullable | ⭐ NEW (Phase 5 Sprint 3, ⏳ not yet deployed). |
 | created_at | TIMESTAMPTZ | DEFAULT NOW() | |
 | updated_at | TIMESTAMPTZ | DEFAULT NOW() | |
 

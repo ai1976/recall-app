@@ -233,6 +233,7 @@ recall-app
 ### Content Creation
 - `src/pages/dashboard/Content/FlashcardCreate.jsx` — useBlocker guard + beforeunload + localStorage autosave (1s debounce)
 - `src/pages/dashboard/Content/NoteUpload.jsx` — image compression (maxSizeMB: 0.5, maxWidthOrHeight: 1920)
+- `src/components/content/FeatureNominationButton.jsx` — Phase 5 S3 curation control (3 states: nominate/pending/live); used in `MyFlashcards.jsx` + `NoteDetail.jsx`; gated on `docs/database/phase5/09–11` deployment
 
 ### Public / Share Pages
 - `src/pages/public/DeckPreview.jsx` — /deck/:deckId (OG tags via middleware.js)
@@ -241,7 +242,7 @@ recall-app
 - `middleware.js` — Vercel Edge Middleware injects OG tags for bots on /deck/* and /note/* and /join/*
 
 ### Admin
-- `src/pages/admin/AdminDashboard.jsx` — user management, content flags, access requests, batch groups
+- `src/pages/admin/AdminDashboard.jsx` — user management, content flags, access requests, batch groups, landing-page featured content curation queues (Phase 5 S3)
 - `src/pages/admin/SuperAdminDashboard.jsx` — role promotion, hard delete via admin_delete_user_data RPC
 - `src/pages/admin/MigrateNoteImages.jsx` — **TEMP: delete after note image migration confirmed complete**
 

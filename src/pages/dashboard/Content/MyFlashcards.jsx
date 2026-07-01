@@ -8,14 +8,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Brain, Plus, Search, Trash2, Filter, Edit2, Calendar, Package, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRole } from '@/hooks/useRole';
 import FlashcardCard from '@/components/flashcards/FlashcardCard';
+import FeatureNominationButton from '@/components/content/FeatureNominationButton';
 
 export default function MyFlashcards() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isProfessor, isAdmin } = useRole();
   const [flashcards, setFlashcards] = useState([]);
   const [filteredCards, setFilteredCards] = useState([]);
+  const [userDecks, setUserDecks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Filter states
@@ -90,6 +94,31 @@ export default function MyFlashcards() {
       console.error('Error fetching options:', error);
     }
   }, []);
+
+  const fetchUserDecks = useCallback(async () => {
+    try {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from('flashcard_decks')
+        .select('id, subject_id, topic_id, custom_subject, custom_topic, visibility, is_featured_on_landing, featured_nominated_at')
+        .eq('user_id', user.id);
+      if (error) throw error;
+      setUserDecks(data || []);
+    } catch (error) {
+      console.error('Error fetching user decks:', error);
+    }
+  }, [user]);
+
+  // Matches a batch group to its flashcard_decks row via the 5-grouping-column join
+  // (deck_id on flashcards is never populated — see CLAUDE.md).
+  const findDeckForGroup = useCallback((group) => {
+    return userDecks.find(d =>
+      (d.subject_id ?? null) === (group.subjectId ?? null) &&
+      (d.topic_id ?? null) === (group.topicId ?? null) &&
+      (d.custom_subject ?? null) === (group.customSubject ?? null) &&
+      (d.custom_topic ?? null) === (group.customTopic ?? null)
+    );
+  }, [userDecks]);
 
   const fetchFlashcards = useCallback(async () => {
     try {
@@ -193,7 +222,8 @@ export default function MyFlashcards() {
   useEffect(() => {
     fetchFlashcards();
     fetchAllCoursesSubjectsTopics();
-  }, [fetchFlashcards, fetchAllCoursesSubjectsTopics]);
+    fetchUserDecks();
+  }, [fetchFlashcards, fetchAllCoursesSubjectsTopics, fetchUserDecks]);
 
   useEffect(() => {
     applyFilters();
@@ -895,7 +925,20 @@ export default function MyFlashcards() {
                         </p>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const deckMeta = findDeckForGroup(group);
+                          if (!deckMeta || deckMeta.visibility !== 'public' || !(isProfessor || isAdmin)) return null;
+                          return (
+                            <FeatureNominationButton
+                              contentType="deck"
+                              contentId={deckMeta.id}
+                              isFeatured={deckMeta.is_featured_on_landing}
+                              isNominated={!!deckMeta.featured_nominated_at}
+                            />
+                          );
+                        })()}
+
                         <Button
                           onClick={() => openEditGroupDialog(group)}
                           size="sm"

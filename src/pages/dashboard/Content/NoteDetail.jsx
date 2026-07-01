@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText, File, Calendar, Tag, Plus, Brain, Trash2, Edit, Users, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRole } from '@/hooks/useRole';
 import UpvoteButton from '@/components/ui/UpvoteButton';
 import ContentPreviewWall from '@/components/ui/ContentPreviewWall';
 import FlagButton from '@/components/ui/FlagButton';
+import FeatureNominationButton from '@/components/content/FeatureNominationButton';
 
 export default function NoteDetail() {
   const { id } = useParams();
@@ -16,6 +18,7 @@ export default function NoteDetail() {
   const backTo = searchParams.get('ref') === 'admin' ? '/admin' : null;
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isProfessor, isAdmin } = useRole();
   const [note, setNote] = useState(null);
   const [flashcards, setFlashcards] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -196,6 +199,15 @@ export default function NoteDetail() {
                   <Share2 className="h-4 w-4 mr-1" />
                   Share
                 </Button>
+              )}
+
+              {note?.visibility === 'public' && (isAdmin || (isProfessor && isOwner)) && (
+                <FeatureNominationButton
+                  contentType="note"
+                  contentId={note.id}
+                  isFeatured={note.is_featured_on_landing}
+                  isNominated={!!note.featured_nominated_at}
+                />
               )}
 
               {!isOwner && (

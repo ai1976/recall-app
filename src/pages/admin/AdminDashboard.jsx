@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Users, FileText, AlertCircle, TrendingUp, XCircle, CreditCard,
-  ChevronDown, ChevronUp, ExternalLink, Shield, Plus, X, AlertTriangle,
+  ChevronDown, ChevronUp, ExternalLink, Shield, Plus, X, AlertTriangle, Star,
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -44,6 +44,11 @@ export default function AdminDashboard() {
   const [flagsLoading, setFlagsLoading] = useState(false);
   const [flagFilter, setFlagFilter] = useState('pending');
 
+  // ── Landing Page Content (featured nomination/approval) state
+  const [featuredPending, setFeaturedPending] = useState([]);
+  const [featuredLive, setFeaturedLive] = useState([]);
+  const [featuredLoading, setFeaturedLoading] = useState(false);
+
   // ── Load-more limits
   const [notesLimit, setNotesLimit] = useState(10);
   const [decksLimit, setDecksLimit] = useState(10);
@@ -77,7 +82,7 @@ export default function AdminDashboard() {
 
   async function fetchAll() {
     setIsLoading(true);
-    await Promise.all([fetchStats(), fetchContent(), fetchUsers(), fetchFlaggedContent('pending')]);
+    await Promise.all([fetchStats(), fetchContent(), fetchUsers(), fetchFlaggedContent('pending'), fetchFeaturedContent()]);
     setIsLoading(false);
   }
 
@@ -86,6 +91,69 @@ export default function AdminDashboard() {
     const { data } = await supabase.rpc('get_admin_flags', { p_status: status });
     setFlaggedItems(data || []);
     setFlagsLoading(false);
+  }
+
+  async function fetchFeaturedContent() {
+    setFeaturedLoading(true);
+    try {
+      const [pendingRes, liveRes] = await Promise.all([
+        supabase.rpc('get_pending_featured_nominations'),
+        supabase.rpc('get_live_featured_content_admin'),
+      ]);
+      setFeaturedPending(pendingRes.data ?? []);
+      setFeaturedLive(liveRes.data ?? []);
+    } catch (err) {
+      console.error('fetchFeaturedContent:', err);
+    } finally {
+      setFeaturedLoading(false);
+    }
+  }
+
+  async function approveFeaturedNomination(item) {
+    try {
+      const { data, error } = await supabase.rpc('approve_featured_nomination', {
+        p_content_type: item.content_type,
+        p_content_id: item.content_id,
+      });
+      if (error) throw error;
+      if (data !== true) {
+        alert('Approval failed — this content is no longer public.');
+      }
+      fetchFeaturedContent();
+    } catch (err) {
+      console.error('approveFeaturedNomination:', err);
+      alert('Failed to approve nomination');
+    }
+  }
+
+  async function rejectFeaturedNomination(item) {
+    if (!confirm('Reject this nomination?')) return;
+    try {
+      const { error } = await supabase.rpc('reject_featured_nomination', {
+        p_content_type: item.content_type,
+        p_content_id: item.content_id,
+      });
+      if (error) throw error;
+      fetchFeaturedContent();
+    } catch (err) {
+      console.error('rejectFeaturedNomination:', err);
+      alert('Failed to reject nomination');
+    }
+  }
+
+  async function unfeatureContent(item) {
+    if (!confirm('Remove this content from the landing page?')) return;
+    try {
+      const { error } = await supabase.rpc('unfeature_content', {
+        p_content_type: item.content_type,
+        p_content_id: item.content_id,
+      });
+      if (error) throw error;
+      fetchFeaturedContent();
+    } catch (err) {
+      console.error('unfeatureContent:', err);
+      alert('Failed to unfeature content');
+    }
   }
 
   async function fetchStats() {
@@ -561,6 +629,117 @@ export default function AdminDashboard() {
                 ))}
               </div>
             )}
+          </div>
+          <hr className="border-gray-200" />
+
+          {/* === LANDING PAGE CONTENT === */}
+          <div className="mb-2">
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+              <Star className="h-5 w-5 text-amber-500" />
+              Landing Page Content
+            </h3>
+
+            {/* Pending Nominations — always visible, zero-state per project rule */}
+            <div className="mb-6">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Pending Nominations</h4>
+              {featuredLoading ? (
+                <p className="text-sm text-gray-400">Loading…</p>
+              ) : featuredPending.length === 0 ? (
+                <p className="text-sm text-gray-400">No pending nominations.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-gray-500 border-b">
+                        <th className="pb-2 pr-4 font-medium">Title</th>
+                        <th className="pb-2 pr-4 font-medium">Type</th>
+                        <th className="pb-2 pr-4 font-medium">Subject / Topic</th>
+                        <th className="pb-2 pr-4 font-medium">Owner</th>
+                        <th className="pb-2 pr-4 font-medium">Nominated By</th>
+                        <th className="pb-2 pr-4 font-medium">Nominated</th>
+                        <th className="pb-2 font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {featuredPending.map((item) => (
+                        <tr key={`${item.content_type}-${item.content_id}`} className="hover:bg-gray-50">
+                          <td className="py-3 pr-4 font-medium text-gray-900">{item.title}</td>
+                          <td className="py-3 pr-4 text-gray-500 capitalize">{item.content_type}</td>
+                          <td className="py-3 pr-4 text-gray-700">
+                            {item.subject || '—'}{item.topic ? ` / ${item.topic}` : ''}
+                          </td>
+                          <td className="py-3 pr-4 text-gray-700">{item.owner_name || '—'}</td>
+                          <td className="py-3 pr-4 text-gray-700">{item.nominated_by_name || '—'}</td>
+                          <td className="py-3 pr-4 text-gray-400 text-xs">
+                            {item.nominated_at ? new Date(item.nominated_at).toLocaleDateString() : '—'}
+                          </td>
+                          <td className="py-3">
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" className="text-green-600 border-green-300"
+                                onClick={() => approveFeaturedNomination(item)}>
+                                Approve
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-red-600"
+                                onClick={() => rejectFeaturedNomination(item)}>
+                                Reject
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Currently Live — always visible, zero-state per project rule */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Currently Live</h4>
+              {featuredLoading ? (
+                <p className="text-sm text-gray-400">Loading…</p>
+              ) : featuredLive.length === 0 ? (
+                <p className="text-sm text-gray-400">No content is currently featured on the landing.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-gray-500 border-b">
+                        <th className="pb-2 pr-4 font-medium">Title</th>
+                        <th className="pb-2 pr-4 font-medium">Type</th>
+                        <th className="pb-2 pr-4 font-medium">Subject / Topic</th>
+                        <th className="pb-2 pr-4 font-medium">Owner</th>
+                        <th className="pb-2 pr-4 font-medium">Approved By</th>
+                        <th className="pb-2 pr-4 font-medium">Approved</th>
+                        <th className="pb-2 font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {featuredLive.map((item) => (
+                        <tr key={`${item.content_type}-${item.content_id}`} className="hover:bg-gray-50">
+                          <td className="py-3 pr-4 font-medium text-gray-900">{item.title}</td>
+                          <td className="py-3 pr-4 text-gray-500 capitalize">{item.content_type}</td>
+                          <td className="py-3 pr-4 text-gray-700">
+                            {item.subject || '—'}{item.topic ? ` / ${item.topic}` : ''}
+                          </td>
+                          <td className="py-3 pr-4 text-gray-700">{item.owner_name || '—'}</td>
+                          <td className="py-3 pr-4 text-gray-700">{item.approved_by_name || '—'}</td>
+                          <td className="py-3 pr-4 text-gray-400 text-xs">
+                            {item.approved_at ? new Date(item.approved_at).toLocaleDateString() : '—'}
+                          </td>
+                          <td className="py-3">
+                            <Button size="sm" variant="outline" className="text-red-600"
+                              onClick={() => unfeatureContent(item)}>
+                              Unfeature
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
           <hr className="border-gray-200" />
 
