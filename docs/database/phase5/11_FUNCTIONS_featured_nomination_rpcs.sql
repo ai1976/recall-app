@@ -19,9 +19,11 @@
 --   non-public between page load and click (the CHECK/trigger would keep it false).
 -- reject_featured_nomination: admin/super_admin only. Nulls all four nomination/approval
 --   fields; leaves is_featured_on_landing=false.
--- unfeature_content: admin/super_admin only. Sets is_featured_on_landing=false and nulls only
---   the two approval fields — nomination fields are deliberately left intact, so an unfeatured
---   item re-enters the Pending Nominations queue rather than disappearing outright.
+-- unfeature_content: admin/super_admin only. Full removal — sets is_featured_on_landing=false
+--   AND nulls all four nomination/approval fields, so an unfeatured item leaves BOTH the landing
+--   and the Pending Nominations queue in one step. Functionally identical to
+--   reject_featured_nomination; the two names are kept for UI/audit clarity (Live vs Pending).
+--   Re-featuring requires an explicit fresh nomination by the creator/admin.
 -- get_pending_featured_nominations / get_live_featured_content_admin: admin/super_admin only.
 --   Each UNION ALLs decks + notes into one shape for the admin queues (card_count is NULL for
 --   notes). ORDER BY is applied to the combined result, hence the explicit column aliases on
@@ -201,11 +203,13 @@ BEGIN
   IF p_content_type = 'deck' THEN
     UPDATE flashcard_decks
     SET is_featured_on_landing = false,
+        featured_nominated_by = NULL, featured_nominated_at = NULL,
         featured_approved_by = NULL, featured_approved_at = NULL
     WHERE id = p_content_id;
   ELSE
     UPDATE notes
     SET is_featured_on_landing = false,
+        featured_nominated_by = NULL, featured_nominated_at = NULL,
         featured_approved_by = NULL, featured_approved_at = NULL
     WHERE id = p_content_id;
   END IF;

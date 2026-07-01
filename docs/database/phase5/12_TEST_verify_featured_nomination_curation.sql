@@ -220,8 +220,8 @@ END $$;
 ROLLBACK;
 
 -- ============================================
--- 8. unfeature_content leaves nomination fields intact (re-enters Pending queue by design)
--- Expected: PASS: nomination fields intact, is_featured_on_landing false, approval fields null
+-- 8. unfeature_content is a full removal — nulls all four fields (leaves BOTH landing + queue)
+-- Expected: PASS: is_featured_on_landing false and all four nomination/approval fields null
 -- ============================================
 BEGIN;
 DO $$
@@ -247,11 +247,11 @@ BEGIN
     PERFORM 1 FROM flashcard_decks
     WHERE id = v_deck_id
       AND is_featured_on_landing = false
-      AND featured_nominated_by IS NOT NULL AND featured_nominated_at IS NOT NULL
+      AND featured_nominated_by IS NULL AND featured_nominated_at IS NULL
       AND featured_approved_by IS NULL AND featured_approved_at IS NULL;
 
     IF FOUND THEN
-      RAISE NOTICE 'PASS: nomination fields intact after unfeature, approval fields cleared';
+      RAISE NOTICE 'PASS: all four fields cleared after unfeature (full removal)';
     ELSE
       RAISE NOTICE 'FAIL: unexpected field state after unfeature';
     END IF;
