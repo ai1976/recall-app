@@ -152,7 +152,7 @@
 | is_verified | boolean | NO | false | Professor-verified content badge |
 | view_count | integer | NO | 0 | Engagement tracking |
 | upvote_count | integer | NO | 0 | Quality signal |
-| is_featured_on_landing | boolean | NO | false | ⭐ NEW (Phase 5 Sprint 2, SQL not yet deployed — see `docs/database/phase5/03_SCHEMA_add_is_featured_on_landing_column.sql`). Curated by professors/admins (Sprint 3 UI). `CHECK (is_featured_on_landing = false OR visibility = 'public')`. Auto-cleared to false by `trg_autoclear_featured_notes` (BEFORE UPDATE) the moment `visibility` leaves `'public'`. Partial index `idx_notes_featured` on `WHERE is_featured_on_landing = true`. |
+| is_featured_on_landing | boolean | NO | false | ⭐ NEW (Phase 5 Sprint 2, ✅ deployed 2026-07-01 — see `docs/database/phase5/03_SCHEMA_add_is_featured_on_landing_column.sql`). Curated by professors/admins (Sprint 3 UI). `CHECK (is_featured_on_landing = false OR visibility = 'public')`. Auto-cleared to false by `trg_autoclear_featured_notes` (BEFORE UPDATE) the moment `visibility` leaves `'public'`. Partial index `idx_notes_featured` on `WHERE is_featured_on_landing = true`. |
 | created_at | timestamp | NO | NOW() | Upload timestamp |
 | updated_at | timestamp | NO | NOW() | Last modified |
 
@@ -2375,7 +2375,7 @@ Groups flashcards into logical decks by user/subject/topic. Enables upvoting at 
 | description | TEXT | nullable | |
 | card_count | INTEGER | DEFAULT 0 | Auto-updated by trigger |
 | upvote_count | INTEGER | DEFAULT 0 | Auto-updated by trigger |
-| is_featured_on_landing | BOOLEAN | NOT NULL, DEFAULT false | ⭐ NEW (Phase 5 Sprint 2, SQL not yet deployed — see `docs/database/phase5/03_SCHEMA_add_is_featured_on_landing_column.sql`). Curated by professors/admins (Sprint 3 UI). `CHECK (is_featured_on_landing = false OR visibility = 'public')`. Auto-cleared to false by `trg_autoclear_featured_flashcard_decks` (BEFORE UPDATE) the moment `visibility` leaves `'public'`. Partial index `idx_flashcard_decks_featured` on `WHERE is_featured_on_landing = true`. |
+| is_featured_on_landing | BOOLEAN | NOT NULL, DEFAULT false | ⭐ NEW (Phase 5 Sprint 2, ✅ deployed 2026-07-01 — see `docs/database/phase5/03_SCHEMA_add_is_featured_on_landing_column.sql`). Curated by professors/admins (Sprint 3 UI). `CHECK (is_featured_on_landing = false OR visibility = 'public')`. Auto-cleared to false by `trg_autoclear_featured_flashcard_decks` (BEFORE UPDATE) the moment `visibility` leaves `'public'`. Partial index `idx_flashcard_decks_featured` on `WHERE is_featured_on_landing = true`. |
 | created_at | TIMESTAMPTZ | DEFAULT NOW() | |
 | updated_at | TIMESTAMPTZ | DEFAULT NOW() | |
 
