@@ -11,7 +11,7 @@
 
 **Scope:** rebuild the anonymous `Home.jsx` to show, not tell — live card-flip demo, real featured-content rail, stats consolidation, testimonial removal. Consumed S1 (`FlipCard`/`StudyItemCard`) and S2 (`get_featured_landing_content()`).
 
-**⚠️ SQL NOT YET DEPLOYED.** `docs/database/phase5/13_FUNCTIONS_extend_get_platform_stats_public_counts.sql` is saved to the repo but not run against the live DB. **This is a hard prerequisite for pushing this sprint's frontend** — until deployed, `get_platform_stats()` doesn't return `public_flashcards`/`public_notes`, so the "Free to Browse" section shows `0`/`0` instead of the real public counts.
+**✅ SQL DEPLOYED & VERIFIED 2026-07-01.** `docs/database/phase5/13_FUNCTIONS_extend_get_platform_stats_public_counts.sql` deployed to the live DB; `get_platform_stats()` now returns `public_flashcards`=693 / `public_notes`=107 alongside the existing totals. Frontend pushed to main.
 
 - **Stats consolidation (SQL route, closes a real tech-debt item):** `13_FUNCTIONS` extends `get_platform_stats()` (`CREATE OR REPLACE`, same signature, existing 4 fields untouched) with `public_flashcards`/`public_notes`. `Home.jsx` deleted its two `profiles` role-count reads and two `flashcards`/`notes` public-count reads — **zero direct `.from()` calls left in Home.jsx.** This closes the exact violation blueprint.md §1.4 had flagged as Technical Debt.
 - **Hero live-demo:** new `src/components/landing/HeroFlipDemo.jsx`. Fetches `get_featured_landing_content()` on mount; drives the flip demo from the first featured deck with teaser cards. Flow: question → tap to flip (`FlipCard`, controlled) → answer + Hard/Medium/Easy rating buttons (styled after `StudyMode.jsx`'s rating UI, cosmetic only — no SRS write) → advance. After the last card: soft wall "Sign up to save your progress" → `/signup`. **Fallback (verified):** if no featured deck has cards, falls back to 3 hardcoded generic cards so the hero is never blank.
@@ -30,7 +30,7 @@ Files Changed: `docs/database/phase5/13_FUNCTIONS_extend_get_platform_stats_publ
 
 **Scope:** SQL-first, then UI. Adds a nomination/approval layer on top of the deployed S2 `is_featured_on_landing` flag.
 
-**⚠️ Part A SQL NOT YET DEPLOYED.** `docs/database/phase5/09`–`12` are saved to the repo but have not been run against the live DB. **This is a hard prerequisite for pushing the Part B frontend live** — the professor "Feature on landing" action and the admin approval queues will error against the live DB until the founder runs 09→11 and verifies with 12.
+**✅ DEPLOYED & VERIFIED 2026-07-01.** `docs/database/phase5/09`–`11` deployed; verified with `12` (7 PASS, 1 SKIP, 0 FAIL). Part B frontend live on main — professor "Feature on landing" action + admin approval queues confirmed working end-to-end in the live UI.
 
 - **Two-step gate (locked decision):** professors/admins nominate their own already-public content; admins/super_admins approve to put it live. No self-serve instant featuring for professors.
 - **09_SCHEMA** — 4 new nullable columns on `flashcard_decks` + `notes`: `featured_nominated_by`/`_at`, `featured_approved_by`/`_at` (FK → `profiles.id`). Purely additive on top of the deployed S2 `is_featured_on_landing` — `is_featured_on_landing = true` still means "approved & live."
@@ -50,7 +50,7 @@ Files Changed: `docs/database/phase5/09_SCHEMA_add_featured_nomination_columns.s
 
 **Scope:** SQL-first sprint. Schema + SECURITY DEFINER RPC only — no frontend, no `Home.jsx` changes.
 
-**⚠️ NOT YET DEPLOYED.** All 8 scripts are saved to `docs/database/phase5/` but have not been run against the live DB. This is a hard prerequisite for Sprint 3/4 frontend work.
+**✅ DEPLOYED & VERIFIED 2026-07-01.** All scripts (`03`–`08`) deployed and verified against the live DB.
 
 - **Ground truth first:** introspected the live `get_public_deck_preview` (jsonb, deck + `preview_items` — was capped at 10, not 5) and `get_public_note_preview` (TABLE, revealed an undocumented `notes.description` column) via `pg_get_functiondef`, plus a trigger collision scan (`flashcard_decks` has zero existing triggers; `notes` has no `BEFORE UPDATE` trigger) — so the new triggers are collision-free.
 - **`is_featured_on_landing` column** added to `flashcard_decks` and `notes` — `DEFAULT false`, inline `CHECK (is_featured_on_landing = false OR visibility = 'public')`. Curation UI (who sets this flag) is Sprint 3's job, not this one.

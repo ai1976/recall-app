@@ -2348,8 +2348,8 @@ SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
 ### get_platform_stats()
 **Purpose:** Public headline stats for the unauthenticated landing page (and AdminDashboard, which hits the same RLS wall)
 **Security:** DEFINER — `GRANT EXECUTE TO anon, authenticated`
-**Added:** 2026-02-20 (all-visibility totals). **Extended:** 2026-07-01 (Phase 5 Sprint 4) — added `public_flashcards`/`public_notes`. ⏳ **SQL authored — not yet deployed.** See `docs/database/phase5/13_FUNCTIONS_extend_get_platform_stats_public_counts.sql`.
-**Returns:** `jsonb` — `{ student_count, educator_count, total_flashcards, total_notes, public_flashcards, public_notes }`. `total_*` counts all visibility levels (bypasses RLS); `public_*` counts `visibility = 'public'` rows only (added S4 to remove Home.jsx's direct anon `.from()` count reads, which were RLS-filtered/unreliable — see blueprint.md §1.4).
+**Added:** 2026-02-20 (all-visibility totals). **Extended:** 2026-07-01 (Phase 5 Sprint 4) — added `public_flashcards`/`public_notes`. ✅ **Deployed 2026-07-01** (verified: public_flashcards=693, public_notes=107). See `docs/database/phase5/13_FUNCTIONS_extend_get_platform_stats_public_counts.sql`.
+**Returns:** `json` (LANGUAGE sql) — `{ student_count, educator_count, total_flashcards, total_notes, public_flashcards, public_notes }`. `total_*` counts all visibility levels (bypasses RLS); `public_*` counts `visibility = 'public'` rows only (added S4 to remove Home.jsx's direct anon `.from()` count reads, which were RLS-filtered/unreliable — see blueprint.md §1.4).
 **Caller:** `Home.jsx` (hero badge/grid stats use `total_*`; "Free to Browse" educator section uses `public_*`), `AdminDashboard.jsx` (uses `total_*` — direct table counts undercounted vs this RPC, see changelog 2026-06-XX admin stat fix)
 
 ---
@@ -2373,7 +2373,7 @@ SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
 ### nominate_featured_content(p_content_type text, p_content_id uuid)
 **Purpose:** Professor/admin nominates their own already-public deck/note for landing-page featuring (step 1 of the two-step curation gate)
 **Security:** DEFINER. Role gate: caller must be `professor`/`admin`/`super_admin`, AND must own the row unless caller is admin/super_admin. Public-only guard: raises if `visibility <> 'public'`.
-**Added:** 2026-07-01 (Phase 5 Sprint 3) — ⚠️ **SQL written but NOT yet deployed.** See `docs/database/phase5/11_FUNCTIONS_featured_nomination_rpcs.sql`.
+**Added:** 2026-07-01 (Phase 5 Sprint 3) — ✅ **Deployed 2026-07-01.** See `docs/database/phase5/11_FUNCTIONS_featured_nomination_rpcs.sql`.
 **Returns:** `void`. Sets `featured_nominated_by = auth.uid()`, `featured_nominated_at = now()`. Does NOT set `is_featured_on_landing`. Idempotent.
 **Caller:** `FeatureNominationButton.jsx` (used in `MyFlashcards.jsx`, `NoteDetail.jsx`)
 
