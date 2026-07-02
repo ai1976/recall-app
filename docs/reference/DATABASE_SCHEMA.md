@@ -65,7 +65,7 @@
 - **push_notification_preferences** - Per-user boolean preferences (all default true)
 
 ### Access Control
-- **access_requests** - WhatsApp lead capture + B2B institute access requests + educator applications. `request_type` (`student_access` default / `institute_inquiry` / `educator_application`, ✅ deployed 2026-07-01, Phase 5 Sprint 5) distinguishes the three flows; `message` (nullable) carries institute city + optional note, or (educator_application) the credential/LinkedIn + why. `status` CHECK ⏳ Phase 5 Sprint 6 (NOT yet deployed) extends `('pending','contacted','enrolled')` to add `'approved'`/`'rejected'` for educator applications — note `'dismissed'`, already offered in `AdminDashboard.jsx`'s status dropdown, was never in the CHECK; that's a separate pre-existing bug, not fixed by this sprint. See `submit_access_request()` / `submit_institute_inquiry()` / `submit_educator_application()` / `approve_educator_application()` / `reject_educator_application()` in §4.
+- **access_requests** - WhatsApp lead capture + B2B institute access requests + educator applications. `request_type` (`student_access` default / `institute_inquiry` / `educator_application`, ✅ deployed 2026-07-01, Phase 5 Sprint 5) distinguishes the three flows; `message` (nullable) carries institute city + optional note, or (educator_application) the credential/LinkedIn + why. `status` CHECK ✅ Phase 5 Sprint 6 (deployed 2026-07-02) extends `('pending','contacted','enrolled')` to add `'approved'`/`'rejected'` for educator applications — note `'dismissed'`, already offered in `AdminDashboard.jsx`'s status dropdown, was never in the CHECK; that's a separate pre-existing bug, not fixed by this sprint. See `submit_access_request()` / `submit_institute_inquiry()` / `submit_educator_application()` / `approve_educator_application()` / `reject_educator_application()` in §4.
 - **content_flags** - Content reporting (auto-escalates to 'high' at 3+ flags)
 
 ### Revenue Tracking
@@ -2085,12 +2085,12 @@ LIMIT 10;
 
 **Purpose:** Quick reference for what changed and when
 
-### July 2, 2026 (Phase 5 Sprint 6 — educator-application → admin-approve → role grant) ⏳ SQL written, NOT yet deployed
-- ⏳ Extended `access_requests_status_check` CHECK to add `'approved'`/`'rejected'` (was `('pending','contacted','enrolled')` — noted `'dismissed'` was never in the CHECK despite the admin UI offering it; pre-existing, unfixed here) — see `docs/database/phase5/17_SCHEMA_extend_access_requests_status_check_for_approval.sql`
-- ⏳ Created `submit_educator_application()` RPC (SECURITY DEFINER, `GRANT TO anon, authenticated`, returns the row's `ref_token` uuid) — see `docs/database/phase5/18_FUNCTIONS_submit_educator_application.sql`
-- ⏳ Created `approve_educator_application()` / `reject_educator_application()` RPCs (admin/super_admin only) — see `docs/database/phase5/19_FUNCTIONS_approve_reject_educator_application.sql`
-- ⏳ Extended `link_access_request()` (`CREATE OR REPLACE`, exact introspected signature/return type preserved) to grant `professor` on first login when the carried ref_token matches an already-approved `educator_application` — see `docs/database/phase5/20_FUNCTIONS_extend_link_access_request_educator_role_grant.sql`
-- Not yet deployed — pending founder confirmation (`docs/database/phase5/21_TEST`, 11 blocks, ready to run post-deploy)
+### July 2, 2026 (Phase 5 Sprint 6 — educator-application → admin-approve → role grant) ✅ Deployed & verified 2026-07-02
+- ✅ Extended `access_requests_status_check` CHECK to add `'approved'`/`'rejected'` (was `('pending','contacted','enrolled')` — noted `'dismissed'` was never in the CHECK despite the admin UI offering it; pre-existing, unfixed here) — see `docs/database/phase5/17_SCHEMA_extend_access_requests_status_check_for_approval.sql`
+- ✅ Created `submit_educator_application()` RPC (SECURITY DEFINER, `GRANT TO anon, authenticated`, returns the row's `ref_token` uuid) — see `docs/database/phase5/18_FUNCTIONS_submit_educator_application.sql`
+- ✅ Created `approve_educator_application()` / `reject_educator_application()` RPCs (admin/super_admin only) — see `docs/database/phase5/19_FUNCTIONS_approve_reject_educator_application.sql`
+- ✅ Extended `link_access_request()` (`CREATE OR REPLACE`, exact introspected signature/return type preserved) to grant `professor` on first login when the carried ref_token matches an already-approved `educator_application` — see `docs/database/phase5/20_FUNCTIONS_extend_link_access_request_educator_role_grant.sql`
+- ✅ Deployed & verified 2026-07-02 (`docs/database/phase5/21_TEST`: 11/11 PASS, including the one-time-claim security check)
 - Frontend (written, not pushed): `Educators.jsx` gets a second "Apply to Teach on RevisOp" section; `AdminDashboard.jsx` access-requests table gets an Educator Applications filter + Approve/Reject actions
 
 ### July 1, 2026 (Phase 5 Sprint 5 — B2B /educators route)
@@ -2451,7 +2451,7 @@ SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
 ### submit_educator_application(p_full_name text, p_whatsapp_number text, p_credential_or_linkedin text, p_email text DEFAULT NULL, p_institute_name text DEFAULT NULL, p_course text DEFAULT NULL, p_why text DEFAULT NULL, p_requester_user_id uuid DEFAULT NULL)
 **Purpose:** Capture an educator application from the anonymous "Apply to Teach on RevisOp" section of `/educators` — the self-serve half of the hybrid educator on-ramp (admin approval is the gate, see `approve_educator_application` below).
 **Security:** DEFINER, `SET search_path TO 'public'` — `GRANT EXECUTE TO anon, authenticated`
-**Added:** 2026-07-02 (Phase 5 Sprint 6) — ⏳ **SQL written, NOT yet deployed**. See `docs/database/phase5/18_FUNCTIONS_submit_educator_application.sql`.
+**Added:** 2026-07-02 (Phase 5 Sprint 6) — ✅ **Deployed 2026-07-02**. See `docs/database/phase5/18_FUNCTIONS_submit_educator_application.sql`.
 **Returns:** `uuid` — the inserted row's `ref_token` (not void, unlike the other two `submit_*` RPCs). An anonymous applicant has no account yet; the frontend stores this token into `localStorage['revisop_access_ref']`, the same slot `Signup.jsx`'s `?ref=` query param populates, so a same-browser signup later auto-links via the extended `link_access_request()`. Inserts into `access_requests` with `request_type = 'educator_application'`. Required: `p_full_name`, `p_whatsapp_number`, `p_credential_or_linkedin` (the applicant's proof of expertise — the vetted-educator trust moat is core to the brand, so an application with no verifiable credential is rejected). Field mapping: `p_full_name → name`, `p_whatsapp_number → whatsapp_number`, `p_course → course` (defaults to `'Not specified'` if blank), `p_email → email`, `p_institute_name → content_name` (reused — same slot `submit_institute_inquiry` uses), `p_credential_or_linkedin` + `p_why → message` (combined as `"Credential/LinkedIn: <url>"` + optional `"\n\n<why>"`). Also inserts a `notifications` row (`type = 'access_request'`, `metadata->>'request_type' = 'educator_application'`) for every `admin`/`super_admin`.
 **Caller:** `Educators.jsx` (`/educators`)
 
@@ -2460,7 +2460,7 @@ SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
 ### approve_educator_application(p_request_id uuid)
 **Purpose:** Admin/super_admin decides a pending educator application — grants the `professor` role.
 **Security:** DEFINER, `admin`/`super_admin` only (role-guard idiom mirrors `approve_featured_nomination`).
-**Added:** 2026-07-02 (Phase 5 Sprint 6) — ⏳ **SQL written, NOT yet deployed**. Requires ⏳ `17_SCHEMA`'s `access_requests_status_check` extension to be deployed first (else the `UPDATE ... SET status = 'approved'` fails the CHECK). See `docs/database/phase5/19_FUNCTIONS_approve_reject_educator_application.sql`.
+**Added:** 2026-07-02 (Phase 5 Sprint 6) — ✅ **Deployed 2026-07-02**. Requires `17_SCHEMA`'s `access_requests_status_check` extension (deployed first) (else the `UPDATE ... SET status = 'approved'` fails the CHECK). See `docs/database/phase5/19_FUNCTIONS_approve_reject_educator_application.sql`.
 **Returns:** `text` — `'role_granted'` if the application already has a `requester_user_id` (applicant was logged in when they applied, or a prior signup already linked it): flips that account's `profiles.role → 'professor'` immediately and notifies them. `'approved_pending_signup'` if `requester_user_id IS NULL`: only marks the row `status = 'approved'`; the role grant is deferred to first login via the extended `link_access_request()`. Raises if the row isn't a pending `educator_application` or the caller isn't admin/super_admin.
 **Caller:** `AdminDashboard.jsx`
 
@@ -2469,7 +2469,7 @@ SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
 ### reject_educator_application(p_request_id uuid)
 **Purpose:** Admin/super_admin rejects a pending educator application.
 **Security:** DEFINER, `admin`/`super_admin` only.
-**Added:** 2026-07-02 (Phase 5 Sprint 6) — ⏳ **SQL written, NOT yet deployed**. See `docs/database/phase5/19_FUNCTIONS_approve_reject_educator_application.sql`.
+**Added:** 2026-07-02 (Phase 5 Sprint 6) — ✅ **Deployed 2026-07-02**. See `docs/database/phase5/19_FUNCTIONS_approve_reject_educator_application.sql`.
 **Returns:** `void`. Sets `status = 'rejected'`; notifies the applicant only if `requester_user_id` is set (an anonymous applicant has no way to receive an in-app notification).
 **Caller:** `AdminDashboard.jsx`
 
@@ -2478,8 +2478,8 @@ SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
 ### link_access_request(p_ref_token uuid) — extended Phase 5 Sprint 6
 **Purpose:** Tags the newly-authenticated user's `profiles.access_request_ref` with the carried ref_token (unchanged from its original behavior — it does NOT touch `access_requests` itself; `AdminDashboard.jsx` separately matches profiles↔requests by this tag for the student-access Grant-Access flow).
 **Security:** DEFINER (signature/return type preserved exactly as introspected — `CREATE OR REPLACE`, no `SET search_path` added, since none existed originally).
-**Added:** original date undocumented (pre-Phase-5, no saved migration script existed — ground-truth pulled via `pg_get_functiondef` for this sprint). **Extended:** 2026-07-02 (Phase 5 Sprint 6) — ⏳ **SQL written, NOT yet deployed**. See `docs/database/phase5/20_FUNCTIONS_extend_link_access_request_educator_role_grant.sql`.
-**Returns:** `void`. New behavior: after the existing tagging, checks whether `p_ref_token` matches an `access_requests` row with `request_type = 'educator_application' AND status = 'approved'`; if so, grants `profiles.role → 'professor'` and notifies the user right then. Closes the apply-anonymously-then-sign-up path (the applicant applied before having an account, and an admin approved it before they signed up). All other `request_type`s are unaffected.
+**Added:** original date undocumented (pre-Phase-5, no saved migration script existed — ground-truth pulled via `pg_get_functiondef` for this sprint). **Extended:** 2026-07-02 (Phase 5 Sprint 6) — ✅ **Deployed 2026-07-02**. See `docs/database/phase5/20_FUNCTIONS_extend_link_access_request_educator_role_grant.sql`.
+**Returns:** `void`. New behavior: after the existing tagging, checks whether `p_ref_token` matches an `access_requests` row with `request_type = 'educator_application' AND status = 'approved'`; if so, atomically claims that application (one-time — the claim UPDATE is guarded on `requester_user_id IS NULL`, so a token mints at most one professor even though this RPC is granted to `authenticated`), grants `profiles.role → 'professor'` (never demoting an existing admin/super_admin), and notifies the user right then. Closes the apply-anonymously-then-sign-up path (the applicant applied before having an account, and an admin approved it before they signed up). All other `request_type`s are unaffected.
 **Caller:** `Dashboard.jsx` (on first mount, replaying `localStorage['revisop_access_ref']`)
 
 ---
