@@ -1,6 +1,11 @@
 # Changelog
 
 ---
+## [2026-07-02] fix(db): access_requests 'dismissed' status CHECK (⏳ SQL not yet deployed)
+
+- **`docs/database/phase5/22_SCHEMA_add_dismissed_to_access_requests_status_check.sql`** (new) — extends `access_requests_status_check` to add `'dismissed'` (now `('pending','contacted','enrolled','approved','rejected','dismissed')`), closing a pre-existing bug where the admin status dropdown offered "Dismissed" but the CHECK rejected it (Postgres 23514). Idempotent DROP/ADD, mirrors script 17. No frontend change — dropdown already offers the option. ⏳ Deploy in Supabase; no frontend push needed.
+
+---
 ## [2026-07-02] feat(landing): Phase 5 Sprint 6 (FINAL) — educator-application → admin-approve → role grant (SQL written, NOT yet deployed)
 
 ### Added — SQL, saved to repo, not run against live DB

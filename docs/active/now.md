@@ -7,6 +7,10 @@
 
 ## Just Completed ✅
 
+### Post-Phase-5 fix — access_requests 'dismissed' status CHECK (Jul 2, 2026)
+
+Closed the pre-existing bug surfaced during S6: `AdminDashboard.jsx`'s access-request status dropdown offered `'dismissed'`, but the DB `access_requests_status_check` never allowed it → selecting it threw a `23514` CHECK violation. `docs/database/phase5/22_SCHEMA_add_dismissed_to_access_requests_status_check.sql` extends the CHECK to `('pending','contacted','enrolled','approved','rejected','dismissed')` (idempotent, mirrors script 17). **⏳ SQL authored — not yet deployed.** No frontend change (dropdown already offers the option); educator applications unaffected (they use the approve/reject RPCs, not this dropdown).
+
 ### Phase 5 Sprint 6 (FINAL) — educator-application → admin-approve → role grant (Jul 2, 2026)
 
 **Scope:** the hybrid educator on-ramp — self-serve application form on `/educators`, landing in the existing admin queue, where an admin approves it to grant the applicant the `professor` role (+ notify). Two-step, admin-gated: no self-serve upgrades. SQL-first, then frontend. **This is the final Phase 5 sprint — see "Phase 5 complete" note below.**
