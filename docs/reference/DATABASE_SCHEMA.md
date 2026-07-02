@@ -65,7 +65,7 @@
 - **push_notification_preferences** - Per-user boolean preferences (all default true)
 
 ### Access Control
-- **access_requests** - WhatsApp lead capture + B2B institute access requests
+- **access_requests** - WhatsApp lead capture + B2B institute access requests. `request_type` (`student_access` default / `institute_inquiry` / `educator_application`, ✅ deployed 2026-07-01, Phase 5 Sprint 5) distinguishes the two live flows; `message` (new, nullable) carries institute city + optional note. See `submit_access_request()` / `submit_institute_inquiry()` in §4.
 - **content_flags** - Content reporting (auto-escalates to 'high' at 3+ flags)
 
 ### Revenue Tracking
@@ -2085,6 +2085,13 @@ LIMIT 10;
 
 **Purpose:** Quick reference for what changed and when
 
+### July 1, 2026 (Phase 5 Sprint 5 — B2B /educators route)
+- ✅ Added `request_type` column to `access_requests` (`text NOT NULL DEFAULT 'student_access'`, `CHECK IN ('student_access','institute_inquiry','educator_application')` — third value reserved for Sprint 6, no re-migration needed) — see `docs/database/phase5/14_SCHEMA_add_request_type_and_message_columns.sql`
+- ✅ Added `message` column to `access_requests` (`text`, nullable) — carries institute city + optional note for `institute_inquiry` rows; no existing column fit without repurposing `content_type`'s meaning (rendered directly in `AdminDashboard.jsx`'s "Content Seen"/"Details" column)
+- ✅ Created `submit_institute_inquiry()` RPC (SECURITY DEFINER, `GRANT TO anon, authenticated`) — see `docs/database/phase5/15_FUNCTIONS_submit_institute_inquiry.sql`
+- ✅ Deployed & verified 2026-07-01 (`docs/database/phase5/16_TEST`, all 6 PASS)
+- Frontend: new `src/pages/public/Educators.jsx` (`/educators`, anonymous, zero direct `.from()`), `AdminDashboard.jsx` access-requests table gets a Type badge + filter
+
 ### February 21, 2026 (Phase 1F - Extended Badge System)
 - ✅ Created `user_stats` table (user_id PK, total_notes, total_flashcards, total_reviews, total_upvotes_given, total_upvotes_received, total_friends, updated_at) — O(1) counter lookups replace O(n) COUNT(*) in badge triggers
 - ✅ RLS on user_stats: users SELECT own row; all writes via SECURITY DEFINER triggers
@@ -2421,6 +2428,15 @@ SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
 **Added:** 2026-07-01 (Phase 5 Sprint 3) — ✅ deployed 2026-07-01.
 **Returns:** `TABLE (content_type, content_id, title, subject, topic, card_count, owner_name, nominated_by_name, nominated_at, approved_at, approved_by_name)` — `UNION ALL` of decks + notes, ordered `approved_at DESC`.
 **Caller:** `AdminDashboard.jsx`
+
+---
+
+### submit_institute_inquiry(p_institute_name text, p_contact_name text, p_whatsapp_number text, p_email text DEFAULT NULL, p_city text DEFAULT NULL, p_course text DEFAULT NULL, p_message text DEFAULT NULL, p_requester_user_id uuid DEFAULT NULL)
+**Purpose:** Capture a B2B institute lead from the anonymous `/educators` page (mirrors `submit_access_request`'s pattern for the student WhatsApp lead form)
+**Security:** DEFINER, `SET search_path TO 'public'` — `GRANT EXECUTE TO anon, authenticated`
+**Added:** 2026-07-01 (Phase 5 Sprint 5) — ✅ **Deployed 2026-07-01** (verified via `docs/database/phase5/16_TEST`, all 6 PASS). See `docs/database/phase5/15_FUNCTIONS_submit_institute_inquiry.sql`.
+**Returns:** `void`. Inserts into `access_requests` with `request_type = 'institute_inquiry'`. Field mapping onto the existing shape (no institute-specific columns exist): `p_contact_name → name`, `p_whatsapp_number → whatsapp_number`, `p_course → course` (defaults to `'General inquiry'` if blank), `p_email → email`, `p_institute_name → content_name` (reused — `content_id`/`content_type` stay `NULL` since there's no associated content preview), `p_city` + `p_message → message` (new column, combined as `"City: X" + "\n\n" + message`). Also inserts a `notifications` row (`type = 'access_request'` — reused, since `notifications_type_check` doesn't include an institute-specific value and extending it was out of scope; `metadata->>'request_type' = 'institute_inquiry'` distinguishes it) for every `admin`/`super_admin`.
+**Caller:** `Educators.jsx` (`/educators`)
 
 ---
 

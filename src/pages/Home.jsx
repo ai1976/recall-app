@@ -102,6 +102,7 @@ export default function Home() {
               <a href="#features" className="text-gray-700 hover:text-amber-500 transition">Features</a>
               <a href="#how-it-works" className="text-gray-700 hover:text-amber-500 transition">How It Works</a>
               <a href="#educators" className="text-gray-700 hover:text-amber-500 transition">For Educators</a>
+              <Link to="/educators" className="text-gray-700 hover:text-amber-500 transition">For Institutes</Link>
               <Link to="/login" className="text-gray-700 hover:text-amber-500 transition">Login</Link>
               <Link
                 to="/signup"
@@ -242,12 +243,9 @@ export default function Home() {
           <div className="mt-8 pt-6 border-t border-gray-200 max-w-3xl mx-auto">
             <p className="text-gray-500 text-sm">
               Are you an institute or coaching class?{' '}
-              <a
-                href="mailto:hello@revisop.com?subject=Get My Institute on RevisOp&body=Hi, I'd like to get my institute on RevisOp. Please send me more details.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
-                className="text-amber-600 hover:underline font-medium"
-              >
+              <Link to="/educators" className="text-amber-600 hover:underline font-medium">
                 Get your institute on RevisOp
-              </a>
+              </Link>
             </p>
           </div>
         </div>
@@ -606,12 +604,12 @@ export default function Home() {
               </div>
 
               <div className="mt-8 pt-8 border-t border-white/20">
-                <a
-                  href="mailto:hello@revisop.com?subject=Get My Institute on RevisOp&body=Hi, I'd like to get my institute on RevisOp.%0D%0A%0D%0AInstitute name: %0D%0ACity: %0D%0AContact number: "
+                <Link
+                  to="/educators"
                   className="block w-full bg-white text-[#1e1b4b] text-center px-6 py-3 rounded-lg font-semibold hover:bg-amber-50 transition"
                 >
                   Get My Institute on RevisOp
-                </a>
+                </Link>
                 <p className="text-center text-amber-100 text-sm mt-3">
                   Email: hello@revisop.com
                 </p>
@@ -698,7 +696,7 @@ export default function Home() {
             <div>
               <h3 className="text-white font-semibold mb-4">For Educators</h3>
               <ul className="space-y-2 text-sm">
-                <li><a href="mailto:hello@revisop.com?subject=Get My Institute on RevisOp" className="hover:text-white transition">Get My Institute on RevisOp</a></li>
+                <li><Link to="/educators" className="hover:text-white transition">Get My Institute on RevisOp</Link></li>
                 <li><a href="#educators" className="hover:text-white transition">Benefits</a></li>
                 <li><a href="mailto:hello@revisop.com" className="hover:text-white transition">Contact</a></li>
               </ul>

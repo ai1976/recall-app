@@ -30,6 +30,7 @@ export default function AdminDashboard() {
   const [accessRequests, setAccessRequests] = useState([]);
   const [accessRequestsLoading, setAccessRequestsLoading] = useState(false);
   const [matchedProfiles, setMatchedProfiles] = useState([]);  // profiles whose email matches a request
+  const [accessRequestTypeFilter, setAccessRequestTypeFilter] = useState('all'); // 'all' | 'student_access' | 'institute_inquiry'
 
   // ── Batch Groups state
   const [batchGroups, setBatchGroups] = useState([]);
@@ -996,38 +997,86 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle className="text-base">Access Requests</CardTitle>
               <p className="text-xs text-gray-400 mt-1">
-                Self-registered users who submitted a WhatsApp lead capture form requesting full access.
+                WhatsApp lead-capture submissions — self-registered students requesting full access, and B2B institute inquiries from the /educators page.
               </p>
+              <div className="flex gap-2 mt-3">
+                {[
+                  { value: 'all', label: 'All' },
+                  { value: 'student_access', label: 'Student Access' },
+                  { value: 'institute_inquiry', label: 'Institute Inquiries' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setAccessRequestTypeFilter(opt.value)}
+                    className={`text-xs px-3 py-1 rounded-full border transition ${
+                      accessRequestTypeFilter === opt.value
+                        ? 'bg-[#1e1b4b] text-white border-[#1e1b4b]'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </CardHeader>
             <CardContent>
-              {accessRequestsLoading ? (
-                <p className="text-center text-gray-400 py-8 text-sm">Loading…</p>
-              ) : accessRequests.length === 0 ? (
-                <p className="text-center text-gray-400 py-8 text-sm">No access requests yet</p>
-              ) : (
+              {(() => {
+                const filteredRequests = accessRequests.filter((req) =>
+                  accessRequestTypeFilter === 'all'
+                    ? true
+                    : (req.request_type || 'student_access') === accessRequestTypeFilter
+                );
+
+                if (accessRequestsLoading) {
+                  return <p className="text-center text-gray-400 py-8 text-sm">Loading…</p>;
+                }
+                if (filteredRequests.length === 0) {
+                  return <p className="text-center text-gray-400 py-8 text-sm">No access requests found for this filter</p>;
+                }
+
+                return (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left text-xs text-gray-500 border-b">
+                        <th className="pb-2 pr-4 font-medium">Type</th>
                         <th className="pb-2 pr-4 font-medium">Name</th>
                         <th className="pb-2 pr-4 font-medium">Email</th>
                         <th className="pb-2 pr-4 font-medium">WhatsApp</th>
                         <th className="pb-2 pr-4 font-medium">Course</th>
-                        <th className="pb-2 pr-4 font-medium">Content Seen</th>
+                        <th className="pb-2 pr-4 font-medium">Details</th>
                         <th className="pb-2 pr-4 font-medium">Date</th>
                         <th className="pb-2 pr-4 font-medium">Status</th>
                         <th className="pb-2 font-medium">Account</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {accessRequests.map((req) => (
+                      {filteredRequests.map((req) => {
+                        const isInstitute = req.request_type === 'institute_inquiry';
+                        return (
                         <tr key={req.id} className="hover:bg-gray-50">
+                          <td className="py-3 pr-4">
+                            {isInstitute ? (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 whitespace-nowrap">Institute</span>
+                            ) : (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 whitespace-nowrap">Student</span>
+                            )}
+                          </td>
                           <td className="py-3 pr-4 font-medium text-gray-900">{req.name || '—'}</td>
                           <td className="py-3 pr-4 text-gray-700">{req.email || '—'}</td>
                           <td className="py-3 pr-4 text-gray-700">{req.whatsapp_number || '—'}</td>
                           <td className="py-3 pr-4 text-gray-700">{req.course || '—'}</td>
-                          <td className="py-3 pr-4 text-gray-500 max-w-xs truncate">
-                            {req.content_name || req.content_type || '—'}
+                          <td className="py-3 pr-4 text-gray-500 max-w-xs">
+                            {isInstitute ? (
+                              <div className="truncate">
+                                <span className="font-medium text-gray-700">{req.content_name || '—'}</span>
+                                {req.message && (
+                                  <p className="text-xs text-gray-400 truncate" title={req.message}>{req.message}</p>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="truncate block">{req.content_name || req.content_type || '—'}</span>
+                            )}
                           </td>
                           <td className="py-3 pr-4 text-gray-400 text-xs">
                             {req.requested_at ? new Date(req.requested_at).toLocaleDateString('en-IN') : '—'}
@@ -1045,7 +1094,9 @@ export default function AdminDashboard() {
                             </select>
                           </td>
                           <td className="py-3">
-                            {(() => {
+                            {isInstitute ? (
+                              <span className="text-xs text-gray-400">Lead — follow up</span>
+                            ) : (() => {
                               const match = matchedProfiles.find(p =>
                                 (req.email && p.email === req.email) ||
                                 (req.ref_token && p.access_request_ref === req.ref_token)
@@ -1072,11 +1123,13 @@ export default function AdminDashboard() {
                             })()}
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
-              )}
+                );
+              })()}
             </CardContent>
           </Card>
         </div>

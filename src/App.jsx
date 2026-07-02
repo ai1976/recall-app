@@ -62,6 +62,7 @@ const GroupJoin = lazy(() => import('@/pages/public/GroupJoin'))
 const DeckPreview = lazy(() => import('@/pages/public/DeckPreview'))
 const NotePreview = lazy(() => import('@/pages/public/NotePreview'))
 const StudentGuide = lazy(() => import('@/pages/guide/StudentGuide'))
+const Educators = lazy(() => import('@/pages/public/Educators'))
 
 // DEV-ONLY design-system showcase (Phase 5 Sprint 1) — route /__design, not in any nav.
 // No auth, no DB. Sprint 4 may remove or keep this.
@@ -115,6 +116,7 @@ if (!user || loading) return
           {/*
             Route → File Mapping (for quick reference):
             /                              → pages/Home.jsx
+            /educators                     → pages/public/Educators.jsx
             /dashboard                     → pages/Dashboard.jsx
             /dashboard/notes               → pages/dashboard/Content/BrowseNotes.jsx
             /dashboard/notes/new           → pages/dashboard/Content/NoteUpload.jsx
@@ -176,6 +178,7 @@ if (!user || loading) return
           <Route path="/deck/:deckId" element={<DeckPreview />} />
           <Route path="/note/:noteId" element={<NotePreview />} />
           <Route path="/guide" element={<StudentGuide />} />
+          <Route path="/educators" element={<Educators />} />
 
           {/* DEV-ONLY design-system showcase — no auth, no DB, not linked in nav (Sprint 1) */}
           <Route path="/__design" element={<DesignShowcase />} />

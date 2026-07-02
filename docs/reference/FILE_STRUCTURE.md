@@ -1,5 +1,5 @@
 # RECALL APP - FILE STRUCTURE
-**Last Updated: June 2026 (Sprint 4.1)**
+**Last Updated: July 2026 (Phase 5 Sprint 5)**
 
 ---
 
@@ -154,6 +154,7 @@ recall-app
 │   │   │   └── StudentGuide.jsx                 ← public /guide page; 9 situations; scroll spy; no auth, no DB calls
 │   │   ├── public                               ← unauthenticated share/join pages (RPC-only data, no direct table access)
 │   │   │   ├── DeckPreview.jsx                  ← /deck/:deckId — shareable study set preview with OG tags
+│   │   │   ├── Educators.jsx                    ← /educators — B2B institute lead form (submit_institute_inquiry RPC, Phase 5 S5)
 │   │   │   ├── GroupJoin.jsx                    ← /join/:token — group invite accept page
 │   │   │   └── NotePreview.jsx                  ← /note/:noteId — shareable note preview with OG tags
 │   │   ├── admin
@@ -242,10 +243,11 @@ recall-app
 - `src/pages/public/DeckPreview.jsx` — /deck/:deckId (OG tags via middleware.js)
 - `src/pages/public/NotePreview.jsx` — /note/:noteId (OG tags via middleware.js)
 - `src/pages/public/GroupJoin.jsx` — /join/:token
+- `src/pages/public/Educators.jsx` — /educators, B2B institute lead form (Phase 5 S5). Zero direct `.from()`; calls `submit_institute_inquiry` RPC only.
 - `middleware.js` — Vercel Edge Middleware injects OG tags for bots on /deck/* and /note/* and /join/*
 
 ### Admin
-- `src/pages/admin/AdminDashboard.jsx` — user management, content flags, access requests, batch groups, landing-page featured content curation queues (Phase 5 S3)
+- `src/pages/admin/AdminDashboard.jsx` — user management, content flags, access requests (Type badge + filter, Phase 5 S5), batch groups, landing-page featured content curation queues (Phase 5 S3)
 - `src/pages/admin/SuperAdminDashboard.jsx` — role promotion, hard delete via admin_delete_user_data RPC
 - `src/pages/admin/MigrateNoteImages.jsx` — **TEMP: delete after note image migration confirmed complete**
 

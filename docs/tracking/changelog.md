@@ -1,6 +1,31 @@
 # Changelog
 
 ---
+## [2026-07-01] feat(landing): Phase 5 Sprint 5 — B2B /educators route + lead-capture RPC (SQL deployed, frontend awaiting verification)
+
+### Added — SQL, deployed & verified against live DB (2026-07-01)
+- **`docs/database/phase5/14_SCHEMA_add_request_type_and_message_columns.sql`** — adds `request_type` (`text NOT NULL DEFAULT 'student_access'`, `CHECK IN ('student_access','institute_inquiry','educator_application')` — third value pre-added for Sprint 6) and `message` (nullable text) to `access_requests`. Idempotent.
+- **`docs/database/phase5/15_FUNCTIONS_submit_institute_inquiry.sql`** — new SECURITY DEFINER RPC (`GRANT TO anon, authenticated`) capturing B2B institute leads. Maps the lead form onto existing `access_requests` columns (`name`/`whatsapp_number`/`course`/`email` reused directly; `content_name` reused for institute name; `message` combines city + optional note — the one genuinely new column). Admin notification reuses the existing `'access_request'` `notifications.type` (its CHECK constraint doesn't include an institute-specific value; extending it was out of scope), distinguished via `metadata->>'request_type'`.
+- **`docs/database/phase5/16_TEST_verify_institute_inquiry_rpc.sql`** — 6 BEGIN/ROLLBACK blocks. **All 6 PASS**: full field mapping, course default (`'General inquiry'`), city-only message formatting, both required-field validations (institute name, WhatsApp), admin notification fan-out.
+
+### Added — Frontend
+- **`src/pages/public/Educators.jsx`** (new) — `/educators`, anonymous, zero direct `.from()`. Institute value-proposition (mirrors `Home.jsx`'s "For Institutes & Educators" copy) + lead form (institute name, contact name, email, WhatsApp, city, course, message) calling `submit_institute_inquiry`. Mirrors `ContentPreviewWall.jsx`'s form/validation pattern (WhatsApp country-code normalization). Success state: "We'll reach out within 1–2 business days."
+- **`src/App.jsx`** — `/educators` route added to the public no-auth-guard block (lazy import).
+
+### Changed
+- **`src/pages/Home.jsx`** — added a secondary nav link ("For Institutes" → `/educators`). Rewired the hero, "For Institutes & Educators" section CTA, and footer `mailto:` links to `/educators` (section content untouched — same copy, just a real form instead of a mailto).
+- **`src/pages/admin/AdminDashboard.jsx`** — Access Requests table gets a Type badge (Institute/Student) + filter (All/Student Access/Institute Inquiries). Institute rows show institute name + city/message in a new "Details" column and a "Lead — follow up" label in place of the signup-link/Grant-Access UI (institute inquiries need no approval action this sprint — that's Sprint 6's educator-application-to-role-grant flow).
+
+### Notes
+- Verified in-browser (dev server) against the live deployed Supabase backend: filled and submitted the `/educators` form, `submit_institute_inquiry` returned `204`, success state rendered correctly, no console errors. This created one real test row (`content_name = 'Test Preview Institute'`) — dismiss/delete when convenient.
+- `AdminDashboard.jsx` changes verified by code review + `npm run build` only (no admin credentials available in this session for in-browser testing).
+- `npm run build` passes.
+- **Frontend committed but NOT pushed** — reporting back to the phasebuilder for verification per sprint instructions; push authorized only after that confirmation.
+
+### Files Changed
+`docs/database/phase5/14_SCHEMA_add_request_type_and_message_columns.sql` (new), `docs/database/phase5/15_FUNCTIONS_submit_institute_inquiry.sql` (new), `docs/database/phase5/16_TEST_verify_institute_inquiry_rpc.sql` (new), `src/pages/public/Educators.jsx` (new), `src/App.jsx`, `src/pages/Home.jsx`, `src/pages/admin/AdminDashboard.jsx`, `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`, `docs/active/now.md`
+
+---
 ## [2026-07-01] feat(landing): Phase 5 Sprint 4 — hero live-demo + featured rail + stats consolidation (SQL written, NOT yet deployed)
 
 ### Added — SQL, saved to repo, not run against live DB

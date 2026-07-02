@@ -1,11 +1,30 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-07-01
-**Current Phase:** Phase 5 Sprint 4 frontend written, awaiting `docs/database/phase5/13` SQL deployment before push
+**Current Phase:** Phase 5 Sprint 5 SQL deployed + frontend written; awaiting phasebuilder verification before push
 
 ---
 
 ## Just Completed ✅
+
+### Phase 5 Sprint 5 — B2B `/educators` route + lead-capture RPC (Jul 1, 2026)
+
+**Scope:** findable B2B path — dedicated `/educators` route with a real lead form backed by `submit_institute_inquiry`, replacing the `mailto:` CTAs. SQL-first, then frontend.
+
+**✅ SQL DEPLOYED & VERIFIED 2026-07-01.** `docs/database/phase5/14`–`15` deployed to the live DB; `16_TEST` returned all 6 PASS (field mapping, course default, city-only message format, both required-field validations, admin notification fan-out).
+
+- **Ground truth first:** introspected the live `access_requests` columns and `submit_access_request()`'s definition via `pg_get_functiondef` before writing any SQL — confirmed no institute-specific columns exist, and that `notifications_type_check` doesn't include an institute-specific value (so the new RPC's admin notification reuses `'access_request'`, distinguished via `metadata->>'request_type'`, rather than expanding that CHECK — out of scope for this sprint).
+- **14_SCHEMA** — `request_type` (`text NOT NULL DEFAULT 'student_access'`, `CHECK IN ('student_access','institute_inquiry','educator_application')` — third value pre-added for Sprint 6) and `message` (nullable text, city + optional note) added to `access_requests`. Idempotent.
+- **15_FUNCTIONS** — `submit_institute_inquiry()` (SECURITY DEFINER, `GRANT TO anon, authenticated`). Maps the institute lead form onto existing columns: `name`/`whatsapp_number`/`course`/`email` reused directly; `content_name` reused for institute name (content_id/content_type stay NULL for institute rows); `message` is the one new column.
+- **16_TEST** — 6 BEGIN/ROLLBACK blocks verifying the full mapping, the course default, city-only message formatting, both required-field validations, and admin notification fan-out. All PASS.
+- **Frontend (SQL deployed 2026-07-01, cleared to push):** new `src/pages/public/Educators.jsx` (`/educators`, anonymous, zero direct `.from()`, mirrors `ContentPreviewWall.jsx`'s form pattern) with the institute lead form → `submit_institute_inquiry` → "We'll reach out within 1–2 business days" success state. `App.jsx` route added (lazy). `Home.jsx`: secondary nav link ("For Institutes") + hero/section/footer `mailto:` CTAs rewired to `/educators` (section content untouched). `AdminDashboard.jsx`: Access Requests table gets a Type badge (Institute/Student) + filter; institute rows show institute name + city/message in a "Details" column and a "Lead — follow up" label instead of the signup-link/Grant-Access UI (no approval action this sprint — that's Sprint 6's educator-application-to-role-grant flow, not started).
+- **Verified:** `npm run build` passes. In-browser against the live deployed backend (dev server, real Supabase project) — filled and submitted the `/educators` form, `submit_institute_inquiry` RPC returned `204`, success state rendered the correct "1–2 business days" copy, no console errors. (Note: this created one real test row in `access_requests`, `content_name = 'Test Preview Institute'` — dismiss/delete when convenient.) `AdminDashboard.jsx` changes verified by code review + build only — no admin credentials available in this session to test in-browser.
+
+**Next:** report back to the phasebuilder for verification; push is authorized only after that confirmation. Sprint 6 (educator-application-to-role-grant flow) not started.
+
+Files Changed: `docs/database/phase5/14_SCHEMA_add_request_type_and_message_columns.sql` (new), `docs/database/phase5/15_FUNCTIONS_submit_institute_inquiry.sql` (new), `docs/database/phase5/16_TEST_verify_institute_inquiry_rpc.sql` (new), `src/pages/public/Educators.jsx` (new), `src/App.jsx`, `src/pages/Home.jsx`, `src/pages/admin/AdminDashboard.jsx`, `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 
 ### Phase 5 Sprint 4 — Landing rebuild: hero live-demo + featured rail + stats consolidation (Jul 1, 2026)
 
