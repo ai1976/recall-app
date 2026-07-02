@@ -1,11 +1,34 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-07-01
-**Current Phase:** Phase 5 Sprint 5 SQL deployed + frontend written; awaiting phasebuilder verification before push
+**Last Updated:** 2026-07-02
+**Current Phase:** Phase 5 Sprint 6 (FINAL) — SQL written, NOT yet deployed; frontend written but held pending deploy
 
 ---
 
 ## Just Completed ✅
+
+### Phase 5 Sprint 6 (FINAL) — educator-application → admin-approve → role grant (Jul 2, 2026)
+
+**Scope:** the hybrid educator on-ramp — self-serve application form on `/educators`, landing in the existing admin queue, where an admin approves it to grant the applicant the `professor` role (+ notify). Two-step, admin-gated: no self-serve upgrades. SQL-first, then frontend. **This is the final Phase 5 sprint — see "Phase 5 complete" note below.**
+
+**⏳ SQL WRITTEN, NOT YET DEPLOYED.** `docs/database/phase5/17`–`21` written and saved; founder must deploy before the frontend (already written) can be pushed.
+
+- **Ground truth first (hard blocker worked around):** no `psql`/`pg_dump` binary and no local Docker meant the Supabase CLI's `db dump` couldn't introspect the live schema directly. Asked the founder to run three `[DIAGNOSTIC]` queries in the SQL Editor instead: `access_requests` columns, `pg_get_functiondef('link_access_request')`, `pg_get_functiondef('submit_access_request')`, then a follow-up on `access_requests`' CHECK constraints. This surfaced two things that would have caused a failed deploy if guessed: (1) `access_requests` has **no approver/approved-at column** — only `status`; (2) `link_access_request(p_ref_token uuid) RETURNS void` is far simpler than the sprint brief assumed — it only tags `profiles.access_request_ref`, it never touches `access_requests` at all; and (3) the existing `access_requests_status_check` CHECK only allows `('pending','contacted','enrolled')` — notably **not `'dismissed'`**, even though `AdminDashboard.jsx`'s status dropdown already offers it for every request type. That's a separate pre-existing bug (selecting "Dismissed" would throw a CHECK violation today), flagged as its own background task, not fixed here.
+- **17_SCHEMA** — extends `access_requests_status_check` to add `'approved'`/`'rejected'`. No new column added (none needed — the locked decision was to avoid new columns unless unavoidable, and introspection confirmed `status` is sufficient).
+- **18_FUNCTIONS** — `submit_educator_application()` (SECURITY DEFINER, `GRANT TO anon, authenticated`). Required: full name, WhatsApp, credential-or-LinkedIn URL (the applicant's proof of expertise — the vetted-educator trust moat is core to the brand). Optional: email, institute name, course(s) taught, why. Maps onto `access_requests` the same way `submit_institute_inquiry` does (`content_name` reused for institute, `message` combines credential+why). **Returns the row's `ref_token` (uuid, not void)** — the key design decision this sprint: an anonymous applicant's browser stores that token into `localStorage['revisop_access_ref']`, the exact slot `Signup.jsx`'s `?ref=` param already populates, so a same-browser signup later auto-links with zero new plumbing.
+- **19_FUNCTIONS** — `approve_educator_application(p_request_id)` (admin/super_admin only, role-guard idiom mirrors S3's `approve_featured_nomination`). Returns `'role_granted'` (applicant already had an account — role flipped + notified immediately) or `'approved_pending_signup'` (deferred). `reject_educator_application(p_request_id)` — marks rejected, notifies if linked.
+- **20_FUNCTIONS** — extends `link_access_request` (`CREATE OR REPLACE`, exact introspected signature/return type, no `SET search_path` added since none existed originally, no change to existing behavior for other request_types). New: after the existing tagging, checks for an approved `educator_application` matching the ref_token and grants `professor` + notifies right then. Closes the apply-anonymously-then-sign-up path.
+- **21_TEST** — 11 BEGIN/ROLLBACK blocks: anon submit + full field mapping, missing-credential validation, course default, admin notification, non-admin approve gate, linked approve (role+notify), unlinked approve (no role flip), reject, link-on-signup flip for an approved application, and a regression guard that a still-pending application never grants the role on login.
+- **Frontend (written, NOT pushed — SQL deploy is a hard prerequisite):** `Educators.jsx` gets a second, clearly-labeled "Apply to Teach on RevisOp" section (distinct fields/state from the S5 institute form, own `eduapp-*` element ids to avoid collisions) → `submit_educator_application` → same "1–2 business days" success copy; stores the returned `ref_token` into `localStorage['revisop_access_ref']` only when no session exists. `AdminDashboard.jsx`: new "Educator Applications" filter + purple "Educator" badge; a read-only status badge for these rows (the generic pending/contacted/enrolled/dismissed `<select>` is intentionally bypassed for `educator_application` — using it would set status directly and skip the role-grant RPCs); Approve/Reject buttons whose result renders as "Educator role granted ✓", "Awaiting signup" (+ copyable `/signup?ref=` link, reusing the existing mechanism), or "Rejected".
+- **Verified:** `npm run build` passes. In-browser (dev server, live Supabase project, SQL not yet deployed): both `/educators` forms render correctly with distinct field ids; filled and submitted the new educator-application form; network capture confirmed the POST hit `rpc/submit_educator_application` with exactly the 8 parameter names the SQL defines, returning `PGRST202` ("function ... not found") — the expected/correct result pre-deployment, and proof the frontend↔RPC contract is correct. Loading state and error toast handling confirmed working (button returned to "Submit Application", no stuck UI). `AdminDashboard.jsx` changes verified by code review + build only — no admin credentials available in this session to test in-browser.
+
+**Phase 5 complete (pending this sprint's deploy):** Sprints 1–6 delivered the full landing-page pivot — design tokens, featured-content curation, the hero live-demo + stats consolidation, the B2B `/educators` lead path, and now the educator on-ramp. Once the founder deploys `17`–`21` and confirms, this frontend is cleared to push and Phase 5 is done.
+
+**Next:** report back to the phasebuilder with the introspection findings, full SQL, and this explicit note: **do not push the frontend until `docs/database/phase5/17`–`20` are deployed and confirmed in Supabase.**
+
+Files Changed: `docs/database/phase5/17_SCHEMA_extend_access_requests_status_check_for_approval.sql` (new), `docs/database/phase5/18_FUNCTIONS_submit_educator_application.sql` (new), `docs/database/phase5/19_FUNCTIONS_approve_reject_educator_application.sql` (new), `docs/database/phase5/20_FUNCTIONS_extend_link_access_request_educator_role_grant.sql` (new), `docs/database/phase5/21_TEST_verify_educator_application_flow.sql` (new), `src/pages/public/Educators.jsx`, `src/pages/admin/AdminDashboard.jsx`, `.claude/launch.json` (autoPort for local preview), `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 
 ### Phase 5 Sprint 5 — B2B `/educators` route + lead-capture RPC (Jul 1, 2026)
 

@@ -1,6 +1,32 @@
 # Changelog
 
 ---
+## [2026-07-02] feat(landing): Phase 5 Sprint 6 (FINAL) — educator-application → admin-approve → role grant (SQL written, NOT yet deployed)
+
+### Added — SQL, saved to repo, not run against live DB
+- **`docs/database/phase5/17_SCHEMA_extend_access_requests_status_check_for_approval.sql`** — extends `access_requests_status_check` (was `('pending','contacted','enrolled')`, confirmed via introspection — notably missing `'dismissed'` too, a separate pre-existing bug, out of scope) to add `'approved'`/`'rejected'`. No new column — introspection confirmed no approver/approved-at column exists and none was needed.
+- **`docs/database/phase5/18_FUNCTIONS_submit_educator_application.sql`** — new SECURITY DEFINER RPC (`GRANT TO anon, authenticated`) capturing educator applications. Required: full name, WhatsApp, credential-or-LinkedIn URL. Optional: email, institute name, course(s) taught, why. Maps onto `access_requests` (mirrors `submit_institute_inquiry`'s style: `content_name` reused for institute, `message` combines credential+why). **Returns the row's `ref_token` (uuid)**, not void — lets an anonymous applicant's browser carry it into `localStorage['revisop_access_ref']` for auto-linking on a later same-browser signup.
+- **`docs/database/phase5/19_FUNCTIONS_approve_reject_educator_application.sql`** — `approve_educator_application(p_request_id)` (admin/super_admin only) grants `professor` + notifies immediately if the applicant has a linked account (returns `'role_granted'`), else defers the grant (returns `'approved_pending_signup'`). `reject_educator_application(p_request_id)` marks rejected, notifies if linked.
+- **`docs/database/phase5/20_FUNCTIONS_extend_link_access_request_educator_role_grant.sql`** — `CREATE OR REPLACE` of the existing `link_access_request(p_ref_token uuid)` (exact introspected signature/return type preserved; ground-truth introspection showed it only tags `profiles.access_request_ref` and never touches `access_requests`). Adds: on first login, if the ref_token matches an approved `educator_application`, grants `professor` + notifies right then. All other request_types unaffected.
+- **`docs/database/phase5/21_TEST_verify_educator_application_flow.sql`** — 11 BEGIN/ROLLBACK blocks: anon submit + full field mapping, missing-credential validation, course default, admin notification, non-admin approve gate, linked approve (role+notify), unlinked approve (no role flip), reject, link-on-signup flip, and a regression guard that a still-pending application never grants the role.
+
+### Added — Frontend (written, NOT pushed — SQL deploy is a hard prerequisite)
+- **`src/pages/public/Educators.jsx`** — new "Apply to Teach on RevisOp" section, distinct from the S5 institute form (separate state, own `eduapp-*` element ids). Calls `submit_educator_application`; anonymous submitters get the returned `ref_token` stored into `localStorage['revisop_access_ref']`. Same "1–2 business days" success copy.
+- **`src/pages/admin/AdminDashboard.jsx`** — "Educator Applications" filter + purple "Educator" badge in the Access Requests queue. Read-only status badge for these rows (the generic status `<select>` is intentionally bypassed — it would skip the role-grant RPCs). Approve/Reject buttons; outcome renders as "Educator role granted ✓", "Awaiting signup" (+ copyable `/signup?ref=` link), or "Rejected".
+
+### Notes
+- **Ground-truth blocker:** no `psql`/`pg_dump`/Docker available in this session, so the founder ran three `[DIAGNOSTIC]` introspection queries in the SQL Editor instead of a direct dump. This surfaced that `access_requests` has no approver/approved-at column and that `link_access_request` is simpler than assumed — both would have risked a failed deploy (per the S4 42P13 lesson) if guessed instead of confirmed.
+- Pre-existing bug found in passing: `access_requests_status_check` never included `'dismissed'` despite `AdminDashboard.jsx`'s dropdown offering it for every request type. Flagged as a separate background task, not fixed in this sprint.
+- Verified in-browser (dev server) against the live Supabase project with the SQL NOT yet deployed: filled and submitted the new form, network capture confirmed the RPC call used the exact 8 parameter names the SQL defines, and got the expected `PGRST202` "function not found" — proof the frontend↔RPC contract is correct pending deployment.
+- `AdminDashboard.jsx` changes verified by code review + `npm run build` only (no admin credentials available in this session for in-browser testing).
+- `npm run build` passes.
+- **Frontend written but NOT pushed** — SQL 17–21 must be deployed and confirmed by the founder first, per the Deployment Order Rule.
+- **This is the final Phase 5 sprint.**
+
+### Files Changed
+`docs/database/phase5/17_SCHEMA_extend_access_requests_status_check_for_approval.sql` (new), `docs/database/phase5/18_FUNCTIONS_submit_educator_application.sql` (new), `docs/database/phase5/19_FUNCTIONS_approve_reject_educator_application.sql` (new), `docs/database/phase5/20_FUNCTIONS_extend_link_access_request_educator_role_grant.sql` (new), `docs/database/phase5/21_TEST_verify_educator_application_flow.sql` (new), `src/pages/public/Educators.jsx`, `src/pages/admin/AdminDashboard.jsx`, `.claude/launch.json`, `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/now.md`
+
+---
 ## [2026-07-01] feat(landing): Phase 5 Sprint 5 — B2B /educators route + lead-capture RPC (SQL deployed, frontend awaiting verification)
 
 ### Added — SQL, deployed & verified against live DB (2026-07-01)

@@ -395,6 +395,40 @@ export default function AdminDashboard() {
     }
   }
 
+  async function approveEducatorApplication(requestId) {
+    if (!confirm('Approve this educator application? This grants the Professor (Educator) role.')) return;
+    try {
+      const { data, error } = await supabase.rpc('approve_educator_application', { p_request_id: requestId });
+      if (error) throw error;
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('admin_audit_log').insert({
+        action: 'approve_educator_application', admin_id: user.id, target_user_id: null,
+        details: { access_request_id: requestId, result: data },
+      });
+      await fetchAccessRequests();
+    } catch (err) {
+      console.error('approveEducatorApplication:', err);
+      alert('Failed to approve application');
+    }
+  }
+
+  async function rejectEducatorApplication(requestId) {
+    if (!confirm('Reject this educator application?')) return;
+    try {
+      const { error } = await supabase.rpc('reject_educator_application', { p_request_id: requestId });
+      if (error) throw error;
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('admin_audit_log').insert({
+        action: 'reject_educator_application', admin_id: user.id, target_user_id: null,
+        details: { access_request_id: requestId },
+      });
+      await fetchAccessRequests();
+    } catch (err) {
+      console.error('rejectEducatorApplication:', err);
+      alert('Failed to reject application');
+    }
+  }
+
   async function suspendUser(userId) {
     if (!confirm('Suspend this user?')) return;
     try {
@@ -997,13 +1031,14 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle className="text-base">Access Requests</CardTitle>
               <p className="text-xs text-gray-400 mt-1">
-                WhatsApp lead-capture submissions — self-registered students requesting full access, and B2B institute inquiries from the /educators page.
+                WhatsApp lead-capture submissions — self-registered students requesting full access, B2B institute inquiries, and educator applications from the /educators page.
               </p>
               <div className="flex gap-2 mt-3">
                 {[
                   { value: 'all', label: 'All' },
                   { value: 'student_access', label: 'Student Access' },
                   { value: 'institute_inquiry', label: 'Institute Inquiries' },
+                  { value: 'educator_application', label: 'Educator Applications' },
                 ].map((opt) => (
                   <button
                     key={opt.value}
@@ -1053,10 +1088,13 @@ export default function AdminDashboard() {
                     <tbody className="divide-y divide-gray-100">
                       {filteredRequests.map((req) => {
                         const isInstitute = req.request_type === 'institute_inquiry';
+                        const isEducatorApp = req.request_type === 'educator_application';
                         return (
                         <tr key={req.id} className="hover:bg-gray-50">
                           <td className="py-3 pr-4">
-                            {isInstitute ? (
+                            {isEducatorApp ? (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 whitespace-nowrap">Educator</span>
+                            ) : isInstitute ? (
                               <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 whitespace-nowrap">Institute</span>
                             ) : (
                               <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 whitespace-nowrap">Student</span>
@@ -1067,7 +1105,14 @@ export default function AdminDashboard() {
                           <td className="py-3 pr-4 text-gray-700">{req.whatsapp_number || '—'}</td>
                           <td className="py-3 pr-4 text-gray-700">{req.course || '—'}</td>
                           <td className="py-3 pr-4 text-gray-500 max-w-xs">
-                            {isInstitute ? (
+                            {isEducatorApp ? (
+                              <div className="truncate">
+                                <span className="font-medium text-gray-700">{req.content_name || 'Independent'}</span>
+                                {req.message && (
+                                  <p className="text-xs text-gray-400 truncate" title={req.message}>{req.message}</p>
+                                )}
+                              </div>
+                            ) : isInstitute ? (
                               <div className="truncate">
                                 <span className="font-medium text-gray-700">{req.content_name || '—'}</span>
                                 {req.message && (
@@ -1082,19 +1127,59 @@ export default function AdminDashboard() {
                             {req.requested_at ? new Date(req.requested_at).toLocaleDateString('en-IN') : '—'}
                           </td>
                           <td className="py-3 pr-4">
-                            <select
-                              value={req.status || 'pending'}
-                              onChange={(e) => updateAccessRequestStatus(req.id, e.target.value)}
-                              className="text-xs border border-gray-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="contacted">Contacted</option>
-                              <option value="enrolled">Enrolled</option>
-                              <option value="dismissed">Dismissed</option>
-                            </select>
+                            {isEducatorApp ? (
+                              <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
+                                req.status === 'approved' ? 'bg-green-100 text-green-700'
+                                  : req.status === 'rejected' ? 'bg-red-100 text-red-700'
+                                  : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {req.status === 'approved' ? 'Approved' : req.status === 'rejected' ? 'Rejected' : 'Pending'}
+                              </span>
+                            ) : (
+                              <select
+                                value={req.status || 'pending'}
+                                onChange={(e) => updateAccessRequestStatus(req.id, e.target.value)}
+                                className="text-xs border border-gray-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="contacted">Contacted</option>
+                                <option value="enrolled">Enrolled</option>
+                                <option value="dismissed">Dismissed</option>
+                              </select>
+                            )}
                           </td>
                           <td className="py-3">
-                            {isInstitute ? (
+                            {isEducatorApp ? (
+                              req.status === 'approved' ? (
+                                req.requester_user_id ? (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Educator role granted ✓</span>
+                                ) : (
+                                  <div className="flex flex-col gap-1">
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 w-fit whitespace-nowrap">Awaiting signup</span>
+                                    <button
+                                      className="text-xs text-amber-500 underline text-left"
+                                      onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/signup?ref=${req.ref_token}`); alert('Signup link copied!'); }}>
+                                      Copy signup link
+                                    </button>
+                                  </div>
+                                )
+                              ) : req.status === 'rejected' ? (
+                                <span className="text-xs text-gray-400">Rejected</span>
+                              ) : (
+                                <div className="flex gap-2">
+                                  <Button size="sm" variant="outline"
+                                    className="text-green-600 border-green-300 text-xs h-7 px-2"
+                                    onClick={() => approveEducatorApplication(req.id)}>
+                                    Approve
+                                  </Button>
+                                  <Button size="sm" variant="outline"
+                                    className="text-red-600 border-red-300 text-xs h-7 px-2"
+                                    onClick={() => rejectEducatorApplication(req.id)}>
+                                    Reject
+                                  </Button>
+                                </div>
+                              )
+                            ) : isInstitute ? (
                               <span className="text-xs text-gray-400">Lead — follow up</span>
                             ) : (() => {
                               const match = matchedProfiles.find(p =>

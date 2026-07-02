@@ -45,6 +45,18 @@ export default function Educators() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // Individual educator application (distinct from the institute inquiry form above)
+  const [eduFullName, setEduFullName] = useState('');
+  const [eduEmail, setEduEmail] = useState('');
+  const [eduWhatsapp, setEduWhatsapp] = useState('');
+  const [eduWhatsappWarning, setEduWhatsappWarning] = useState('');
+  const [eduInstitute, setEduInstitute] = useState('');
+  const [eduCredential, setEduCredential] = useState('');
+  const [eduCourse, setEduCourse] = useState('');
+  const [eduWhy, setEduWhy] = useState('');
+  const [eduLoading, setEduLoading] = useState(false);
+  const [eduSubmitted, setEduSubmitted] = useState(false);
+
   useEffect(() => {
     document.title = 'For Institutes & Educators — RevisOp';
     return () => { document.title = 'RevisOp' };
@@ -69,6 +81,58 @@ export default function Educators() {
   };
 
   const isValid = instituteName.trim() && contactName.trim() && whatsapp.trim();
+
+  const handleEduWhatsappChange = (e) => {
+    const val = e.target.value;
+    setEduWhatsapp(val);
+    if (val && !val.startsWith('+')) {
+      setEduWhatsappWarning('No country code detected — we\'ll assume +91 (India) on submit.');
+    } else {
+      setEduWhatsappWarning('');
+    }
+  };
+
+  const isEduValid = eduFullName.trim() && eduWhatsapp.trim() && eduCredential.trim();
+
+  const handleEduSubmit = async (e) => {
+    e.preventDefault();
+    const normalizedWhatsapp = normalizeWhatsapp(eduWhatsapp.trim());
+    if (!isEduValid) return;
+
+    setEduLoading(true);
+    try {
+      const { data: refToken, error } = await supabase.rpc('submit_educator_application', {
+        p_full_name: eduFullName.trim(),
+        p_whatsapp_number: normalizedWhatsapp,
+        p_credential_or_linkedin: eduCredential.trim(),
+        p_email: eduEmail.trim() || null,
+        p_institute_name: eduInstitute.trim() || null,
+        p_course: eduCourse || null,
+        p_why: eduWhy.trim() || null,
+        p_requester_user_id: user?.id || null,
+      });
+
+      if (error) throw error;
+
+      // Anonymous applicant: carry the ref_token the same way Signup.jsx's ?ref= param does,
+      // so if they sign up in this browser later, an approved application auto-grants the role
+      // (see link_access_request extension, docs/database/phase5/20_FUNCTIONS).
+      if (!user?.id && refToken) {
+        localStorage.setItem('revisop_access_ref', refToken);
+      }
+
+      setEduSubmitted(true);
+    } catch (err) {
+      console.error('Error submitting educator application:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to submit. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setEduLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -307,6 +371,155 @@ export default function Educators() {
                     className="w-full bg-[#1e1b4b] hover:bg-[#2d2a6e]"
                   >
                     {loading ? 'Submitting...' : 'Get My Institute on RevisOp'}
+                  </Button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Individual Educator Application — distinct from the institute inquiry above */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Benefits */}
+          <div className="bg-[#1e1b4b] text-white p-8 rounded-xl">
+            <h2 className="text-2xl font-bold mb-6">Apply to Teach on RevisOp</h2>
+            <p className="text-amber-100 mb-6">
+              Independent educator? Every Educator on RevisOp is personally vetted — that's what makes the "Educator" badge mean something to students.
+            </p>
+            <ul className="space-y-4">
+              <li className="flex items-start space-x-3">
+                <CheckCircle className="h-6 w-6 text-green-300 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="font-semibold">Verified Educator Badge</div>
+                  <div className="text-amber-100 text-sm">Approved applicants get the Educator role — a visible trust signal to students</div>
+                </div>
+              </li>
+              <li className="flex items-start space-x-3">
+                <CheckCircle className="h-6 w-6 text-green-300 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="font-semibold">Publish Your Own Content</div>
+                  <div className="text-amber-100 text-sm">Create and curate flashcards and notes for your students</div>
+                </div>
+              </li>
+              <li className="flex items-start space-x-3">
+                <CheckCircle className="h-6 w-6 text-green-300 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="font-semibold">Deliberate, Human Review</div>
+                  <div className="text-amber-100 text-sm">We manually review every application — no self-serve upgrades</div>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          {/* Application Form */}
+          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+            {eduSubmitted ? (
+              <div className="h-full flex flex-col items-center justify-center text-center py-12">
+                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Application received!</h3>
+                <p className="text-gray-600 max-w-xs">
+                  We'll review and reach out within 1–2 business days.
+                </p>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">Apply to Teach on RevisOp</h2>
+                <p className="text-sm text-gray-500 mb-6">
+                  Tell us about yourself and we'll review your application.
+                </p>
+                <form onSubmit={handleEduSubmit} className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="eduapp-name">Full Name</Label>
+                      <Input
+                        id="eduapp-name"
+                        value={eduFullName}
+                        onChange={(e) => setEduFullName(e.target.value)}
+                        placeholder="Your name"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="eduapp-whatsapp">WhatsApp Number</Label>
+                      <Input
+                        id="eduapp-whatsapp"
+                        type="tel"
+                        value={eduWhatsapp}
+                        onChange={handleEduWhatsappChange}
+                        placeholder="+91 98765 43210"
+                        required
+                      />
+                      {eduWhatsappWarning && (
+                        <p className="text-xs text-amber-600">{eduWhatsappWarning}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="eduapp-email">Email</Label>
+                      <Input
+                        id="eduapp-email"
+                        type="email"
+                        value={eduEmail}
+                        onChange={(e) => setEduEmail(e.target.value)}
+                        placeholder="you@example.com"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="eduapp-institute">Institute / Coaching Name (optional)</Label>
+                      <Input
+                        id="eduapp-institute"
+                        value={eduInstitute}
+                        onChange={(e) => setEduInstitute(e.target.value)}
+                        placeholder="Leave blank if independent"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="eduapp-credential">Credential or LinkedIn URL</Label>
+                    <Input
+                      id="eduapp-credential"
+                      value={eduCredential}
+                      onChange={(e) => setEduCredential(e.target.value)}
+                      placeholder="e.g. linkedin.com/in/yourname, or a qualification"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Course(s) You Teach</Label>
+                    <Select value={eduCourse} onValueChange={setEduCourse}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select course..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COURSES.map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="eduapp-why">Why do you want to teach on RevisOp? (optional)</Label>
+                    <Textarea
+                      id="eduapp-why"
+                      value={eduWhy}
+                      onChange={(e) => setEduWhy(e.target.value)}
+                      placeholder="Tell us a bit about your teaching experience..."
+                      rows={3}
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={eduLoading || !isEduValid}
+                    className="w-full bg-[#1e1b4b] hover:bg-[#2d2a6e]"
+                  >
+                    {eduLoading ? 'Submitting...' : 'Submit Application'}
                   </Button>
                 </form>
               </>
