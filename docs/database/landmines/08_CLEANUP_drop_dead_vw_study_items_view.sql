@@ -1,0 +1,32 @@
+-- Name: [CLEANUP] Drop Dead vw_study_items View (unblocks 05_SCHEMA)
+-- Description: Drops the vw_study_items view — a leftover `SELECT <all flashcards columns> FROM
+-- flashcards WHERE question_type <> 'concept_card'` with ZERO consumers. This is what blocked
+-- 05_SCHEMA (error 2BP01: the view depends on flashcards.next_review). It was missed by the
+-- original 01_DIAGNOSTIC because that script did not run a pg_depend/view-dependency check on the
+-- SRS columns (a view read is invisible to a codebase grep) — see 07_DIAGNOSTIC for the follow-up.
+--
+-- Evidence it is dead (07_DIAGNOSTIC, run 2026-07-02):
+--   - Frontend: zero `.from('vw_study_items')` in src/. Dashboard.jsx:398 calls the
+--     get_anonymous_class_stats RPC, which queries `flashcards` directly — never the view.
+--   - DB functions: the only pg_proc match for 'vw_study_items' is get_anonymous_class_stats,
+--     and that match is a CODE COMMENT ("-- Uses vw_study_items equivalent ...") — the function
+--     reimplements the filter inline and does NOT query the view (confirmed via full body,
+--     07_DIAGNOSTIC query 2). No other function queries it.
+--   - No other view/rule references it (07_DIAGNOSTIC query 5, second statement: 0 rows).
+--   - pg_depend (07_DIAGNOSTIC query 4): vw_study_items is the ONLY object depending on the
+--     flashcards SRS columns — dropping it removes that dependency so 05_SCHEMA runs with no
+--     CASCADE and no view recreate.
+--
+-- Security bonus: vw_study_items was the Jun-30-2026 anon-leak (a SECURITY DEFINER view briefly
+-- SELECT-granted to anon/authenticated, since REVOKEd + security_invoker=on). Dropping the now-
+-- orphaned view eliminates that surface entirely rather than merely mitigating it.
+--
+-- NO CASCADE — nothing depends ON this view (it is the dependent, on flashcards). Plain DROP VIEW
+-- so that if some unexpected dependency exists, it errors loudly instead of silently cascading.
+--
+-- Deploy order: run this BEFORE re-running 05_SCHEMA_drop_flashcards_srs_columns.sql.
+-- (Note: get_anonymous_class_stats still carries a now-stale "-- Uses vw_study_items equivalent"
+-- comment; harmless, left untouched — not worth a CREATE OR REPLACE of a live SECURITY DEFINER
+-- RPC just for a comment.)
+
+DROP VIEW IF EXISTS public.vw_study_items;

@@ -244,7 +244,7 @@
 
 **Concept Card Exclusion Rule:**
 - `concept_card` items are **excluded from all review metrics** (Items Reviewed, Items Mastered, accuracy, streak). They are reference material only.
-- All analytics RPCs must use `WHERE question_type != 'concept_card'` or the `vw_study_items` safety view.
+- All analytics RPCs must use `WHERE question_type != 'concept_card'` inline (the `vw_study_items` safety view was dropped 02/07/2026 as dead/unconsumed — do not reintroduce it).
 - This applies to every RPC that counts reviews, calculates accuracy, or computes streaks.
 
 **Why This Structure:**
@@ -269,7 +269,7 @@
 **Related Tables:** profiles, notes, reviews, disciplines, subjects, topics, friendships ⭐  
 **Key Indexes:** user_id, batch_id (critical for grouping), target_course, visibility ⭐, created_at  
 
-⏳ **Pending drop (SQL prepared 2026-07-02, not yet deployed, frontend-gated):** four undocumented legacy SRS columns — `next_review`, `interval`, `ease_factor`, `repetitions` — still exist in the live DB. Superseded by `reviews.next_review_date`/`interval`/`easiness`/`repetition` (always read SRS state from `reviews`, never `flashcards`). Sole writer was `FlashcardCreate.jsx`'s hardcoded seed payload — now removed from the insert. Drop SQL: `docs/database/landmines/05_SCHEMA_drop_flashcards_srs_columns.sql` — must deploy AFTER the frontend change is live and verified. Remove this note once deployed.
+✅ **Dropped 02/07/2026 (L1, `05_SCHEMA`):** the four undocumented legacy SRS columns — `next_review`, `interval`, `ease_factor`, `repetitions` — were removed from `flashcards`. Superseded by `reviews.next_review_date`/`interval`/`easiness`/`repetition` (always read SRS state from `reviews`, never `flashcards`). Sole writer was `FlashcardCreate.jsx`'s hardcoded seed payload, stripped in commit `921280b`. Required dropping the dead `vw_study_items` view first (`08_CLEANUP` — it `SELECT`ed these columns; see blueprint §1.11 audit-gap note).
 **RLS Policies:** 5 policies (see RLS section)
 
 **CRITICAL:** Always group by `batch_id`, NOT by timestamp or created_at
