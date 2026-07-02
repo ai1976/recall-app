@@ -9,7 +9,7 @@
 
 ### Post-Phase-5 fix — access_requests 'dismissed' status CHECK (Jul 2, 2026)
 
-Closed the pre-existing bug surfaced during S6: `AdminDashboard.jsx`'s access-request status dropdown offered `'dismissed'`, but the DB `access_requests_status_check` never allowed it → selecting it threw a `23514` CHECK violation. `docs/database/phase5/22_SCHEMA_add_dismissed_to_access_requests_status_check.sql` extends the CHECK to `('pending','contacted','enrolled','approved','rejected','dismissed')` (idempotent, mirrors script 17). **⏳ SQL authored — not yet deployed.** No frontend change (dropdown already offers the option); educator applications unaffected (they use the approve/reject RPCs, not this dropdown).
+Closed the pre-existing bug surfaced during S6: `AdminDashboard.jsx`'s access-request status dropdown offered `'dismissed'`, but the DB `access_requests_status_check` never allowed it → selecting it threw a `23514` CHECK violation. `docs/database/phase5/22_SCHEMA_add_dismissed_to_access_requests_status_check.sql` extends the CHECK to `('pending','contacted','enrolled','approved','rejected','dismissed')` (idempotent, mirrors script 17). **✅ Deployed 2026-07-02.** No frontend change (dropdown already offers the option); educator applications unaffected (they use the approve/reject RPCs, not this dropdown).
 
 ### Phase 5 Sprint 6 (FINAL) — educator-application → admin-approve → role grant (Jul 2, 2026)
 
