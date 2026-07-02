@@ -5,7 +5,8 @@
 -- outcomes (immediate role grant when linked, deferred when not), reject, and the
 -- link_access_request extension that grants the role on first login for a since-approved
 -- application (20_FUNCTIONS) — plus a regression check that a still-pending application does
--- NOT grant the role on login.
+-- NOT grant the role on login, and a security check that an approved token is one-time (a second
+-- account replaying it is not promoted).
 --
 -- OUTPUT: each block returns its verdict as a RESULT ROW (Supabase SQL Editor swallows RAISE
 -- NOTICE). 'PASS ...' = passed, 'FAIL: ...' = real problem, 'SKIP: ...' = fixture missing.
@@ -316,6 +317,52 @@ BEGIN
     INSERT INTO _r VALUES ('PASS: role unchanged for a still-pending application');
   ELSE
     INSERT INTO _r VALUES ('FAIL: role unexpectedly changed to ' || COALESCE(v_role, 'NULL'));
+  END IF;
+END $$;
+SELECT * FROM _r;
+ROLLBACK;
+
+-- ============================================
+-- 11. SECURITY (one-time claim): an approved token promotes at most ONE account; a second
+-- account replaying the same token is NOT promoted — Expected: PASS
+-- ============================================
+BEGIN;
+CREATE TEMP TABLE _r(verdict text);
+DO $$
+DECLARE v_admin_id uuid; v_student_a uuid; v_student_b uuid; v_ref uuid; v_req_id uuid;
+        v_role_a text; v_role_b text;
+BEGIN
+  SELECT id INTO v_admin_id  FROM profiles WHERE role IN ('admin', 'super_admin') LIMIT 1;
+  SELECT id INTO v_student_a FROM profiles WHERE role = 'student' LIMIT 1;
+  SELECT id INTO v_student_b FROM profiles WHERE role = 'student' AND id <> v_student_a LIMIT 1;
+  IF v_admin_id IS NULL OR v_student_a IS NULL OR v_student_b IS NULL THEN
+    INSERT INTO _r VALUES ('SKIP: need one admin and two distinct student fixtures'); RETURN;
+  END IF;
+
+  -- Anonymous application, approved by admin (grant deferred to first login)
+  SELECT submit_educator_application(
+    'Replay Test Educator', '+919876500011', 'https://linkedin.com/in/replaytest'
+  ) INTO v_ref;
+  SELECT id INTO v_req_id FROM access_requests WHERE ref_token = v_ref AND request_type = 'educator_application';
+  PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
+  PERFORM approve_educator_application(v_req_id);
+
+  -- First account presents the token → claims it, promoted to professor
+  UPDATE profiles SET role = 'student', access_request_ref = NULL WHERE id = v_student_a;
+  PERFORM set_config('request.jwt.claim.sub', v_student_a::text, true);
+  PERFORM link_access_request(v_ref);
+  SELECT role INTO v_role_a FROM profiles WHERE id = v_student_a;
+
+  -- Second account replays the SAME token → must remain a student (token already claimed)
+  UPDATE profiles SET role = 'student', access_request_ref = NULL WHERE id = v_student_b;
+  PERFORM set_config('request.jwt.claim.sub', v_student_b::text, true);
+  PERFORM link_access_request(v_ref);
+  SELECT role INTO v_role_b FROM profiles WHERE id = v_student_b;
+
+  IF v_role_a = 'professor' AND v_role_b = 'student' THEN
+    INSERT INTO _r VALUES ('PASS: token is one-time — first claimer promoted, replay rejected');
+  ELSE
+    INSERT INTO _r VALUES ('FAIL: role_a=' || COALESCE(v_role_a, 'NULL') || ' role_b=' || COALESCE(v_role_b, 'NULL') || ' (replay should NOT promote)');
   END IF;
 END $$;
 SELECT * FROM _r;

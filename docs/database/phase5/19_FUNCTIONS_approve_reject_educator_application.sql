@@ -52,7 +52,9 @@ BEGIN
   UPDATE access_requests SET status = 'approved' WHERE id = p_request_id;
 
   IF v_req.requester_user_id IS NOT NULL THEN
-    UPDATE profiles SET role = 'professor' WHERE id = v_req.requester_user_id;
+    -- Promote to professor, but never overwrite a higher role (don't demote an admin/super_admin).
+    UPDATE profiles SET role = 'professor'
+     WHERE id = v_req.requester_user_id AND role NOT IN ('admin', 'super_admin');
 
     INSERT INTO notifications (user_id, type, title, message, metadata)
     VALUES (
