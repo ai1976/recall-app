@@ -465,10 +465,6 @@ export default function FlashcardCreate() {
         difficulty: 'medium',
         batch_id: crypto.randomUUID(),
         batch_description: null,
-        next_review: new Date().toISOString(),
-        interval: 1,
-        ease_factor: 2.5,
-        repetitions: 0
       }));
 
       const { error: insertError } = await supabase

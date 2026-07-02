@@ -1,0 +1,26 @@
+-- Name: [CLEANUP] Drop Dead `comments` Table (blueprint.md §1.11 #6)
+-- Description: Drops the comments table. RLS-enabled (2 policies referencing notes.is_public)
+-- but zero frontend `.from('comments')` usage anywhere in src/ (confirmed via grep — only hit
+-- was prose text in PrivacyPolicy.jsx, not a functional reference; that copy line is stale and
+-- out of scope for this SQL-only cleanup, flagged separately in the L1 report). No comment
+-- creation/read/delete UI exists in the app.
+--
+-- What CASCADE removes (confirmed nothing else references this table):
+--   - The table's own 2 RLS policies (referencing notes.is_public — dropping the table does
+--     NOT touch the notes table or its own RLS; it only removes comments' policies, which only
+--     govern reads/writes of the now-gone comments rows).
+--   - The FK comments.note_id -> notes.id and comments.user_id -> profiles.id (outbound FKs,
+--     removed with the table regardless).
+--   - Per 01_DIAGNOSTIC query 4: confirm zero FK constraints reference INTO comments
+--     (confrelid = comments) before running — if any exist, something still depends on this
+--     table's rows and this is not safe to drop as-is.
+--
+-- This unblocks the L2 sprint (is_public -> visibility RLS migration) by removing the one
+-- policy set that referenced notes.is_public outside of the notes/flashcards tables themselves.
+-- This script does NOT touch notes/flashcards RLS or the is_public/visibility columns — that
+-- rewrite is L2 scope, not this sprint.
+--
+-- Deploy: immediately deployable, no frontend dependency, once 01_DIAGNOSTIC query 4 confirms
+-- zero FK references and the RLS policies are the only dependents.
+
+DROP TABLE IF EXISTS public.comments CASCADE;

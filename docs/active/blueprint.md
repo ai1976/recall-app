@@ -934,21 +934,21 @@ Objects that **exist in the live database** but are wrong, duplicated, dead, or 
 
 | # | Object | Why it's dead |
 |---|--------|---------------|
-| 4 | `trg_check_badge_flashcard_create`, `trg_check_badge_note_upload`, `trg_check_badge_review`, `trg_check_badge_upvote` | Functions exist but NO trigger is wired to them. The live badge triggers use the `fn_badge_check_*` family instead. |
-| 5 | `notify_friend_request`, `notify_friend_accepted`, `notify_content_upvoted` | Trigger-functions with no attached trigger. Notifications are created via RPC / Edge Functions, not these. |
-| 6 | `comments` table | RLS-enabled (2 policies referencing `notes.is_public`) but zero frontend `.from('comments')` usage. Likely Sprint-0 dead table. |
+| 4 | ⏳ **SQL PREPARED (Jul 2, 2026)** — `trg_check_badge_flashcard_create`, `trg_check_badge_note_upload`, `trg_check_badge_review`, `trg_check_badge_upvote` | Functions exist but NO trigger is wired to them. The live badge triggers use the `fn_badge_check_*` family instead. Drop script: `docs/database/landmines/02_CLEANUP_drop_dead_trigger_functions.sql`. Codebase grep confirms zero references; awaiting founder to run `01_DIAGNOSTIC_landmine_l1_audit.sql` + deploy. Flip to ✅ once deployed and `06_TEST` block 1 passes. |
+| 5 | ⏳ **SQL PREPARED (Jul 2, 2026)** — `notify_friend_request`, `notify_friend_accepted`, `notify_content_upvoted` | Trigger-functions with no attached trigger. Notifications are created via RPC / Edge Functions, not these. Same drop script and gate as #4. |
+| 6 | ⏳ **SQL PREPARED (Jul 2, 2026)** — `comments` table | RLS-enabled (2 policies referencing `notes.is_public`) but zero frontend `.from('comments')` usage (PrivacyPolicy.jsx mentions "comments" in prose copy only — not a functional reference, unrelated to this drop). Drop script: `docs/database/landmines/03_CLEANUP_drop_comments_table.sql`. This is the L2 unblocker — dropping it removes the one non-notes/flashcards RLS dependency on `notes.is_public`. Awaiting founder diagnostic + deploy; flip to ✅ once `06_TEST` block 2 passes. |
 
 #### 🟢 Undocumented legacy columns — present, low-risk, do not rely on
 
 | # | Column(s) | Note |
 |---|-----------|------|
-| 7 | `notes.course`, `notes.subject`, `notes.topic` | Legacy free-text, superseded by FK + `custom_*`. |
-| 8 | `upvotes.note_id` | Legacy, superseded by polymorphic `content_type` + `target_id`. |
+| 7 | ⏳ **SQL PREPARED (Jul 2, 2026)** — `notes.course`, `notes.subject`, `notes.topic` | Legacy free-text, superseded by FK + `custom_*`. Zero client reads/writes found. Drop script: `docs/database/landmines/04_SCHEMA_drop_legacy_free_text_columns.sql`. No frontend dependency — deployable as soon as the founder confirms `01_DIAGNOSTIC` query 5/6. |
+| 8 | ⏳ **SQL PREPARED (Jul 2, 2026)** — `upvotes.note_id` | Legacy, superseded by polymorphic `content_type` + `target_id`. Same drop script and gate as #7. |
 | 9 | `profiles.access_request_ref`, `profiles.updated_at` | Real and used (`access_request_ref` by `link_access_request`); were just undocumented. |
 
 #### Type inconsistencies to watch in migrations
 
-- **SRS columns diverge across tables:** `flashcards.ease_factor` (numeric, **vestigial**) vs `reviews.easiness` (double precision, **live**); `flashcards.repetitions` vs `reviews.repetition`; `flashcards.next_review` (timestamptz, vestigial) vs `reviews.next_review_date` (date, live). Always read SRS state from `reviews`.
+- **SRS columns diverge across tables:** `flashcards.ease_factor` (numeric, **vestigial**) vs `reviews.easiness` (double precision, **live**); `flashcards.repetitions` vs `reviews.repetition`; `flashcards.next_review` (timestamptz, vestigial) vs `reviews.next_review_date` (date, live). Always read SRS state from `reviews`. ⏳ **SQL PREPARED (Jul 2, 2026)** — `flashcards.next_review`/`interval`/`ease_factor`/`repetitions` drop is written (`docs/database/landmines/05_SCHEMA_drop_flashcards_srs_columns.sql`) but **frontend-gated**: sole writer was `FlashcardCreate.jsx`'s hardcoded seed payload, now stripped (commit pending push). Deploy order: frontend live + verified → then this SQL. Do not run the SQL first.
 - **`friendships` and `content_creators`** use `timestamp WITHOUT time zone` for created_at/updated_at; every other table uses `timestamptz`.
 
 #### 🔵 Supabase Advisor findings (surfaced Jun 30, 2026)

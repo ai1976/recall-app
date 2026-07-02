@@ -187,6 +187,10 @@
 **Key Indexes:** user_id, target_course, visibility ⭐, created_at, discipline_id, subject_id, topic_id  
 **RLS Policies:** 5 policies (see RLS section)
 
+⏳ **Pending drop (SQL prepared 2026-07-02, not yet deployed):** three undocumented legacy free-text columns — `course`, `subject`, `topic` — still exist in the live DB (superseded by `subject_id`/`topic_id` FKs + `custom_subject`/`custom_topic`, never referenced by any client code). See `docs/database/landmines/04_SCHEMA_drop_legacy_free_text_columns.sql`. Remove this note once deployed.
+
+⏳ **Pending drop (SQL prepared 2026-07-02, not yet deployed):** the `comments` relation listed above is a dead table (zero frontend usage) and is slated for removal via `docs/database/landmines/03_CLEANUP_drop_comments_table.sql`. Once deployed, remove `comments` from Related Tables and delete §2.11 below.
+
 ---
 
 ### 2.3 flashcards
@@ -264,6 +268,8 @@
 
 **Related Tables:** profiles, notes, reviews, disciplines, subjects, topics, friendships ⭐  
 **Key Indexes:** user_id, batch_id (critical for grouping), target_course, visibility ⭐, created_at  
+
+⏳ **Pending drop (SQL prepared 2026-07-02, not yet deployed, frontend-gated):** four undocumented legacy SRS columns — `next_review`, `interval`, `ease_factor`, `repetitions` — still exist in the live DB. Superseded by `reviews.next_review_date`/`interval`/`easiness`/`repetition` (always read SRS state from `reviews`, never `flashcards`). Sole writer was `FlashcardCreate.jsx`'s hardcoded seed payload — now removed from the insert. Drop SQL: `docs/database/landmines/05_SCHEMA_drop_flashcards_srs_columns.sql` — must deploy AFTER the frontend change is live and verified. Remove this note once deployed.
 **RLS Policies:** 5 policies (see RLS section)
 
 **CRITICAL:** Always group by `batch_id`, NOT by timestamp or created_at
@@ -523,6 +529,8 @@ INSERT INTO role_permissions VALUES
 ---
 
 ### 2.11 comments
+
+⏳ **Pending drop (SQL prepared 2026-07-02, not yet deployed):** zero frontend `.from('comments')` usage found anywhere in `src/` — no comment creation/read/delete UI exists in the app. Drop SQL: `docs/database/landmines/03_CLEANUP_drop_comments_table.sql`. Delete this entire §2.11 section once deployed.
 
 **Purpose:** Comments on shared notes  
 **Created:** December 2025  
@@ -2553,7 +2561,7 @@ Function: `update_deck_card_count()` (SECURITY DEFINER)
 | user_id | UUID | FK → profiles.id, NOT NULL | Who upvoted |
 | content_type | TEXT | CHECK ('note', 'flashcard_deck') | Type of content |
 | target_id | UUID | NOT NULL | notes.id or flashcard_decks.id |
-| note_id | UUID | nullable, DEPRECATED | Legacy column |
+| note_id | UUID | nullable, DEPRECATED | Legacy column. ⏳ **Pending drop (SQL prepared 2026-07-02, not yet deployed):** zero client reads/writes found — `UpvoteButton.jsx` and `MyContributions.jsx` use only `content_type`/`target_id`. Drop SQL: `docs/database/landmines/04_SCHEMA_drop_legacy_free_text_columns.sql`. Remove this row once deployed. |
 | created_at | TIMESTAMPTZ | DEFAULT NOW() | |
 
 **Unique Constraint:** `(user_id, content_type, target_id)`

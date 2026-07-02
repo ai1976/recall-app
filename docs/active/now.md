@@ -7,6 +7,33 @@
 
 ## Just Completed ✅
 
+### Landmine Cleanup Sprint L1 — safe drops & schema de-clutter (Jul 2, 2026)
+
+**Scope:** low-risk warm-up of the 4-sprint DB cleanup phase (blueprint.md §1.11). Remove confirmed-dead trigger-functions, drop the dead `comments` table (unblocks L2's `is_public`→`visibility` RLS migration), and drop legacy/vestigial columns on `notes`/`upvotes`/`flashcards`. SQL-first, audit-heavy — destructive DDL on a 162-user production DB.
+
+**⏳ SQL WRITTEN, NOT DEPLOYED.** Six named scripts in `docs/database/landmines/` (`01_DIAGNOSTIC` through `06_TEST`). Codebase-side audit is complete (see below); the DB-side half (`01_DIAGNOSTIC`) still needs the founder to run it in the Supabase SQL Editor and confirm no live trigger wiring / FK references / RLS predicates before any drop deploys.
+
+- **Codebase audit (grep across all of `src/`):**
+  - `trg_check_badge_flashcard_create/note_upload/review/upvote` and `notify_friend_request/accepted`, `notify_content_upvoted` (targets #4, #5): zero references anywhere — confirms the blueprint's Jun 29 finding that these are dead trigger-functions with no trigger attached, superseded by `fn_badge_check_*` and RPC/Edge-Function-based notifications respectively.
+  - `comments` table (target #6): zero `.from('comments')` in code. Only hit for the word "comments" anywhere in `src/` was two lines of marketing copy in `PrivacyPolicy.jsx` — not a functional reference, not touched by this sprint.
+  - `notes.course`/`subject`/`topic` (target #7) and `upvotes.note_id` (target #8): zero client reads or writes. `NoteUpload.jsx`'s insert payload uses `subject_id`/`topic_id`/`custom_subject`/`custom_topic`, never the legacy free-text trio. `UpvoteButton.jsx`/`MyContributions.jsx` use only `content_type`/`target_id`, never `note_id`.
+  - `flashcards.next_review`/`interval`/`ease_factor`/`repetitions` (vestigial SRS columns): **found a live writer** — `FlashcardCreate.jsx`'s single-card insert payload hardcoded all four (`next_review: new Date().toISOString(), interval: 1, ease_factor: 2.5, repetitions: 0`) on every insert, a seed value never subsequently updated (real SRS state has always lived in `reviews`). `BulkUploadFlashcards.jsx` and `ProfessorTools.jsx` (the other two flashcard-insert paths) do **not** write these columns — confirmed by reading both insert payloads in full.
+- **Frontend change (this sprint, not yet pushed):** stripped the four SRS keys from `FlashcardCreate.jsx`'s insert payload — `npm run build`/dev-server compile clean, no other behavior change. This is a hard prerequisite for the SRS-column drop (`05_SCHEMA`), which must NOT be deployed until this frontend change is live and verified in production (a live client still sending a dropped column would error on every single-card create).
+- **Deploy order:**
+  1. Founder runs `01_DIAGNOSTIC_landmine_l1_audit.sql`, shares output.
+  2. `02_CLEANUP` (dead trigger-functions) and `03_CLEANUP` (comments table) and `04_SCHEMA` (notes/upvotes legacy columns) are all immediately deployable, no frontend dependency — deploy once diagnostic confirms zero live references.
+  3. `FlashcardCreate.jsx` frontend change deploys and is verified (one test flashcard created successfully) — independent of step 2.
+  4. Only after step 3: deploy `05_SCHEMA` (flashcards SRS columns).
+  5. Run `06_TEST` after each deploy to confirm.
+- **blueprint.md §1.11:** items #4–#8 (and the SRS type-inconsistency note) marked ⏳ SQL PREPARED (Jul 2, 2026), not ✅ — nothing has been deployed yet. Flip to ✅ RESOLVED once the founder confirms each deploy.
+- **Not touched (explicitly out of scope for L1):** `is_public`, `visibility`, or any public-read RLS policy on `notes`/`flashcards` — that's L2, gated on this sprint's `comments`-table drop but not started.
+
+**Next:** report to the phasebuilder with the audit evidence, the six scripts, the frontend diff, and the explicit deploy order above. L2 (is_public → visibility RLS rewrite) not started.
+
+Files Changed: `docs/database/landmines/01_DIAGNOSTIC_landmine_l1_audit.sql` (new), `docs/database/landmines/02_CLEANUP_drop_dead_trigger_functions.sql` (new), `docs/database/landmines/03_CLEANUP_drop_comments_table.sql` (new), `docs/database/landmines/04_SCHEMA_drop_legacy_free_text_columns.sql` (new), `docs/database/landmines/05_SCHEMA_drop_flashcards_srs_columns.sql` (new), `docs/database/landmines/06_TEST_verify_landmine_l1_drops.sql` (new), `src/pages/dashboard/Content/FlashcardCreate.jsx`, `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
+
 ### Post-Phase-5 fix — access_requests 'dismissed' status CHECK (Jul 2, 2026)
 
 Closed the pre-existing bug surfaced during S6: `AdminDashboard.jsx`'s access-request status dropdown offered `'dismissed'`, but the DB `access_requests_status_check` never allowed it → selecting it threw a `23514` CHECK violation. `docs/database/phase5/22_SCHEMA_add_dismissed_to_access_requests_status_check.sql` extends the CHECK to `('pending','contacted','enrolled','approved','rejected','dismissed')` (idempotent, mirrors script 17). **✅ Deployed 2026-07-02.** No frontend change (dropdown already offers the option); educator applications unaffected (they use the approve/reject RPCs, not this dropdown).
