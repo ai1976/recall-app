@@ -192,13 +192,17 @@ END $$;
 -- Results
 -- ============================================
 RESET ROLE;
-SELECT * FROM _r ORDER BY cell;
 
+-- Summary FIRST, detail LAST — the Supabase SQL Editor shows only the final result set, and the
+-- _r temp table is gone after ROLLBACK, so the detail must be the last statement to be visible.
 SELECT
   CASE WHEN count(*) FILTER (WHERE verdict = 'FAIL') = 0
     THEN 'PASS: all ' || count(*) || ' matrix cells passed'
-    ELSE 'FAIL: ' || count(*) FILTER (WHERE verdict = 'FAIL') || ' of ' || count(*) || ' matrix cells failed — see rows above'
+    ELSE 'FAIL: ' || count(*) FILTER (WHERE verdict = 'FAIL') || ' of ' || count(*) || ' matrix cells failed — see detail below'
   END AS summary
 FROM _r;
+
+-- FAIL rows sorted to the top so they're immediately visible.
+SELECT * FROM _r ORDER BY (verdict = 'FAIL') DESC, cell;
 
 ROLLBACK;
