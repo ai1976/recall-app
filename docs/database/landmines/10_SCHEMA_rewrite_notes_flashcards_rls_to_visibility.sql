@@ -1,102 +1,33 @@
--- Name: [SCHEMA] Rewrite notes + flashcards public/friends-read RLS onto visibility
--- Description: Stage A of the L2 is_public -> visibility RLS migration (blueprint.md
--- §1.11 landmine #2). Replaces the is_public-keyed public-read policies on `notes` and
--- `flashcards` with visibility-keyed ones, and ADDS the friends-tier policy that has never
--- existed in RLS (today `visibility='friends'` rows are only reachable by the owner — the
--- friends tier is UI-only and silently blocked by RLS for everyone else). Does NOT touch
--- is_public itself, INSERT/UPDATE/DELETE policies, or role targeting.
+-- Name: [SCHEMA] Rewrite notes + flashcards PUBLIC-read RLS predicate onto visibility
+-- Description: Stage A of the L2 is_public -> visibility RLS migration (blueprint.md §1.11 #2).
+-- CORRECTED against live 09_DIAGNOSTIC output (02/07/2026) — the original draft assumed policy
+-- names/roles that do not match live reality. Key findings from 09:
+--   - The friends tier is ALREADY enforced by live policies "Users can view friends notes" /
+--     "Users can view friends flashcards" (both already `visibility='friends' AND EXISTS(accepted
+--     friendship)`). blueprint §1.11's "friends tier never enforced in RLS" claim was WRONG (it
+--     only looked at the public policy). So this script creates NO friends policy.
+--   - Live policy names have spaces ("Users can view public notes"), and role targeting is
+--     TO {public}. Locked decision 02/07/2026: PRESERVE TO public — anon reads PUBLIC content
+--     directly (already the case pre-migration; private/friends are correctly excluded).
+--   - Live predicates (09 Block 2): notes = `is_public = true`; flashcards = `is_public = true
+--     OR visibility = 'public'`. 09 Block 5 confirmed `is_public=true` <=> `visibility='public'`
+--     with ZERO drift on both tables → this swap is DATA-EQUIVALENT (no row changes visibility).
+--   - 09 Block 3: no view/rule depends on is_public. After this swap, 09 Block 2's two policies
+--     are the ONLY is_public references, so Stage B (12_SCHEMA) can then drop the column.
 --
--- PREREQUISITE: run 09_DIAGNOSTIC first. If query 1's live `qual` text differs from the
--- ROLLBACK comments below, update those comments to match the live text before deploying —
--- the rollback must reproduce exactly what was live, not what the docs assumed.
+-- Uses ALTER POLICY (NOT DROP/CREATE): changes only the USING predicate in place — policy name,
+-- roles (TO public), and cmd are preserved exactly. Friends / own / admin policies untouched.
 --
--- Reversible: every DROP POLICY below is preceded by a ROLLBACK comment with the exact
--- CREATE POLICY needed to restore the pre-migration behavior. To roll back, run the four
--- ROLLBACK statements and DROP the four new/replaced policies this script creates.
+-- REVERSIBLE — rollback restores the exact live predicates:
+--   ALTER POLICY "Users can view public notes" ON public.notes USING (is_public = true);
+--   ALTER POLICY "Users can view public flashcards" ON public.flashcards
+--     USING (is_public = true OR visibility = 'public');
 --
--- Deploy gate: do not deploy until the founder has reviewed 09_DIAGNOSTIC output (especially
--- the query 5 drift check) and the matrix in 11_TEST is written and reviewed. After deploy,
--- run 11_TEST in full — every "stranger/anon cannot see friends/private" assertion must PASS
--- before Stage B (12_SCHEMA) is even drafted for deployment.
+-- Deploy gate: after deploying, run 11_TEST in full — every "stranger/anon cannot see
+-- friends/private" assertion must PASS before Stage B (12_SCHEMA) is drafted for deployment.
 
-BEGIN;
-
--- ============================================
--- NOTES
--- ============================================
-
--- ROLLBACK (restores pre-migration behavior — confirm against 09_DIAGNOSTIC query 1 first):
---   CREATE POLICY users_view_public_notes ON public.notes
---     FOR SELECT TO authenticated USING (is_public = true);
-DROP POLICY IF EXISTS users_view_public_notes ON public.notes;
-CREATE POLICY users_view_public_notes ON public.notes
-  FOR SELECT TO authenticated
+ALTER POLICY "Users can view public notes" ON public.notes
   USING (visibility = 'public');
 
--- New — the friends tier has never been enforced in RLS before this. Bidirectional:
--- either side of an accepted friendship can read the other's visibility='friends' rows.
--- ROLLBACK: DROP POLICY users_view_friends_notes ON public.notes;
-DROP POLICY IF EXISTS users_view_friends_notes ON public.notes;
-CREATE POLICY users_view_friends_notes ON public.notes
-  FOR SELECT TO authenticated
-  USING (
-    visibility = 'friends'
-    AND EXISTS (
-      SELECT 1 FROM public.friendships f
-      WHERE f.status = 'accepted'
-        AND (
-          (f.user_id = auth.uid() AND f.friend_id = notes.user_id)
-          OR (f.friend_id = auth.uid() AND f.user_id = notes.user_id)
-        )
-    )
-  );
-
--- Untouched, listed for completeness (owner + super_admin already cover private/friends
--- for their own audience — no change needed):
---   users_view_own_notes    FOR SELECT TO authenticated USING (user_id = auth.uid())
---   super_admin_view_all_notes FOR SELECT TO authenticated USING (role = 'super_admin')
---   users_insert_notes, users_update_own_notes, users_delete_own_notes — unchanged
-
--- ============================================
--- FLASHCARDS
--- ============================================
-
--- ROLLBACK (restores pre-migration behavior — confirm against 09_DIAGNOSTIC query 1 first;
--- blueprint.md §1.11 #2 records this predicate as `is_public = true OR visibility =
--- 'public'`, DATABASE_SCHEMA.md records it as `is_public = true` — use whichever query 1
--- actually returns):
---   CREATE POLICY users_view_public_flashcards ON public.flashcards
---     FOR SELECT TO authenticated USING (is_public = true OR visibility = 'public');
-DROP POLICY IF EXISTS users_view_public_flashcards ON public.flashcards;
-CREATE POLICY users_view_public_flashcards ON public.flashcards
-  FOR SELECT TO authenticated
+ALTER POLICY "Users can view public flashcards" ON public.flashcards
   USING (visibility = 'public');
-
--- New — same friends-tier gap as notes. StudyMode.jsx already queries with
--- `visibility.eq.friends` in its client-side .or() filter today, but RLS has never actually
--- granted that access (is_public is false on friends-tier rows), so it has been a silent
--- no-op for every user. This is the fix.
--- ROLLBACK: DROP POLICY users_view_friends_flashcards ON public.flashcards;
-DROP POLICY IF EXISTS users_view_friends_flashcards ON public.flashcards;
-CREATE POLICY users_view_friends_flashcards ON public.flashcards
-  FOR SELECT TO authenticated
-  USING (
-    visibility = 'friends'
-    AND EXISTS (
-      SELECT 1 FROM public.friendships f
-      WHERE f.status = 'accepted'
-        AND (
-          (f.user_id = auth.uid() AND f.friend_id = flashcards.user_id)
-          OR (f.friend_id = auth.uid() AND f.user_id = flashcards.user_id)
-        )
-    )
-  );
-
--- Untouched, listed for completeness:
---   users_view_own_flashcards FOR SELECT TO authenticated USING (user_id = auth.uid())
---   super_admin_view_all_flashcards FOR SELECT TO authenticated USING (role = 'super_admin')
---   users_insert_flashcards, users_update_own_flashcards, users_delete_own_flashcards — unchanged
-
-COMMIT;
-
--- Post-deploy: run 11_TEST_verify_visibility_rls_matrix.sql in full before touching Stage B.

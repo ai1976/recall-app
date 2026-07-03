@@ -157,10 +157,10 @@ BEGIN
 END $$;
 
 -- ============================================
--- ACTOR: ANON — locked decision is "anon stays RPC-only", i.e. no direct-table grant to
--- anon on notes/flashcards at all. CRITICAL: expect zero on every tier, including public.
--- If public comes back non-zero, a policy is unexpectedly targeting `public`/`anon` role —
--- cross-check against 09_DIAGNOSTIC query 1's `roles` column before treating this as fixed.
+-- ACTOR: ANON — locked decision (02/07/2026, confirmed against live 09): PRESERVE TO public,
+-- so anon reads PUBLIC content directly (this was already the case pre-migration; the policies
+-- target role `public`). CRITICAL: expect public=1, but friends=0 AND private=0 — anon must
+-- NEVER see friends or private content. A non-zero friends/private here is a live exposure.
 -- ============================================
 RESET ROLE;
 SET LOCAL ROLE anon;
@@ -170,14 +170,14 @@ DO $$
 DECLARE v_n int;
 BEGIN
   SELECT count(*) INTO v_n FROM public.notes WHERE title = '_L2TEST_note_public';
-  INSERT INTO _r VALUES ('notes/anon/public', '0', v_n::text, CASE WHEN v_n = 0 THEN 'PASS' ELSE 'FAIL' END);
+  INSERT INTO _r VALUES ('notes/anon/public', '1', v_n::text, CASE WHEN v_n = 1 THEN 'PASS' ELSE 'FAIL' END);
   SELECT count(*) INTO v_n FROM public.notes WHERE title = '_L2TEST_note_friends';
   INSERT INTO _r VALUES ('notes/anon/friends [CRITICAL]', '0', v_n::text, CASE WHEN v_n = 0 THEN 'PASS' ELSE 'FAIL' END);
   SELECT count(*) INTO v_n FROM public.notes WHERE title = '_L2TEST_note_private';
   INSERT INTO _r VALUES ('notes/anon/private [CRITICAL]', '0', v_n::text, CASE WHEN v_n = 0 THEN 'PASS' ELSE 'FAIL' END);
 
   SELECT count(*) INTO v_n FROM public.flashcards WHERE front_text = '_L2TEST_card_public';
-  INSERT INTO _r VALUES ('flashcards/anon/public', '0', v_n::text, CASE WHEN v_n = 0 THEN 'PASS' ELSE 'FAIL' END);
+  INSERT INTO _r VALUES ('flashcards/anon/public', '1', v_n::text, CASE WHEN v_n = 1 THEN 'PASS' ELSE 'FAIL' END);
   SELECT count(*) INTO v_n FROM public.flashcards WHERE front_text = '_L2TEST_card_friends';
   INSERT INTO _r VALUES ('flashcards/anon/friends [CRITICAL]', '0', v_n::text, CASE WHEN v_n = 0 THEN 'PASS' ELSE 'FAIL' END);
   SELECT count(*) INTO v_n FROM public.flashcards WHERE front_text = '_L2TEST_card_private';
