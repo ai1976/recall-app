@@ -167,8 +167,8 @@ export default function MyNotes() {
 
     // Visibility filter
     if (filterVisibility !== 'all') {
-      filtered = filtered.filter(note => 
-        filterVisibility === 'public' ? note.is_public : !note.is_public
+      filtered = filtered.filter(note =>
+        filterVisibility === 'public' ? note.visibility === 'public' : note.visibility !== 'public'
       );
     }
 
@@ -311,7 +311,7 @@ export default function MyNotes() {
             {note.title || 'Untitled Note'}
           </CardTitle>
           <div className="flex items-center gap-2 flex-shrink-0">
-            {note.is_public ? (
+            {note.visibility === 'public' ? (
               <Globe className="h-4 w-4 text-green-600" title="Public" />
             ) : (
               <Lock className="h-4 w-4 text-gray-400" title="Private" />

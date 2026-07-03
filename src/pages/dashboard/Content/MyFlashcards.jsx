@@ -143,7 +143,6 @@ export default function MyFlashcards() {
         custom_subject: card.custom_subject?.replace(/[\u25C6\u2666◆�]/g, '').trim() || null,
         custom_topic: card.custom_topic?.replace(/[\u25C6\u2666◆�]/g, '').trim() || null,
         visibility: card.visibility || 'private',
-        is_public: card.is_public || false
       }));
 
       setFlashcards(cleanedData);
@@ -514,7 +513,6 @@ export default function MyFlashcards() {
         .from('flashcards')
         .update({
           visibility: newVisibility,
-          is_public: newVisibility === 'public'
         })
         .eq('id', cardId);
 
@@ -527,7 +525,7 @@ export default function MyFlashcards() {
 
       setFlashcards(prev => prev.map(card =>
         card.id === cardId
-          ? { ...card, visibility: newVisibility, is_public: newVisibility === 'public' }
+          ? { ...card, visibility: newVisibility }
           : card
       ));
     } catch (error) {
@@ -550,7 +548,6 @@ export default function MyFlashcards() {
         .from('flashcards')
         .update({
           visibility: newVisibility,
-          is_public: newVisibility === 'public'
         })
         .in('id', cardIds);
 

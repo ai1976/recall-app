@@ -570,7 +570,6 @@ IMPORTANT:
           tags: card.tags || [],
           difficulty: card.difficulty || 'medium',
           visibility: bulkVisibility,
-          is_public: bulkVisibility === 'public',
           is_verified: isProfessor || isAdmin || isSuperAdmin,
           batch_id: batchId,
           batch_description: trimmedDescription

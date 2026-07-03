@@ -361,7 +361,6 @@ export default function NoteEdit() {
         extracted_text: extractedText.trim() || null,
         tags: tagsArray.length > 0 ? tagsArray : null,
         visibility: visibility,
-        is_public: visibility === 'public',
         image_url: newImageUrl,
         updated_at: new Date().toISOString()
       };

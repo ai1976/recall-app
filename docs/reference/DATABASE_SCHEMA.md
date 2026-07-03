@@ -187,9 +187,11 @@
 **Key Indexes:** user_id, target_course, visibility ⭐, created_at, discipline_id, subject_id, topic_id  
 **RLS Policies:** 5 policies (see RLS section)
 
-⏳ **Pending drop (SQL prepared 2026-07-02, not yet deployed):** three undocumented legacy free-text columns — `course`, `subject`, `topic` — still exist in the live DB (superseded by `subject_id`/`topic_id` FKs + `custom_subject`/`custom_topic`, never referenced by any client code). See `docs/database/landmines/04_SCHEMA_drop_legacy_free_text_columns.sql`. Remove this note once deployed.
+✅ **Resolved 02/07/2026:** the legacy free-text columns `course`, `subject`, `topic` (superseded by `subject_id`/`topic_id` FKs + `custom_subject`/`custom_topic`) were dropped via `docs/database/landmines/04_SCHEMA_drop_legacy_free_text_columns.sql` and verified live (Landmine Cleanup Sprint L1).
 
-⏳ **Pending drop (SQL prepared 2026-07-02, not yet deployed):** the `comments` relation listed above is a dead table (zero frontend usage) and is slated for removal via `docs/database/landmines/03_CLEANUP_drop_comments_table.sql`. Once deployed, remove `comments` from Related Tables and delete §2.11 below.
+✅ **Resolved 02/07/2026:** the `comments` table (zero frontend usage) was dropped via `docs/database/landmines/03_CLEANUP_drop_comments_table.sql` and verified live (Landmine Cleanup Sprint L1). Removed from Related Tables above; §2.11 below is stale and should be deleted in a future docs pass.
+
+⏳ **`is_public`** (not in the column table above — omission in this doc; it is a real, currently load-bearing column, see blueprint.md §1.11 landmine #2 and §2.2 there for the live-verified column list): SQL to rewrite the public-read RLS policy onto `visibility` and drop `is_public` is prepared but not yet deployed — see the `users_view_public_notes` / `users_view_friends_notes` policies above and `docs/database/landmines/10_SCHEMA_rewrite_notes_flashcards_rls_to_visibility.sql` / `12_SCHEMA_drop_is_public_notes_flashcards.sql`.
 
 ---
 
@@ -268,6 +270,8 @@
 
 **Related Tables:** profiles, notes, reviews, disciplines, subjects, topics, friendships ⭐  
 **Key Indexes:** user_id, batch_id (critical for grouping), target_course, visibility ⭐, created_at  
+
+⏳ **`is_public`** (not in the column table above — omission in this doc; it is a real, currently load-bearing column, see blueprint.md §1.11 landmine #2): SQL to rewrite the public-read RLS policy onto `visibility` and drop `is_public` is prepared but not yet deployed — see the `users_view_public_flashcards` / `users_view_friends_flashcards` policies above and `docs/database/landmines/10_SCHEMA_rewrite_notes_flashcards_rls_to_visibility.sql` / `12_SCHEMA_drop_is_public_notes_flashcards.sql`.
 
 ✅ **Dropped 02/07/2026 (L1, `05_SCHEMA`):** the four undocumented legacy SRS columns — `next_review`, `interval`, `ease_factor`, `repetitions` — were removed from `flashcards`. Superseded by `reviews.next_review_date`/`interval`/`easiness`/`repetition` (always read SRS state from `reviews`, never `flashcards`). Sole writer was `FlashcardCreate.jsx`'s hardcoded seed payload, stripped in commit `921280b`. Required dropping the dead `vw_study_items` view first (`08_CLEANUP` — it `SELECT`ed these columns; see blueprint §1.11 audit-gap note).
 **RLS Policies:** 5 policies (see RLS section)
@@ -1142,9 +1146,16 @@ SECURITY DEFINER
 #### Policy: users_view_public_notes
 - **Command:** SELECT
 - **Roles:** authenticated
-- **Condition:** `is_public = true`
+- **Condition:** `visibility = 'public'` — ⏳ rewritten from `is_public = true` via Landmine L2 (`docs/database/landmines/10_SCHEMA_rewrite_notes_flashcards_rls_to_visibility.sql`), SQL prepared 02/07/2026, not yet deployed. Live condition is still `is_public = true` until deployed — confirm current state via `09_DIAGNOSTIC` before relying on this doc.
 - **Purpose:** All users can view public notes
 - **Why Needed:** Browse Notes page, community learning
+
+#### Policy: users_view_friends_notes ⏳ NEW (not yet deployed)
+- **Command:** SELECT
+- **Roles:** authenticated
+- **Condition:** `visibility = 'friends' AND EXISTS (accepted friendship with notes.user_id, either direction)`
+- **Purpose:** Friends-tier content is readable by accepted friends, not just the owner
+- **Why Needed:** The `friends` visibility tier has existed on this column since Jan 2026 but was never enforced in RLS — this is the first policy that actually grants friends-tier access. See blueprint.md §1.11 landmine #2.
 
 #### Policy: users_view_own_notes
 - **Command:** SELECT
@@ -1189,9 +1200,16 @@ SECURITY DEFINER
 #### Policy: users_view_public_flashcards
 - **Command:** SELECT
 - **Roles:** authenticated
-- **Condition:** `is_public = true`
+- **Condition:** `visibility = 'public'` — ⏳ rewritten from `is_public = true OR visibility = 'public'` via Landmine L2 (`docs/database/landmines/10_SCHEMA_rewrite_notes_flashcards_rls_to_visibility.sql`), SQL prepared 02/07/2026, not yet deployed. Confirm live condition via `09_DIAGNOSTIC` before relying on this doc.
 - **Purpose:** All users can view public flashcards
 - **Why Needed:** Review Flashcards page (browse professor/peer content)
+
+#### Policy: users_view_friends_flashcards ⏳ NEW (not yet deployed)
+- **Command:** SELECT
+- **Roles:** authenticated
+- **Condition:** `visibility = 'friends' AND EXISTS (accepted friendship with flashcards.user_id, either direction)`
+- **Purpose:** Friends-tier content is readable by accepted friends, not just the owner
+- **Why Needed:** Same gap as notes — `StudyMode.jsx` has queried with `visibility.eq.friends` since the visibility system shipped, but RLS never actually granted that access. See blueprint.md §1.11 landmine #2.
 
 #### Policy: users_view_own_flashcards
 - **Command:** SELECT

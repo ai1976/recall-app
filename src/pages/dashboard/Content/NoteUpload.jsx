@@ -332,7 +332,6 @@ export default function NoteUpload() {
         extracted_text: extractedText || null,
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
         visibility: dbVisibility,
-        is_public: visibility === 'public',
       };
 
       const { data: insertedNote, error: insertError } = await supabase

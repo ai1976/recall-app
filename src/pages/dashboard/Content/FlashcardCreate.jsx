@@ -460,7 +460,6 @@ export default function FlashcardCreate() {
         back_image_url: card.backImageUrl || null,
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
         visibility: cardVisibility,
-        is_public: visibility === 'public',
         is_verified: false,
         difficulty: 'medium',
         batch_id: crypto.randomUUID(),

@@ -150,7 +150,7 @@ export default function StudyMode({
           subjects:subject_id (id, name),
           topics:topic_id (id, name)
         `)
-        .or(`is_public.eq.true,user_id.eq.${user.id},visibility.eq.friends`)
+        .or(`visibility.eq.public,user_id.eq.${user.id},visibility.eq.friends`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

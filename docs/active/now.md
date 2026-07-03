@@ -1,11 +1,38 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-07-02
+**Last Updated:** 2026-07-03
 **Current Phase:** Phase 5 COMPLETE — all six sprints deployed & shipped 2026-07-02
 
 ---
 
 ## Just Completed ✅
+
+### Landmine Cleanup Sprint L2 — is_public → visibility RLS rewrite (Jul 3, 2026)
+
+**Scope:** the highest-risk landmine — rewrite the live public-read RLS policies on `notes`/`flashcards` from the deprecated `is_public` boolean onto `visibility`, and enforce the `friends` tier in RLS for the first time (it has existed on the column since Jan 2026 but was never actually granted access — friends-tier content has only ever been readable by its owner). Then drop `is_public`. SQL-first, two-stage, gated on founder-run introspection.
+
+**⏳ SQL WRITTEN, NOT DEPLOYED.** Five named scripts in `docs/database/landmines/` (`09_DIAGNOSTIC` through `13_TEST`):
+- `09_DIAGNOSTIC_landmine_l2_rls_audit.sql` — ground-truth introspection (exact live policy `qual`/roles, any other policy referencing `is_public`, `pg_depend` check, `friendships` shape, and an `is_public`-vs-`visibility` drift check across every row — must be run and reviewed before Stage A deploys).
+- `10_SCHEMA_rewrite_notes_flashcards_rls_to_visibility.sql` — **Stage A.** Drops `users_view_public_notes`/`users_view_public_flashcards` (currently `is_public`-keyed) and recreates them as `visibility = 'public'`. Adds two brand-new policies, `users_view_friends_notes`/`users_view_friends_flashcards`, granting `visibility = 'friends'` rows to accepted friends via a bidirectional `friendships` join. Every DROP POLICY has the exact rollback CREATE POLICY in a comment above it. INSERT/UPDATE/DELETE policies and role targeting (`authenticated` only — anon stays RPC-only per the locked decision) are untouched.
+- `11_TEST_verify_visibility_rls_matrix.sql` — **Stage A verification.** Self-contained `BEGIN...ROLLBACK`; picks 3 real profiles as owner/friend/stranger fixtures (no fabricated `auth.users` rows), creates one tagged content row per visibility tier per table, then `SET LOCAL ROLE` + `set_config('request.jwt.claims', ...)` to impersonate each actor and assert exact visibility. 24 verdict rows total; the `[CRITICAL]` ones are stranger/anon vs. friends/private — every one must PASS before Stage B is even drafted for deployment. Re-runnable after Stage B (needs a 2-line edit to drop the `is_public` fixture value once the column is gone — noted at the top of the file).
+- `12_SCHEMA_drop_is_public_notes_flashcards.sql` — **Stage B, final.** Drops `is_public` from both tables (`idx_notes_is_public`/`idx_flashcards_is_public` auto-drop with it). Hard-gated in the file header on: Stage A live + 11_TEST all-PASS, frontend deployed + verified, and a fresh `pg_depend` re-check. Rollback comment reconstructs the column from `visibility` (can't recover any pre-drop drift).
+- `13_TEST_verify_insert_without_is_public.sql` — confirms the column is actually gone and that a note/flashcard insert shaped like the post-migration frontend payload (visibility only) still succeeds.
+
+**Frontend (written, NOT pushed — hard prerequisite for `12_SCHEMA`, same reversed order as L1's SRS drop):** grepped all of `src/` for `is_public`. Found it in 11 files — 8 are the real notes/flashcards migration targets; the other 3 (`MyAchievements.jsx`, `AuthorProfile.jsx`, `FindFriends.jsx`) reference `user_badges.is_public`, an unrelated per-badge privacy toggle, correctly left untouched.
+- Stripped `is_public` from every insert/update payload: `FlashcardCreate.jsx`, `MyFlashcards.jsx` (2 update sites + 1 dead read carried into local state), `ProfessorTools.jsx`, `BulkUploadFlashcards.jsx`, `NoteUpload.jsx`, `NoteEdit.jsx`.
+- Migrated the one read-query: `StudyMode.jsx`'s `.or('is_public.eq.true,...')` fetch filter → `.or('visibility.eq.public,...')`. This filter's `visibility.eq.friends` clause has been present since the visibility system shipped but was always overridden by RLS silently blocking friends-tier rows — confirms the friends-tier gap was live, not hypothetical.
+- Migrated the two read/display sites in `MyNotes.jsx` (filter-dropdown predicate, public/private icon) to check `note.visibility === 'public'` instead — literal parity swap, no behavior change (friends-tier notes still collapse into "private"/lock-icon bucket, same as before; a dedicated friends-tier UI treatment is out of scope here).
+- `npm run build` passes clean. Did **not** exercise the create/edit flows against the live dev server — the live DB's RLS is still `is_public`-keyed until Stage A deploys, so testing this now would produce a live regression (newly created "public" content would stop being is_public-flagged and become invisible under the still-live old policy). Verification is deferred to the founder's post-Stage-A, post-frontend-deploy checks per the gate order.
+
+**Docs sync while writing this:** found and fixed two stale L1 leftovers in `DATABASE_SCHEMA.md`'s notes section — the `course`/`subject`/`topic` and `comments`-table "⏳ pending drop" callouts were still marked pending even though L1 deployed and verified them 02/07/2026 (per blueprint.md §1.11 and commit `0bb966d`). Flipped both to ✅ Resolved. Also noted that `DATABASE_SCHEMA.md`'s per-table column lists for `notes` and `flashcards` omit `is_public` entirely (a pre-existing doc gap, not something this sprint caused) — added explicit callouts pointing to blueprint.md §1.11 as the authoritative live-verified source instead of duplicating the column dump here.
+
+**Deploy order (unchanged from the brief, non-negotiable):** `09_DIAGNOSTIC` (founder runs, paste output) → review drift check → `10_SCHEMA` (Stage A) → `11_TEST` full matrix, every cell PASS, stranger/anon-vs-friends/private cells re-verified by founder explicitly → frontend deploy + live create/edit verification → `12_SCHEMA` (Stage B) → `13_TEST` → re-run `11_TEST`.
+
+**Next:** report to the phasebuilder with the drafted introspection queries, the Stage A/B SQL, the full frontend `is_public` inventory (including the 3 unrelated `user_badges.is_public` hits), and the matrix design. Do not start L3. blueprint.md §1.11 #2 stays ⏳ until both stages are deployed and re-verified live.
+
+Files Changed: `docs/database/landmines/09_DIAGNOSTIC_landmine_l2_rls_audit.sql` (new), `docs/database/landmines/10_SCHEMA_rewrite_notes_flashcards_rls_to_visibility.sql` (new), `docs/database/landmines/11_TEST_verify_visibility_rls_matrix.sql` (new), `docs/database/landmines/12_SCHEMA_drop_is_public_notes_flashcards.sql` (new), `docs/database/landmines/13_TEST_verify_insert_without_is_public.sql` (new), `src/pages/dashboard/Content/FlashcardCreate.jsx`, `src/pages/dashboard/Content/MyFlashcards.jsx`, `src/pages/dashboard/Content/MyNotes.jsx`, `src/pages/dashboard/Content/NoteUpload.jsx`, `src/pages/dashboard/Content/NoteEdit.jsx`, `src/pages/dashboard/Study/StudyMode.jsx`, `src/pages/professor/ProfessorTools.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx`, `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/now.md`, `docs/tracking/changelog.md`
+
+---
 
 ### Landmine Cleanup Sprint L1 — safe drops & schema de-clutter (Jul 2, 2026)
 
