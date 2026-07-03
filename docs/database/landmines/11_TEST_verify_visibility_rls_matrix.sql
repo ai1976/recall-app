@@ -38,12 +38,15 @@ GRANT SELECT, INSERT ON _r TO authenticated, anon;
 DO $$
 DECLARE v_count int;
 BEGIN
-  INSERT INTO _fixture SELECT 'owner', id FROM public.profiles ORDER BY created_at LIMIT 1 OFFSET 0;
-  INSERT INTO _fixture SELECT 'friend', id FROM public.profiles ORDER BY created_at LIMIT 1 OFFSET 1;
-  INSERT INTO _fixture SELECT 'stranger', id FROM public.profiles ORDER BY created_at LIMIT 1 OFFSET 2;
+  -- Actors MUST be non-admin students: the "Admins can view all" policies (is_admin())
+  -- correctly let admins/super_admins see ALL content, which would confound the visibility-tier
+  -- assertions (an admin "friend"/"stranger" would see private rows by that override, not a leak).
+  INSERT INTO _fixture SELECT 'owner',    id FROM public.profiles WHERE role = 'student' ORDER BY created_at LIMIT 1 OFFSET 0;
+  INSERT INTO _fixture SELECT 'friend',   id FROM public.profiles WHERE role = 'student' ORDER BY created_at LIMIT 1 OFFSET 1;
+  INSERT INTO _fixture SELECT 'stranger', id FROM public.profiles WHERE role = 'student' ORDER BY created_at LIMIT 1 OFFSET 2;
   SELECT count(*) INTO v_count FROM _fixture;
   IF v_count < 3 THEN
-    RAISE EXCEPTION 'Need at least 3 distinct profiles to run this matrix — found %', v_count;
+    RAISE EXCEPTION 'Need at least 3 distinct STUDENT profiles to run this matrix — found %', v_count;
   END IF;
 END $$;
 
