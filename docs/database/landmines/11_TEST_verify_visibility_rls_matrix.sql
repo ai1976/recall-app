@@ -61,19 +61,23 @@ WHERE o.role_label = 'owner' AND f.role_label = 'friend';
 
 -- Fixture content, one row per visibility tier, all owned by "owner". Tagged titles/front_text
 -- so assertions can target them precisely regardless of what else exists in the live table.
+-- content_type is CHECK-constrained (rejects arbitrary literals like 'Text'); source a valid
+-- value from an existing note rather than guessing the allowed set.
 INSERT INTO public.notes (user_id, title, content_type, target_course, visibility, is_public)
-SELECT id, '_L2TEST_note_public',  'Text', 'test_course', 'public',  true  FROM _fixture WHERE role_label = 'owner'
+SELECT id, '_L2TEST_note_public',  (SELECT content_type FROM public.notes WHERE content_type IS NOT NULL LIMIT 1), 'test_course', 'public',  true  FROM _fixture WHERE role_label = 'owner'
 UNION ALL
-SELECT id, '_L2TEST_note_friends', 'Text', 'test_course', 'friends', false FROM _fixture WHERE role_label = 'owner'
+SELECT id, '_L2TEST_note_friends', (SELECT content_type FROM public.notes WHERE content_type IS NOT NULL LIMIT 1), 'test_course', 'friends', false FROM _fixture WHERE role_label = 'owner'
 UNION ALL
-SELECT id, '_L2TEST_note_private', 'Text', 'test_course', 'private', false FROM _fixture WHERE role_label = 'owner';
+SELECT id, '_L2TEST_note_private', (SELECT content_type FROM public.notes WHERE content_type IS NOT NULL LIMIT 1), 'test_course', 'private', false FROM _fixture WHERE role_label = 'owner';
 
-INSERT INTO public.flashcards (user_id, target_course, front_text, back_text, visibility, is_public)
-SELECT id, 'test_course', '_L2TEST_card_public',  'x', 'public',  true  FROM _fixture WHERE role_label = 'owner'
+-- Match the L1 06_TEST proven-good flashcards insert shape (contributed_by/creator_id/
+-- is_verified/difficulty/batch_id) so no NOT NULL/CHECK column is missed.
+INSERT INTO public.flashcards (user_id, contributed_by, creator_id, target_course, front_text, back_text, visibility, is_public, is_verified, difficulty, batch_id)
+SELECT id, id, id, 'test_course', '_L2TEST_card_public',  'x', 'public',  true,  false, 'medium', gen_random_uuid() FROM _fixture WHERE role_label = 'owner'
 UNION ALL
-SELECT id, 'test_course', '_L2TEST_card_friends', 'x', 'friends', false FROM _fixture WHERE role_label = 'owner'
+SELECT id, id, id, 'test_course', '_L2TEST_card_friends', 'x', 'friends', false, false, 'medium', gen_random_uuid() FROM _fixture WHERE role_label = 'owner'
 UNION ALL
-SELECT id, 'test_course', '_L2TEST_card_private', 'x', 'private', false FROM _fixture WHERE role_label = 'owner';
+SELECT id, id, id, 'test_course', '_L2TEST_card_private', 'x', 'private', false, false, 'medium', gen_random_uuid() FROM _fixture WHERE role_label = 'owner';
 
 -- ============================================
 -- ACTOR: OWNER — expect: sees all 3 tiers, both tables (via users_view_own_* policy)
