@@ -32,15 +32,18 @@ DROP TABLE IF EXISTS _r;
 BEGIN;
 CREATE TEMP TABLE _r(verdict text);
 DO $$
-DECLARE v_user_id uuid; v_id uuid;
+DECLARE v_user_id uuid; v_id uuid; v_content_type text;
 BEGIN
   SELECT id INTO v_user_id FROM public.profiles LIMIT 1;
   IF v_user_id IS NULL THEN
     INSERT INTO _r VALUES ('SKIP: no profile fixture available'); RETURN;
   END IF;
+  -- Self-source a CHECK-valid content_type from an existing note (notes_content_type_check
+  -- rejects arbitrary literals like 'Text'); this test targets is_public, not content_type.
+  SELECT content_type INTO v_content_type FROM public.notes WHERE content_type IS NOT NULL LIMIT 1;
   BEGIN
     INSERT INTO public.notes (user_id, title, content_type, target_course, visibility)
-    VALUES (v_user_id, '_L2TEST_post_drop_note', 'Text', 'test_course', 'public')
+    VALUES (v_user_id, '_L2TEST_post_drop_note', v_content_type, 'test_course', 'public')
     RETURNING id INTO v_id;
     INSERT INTO _r VALUES ('PASS: note insert succeeded without is_public, id=' || v_id);
   EXCEPTION WHEN OTHERS THEN

@@ -128,7 +128,7 @@
 **Purpose:** User-uploaded study notes with OCR text extraction  
 **Created:** December 2025  
 **Last Updated:** January 11, 2026 (Added visibility system)  
-**Columns:** 24 (was 23, replaced is_public with visibility)
+**Columns:** 23 (`is_public` dropped 03/07/2026 via Landmine L2 — `visibility` is now the sole visibility column)
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -178,10 +178,10 @@
 - **NEW:** Three-tier visibility enables friend-only sharing for small study groups
 
 **Migration Notes (January 11, 2026):**
-- Old `is_public` boolean deprecated (kept for backwards compatibility)
+- Old `is_public` boolean ✅ **DROPPED 03/07/2026** (Landmine L2) — read RLS re-keyed onto `visibility`
 - Existing data migrated: `is_public=true` → `visibility='public'` (16 notes)
 - Existing data migrated: `is_public=false` → `visibility='private'` (1 note)
-- Migration SQL: `[SCHEMA] Add Visibility to Notes`
+- Migration SQL: `[SCHEMA] Add Visibility to Notes`; drop: `docs/database/landmines/12_SCHEMA_drop_is_public_notes_flashcards.sql`
 
 **Related Tables:** profiles, disciplines, subjects, topics, comments, upvotes, friendships ⭐  
 **Key Indexes:** user_id, target_course, visibility ⭐, created_at, discipline_id, subject_id, topic_id  
@@ -263,10 +263,10 @@
 - **NEW:** Three-tier visibility enables friend-only sharing for small study groups
 
 **Migration Notes (January 11, 2026):**
-- Old `is_public` boolean deprecated (kept for backwards compatibility)
+- Old `is_public` boolean ✅ **DROPPED 03/07/2026** (Landmine L2) — read RLS re-keyed onto `visibility`
 - Existing data migrated: `is_public=true` → `visibility='public'` (340 cards)
 - Existing data migrated: `is_public=false` → `visibility='private'` (227 cards)
-- Migration SQL: `[FIX] Migrate flashcard visibility from is_public`
+- Migration SQL: `[FIX] Migrate flashcard visibility from is_public`; drop: `docs/database/landmines/12_SCHEMA_drop_is_public_notes_flashcards.sql`
 
 **Related Tables:** profiles, notes, reviews, disciplines, subjects, topics, friendships ⭐  
 **Key Indexes:** user_id, batch_id (critical for grouping), target_course, visibility ⭐, created_at  
@@ -1143,10 +1143,10 @@ SECURITY DEFINER
 - **Created:** January 2, 2026
 - **Why Needed:** Content moderation, admin dashboard statistics
 
-#### Policy: users_view_public_notes
+#### Policy: "Users can view public notes"
 - **Command:** SELECT
-- **Roles:** authenticated
-- **Condition:** `visibility = 'public'` — ⏳ rewritten from `is_public = true` via Landmine L2 (`docs/database/landmines/10_SCHEMA_rewrite_notes_flashcards_rls_to_visibility.sql`), SQL prepared 02/07/2026, not yet deployed. Live condition is still `is_public = true` until deployed — confirm current state via `09_DIAGNOSTIC` before relying on this doc.
+- **Roles:** public (live policy targets `TO public`, not `authenticated` — anon reads public content directly)
+- **Condition:** `visibility = 'public'` — ✅ **DEPLOYED 03/07/2026** (Landmine L2 Stage A, `ALTER POLICY` in `docs/database/landmines/10_SCHEMA_rewrite_notes_flashcards_rls_to_visibility.sql`). Was `is_public = true`; `is_public` since dropped (Stage B).
 - **Purpose:** All users can view public notes
 - **Why Needed:** Browse Notes page, community learning
 
@@ -1197,10 +1197,10 @@ SECURITY DEFINER
 - **Created:** January 2, 2026
 - **Why Needed:** Content moderation, analytics
 
-#### Policy: users_view_public_flashcards
+#### Policy: "Users can view public flashcards"
 - **Command:** SELECT
-- **Roles:** authenticated
-- **Condition:** `visibility = 'public'` — ⏳ rewritten from `is_public = true OR visibility = 'public'` via Landmine L2 (`docs/database/landmines/10_SCHEMA_rewrite_notes_flashcards_rls_to_visibility.sql`), SQL prepared 02/07/2026, not yet deployed. Confirm live condition via `09_DIAGNOSTIC` before relying on this doc.
+- **Roles:** public (live policy targets `TO public`, not `authenticated`)
+- **Condition:** `visibility = 'public'` — ✅ **DEPLOYED 03/07/2026** (Landmine L2 Stage A, `ALTER POLICY` in `docs/database/landmines/10_SCHEMA_rewrite_notes_flashcards_rls_to_visibility.sql`). Was `is_public = true OR visibility = 'public'`; `is_public` since dropped (Stage B).
 - **Purpose:** All users can view public flashcards
 - **Why Needed:** Review Flashcards page (browse professor/peer content)
 
@@ -1505,7 +1505,7 @@ CREATE INDEX idx_profiles_timezone ON profiles(timezone);  -- ✅ NEW (2026-01-3
 ```sql
 CREATE INDEX idx_notes_user_id ON notes(user_id);
 CREATE INDEX idx_notes_target_course ON notes(target_course);
-CREATE INDEX idx_notes_is_public ON notes(is_public);
+-- idx_notes_is_public dropped 03/07/2026 with the is_public column (Landmine L2)
 CREATE INDEX idx_notes_created_at ON notes(created_at);
 CREATE INDEX idx_notes_discipline_id ON notes(discipline_id);
 CREATE INDEX idx_notes_subject_id ON notes(subject_id);
@@ -1518,7 +1518,7 @@ CREATE INDEX idx_notes_is_verified ON notes(is_verified);
 CREATE INDEX idx_flashcards_user_id ON flashcards(user_id);
 CREATE INDEX idx_flashcards_batch_id ON flashcards(batch_id); -- CRITICAL
 CREATE INDEX idx_flashcards_target_course ON flashcards(target_course);
-CREATE INDEX idx_flashcards_is_public ON flashcards(is_public);
+-- idx_flashcards_is_public dropped 03/07/2026 with the is_public column (Landmine L2)
 CREATE INDEX idx_flashcards_created_at ON flashcards(created_at);
 CREATE INDEX idx_flashcards_discipline_id ON flashcards(discipline_id);
 CREATE INDEX idx_flashcards_subject_id ON flashcards(subject_id);

@@ -1,6 +1,32 @@
 # Changelog
 
 ---
+## [2026-07-04] fix(db): Landmine Cleanup Sprint L2 — COMPLETE, is_public dropped (✅ deployed & verified)
+
+Closes blueprint §1.11 landmine #2. All stages deployed live and verified; `is_public` is gone from `notes` and `flashcards`; all read RLS now keys solely on `visibility`. This entry records what **actually** shipped — the plan in the `[2026-07-03]` entry below diverged in three material ways once `09_DIAGNOSTIC` returned live ground truth (corrections noted).
+
+### Corrections vs the prepared plan (03/07)
+- **Stage A used `ALTER POLICY`, not DROP/CREATE.** `09` showed live policy names have spaces (`"Users can view public notes"`, not snake_case `users_view_public_notes`), and role targeting is `TO public`. `ALTER POLICY … USING (…)` swaps only the predicate in place — name/roles/cmd preserved, `TO public` kept (anon reads public content directly, as it did pre-migration).
+- **No friends-tier policy was created.** The "friends tier has never been enforced in RLS" claim was **wrong** — `09` found live `"Users can view friends notes/flashcards"` policies already exist (`visibility='friends' AND EXISTS(accepted friendship)`). Stage A therefore only touched the two public-read predicates.
+- **A hidden function dependency was caught before the drop.** `14_DIAGNOSTIC`'s function-body scan found `skip_topic_cards` + `suspend_topic_cards` still referenced `fc.is_public` (a redundant clause — `fc.visibility='public'` was already in the same `OR`). `09` Block 5 proved `is_public=true ⟺ visibility='public'` with zero drift, so removing it is data-equivalent. Migrated in `15_FUNCTIONS`. Same audit-gap class as L1's `vw_study_items` trap — **column drops need a function-body scan, not just pg_depend + grep.**
+
+### Deployed (live, verified)
+- **Stage A** — `10_SCHEMA_rewrite_notes_flashcards_rls_to_visibility.sql` (`ALTER POLICY` × 2 onto `visibility='public'`). Verified: `11_TEST` matrix, 24/24 cells PASS incl. `[CRITICAL]` stranger/anon-vs-friends/private.
+- **Frontend** — commit `ca044d9`, pushed live: 8 files stripped of `is_public` (`FlashcardCreate`, `MyFlashcards`, `ProfessorTools`, `BulkUploadFlashcards`, `NoteUpload`, `NoteEdit`, `StudyMode` `.or()` filter, `MyNotes` filter + icon).
+- **Function migration** — `15_FUNCTIONS_migrate_skip_suspend_topic_cards_off_is_public.sql`. Post-deploy gate: `14` q1 returns only `user_badges.is_public` hits (different column, not dropped); `09` q2 returns zero policies on `is_public`.
+- **Stage B** — `12_SCHEMA_drop_is_public_notes_flashcards.sql` dropped the column from both tables (indexes auto-dropped). Verified: `13_TEST` all blocks PASS (column gone; note + flashcard insert succeed on `visibility` alone).
+
+### Added — SQL (new this sprint, on top of the 09–13 set below)
+- **`docs/database/landmines/14_DIAGNOSTIC_is_public_function_dependency_audit.sql`** — function-body `is_public` scan + table-alias classifier (`ub.`=user_badges safe, `fc.`/`n.`=must-migrate) + full-body dump of the two offenders. Read-only.
+- **`docs/database/landmines/15_FUNCTIONS_migrate_skip_suspend_topic_cards_off_is_public.sql`** — `CREATE OR REPLACE` both RPCs verbatim minus the redundant `fc.is_public = true` line; `NOTIFY pgrst`.
+
+### Changed — SQL corrected from the prepared drafts
+- **`10_SCHEMA`** rewritten to `ALTER POLICY` (was DROP/CREATE + friends policies); **`11_TEST`** fixtures fixed (schema-valid `content_type`, student-only actors so `is_admin()` doesn't mask results, detail rows last so fails surface); **`13_TEST`** note fixture self-sources a CHECK-valid `content_type`.
+
+### Files Changed
+`docs/database/landmines/14_*.sql` (new), `docs/database/landmines/15_*.sql` (new), `docs/database/landmines/10_*.sql`, `11_*.sql`, `13_*.sql` (corrected), `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/now.md`
+
+---
 ## [2026-07-03] chore(db): Landmine Cleanup Sprint L2 — is_public → visibility RLS rewrite (⏳ SQL not yet deployed)
 
 ### Added — SQL, saved to repo, not run against live DB
