@@ -2,6 +2,16 @@
 
 ## Resolved Bugs
 
+### [04/07/2026] Dashboard deck grid + Recent Activity listed public decks with 0 viewer-visible cards
+- **Reported by:** Founder (logged in as CA Anand More, professor) — after a student set their only card to private, the deck still appeared in Review Flashcards ("1 card, by TestOutlook") and in dashboard Recent Activity; clicking it opened an empty study session ("No flashcards to study").
+- **Symptom:** a public deck whose only card is now private still leaked its **metadata** (name, author, count, activity) to other users, though the card **content** was correctly hidden. Distinct surface from the public-preview bug above — this is the authenticated dashboard, which was the report's actual context.
+- **Root Cause:** `get_browsable_decks` and `get_recent_activity_feed` (its `recent_decks` CTE) gated at the **deck** level (`fd.visibility`) and (for the grid) returned the denormalized `fd.card_count` — neither checked per-**card** visibility. A public deck around private cards therefore listed. `get_browsable_notes` was NOT affected (notes are atomic).
+- **Confirmed via:** `docs/database/bugfixes/04_DIAGNOSTIC_listing_surfaces_visibility.sql` — dumped both function bodies; Query 3 showed deck `1e521de5` = public, stored_count 1, **0 public / 1 private**.
+- **Fix (SQL only):** `05_FUNCTIONS` (`get_browsable_decks` v4 — `LATERAL` viewer-visible card count, exclude decks with 0, return that as `card_count`) + `06_FUNCTIONS` (`get_recent_activity_feed` — `EXISTS` a viewer-visible card in `recent_decks`).
+- **Verified via:** `07_TEST` 4/4 PASS — non-owner professor sees deck `1e521de5` in neither surface `[CRITICAL]`; owner still sees it with `card_count=1`.
+- **Key lesson:** for a **container** whose visibility is decoupled from its children (deck→cards), gating the container is not enough — any listing/feed surface must check per-child visibility for the viewer, and denormalized counts (`card_count`) leak child existence. (Atomic content like notes is fine gated on its own visibility.)
+- **Status:** ✅ RESOLVED (deployed & verified live 04/07/2026)
+
 ### [04/07/2026] Public deck preview leaked private/friends cards to anyone (incl. anonymous)
 - **Reported by:** Founder — a flashcard created public by a student (TestOutlook), then changed to **private** by the creator, was still visible inside the deck to another user (CA Anand More, professor).
 - **Symptom:** After a creator set a card to `private`, its `front_text` still appeared on the public deck preview page (`/deck/:id`). Reproducible by **anyone**, including logged-out visitors — broader than the reported professor case.

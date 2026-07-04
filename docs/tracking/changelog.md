@@ -1,6 +1,28 @@
 # Changelog
 
 ---
+## [2026-07-04] fix(db): deck listing + activity feed hide zero-visible decks (✅ deployed & verified)
+
+Follow-up to the `get_public_deck_preview` fix. The founder confirmed (logged-in, as a professor) that a public deck whose only card was made private still appeared in the **authenticated dashboard** — the Review Flashcards grid and Recent Activity — even though the card *content* was correctly hidden (empty study session). Root cause: those surfaces gate at the **deck** level, not per card. The earlier public-preview fix was a real but *different* surface (anon `/deck/:id`); this addresses the dashboard surfaces the report was actually about.
+
+### Root cause
+- **`get_browsable_decks`** gated on `fd.visibility='public'` and returned the denormalized `fd.card_count` → a public shell around private cards showed as "1 card" and opened an empty session.
+- **`get_recent_activity_feed`** (`recent_decks` CTE) gated only on `fd.visibility` → same leak in the feed.
+- **`get_browsable_notes`** — NOT affected (a note is atomic, gated by its own `visibility`); no change.
+
+### Deployed (live, verified 04/07/2026)
+- **`05_FUNCTIONS`** — `get_browsable_decks` v4: `LATERAL` count of cards **visible to the viewer** (public / own / accepted-friend / admin / group-shared), returned as `card_count`; decks with 0 visible cards excluded. Owner view unchanged (sees own private cards).
+- **`06_FUNCTIONS`** — `get_recent_activity_feed`: `recent_decks` now requires `EXISTS` a viewer-visible card. `recent_notes` untouched.
+- `07_TEST` 4/4 PASS: non-owner professor sees deck `1e521de5` in **neither** surface `[CRITICAL]`; owner still sees it with `card_count=1`.
+
+### Notes
+- Behavioral change: `card_count` now reflects **viewer-visible** cards, so mixed-visibility decks show smaller counts to non-owners (and Review Flashcards subject totals become viewer-accurate). No frontend change — the UI renders the corrected numbers.
+- Signatures unchanged → no PostgREST reload. Diagnostic: `docs/database/bugfixes/04_DIAGNOSTIC_listing_surfaces_visibility.sql`.
+
+### Files Changed
+`docs/database/bugfixes/04_*.sql`, `05_*.sql`, `06_*.sql`, `07_*.sql` (all new), `docs/tracking/changelog.md`, `docs/tracking/bugs.md`, `docs/active/now.md`
+
+---
 ## [2026-07-04] fix(db): L4 profiles cascade COMPLETE + L3 search_path hotfix (✅ deployed & verified)
 
 Closes the landmine phase (L1–L4 all done). Two items, same session.

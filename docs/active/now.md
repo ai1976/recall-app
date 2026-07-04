@@ -7,6 +7,14 @@
 
 ## Just Completed ✅
 
+### Bugfix — deck grid + activity feed listed zero-visible decks ✅ COMPLETE (04/07/2026)
+
+**Scope:** founder confirmed (logged-in professor) that a public deck whose only card was made private still showed in Review Flashcards + dashboard Recent Activity (content correctly hidden, but metadata leaked). Distinct dashboard surfaces from the earlier public-preview fix — this is what the original report was actually about.
+
+**Root cause:** `get_browsable_decks` + `get_recent_activity_feed` gated at the **deck** level (`fd.visibility`), never per-card; grid returned denormalized `fd.card_count`. `get_browsable_notes` fine (notes atomic).
+
+**Fix (`05`/`06`, deployed & verified):** `get_browsable_decks` v4 counts **viewer-visible** cards (LATERAL), excludes 0-visible decks, returns that count; `get_recent_activity_feed` requires `EXISTS` a viewer-visible card. `07_TEST` 4/4 PASS (non-owner sees deck in neither surface; owner unchanged). No frontend change. **Lesson:** gating a container (deck) isn't enough when child (card) visibility is decoupled — check per-child + denormalized counts leak existence.
+
 ### Landmine Cleanup Sprint L4 — profiles FK cascade ✅ COMPLETE (04/07/2026)
 
 **Scope:** last catalogued landmine — `profiles.id → auth.users.id` was `ON DELETE NO ACTION`, so deleting a user from the Supabase Auth dashboard failed. Pure schema, no frontend change.
