@@ -1,11 +1,25 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-07-04
-**Current Phase:** Phase 5 COMPLETE — all six sprints deployed & shipped 2026-07-02. Landmine Cleanup L1 + L2 COMPLETE; L3 (search_path hardening) + L4 (profiles FK cascade) next, then Phase 6.
+**Current Phase:** Phase 5 COMPLETE — all six sprints deployed & shipped 2026-07-02. Landmine Cleanup L1 + L2 + L3 COMPLETE (+ deck-preview visibility bug fixed); L4 (profiles FK cascade) is the last landmine, then Phase 6.
 
 ---
 
 ## Just Completed ✅
+
+### Landmine Cleanup Sprint L3 — function search_path hardening ✅ COMPLETE (04/07/2026)
+
+**Scope:** resolve the Supabase Advisor "Function Search Path Mutable" finding (§1.11 Advisor). A function with no pinned `search_path` inherits the caller's at run time — a privilege-escalation vector for SECURITY DEFINER functions. SQL-only, behavior-preserving.
+
+**Done (`16`–`18`, deployed & verified):** `16_DIAGNOSTIC` found 50 our-owned unpinned functions (44 SECDEF + 6 not; already-pinned ones like `get_public_deck_preview`/`skip_topic_cards` correctly absent), confirmed zero unqualified extension deps (Block 3 empty) and that `anon`/`authenticated` can't `CREATE` in `public` (false/false). `17_SCHEMA` pinned all 50 to `SET search_path TO 'public, extensions'` (SECDEF-first, one transaction, generator-reviewed). `18_TEST` 3/3 PASS.
+
+**Decision:** behavior-preserving `'public, extensions'` (matches live role default) over strict `''` — closes the mutable hole with no body rewrites, no runtime change. The `''` + full-qualify pass is explicitly out of scope.
+
+**Next:** L4 (`profiles` FK → CASCADE) is the last landmine, then Phase 6 (dashboard reskin on S1 tokens).
+
+Files Changed: `docs/database/landmines/16_*.sql`, `17_*.sql`, `18_*.sql` (new), `docs/active/blueprint.md`, `docs/tracking/changelog.md`, `docs/active/now.md`
+
+---
 
 ### Bugfix — public deck preview leaked non-public cards ✅ COMPLETE (04/07/2026)
 

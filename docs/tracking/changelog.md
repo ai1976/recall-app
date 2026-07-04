@@ -1,6 +1,33 @@
 # Changelog
 
 ---
+## [2026-07-04] chore(db): Landmine Cleanup Sprint L3 — function search_path hardening (✅ deployed & verified)
+
+Resolves the Supabase Advisor "Function Search Path Mutable" finding (blueprint §1.11 Advisor). SQL-only, zero frontend impact, behavior-preserving.
+
+### Why
+A function with no pinned `search_path` inherits the CALLER's at run time — a privilege-escalation vector for SECURITY DEFINER functions (an attacker who prepends a schema can make unqualified names resolve to their own objects, executed with definer rights). Pinning each function closes it.
+
+### Deployed (live, verified 04/07/2026)
+- **`17_SCHEMA`** — pinned **50 our-owned unpinned functions** (44 SECURITY DEFINER + 6 not) to `SET search_path TO 'public, extensions'`, SECDEF-first, in one transaction. Generator-built (`ALTER` per exact signature) so the full list was reviewed before applying. Signatures unchanged → no PostgREST reload.
+- Diagnostic (`16`) confirmed: the pin value matches the live role default (Block 1); **zero** functions call an extension routine unqualified so nothing can break (Block 3 empty); `anon`/`authenticated` cannot `CREATE` in `public` (Block 4 false/false). Test (`18`) 3/3 PASS.
+
+### Decision
+Chose **behavior-preserving `'public, extensions'`** over strict `SET search_path = ''`. The strict form maximises hardening but requires rewriting ~50 function bodies to schema-qualify every reference (much larger, higher-risk); the pinned form closes the *mutable* hole with no body changes and no runtime change. `extensions` is included as future-proofing (no current dep). Explicitly out of scope: the `''` + full-qualify pass.
+
+### Added — SQL
+- **`docs/database/landmines/16_DIAGNOSTIC_search_path_audit.sql`** — role search_path, unpinned-function inventory (SECDEF-first, extension-owned excluded), extension-dependency scan, `public`-CREATE safety check. Read-only.
+- **`docs/database/landmines/17_SCHEMA_pin_search_path.sql`** — Block A generates + Block B applies the `ALTER … SET search_path` batch. Rollback via `RESET search_path`.
+- **`docs/database/landmines/18_TEST_verify_search_path.sql`** — verdict test (0 unpinned, extension-pin `[CRITICAL]`, SECDEF execution smoke).
+
+### Notes
+- Trigger functions (`update_deck_card_count`, `notify_badge_earned`, `log_review_activity`, etc.) were included — they benefit from the pin too.
+- Landmine phase: L1 ✅, L2 ✅, deck-preview bug ✅, L3 ✅. Remaining: L4 (`profiles` FK → CASCADE), then Phase 6.
+
+### Files Changed
+`docs/database/landmines/16_*.sql`, `17_*.sql`, `18_*.sql` (all new), `docs/active/blueprint.md`, `docs/tracking/changelog.md`, `docs/active/now.md`
+
+---
 ## [2026-07-04] fix(db): Public deck preview no longer leaks non-public cards (✅ deployed & verified)
 
 Fixes a content-visibility leak surfaced by the founder after L2: a card set to `private` by its creator was still visible inside the public deck preview to other users (and, in fact, to anonymous visitors). SQL-only fix — no frontend change.
