@@ -1,11 +1,25 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-07-04
-**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 ALL COMPLETE** (+ deck-preview visibility bug fixed, + L3 search_path hotfix). Next: L5 (API surface hardening — from the Supabase advisor CSV), then Phase 6.
+**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE** (+ deck-visibility bug fixed, + L3 search_path hotfix). DB tech-debt runway is clear. Next: **Phase 6** (dashboard reskin on S1 tokens). Pending small items: leaked-password toggle (Dashboard), latent skip_card/suspend_card column bug (task_95bdea3d).
 
 ---
 
 ## Just Completed ✅
+
+### L5 — API surface hardening ✅ COMPLETE (04/07/2026)
+
+**Scope:** least-privilege pass from the advisor CSV + SECURITY DEFINER write-guard audit. SQL-only, classification driven by the frontend `.rpc()` grep + RLS function-ref scan.
+
+**Done (`01`–`06`, deployed & verified):**
+- **IDOR guards** on the 5 card-scheduling RPCs (`skip_card`/`suspend_card`/`reset_card`/`skip_topic_cards`/`suspend_topic_cards`) — hard-block acting on another user's cards.
+- **EXECUTE revokes:** anon+authenticated off 21 internal/trigger fns; anon off ~70 authenticated-only RPCs; kept the 10-fn public allowlist + `is_admin`/`is_super_admin` (RLS — the key exclusion). Robust `REVOKE FROM PUBLIC + GRANT back` pattern.
+- **Storage:** dropped 2 broad bucket list policies (public buckets still serve by URL).
+- `06_TEST` 9/9 PASS; live anon smoke confirmed landing RPCs still 200 (allowlist survived).
+
+**Pending:** leaked-password toggle (Dashboard, non-SQL); latent `skip_card`/`suspend_card` reviews-column bug spun off to `task_95bdea3d` (reproduced verbatim here, guard-only).
+
+**Lesson:** functions referenced in RLS policies (`is_admin`, `is_super_admin`) MUST retain EXECUTE — revoking breaks RLS for everyone. Always scan `pg_policies` before revoking.
 
 ### Bugfix — deck grid + activity feed listed zero-visible decks ✅ COMPLETE (04/07/2026)
 

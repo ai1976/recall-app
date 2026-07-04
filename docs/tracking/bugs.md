@@ -2,6 +2,15 @@
 
 ## Resolved Bugs
 
+### [04/07/2026] IDOR — card-scheduling RPCs let any user modify another user's review schedule
+- **Found by:** L5 SECURITY DEFINER write-guard audit (`docs/database/security/01_DIAGNOSTIC...`), not a user report.
+- **Symptom (latent, not observed in the wild):** `skip_card`, `suspend_card`, `reset_card`, `skip_topic_cards`, `suspend_topic_cards` are SECURITY DEFINER, take `p_user_id`, and wrote to `reviews` **without checking `p_user_id = auth.uid()`**. Any authenticated user could call `/rest/v1/rpc/skip_topic_cards` with another student's UUID and tamper with their spaced-repetition schedule (horizontal privilege escalation). No data theft — unauthorized modification.
+- **Root Cause:** the functions trusted the caller-supplied `p_user_id` (frontend always passes `user.id`, but nothing enforced it server-side).
+- **Fix:** `docs/database/security/02_FUNCTIONS...` + `02b_FUNCTIONS...` — added `IF p_user_id IS DISTINCT FROM auth.uid() AND NOT public.is_admin() THEN RAISE EXCEPTION 'Access denied'` to all five; bodies otherwise verbatim.
+- **Verified via:** `06_TEST_verify_l5_hardening.sql` — cross-user `skip_card`/`suspend_topic_cards` RAISE `[CRITICAL]`; own-card action allowed.
+- **Key lesson:** any SECURITY DEFINER function that takes a `p_user_id` (or other identity param) and writes must verify it against `auth.uid()` — SECURITY DEFINER bypasses RLS, so the param is otherwise fully trusted.
+- **Status:** ✅ RESOLVED (deployed & verified live 04/07/2026)
+
 ### [04/07/2026] Dashboard deck grid + Recent Activity listed public decks with 0 viewer-visible cards
 - **Reported by:** Founder (logged in as CA Anand More, professor) — after a student set their only card to private, the deck still appeared in Review Flashcards ("1 card, by TestOutlook") and in dashboard Recent Activity; clicking it opened an empty study session ("No flashcards to study").
 - **Symptom:** a public deck whose only card is now private still leaked its **metadata** (name, author, count, activity) to other users, though the card **content** was correctly hidden. Distinct surface from the public-preview bug above — this is the authenticated dashboard, which was the report's actual context.

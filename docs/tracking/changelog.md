@@ -1,6 +1,31 @@
 # Changelog
 
 ---
+## [2026-07-04] chore(db): L5 — API surface hardening (✅ deployed & verified)
+
+Least-privilege pass over the PostgREST API surface, from the Supabase advisor CSV + the SECURITY DEFINER write-guard audit. SQL-only; no frontend change. Classification driven entirely by the frontend `.rpc()` grep + `03_DIAGNOSTIC` (RLS function-ref scan).
+
+### Deployed (live, verified 04/07/2026)
+- **IDOR guards** (`02_FUNCTIONS` + `02b_FUNCTIONS`) — `skip_card`, `suspend_card`, `reset_card`, `skip_topic_cards`, `suspend_topic_cards` now hard-block `p_user_id <> auth.uid()` (unless `is_admin()`) with `RAISE 'Access denied'`. Previously any authenticated user could tamper with another student's review schedule (horizontal IDOR).
+- **EXECUTE revokes** (`04_SCHEMA`) — robust `REVOKE FROM PUBLIC[, anon, authenticated]` + `GRANT` back:
+  - **Revoked anon+authenticated** on 21 internal/trigger functions (`award_badge`, `create_notification`, `fn_*`, counters, etc.) — never meant as RPCs; internal/trigger callers run as owner/definer, unaffected.
+  - **Revoked anon** on ~70 authenticated-only RPCs (defense-in-depth; they already guard on `auth.uid()`/role).
+  - **Kept anon** on the 10-function public allowlist (landing/preview/lead-capture) + `is_admin`/`is_super_admin` (RLS depends on them — the key non-obvious exclusion).
+- **Storage** (`05_SCHEMA`) — dropped the broad "list all files" SELECT policies on `flashcard-images` + `note-files`. Public buckets still serve objects by URL; only API enumeration is removed.
+
+### Verified
+- `06_TEST` 9/9 PASS — cross-user skip/suspend blocked `[CRITICAL]`, own-card allowed, anon can't reach internal/authenticated fns, allowlist + `is_admin` retained.
+- Live smoke (anon): landing `get_public_educators` / `get_platform_stats` / `get_featured_landing_content` all 200 — allowlist survived the revokes.
+
+### Still pending (founder / follow-up)
+- **Leaked-password protection** — Dashboard → Auth → Passwords toggle (non-SQL; not yet enabled).
+- **Latent bug spun off** (`task_95bdea3d`): `skip_card`/`suspend_card` `NOT FOUND` INSERT branch uses `easiness_factor`/`repetitions` (reviews table uses `easiness`/`repetition`) — reproduced verbatim in L5 (guard-only), fix tracked separately.
+- Two trigger helpers (`fn_autoclear_featured_on_visibility_change`, `fn_notifications_set_updated_at`) landed in revoke-anon not revoke-both — harmless (RETURN trigger → not RPC-callable), optional tidy.
+
+### Files Changed
+`docs/database/security/01_*.sql` through `06_*.sql` (02, 02b, 03, 04, 05, 06 new this sprint), `docs/tracking/changelog.md`, `docs/tracking/bugs.md`, `docs/active/now.md`, `docs/active/blueprint.md`
+
+---
 ## [2026-07-04] fix(db): deck listing + activity feed hide zero-visible decks (✅ deployed & verified)
 
 Follow-up to the `get_public_deck_preview` fix. The founder confirmed (logged-in, as a professor) that a public deck whose only card was made private still appeared in the **authenticated dashboard** — the Review Flashcards grid and Recent Activity — even though the card *content* was correctly hidden (empty study session). Root cause: those surfaces gate at the **deck** level, not per card. The earlier public-preview fix was a real but *different* surface (anon `/deck/:id`); this addresses the dashboard surfaces the report was actually about.
