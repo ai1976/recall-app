@@ -2,6 +2,15 @@
 
 ## Resolved Bugs
 
+### [04/07/2026] Unguarded admin/internal writers + a read-guard over-guard regression
+- **Found by:** the residual-IDOR sweep (`docs/database/security/12_DIAGNOSTIC...`), run to *prove* the advisor's 116 WARNs harmless. The advisor doesn't detect IDOR — this sweep did.
+- **Gaps found & fixed:**
+  - `enroll_user_in_batch_group(p_user_id)` + `notify_access_granted(p_user_id)` — SECURITY DEFINER writers taking a *target* user with no auth check; any authenticated user could enroll/notify arbitrary users. Admin-RPC-only (confirmed via `14_DIAGNOSTIC` caller audit) → added `IF NOT is_admin() THEN RAISE` (`15_FUNCTIONS`).
+  - `log_review_activity(p_user_id, …)` — internal helper (only the `fn_badge_check_reviews` trigger calls it) but `authenticated`-executable + unguarded → inject-activity-for-anyone. Revoked `authenticated`/`anon` EXECUTE (`16_SCHEMA`); trigger path (runs as owner) unaffected. Verified: `17_TEST` 6/6.
+- **Regression I introduced & fixed same session:** the read-IDOR pass (`08`) guarded `get_user_streak` to self-only, but a streak is **social** data — `get_following_with_stats` / `get_my_friends_with_stats` / `get_batch_group_member_stats` call `get_user_streak(other_user)` to show friends'/members' streaks. The guard broke those 3 pages for non-admins. Reverted (`bugfixes/13_FUNCTIONS`); `bugfixes/14_DIAGNOSTIC` confirmed it was the only misclassification.
+- **Key lesson:** **audit internal callers before adding a guard that RAISEs.** The admin-writer fixes did this (`14`) and were clean; the read guards (`08`) didn't and broke a social path. A guard on a SECURITY DEFINER function affects *every* caller, including triggers and other functions — not just the frontend.
+- **Status:** ✅ RESOLVED (deployed & verified live 04/07/2026)
+
 ### [04/07/2026] Read-side IDOR — SECURITY DEFINER RPCs let any user read another user's private data
 - **Found by:** the read-IDOR audit (`docs/database/security/07_DIAGNOSTIC...`), requested after L5.
 - **Symptom:** several SECURITY DEFINER functions took `p_user_id`/`p_professor_id` and returned that user's data **without checking it against `auth.uid()`**. SECURITY DEFINER bypasses RLS, so the param was fully trusted. An authenticated user could pass another person's UUID and read their study stats, notifications, suspended cards (incl. card text), streaks, subject mastery, and professor analytics. **`get_user_badges` was a *live* leak** — the returned data includes **private** badges (no `is_public` filter), and a dead-but-present hook helper (`useBadges.js` `fetchUserBadges`) called it cross-user.

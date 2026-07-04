@@ -7,6 +7,14 @@
 
 ## Just Completed ✅
 
+### Advisor confirmation + admin-writer guards ✅ COMPLETE (04/07/2026)
+
+**Answered "are the 116 advisor WARNs harmless?" by proving it** — a residual-IDOR sweep (`security/12`) since the advisor can't detect IDOR. The 116 are the expected secdef-RPC inventory (harmless), BUT the sweep found 3 real gaps the advisor never flags: `enroll_user_in_batch_group` + `notify_access_granted` (unguarded admin writers → `is_admin()` guard, `15`), `log_review_activity` (internal helper, authenticated-exposed → revoked, `16`). `17_TEST` 6/6.
+
+**Also fixed a regression I introduced:** the read-IDOR pass over-guarded `get_user_streak` (it's *social* data shown to friends/following/group members) → broke 3 stats pages → reverted (`bugfixes/13`); `bugfixes/14` confirmed it was the only misclassification. **Lesson: audit internal callers before adding a guard that RAISEs** — a guard affects triggers + other functions, not just the frontend.
+
+**Net:** advisor 116 confirmed harmless; every actual authorization gap (write IDOR, read IDOR, admin writers, internal helper) closed & tested. Leaked-password toggle stays deferred (Pro-gated). Clean for Phase 6.
+
 ### Read-side IDOR hardening ✅ COMPLETE (04/07/2026)
 
 **Scope:** requested audit after L5. SECURITY DEFINER RPCs taking `p_user_id`/`p_professor_id` without constraining to `auth.uid()` — read side of the IDOR class L5 fixed on writes. Found a **live** leak (`get_user_badges` returned private badges cross-user) + a **write** IDOR L5 missed (`unsuspend_card`, due to a regex gap).

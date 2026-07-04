@@ -1,6 +1,24 @@
 # Changelog
 
 ---
+## [2026-07-04] fix(db): admin-writer guards + read-IDOR follow-through (✅ deployed & verified)
+
+Closes the remaining gaps the residual-IDOR sweep (`security/12`) found after the read-IDOR pass, and fixes one over-guard regression from that pass.
+
+### Admin/internal writers (from the sweep)
+- **`15_FUNCTIONS`** — `enroll_user_in_batch_group` + `notify_access_granted` were SECURITY DEFINER writers taking a *target* `p_user_id` with **no** authorization check (any authenticated user could enroll/notify arbitrary users). `14_DIAGNOSTIC` confirmed both are admin-RPC-only (no signup/trigger caller — `fn_auto_enroll_batch_group` enrolls directly), so added `IF NOT is_admin() THEN RAISE`.
+- **`16_SCHEMA`** — `log_review_activity` (no frontend caller; invoked only by the `fn_badge_check_reviews` trigger, which runs as owner) had `authenticated` EXECUTE + no guard → a user could inject activity for anyone. Revoked `authenticated`/`anon` EXECUTE (internal-only); trigger path unaffected.
+- `17_TEST` 6/6 PASS: non-admin enroll/notify blocked, admin allowed, anon/authenticated can't exec `log_review_activity`, and a review insert (self session) still fires the trigger chain.
+
+### Regression fixed — `get_user_streak` over-guard
+- The read-IDOR pass (`08`) wrongly guarded `get_user_streak` to self-only, but a streak is **social** data: `get_following_with_stats`, `get_my_friends_with_stats`, and `get_batch_group_member_stats` all call `get_user_streak(other_user)` to show friends'/members' streaks. The guard broke those three pages for non-admins.
+- **`bugfixes/13_FUNCTIONS`** reverts `get_user_streak` to unguarded (verbatim original). `bugfixes/14_DIAGNOSTIC` full caller sweep confirmed `get_user_streak` was the **only** misclassification — no other guarded function is called cross-user internally.
+- **Root-cause lesson:** the admin-writer fixes did a caller audit *before* guarding (`14`); the read guards (`08`) didn't. Always audit internal callers before adding a guard that RAISEs.
+
+### Files Changed
+`docs/database/security/12–17` (12–14 diagnostics, 15/16/17 fix+test), `docs/database/bugfixes/13_*.sql`, `14_*.sql`, `docs/tracking/bugs.md`, `docs/tracking/changelog.md`, `docs/active/now.md`
+
+---
 ## [2026-07-04] fix(db): read-side IDOR guards on SECURITY DEFINER RPCs (✅ deployed & verified)
 
 Follow-up to L5, from a requested read-IDOR audit. Several SECURITY DEFINER functions took `p_user_id`/`p_professor_id` and returned that user's private data without checking it against `auth.uid()` — SECURITY DEFINER bypasses RLS, so the param was trusted. Closes a **live** leak (`get_user_badges` returned private badges cross-user) and a **write** IDOR L5 missed (`unsuspend_card`).
