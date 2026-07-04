@@ -2,6 +2,16 @@
 
 ## Resolved Bugs
 
+### [04/07/2026] Read-side IDOR — SECURITY DEFINER RPCs let any user read another user's private data
+- **Found by:** the read-IDOR audit (`docs/database/security/07_DIAGNOSTIC...`), requested after L5.
+- **Symptom:** several SECURITY DEFINER functions took `p_user_id`/`p_professor_id` and returned that user's data **without checking it against `auth.uid()`**. SECURITY DEFINER bypasses RLS, so the param was fully trusted. An authenticated user could pass another person's UUID and read their study stats, notifications, suspended cards (incl. card text), streaks, subject mastery, and professor analytics. **`get_user_badges` was a *live* leak** — the returned data includes **private** badges (no `is_public` filter), and a dead-but-present hook helper (`useBadges.js` `fetchUserBadges`) called it cross-user.
+- **Also caught:** **`unsuspend_card`** — a card-scheduling **write** RPC that the L5 IDOR pass missed. Root cause of the miss: the L5 write-guard audit's regex used `update ` with a trailing word-boundary that never matched `UPDATE`-only functions, so UPDATE-only writers (`unsuspend_card`, `get_unnotified_badges`) were misclassified as reads.
+- **Confirmed via:** `07_DIAGNOSTIC` (classified secdef reads taking a user-id param by whether they reference `auth.uid()`) + `07b_DIAGNOSTIC` (bodies of the ambiguous/professor fns). `get_unread_notification_count` + `mark_notifications_read` were already guarded (no change).
+- **Fix:** `08_FUNCTIONS` (10 group-A self-only guards; 4 `LANGUAGE sql` → `plpgsql` to allow the `RAISE`), `09_FUNCTIONS` (5 professor guards, `p_professor_id = auth.uid() OR is_admin()`), `10_FUNCTIONS` (`get_user_badges` self-only), + removed the dead cross-user `fetchUserBadges` from `useBadges.js` (FindFriends already fetches others' badges via a direct `is_public = true` query; `get_public_user_badges` is the correct cross-user RPC).
+- **Verified via:** `11_TEST_verify_read_idor_guards.sql` — 7/7 PASS (cross-user reads/writes RAISE `Access denied`; self-calls work).
+- **Key lessons:** (1) SECURITY DEFINER reads taking an identity param must constrain it to `auth.uid()` (or admin) exactly like writes — the READ side leaks too. (2) A write-detection regex must actually match `UPDATE`/`INSERT`/`DELETE` — verify the audit's own coverage, or writers slip through.
+- **Status:** ✅ RESOLVED (deployed & verified live 04/07/2026)
+
 ### [04/07/2026] skip_card / suspend_card errored on first-ever skip/suspend of a card (wrong reviews columns)
 - **Found by:** L5 SECURITY DEFINER write-guard audit (flagged during IDOR-guard work, fixed in a follow-up pass).
 - **Symptom (latent):** `skip_card` / `suspend_card`'s `IF NOT FOUND THEN INSERT INTO reviews (...)` branch — which fires the **first time** a user skips/suspends a card they have **no review row** for — named columns `easiness_factor` and `repetitions`, which don't exist. That path threw `42703 column "easiness_factor" of relation "reviews" does not exist`. The common path (card with an existing review → `UPDATE`) worked, so it went unnoticed.

@@ -1,6 +1,24 @@
 # Changelog
 
 ---
+## [2026-07-04] fix(db): read-side IDOR guards on SECURITY DEFINER RPCs (✅ deployed & verified)
+
+Follow-up to L5, from a requested read-IDOR audit. Several SECURITY DEFINER functions took `p_user_id`/`p_professor_id` and returned that user's private data without checking it against `auth.uid()` — SECURITY DEFINER bypasses RLS, so the param was trusted. Closes a **live** leak (`get_user_badges` returned private badges cross-user) and a **write** IDOR L5 missed (`unsuspend_card`).
+
+### Deployed (live, verified 04/07/2026)
+- **`08_FUNCTIONS`** — group A: 10 self-only guards (`get_due_forecast`, `get_recent_notifications`, `get_suspended_cards`, `get_study_heatmap`, `get_study_time_stats`, `get_subject_mastery_v1`, `get_question_type_performance`, `get_user_streak`, `get_unnotified_badges`, `unsuspend_card`). Four `LANGUAGE sql` → `plpgsql` so a `RAISE` guard could be added (signature/return unchanged).
+- **`09_FUNCTIONS`** — 5 professor-analytics guards (`p_professor_id = auth.uid() OR is_admin()`; frontend passes self).
+- **`10_FUNCTIONS`** — `get_user_badges` self-only (was returning private badges to any caller).
+- **Frontend** — removed the dead cross-user `fetchUserBadges` from `src/hooks/useBadges.js` (no consumer; FindFriends fetches others' badges via a direct `is_public = true` query; `get_public_user_badges` is the correct cross-user RPC).
+- `11_TEST` 7/7 PASS. `get_unread_notification_count` + `mark_notifications_read` were already guarded (no change).
+
+### Note
+- Root cause `unsuspend_card` was missed in L5: the L5 write-guard regex (`update ` + word boundary) never matched `UPDATE`-only functions. Lesson recorded in `bugs.md`.
+
+### Files Changed
+`docs/database/security/07_*.sql`, `07b_*.sql`, `08_*.sql`, `09_*.sql`, `10_*.sql`, `11_*.sql` (07b–11 new), `src/hooks/useBadges.js`, `docs/tracking/bugs.md`, `docs/tracking/changelog.md`, `docs/active/now.md`
+
+---
 ## [2026-07-04] fix(db): skip_card + suspend_card wrong reviews columns (✅ deployed & verified)
 
 Closes `task_95bdea3d` (spun off from L5). SQL-only.

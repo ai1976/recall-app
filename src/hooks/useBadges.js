@@ -70,20 +70,10 @@ export function useBadges() {
     setUnnotifiedBadges([]);
   }, []);
 
-  // Fetch badges for another user (for display in Find Friends, etc.)
-  const fetchUserBadges = useCallback(async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .rpc('get_user_badges', { p_user_id: userId });
-
-      if (error) throw error;
-      return data || [];
-
-    } catch (err) {
-      console.error('Error fetching user badges:', err);
-      return [];
-    }
-  }, []);
+  // NOTE: a cross-user `fetchUserBadges` helper was removed here — it called get_user_badges with an
+  // arbitrary userId, which returns PRIVATE badges too (read-IDOR). It had no consumer; FindFriends
+  // fetches others' badges via a direct is_public=true query. To view another user's PUBLIC badges,
+  // call the get_public_user_badges RPC (it filters is_public). get_user_badges is now self-only.
 
   // Initial fetch
   useEffect(() => {
@@ -108,7 +98,6 @@ export function useBadges() {
     loading,
     error,
     refetch: fetchBadges,
-    fetchUserBadges,           // Fetch another user's badges
     clearUnnotifiedBadges      // Clear after showing toast
   };
 }

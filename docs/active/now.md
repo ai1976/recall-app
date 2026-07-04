@@ -7,6 +7,14 @@
 
 ## Just Completed ✅
 
+### Read-side IDOR hardening ✅ COMPLETE (04/07/2026)
+
+**Scope:** requested audit after L5. SECURITY DEFINER RPCs taking `p_user_id`/`p_professor_id` without constraining to `auth.uid()` — read side of the IDOR class L5 fixed on writes. Found a **live** leak (`get_user_badges` returned private badges cross-user) + a **write** IDOR L5 missed (`unsuspend_card`, due to a regex gap).
+
+**Done (`07`–`11` + frontend, deployed & verified):** 10 group-A self-only guards (`08`), 5 professor guards (`09`), `get_user_badges` self-only (`10`), removed dead cross-user `fetchUserBadges` from `useBadges.js`. `11_TEST` 7/7 PASS. `get_unread_notification_count`/`mark_notifications_read` were already guarded.
+
+**Lessons:** SECURITY DEFINER *reads* taking an identity param leak too — guard like writes. A write-detection audit must actually match `UPDATE`/`INSERT`/`DELETE` (L5's regex missed UPDATE-only writers).
+
 ### L5 — API surface hardening ✅ COMPLETE (04/07/2026)
 
 **Scope:** least-privilege pass from the advisor CSV + SECURITY DEFINER write-guard audit. SQL-only, classification driven by the frontend `.rpc()` grep + RLS function-ref scan.
