@@ -2,6 +2,19 @@
 
 ## Resolved Bugs
 
+### [04/07/2026] Public deck preview leaked private/friends cards to anyone (incl. anonymous)
+- **Reported by:** Founder — a flashcard created public by a student (TestOutlook), then changed to **private** by the creator, was still visible inside the deck to another user (CA Anand More, professor).
+- **Symptom:** After a creator set a card to `private`, its `front_text` still appeared on the public deck preview page (`/deck/:id`). Reproducible by **anyone**, including logged-out visitors — broader than the reported professor case.
+- **Root Cause:** `get_public_deck_preview(p_deck_id)` is a `SECURITY DEFINER` RPC (bypasses RLS). It gated the **deck** on `visibility='public'` but its inner `preview_items` subquery selected the first cards **with no per-card visibility filter**. So private/friends cards inside a public deck leaked. The in-app StudyMode view was NOT affected (RLS-protected direct query that also excludes `private` client-side).
+- **Confirmed via:** `docs/database/bugfixes/01_DIAGNOSTIC_deck_preview_visibility_leak.sql` — Block 1 showed the live body had no `fc.visibility` predicate in the preview subquery; Block 2 found 1 live public deck (`1e521de5…`) with 1 non-public card being served. Not on `deck_id` (never populated) — the RPC uses the 5-grouping-column join.
+- **Fix (SQL only, no frontend change):** `docs/database/bugfixes/02_FUNCTIONS_fix_public_deck_preview_visibility.sql` — `CREATE OR REPLACE` adding `AND fc.visibility = 'public'` to the preview subquery. Also made the public `card_count` count public cards only (was `fd.card_count`, a trigger-maintained total that revealed how many hidden cards exist) and added deterministic `ORDER BY created_at`. Signature unchanged → safe in-place replace; `NOTIFY pgrst`.
+- **Verified via:** `docs/database/bugfixes/03_TEST_verify_public_deck_preview_visibility.sql` — public deck with one public + one private card; all 3 assertions PASS (private card NOT in preview `[CRITICAL]`, public card present, `card_count`=1).
+- **Key lessons:**
+  - Any `SECURITY DEFINER` RPC that returns content on a public/anon surface must filter visibility **explicitly** — RLS does not protect it. The deck-level gate is not enough; per-**card** visibility must be filtered too.
+  - The 5-grouping-column flashcards→decks join returns **all** visibility tiers by itself; content-returning RPCs must add `fc.visibility = 'public'` (or the appropriate per-viewer predicate) on top of it.
+  - Context of the L2 migration: `is_public` was dropped 03/07/2026; `visibility` is the sole gate.
+- **Status:** ✅ RESOLVED (deployed & verified live 04/07/2026)
+
 ### [Apr 4, 2026] Suspend Topic — "Failed to suspend topic" error after Sprint 4.0 deploy
 - **Reported by:** Aryan Pamnani (iOS, live session)
 - **Symptom:** Tapping "Suspend Topic" in the `...` dropdown showed the red "Failed to suspend topic." error toast immediately. Affected all cards regardless of topic type.

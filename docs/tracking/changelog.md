@@ -1,6 +1,30 @@
 # Changelog
 
 ---
+## [2026-07-04] fix(db): Public deck preview no longer leaks non-public cards (✅ deployed & verified)
+
+Fixes a content-visibility leak surfaced by the founder after L2: a card set to `private` by its creator was still visible inside the public deck preview to other users (and, in fact, to anonymous visitors). SQL-only fix — no frontend change.
+
+### Root cause
+`get_public_deck_preview(p_deck_id)` (SECURITY DEFINER, powers the public `/deck/:id` page via `src/pages/public/DeckPreview.jsx`) gated the **deck** on `visibility='public'` but its inner card subquery had **no per-card visibility filter**. SECURITY DEFINER bypasses RLS, so private/friends cards inside a public deck leaked their `front_text`. The in-app StudyMode study view was not affected (RLS-protected direct query that also excludes `private` client-side).
+
+### Deployed (live, verified 04/07/2026)
+- **`02_FUNCTIONS`** — `CREATE OR REPLACE get_public_deck_preview`: added `AND fc.visibility = 'public'` to the preview subquery (the leak fix); made the public `card_count` count public cards only (was `fd.card_count`, which revealed hidden-card totals); added deterministic `ORDER BY created_at`. Signature unchanged; `NOTIFY pgrst`.
+- Diagnostic (`01`) confirmed the live body matched the repo copy and found 1 live leaking deck (`1e521de5…`, the founder's test deck). Test (`03`) — 3/3 PASS incl. the `[CRITICAL]` "private card NOT in preview".
+
+### Added — SQL
+- **`docs/database/bugfixes/01_DIAGNOSTIC_deck_preview_visibility_leak.sql`** — dumps the live function body + lists every public deck holding non-public cards (proves the leak with live data). Read-only.
+- **`docs/database/bugfixes/02_FUNCTIONS_fix_public_deck_preview_visibility.sql`** — the fix (above). Rollback = re-run `docs/database/phase5/07_FUNCTIONS_cap_public_deck_preview_at_5.sql`.
+- **`docs/database/bugfixes/03_TEST_verify_public_deck_preview_visibility.sql`** — `BEGIN…ROLLBACK` verdict test: public deck with one public + one private card, asserts the private card is absent from the preview, the public present, `card_count`=1.
+
+### Notes
+- No frontend change and no live-URL step — the React page renders whatever the RPC returns.
+- Reusable lesson (also added to `DATABASE_SCHEMA.md` join section + `bugs.md`): any SECURITY DEFINER RPC returning content on a public/anon surface must filter `fc.visibility` explicitly; the 5-grouping-column deck join returns all visibility tiers on its own.
+
+### Files Changed
+`docs/database/bugfixes/01_*.sql`, `02_*.sql`, `03_*.sql` (all new), `docs/tracking/bugs.md`, `docs/tracking/changelog.md`, `docs/active/now.md`, `docs/reference/DATABASE_SCHEMA.md`
+
+---
 ## [2026-07-04] fix(db): Landmine Cleanup Sprint L2 — COMPLETE, is_public dropped (✅ deployed & verified)
 
 Closes blueprint §1.11 landmine #2. All stages deployed live and verified; `is_public` is gone from `notes` and `flashcards`; all read RLS now keys solely on `visibility`. This entry records what **actually** shipped — the plan in the `[2026-07-03]` entry below diverged in three material ways once `09_DIAGNOSTIC` returned live ground truth (corrections noted).

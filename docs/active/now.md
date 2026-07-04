@@ -7,6 +7,22 @@
 
 ## Just Completed ✅
 
+### Bugfix — public deck preview leaked non-public cards ✅ COMPLETE (04/07/2026)
+
+**Scope:** founder-reported after L2 — a card set to `private` by its creator was still visible inside the deck to another viewer (and, it turned out, to anonymous visitors). SQL-only fix, deployed & verified.
+
+**Root cause:** `get_public_deck_preview` (SECURITY DEFINER, powers the public `/deck/:id` page) gated the deck on `visibility='public'` but its inner card subquery had no per-card visibility filter → private/friends cards inside a public deck leaked their `front_text`. RLS doesn't apply (SECURITY DEFINER bypasses it). The in-app StudyMode view was clean (RLS-protected direct query that also excludes `private` client-side) — the leak was only on the public preview RPC.
+
+**Fix (`docs/database/bugfixes/02_FUNCTIONS`):** added `AND fc.visibility = 'public'` to the preview subquery; made the public `card_count` count public cards only (was `fd.card_count`, a total that revealed hidden-card counts); deterministic `ORDER BY created_at`. Signature unchanged, in-place replace. Diagnostic (`01`) confirmed the live body matched the repo + found 1 live leaking deck (the founder's test deck). Test (`03`) 3/3 PASS incl. `[CRITICAL]` private-card-absent.
+
+**Reusable lesson:** any SECURITY DEFINER RPC returning content on a public/anon surface must filter `fc.visibility` explicitly — the 5-grouping-column deck join returns all visibility tiers by itself. Recorded in `bugs.md` + `DATABASE_SCHEMA.md` join section.
+
+**Next:** the deck-listing task chip (`task_c5f879e4`) is now closed by this fix. Resume the landmine phase — L3 (search_path hardening, ~80 functions), then L4 (`profiles` FK → CASCADE), then Phase 6.
+
+Files Changed: `docs/database/bugfixes/01_*.sql`, `02_*.sql`, `03_*.sql` (new), `docs/tracking/bugs.md`, `docs/tracking/changelog.md`, `docs/active/now.md`, `docs/reference/DATABASE_SCHEMA.md`
+
+---
+
 ### Landmine Cleanup Sprint L2 — is_public → visibility RLS rewrite ✅ COMPLETE (Jul 3–4, 2026)
 
 **Scope:** the highest-risk landmine — move all read RLS on `notes`/`flashcards` off the deprecated `is_public` boolean onto `visibility`, then drop `is_public`. SQL-first, staged, gated on founder-run introspection. **All stages deployed live and verified.** Closes blueprint §1.11 #2.

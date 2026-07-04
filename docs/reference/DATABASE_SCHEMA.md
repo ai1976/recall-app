@@ -2407,7 +2407,7 @@ SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
 
 **Guards:** `WHERE is_featured_on_landing = true AND visibility = 'public'` on both queries (double-guard — `visibility = 'public'` is also enforced by the auto-clear trigger, see `flashcard_decks`/`notes` column docs).
 
-**Related:** `get_public_deck_preview` was also re-capped from 10 → 5 `preview_items` in the same sprint (`docs/database/phase5/07_FUNCTIONS_cap_public_deck_preview_at_5.sql`) to match the locked "teaser depth = 5" decision.
+**Related:** `get_public_deck_preview` was also re-capped from 10 → 5 `preview_items` in the same sprint (`docs/database/phase5/07_FUNCTIONS_cap_public_deck_preview_at_5.sql`) to match the locked "teaser depth = 5" decision. **Updated 04/07/2026** (`docs/database/bugfixes/02_FUNCTIONS_fix_public_deck_preview_visibility.sql`): preview subquery now filters `fc.visibility = 'public'` (was leaking private/friends cards — SECURITY DEFINER bypasses RLS), and `card_count` counts public cards only. See `docs/tracking/bugs.md` [04/07/2026].
 
 ---
 
@@ -2554,6 +2554,8 @@ JOIN flashcard_decks fd ON
 WHERE fd.id = p_deck_id
 ```
 This pattern is used in `get_public_deck_preview` and must be used in any future RPC that reads flashcards by deck.
+
+⚠️ **VISIBILITY — the grouping join alone returns ALL tiers.** The 5-column join matches every card in the deck regardless of each card's `visibility` (private/friends/public). Any `SECURITY DEFINER` RPC returning card **content** on a public/anon surface MUST add an explicit `AND fc.visibility = 'public'` (or the appropriate per-viewer predicate) — RLS does NOT protect SECURITY DEFINER function bodies. Gating only the deck (`fd.visibility='public'`) is insufficient: a public deck can contain private cards. This was a live leak in `get_public_deck_preview`, fixed 04/07/2026 (`docs/database/bugfixes/02_FUNCTIONS_fix_public_deck_preview_visibility.sql`; bug in `docs/tracking/bugs.md`).
 
 **Indexes:**
 - `idx_flashcard_decks_user` (user_id)
