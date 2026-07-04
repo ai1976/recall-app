@@ -1,6 +1,30 @@
 # Changelog
 
 ---
+## [2026-07-04] fix(db): L4 profiles cascade COMPLETE + L3 search_path hotfix (✅ deployed & verified)
+
+Closes the landmine phase (L1–L4 all done). Two items, same session.
+
+### L4 — profiles FK → ON DELETE CASCADE (closes §1.11 "profiles blocks user deletion")
+- **`20_SCHEMA`** (one transaction): the 8 `NO ACTION` attribution FKs on `notes`/`flashcards`/`flashcard_decks`/`content_flags` (`contributed_by`, `creator_id`, `featured_approved_by`, `featured_nominated_by`, `resolved_by`) → **`SET NULL`**; then `profiles_id_fkey` → **`CASCADE`**. Rationale: attribution columns credit a user for action on *someone else's* content, so a deleted user nulls the credit, never deletes that content (owner = `user_id`, already CASCADE).
+- `19_DIAGNOSTIC` mapped the full FK graph first (16 already-CASCADE, 5 already-SET NULL, 8 blockers). `21_TEST` 12/12 PASS incl. a live end-to-end `auth.users` delete (profile cascaded, attribution nulled, other user's card preserved). Deleting a user from the Auth dashboard now works with no manual `profiles`-row step. Pure schema, no frontend change.
+
+### L3 search_path — two-bug hotfix (production write-path incident, resolved same day)
+- **Bug 1:** `17_SCHEMA` emitted the pin **single-quoted** (`SET search_path TO 'public, extensions'`). For the `search_path` GUC a quoted comma-string is ONE schema named `"public, extensions"` — `public` fell out of the path, breaking every unqualified reference in the 50 pinned functions. Impact: flashcard/note/review **writes** failed (trigger `update_deck_card_count` → `relation "flashcard_decks" does not exist`). Reads and existing data unaffected. `18_TEST`'s execution smoke missed it (sampled an already-correctly-pinned function).
+- **Bug 2:** first hotfix `17b` re-pinned correctly but appended a `BEGIN…ROLLBACK` write-smoke in the same editor submission; the Supabase editor wraps the whole script in one transaction, so the `ROLLBACK` reverted the `ALTER`s too (false-positive PASS, pin still broken).
+- **Fix:** **`17c_HOTFIX`** (apply-only, no rollback) re-pinned all functions with correct **unquoted** `SET search_path TO public, extensions`; committed. Verified: 0 pinned fns missing standalone `public`; live flashcard insert succeeds; `21_TEST` (which exercises a real write) fully green.
+- **Source hardened:** `17_SCHEMA` fixed to emit unquoted syntax (+ warning comment); `18_TEST` Block 3 replaced with a deterministic check that `public` is a standalone element of each pinned path (would have caught Bug 1).
+- **Lessons banked** (blueprint §1.11 + memory): never single-quote a multi-schema `search_path`; never mix persistent DDL with a verification `ROLLBACK` in one Supabase-editor run; search_path tests must exercise a real write.
+
+### Added — SQL
+- `docs/database/landmines/19_DIAGNOSTIC_profiles_fk_cascade_audit.sql`, `20_SCHEMA_profiles_fk_on_delete_cascade.sql`, `21_TEST_verify_profiles_cascade.sql` (L4, new)
+- `docs/database/landmines/17b_HOTFIX_*.sql` (superseded), `17c_HOTFIX_repin_search_path_APPLY_ONLY.sql` (the live fix)
+- `docs/database/security/01_DIAGNOSTIC_securitydefiner_write_guard_audit.sql` (L5 pre-check — `admin_delete_user_data` confirmed guarded; IDOR/internal-helper worklist captured for L5)
+
+### Files Changed
+`docs/database/landmines/17_SCHEMA_*.sql`, `18_TEST_*.sql` (corrected), `17b/17c/19/20/21` (new), `docs/database/security/01_*.sql` (new), `docs/active/blueprint.md`, `docs/tracking/changelog.md`, `docs/active/now.md`
+
+---
 ## [2026-07-04] chore(db): Landmine Cleanup Sprint L3 — function search_path hardening (✅ deployed & verified)
 
 Resolves the Supabase Advisor "Function Search Path Mutable" finding (blueprint §1.11 Advisor). SQL-only, zero frontend impact, behavior-preserving.

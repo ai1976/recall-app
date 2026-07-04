@@ -38,19 +38,28 @@ BEGIN
     CASE WHEN v_bad = 0 THEN 'PASS' ELSE 'FAIL: ' || v_bad || ' would break on extension calls' END);
 END $$;
 
--- 3. Smoke: a pinned SECURITY DEFINER function still executes (random uuid → NULL, no error).
+-- 3. Every pinned function must have 'public' as a STANDALONE schema in its search_path. Catches the
+--    malformed single-quoted pin `SET search_path TO 'public, extensions'`, which Postgres stores as
+--    ONE schema named "public, extensions" — 'public' is then NOT a standalone element and unqualified
+--    references break (the 17b_HOTFIX bug). Expected: 0 bad. (A plain execution smoke misses this if
+--    the sampled function was pinned to a single valid schema like 'public' — which is how the
+--    original 18_TEST let the bug through.)
 DO $$
-DECLARE v_res jsonb;
+DECLARE v_bad int;
 BEGIN
-  BEGIN
-    v_res := public.get_public_deck_preview(gen_random_uuid());
-    INSERT INTO _r VALUES ('SECDEF fn executes post-pin', 'null (no error)',
-      COALESCE(v_res::text, 'null'),
-      CASE WHEN v_res IS NULL THEN 'PASS' ELSE 'PASS (non-null but executed)' END);
-  EXCEPTION WHEN OTHERS THEN
-    INSERT INTO _r VALUES ('SECDEF fn executes post-pin', 'null (no error)', SQLERRM,
-      'FAIL: execution errored — ' || SQLERRM);
-  END;
+  SELECT count(*) INTO v_bad
+  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public' AND p.prokind IN ('f','p')
+    AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = p.oid AND d.deptype = 'e')
+    AND EXISTS (SELECT 1 FROM unnest(coalesce(p.proconfig,'{}')) c WHERE c LIKE 'search_path=%')
+    AND NOT ('public' = ANY (
+      SELECT btrim(elem)
+      FROM unnest(coalesce(p.proconfig,'{}')) c,
+           regexp_split_to_table(split_part(c, '=', 2), ',') AS elem
+      WHERE c LIKE 'search_path=%'
+    ));
+  INSERT INTO _r VALUES ('pinned fns missing standalone public in path [CRITICAL]', '0', v_bad::text,
+    CASE WHEN v_bad = 0 THEN 'PASS' ELSE 'FAIL: ' || v_bad || ' have a malformed search_path' END);
 END $$;
 
 -- Single result set, failures first. Expect 3 rows, all PASS.

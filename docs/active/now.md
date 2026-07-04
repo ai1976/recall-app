@@ -1,11 +1,29 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-07-04
-**Current Phase:** Phase 5 COMPLETE — all six sprints deployed & shipped 2026-07-02. Landmine Cleanup L1 + L2 + L3 COMPLETE (+ deck-preview visibility bug fixed); L4 (profiles FK cascade) is the last landmine, then Phase 6.
+**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 ALL COMPLETE** (+ deck-preview visibility bug fixed, + L3 search_path hotfix). Next: L5 (API surface hardening — from the Supabase advisor CSV), then Phase 6.
 
 ---
 
 ## Just Completed ✅
+
+### Landmine Cleanup Sprint L4 — profiles FK cascade ✅ COMPLETE (04/07/2026)
+
+**Scope:** last catalogued landmine — `profiles.id → auth.users.id` was `ON DELETE NO ACTION`, so deleting a user from the Supabase Auth dashboard failed. Pure schema, no frontend change.
+
+**Done (`19`–`21`):** `19_DIAGNOSTIC` mapped the FK graph (16 already-CASCADE, 5 already-SET NULL, 8 `NO ACTION` blockers — all attribution columns). `20_SCHEMA` (one txn): 8 attribution FKs → `SET NULL`, then `profiles_id_fkey` → `CASCADE`. `21_TEST` 12/12 PASS incl. a live end-to-end delete (profile cascaded, attribution nulled, other user's card preserved). Deleting a user now works with no manual `profiles`-row step. Closes the landmine phase.
+
+### L3 search_path — production hotfix (`17b`/`17c`), same session (04/07/2026)
+
+**Incident:** L3's `17_SCHEMA` single-quoted the pin (`SET search_path TO 'public, extensions'`) → Postgres read it as ONE bogus schema, dropping `public` from the path → flashcard/note/review **writes** broke (trigger `update_deck_card_count` couldn't resolve `flashcard_decks`). `18_TEST`'s smoke missed it (sampled an already-correctly-pinned fn). First hotfix `17b` re-pinned correctly but its trailing `BEGIN…ROLLBACK` ran in the same editor submission (one txn) and reverted the `ALTER`s — false-positive PASS. **`17c` (apply-only, no rollback)** fixed it for real: unquoted `SET search_path TO public, extensions`, committed, writes healed.
+
+**Hardened:** `17_SCHEMA` now emits unquoted syntax; `18_TEST` asserts `public` is a standalone element of each pinned path. Lessons in blueprint §1.11 + memory.
+
+**Next:** L5 — API surface hardening (from the advisor CSV): revoke EXECUTE on internal-only helpers/trigger fns, add `auth.uid()=p_user_id` guards to the card-scheduling RPCs (IDOR), tighten 2 public buckets, enable leaked-password protection. `admin_delete_user_data` already confirmed guarded (super_admin check). Then Phase 6.
+
+Files Changed: `docs/database/landmines/17_SCHEMA_*.sql` + `18_TEST_*.sql` (corrected), `17b`/`17c`/`19`/`20`/`21` (new), `docs/database/security/01_*.sql` (new), `docs/active/blueprint.md`, `docs/tracking/changelog.md`, `docs/active/now.md`
+
+---
 
 ### Landmine Cleanup Sprint L3 — function search_path hardening ✅ COMPLETE (04/07/2026)
 

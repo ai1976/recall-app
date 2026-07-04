@@ -19,12 +19,15 @@
 -- BLOCK A — GENERATE & REVIEW (read-only). Emits the exact ALTER statements that Block B will run.
 -- Eyeball this list before applying. SECDEF-first.
 -- ============================================
+-- NOTE: search_path must be an UNQUOTED identifier list. Do NOT use %L / single-quote the whole
+-- value — `SET search_path TO 'public, extensions'` is parsed as ONE schema named
+-- "public, extensions" (GUC_LIST_QUOTE gotcha), dropping `public` from the path and breaking every
+-- unqualified reference. See 17b_HOTFIX. Correct form: `SET search_path TO public, extensions`.
 SELECT format(
-         'ALTER %s public.%I(%s) SET search_path TO %L;',
+         'ALTER %s public.%I(%s) SET search_path TO public, extensions;',
          CASE p.prokind WHEN 'p' THEN 'PROCEDURE' ELSE 'FUNCTION' END,
          p.proname,
-         pg_get_function_identity_arguments(p.oid),
-         'public, extensions'
+         pg_get_function_identity_arguments(p.oid)
        ) AS alter_statement
 FROM pg_proc p
 JOIN pg_namespace n ON n.oid = p.pronamespace
@@ -57,10 +60,11 @@ BEGIN
       AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = p.oid AND d.deptype = 'e')
     ORDER BY p.prosecdef DESC, p.proname
   LOOP
+    -- UNQUOTED list — see the note on Block A. Never %L here.
     v_sql := format(
-      'ALTER %s public.%I(%s) SET search_path TO %L;',
+      'ALTER %s public.%I(%s) SET search_path TO public, extensions;',
       CASE r.prokind WHEN 'p' THEN 'PROCEDURE' ELSE 'FUNCTION' END,
-      r.proname, r.args, 'public, extensions'
+      r.proname, r.args
     );
     EXECUTE v_sql;
   END LOOP;
