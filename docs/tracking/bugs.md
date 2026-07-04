@@ -2,6 +2,16 @@
 
 ## Resolved Bugs
 
+### [04/07/2026] skip_card / suspend_card errored on first-ever skip/suspend of a card (wrong reviews columns)
+- **Found by:** L5 SECURITY DEFINER write-guard audit (flagged during IDOR-guard work, fixed in a follow-up pass).
+- **Symptom (latent):** `skip_card` / `suspend_card`'s `IF NOT FOUND THEN INSERT INTO reviews (...)` branch — which fires the **first time** a user skips/suspends a card they have **no review row** for — named columns `easiness_factor` and `repetitions`, which don't exist. That path threw `42703 column "easiness_factor" of relation "reviews" does not exist`. The common path (card with an existing review → `UPDATE`) worked, so it went unnoticed.
+- **Root Cause:** the reviews table uses `easiness` (double precision) + `repetition` (integer) — same wrong-column-name bug fixed in `skip_topic_cards`/`suspend_topic_cards` on Apr 4, 2026, but these two single-card functions were missed then.
+- **Confirmed via:** `docs/database/bugfixes/08_DIAGNOSTIC_reviews_columns_for_skip_suspend_fix.sql` — Block 1 showed `easiness`/`repetition` (not `easiness_factor`/`repetitions`); `next_review_date` is a `date` column (branch passed `NOW()`).
+- **Fix:** `docs/database/bugfixes/09_FUNCTIONS_fix_skip_suspend_card_reviews_columns.sql` — `CREATE OR REPLACE` both with `easiness`/`repetition`, and `CURRENT_DATE` for `next_review_date` (matching `skip_topic_cards`). L5 IDOR guard + `search_path` preserved verbatim.
+- **Verified via:** `10_TEST_verify_skip_suspend_card_insert.sql` — skip/suspend a card with no prior review → review row created (`active`/`suspended`), no `42703`. 2/2 `[CRITICAL]` PASS.
+- **Key lesson:** when fixing a column-name bug in one function, grep for the same wrong names across ALL functions — the Apr 4 fix corrected the topic-scoped RPCs but left the single-card twins with the same defect for ~3 months.
+- **Status:** ✅ RESOLVED (deployed & verified live 04/07/2026)
+
 ### [04/07/2026] IDOR — card-scheduling RPCs let any user modify another user's review schedule
 - **Found by:** L5 SECURITY DEFINER write-guard audit (`docs/database/security/01_DIAGNOSTIC...`), not a user report.
 - **Symptom (latent, not observed in the wild):** `skip_card`, `suspend_card`, `reset_card`, `skip_topic_cards`, `suspend_topic_cards` are SECURITY DEFINER, take `p_user_id`, and wrote to `reviews` **without checking `p_user_id = auth.uid()`**. Any authenticated user could call `/rest/v1/rpc/skip_topic_cards` with another student's UUID and tamper with their spaced-repetition schedule (horizontal privilege escalation). No data theft — unauthorized modification.

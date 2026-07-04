@@ -1,6 +1,18 @@
 # Changelog
 
 ---
+## [2026-07-04] fix(db): skip_card + suspend_card wrong reviews columns (✅ deployed & verified)
+
+Closes `task_95bdea3d` (spun off from L5). SQL-only.
+
+- **Bug:** `skip_card` / `suspend_card`'s `IF NOT FOUND THEN INSERT INTO reviews` branch (first-ever skip/suspend of a card with no review row) used `easiness_factor` / `repetitions` — nonexistent columns → `42703`. Same defect the Apr 4 fix corrected in the topic-scoped twins but missed here.
+- **Verified schema first** (`08_DIAGNOSTIC`): reviews uses `easiness` (double precision) + `repetition` (integer); `next_review_date` is a `date`.
+- **Fix** (`09_FUNCTIONS`): `CREATE OR REPLACE` both with `easiness`/`repetition` and `CURRENT_DATE` for `next_review_date`; L5 IDOR guard + `search_path` preserved verbatim. `10_TEST` 2/2 `[CRITICAL]` PASS — skip/suspend a never-reviewed card creates the row (`active`/`suspended`), no `42703`.
+
+### Files Changed
+`docs/database/bugfixes/08_*.sql`, `09_*.sql`, `10_*.sql` (new), `docs/tracking/bugs.md`, `docs/tracking/changelog.md`
+
+---
 ## [2026-07-04] chore(db): L5 — API surface hardening (✅ deployed & verified)
 
 Least-privilege pass over the PostgREST API surface, from the Supabase advisor CSV + the SECURITY DEFINER write-guard audit. SQL-only; no frontend change. Classification driven entirely by the frontend `.rpc()` grep + `03_DIAGNOSTIC` (RLS function-ref scan).
