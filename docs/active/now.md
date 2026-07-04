@@ -1,7 +1,7 @@
 # NOW - Current Development Status
 
 **Last Updated:** 2026-07-04
-**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE** (+ deck-visibility bug fixed, + L3 search_path hotfix). DB tech-debt runway is clear. Next: **Phase 6** (dashboard reskin on S1 tokens). Pending small items: leaked-password toggle (Dashboard), latent skip_card/suspend_card column bug (task_95bdea3d).
+**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE** (+ deck-visibility bug fixed, + L3 search_path hotfix). DB tech-debt runway is clear. Next: **Phase 6** (dashboard reskin on S1 tokens). Pending small item: leaked-password toggle (Dashboard). ✅ skip_card/suspend_card column bug fixed 04/07/2026.
 
 ---
 
