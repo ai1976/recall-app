@@ -70,6 +70,7 @@ recall-app
 │   ├── lib
 │   │   ├── supabase.js                          ← Supabase client
 │   │   ├── utils.js                             ← shadcn cn() utility
+│   │   ├── qualityTier.js                       ← shared score/rate → colour-tier util (AdminAnalytics, SuperAdminDashboard) — Sprint 6.0
 │   │   └── notifyEdge.js                        ← fire-and-forget helpers: notifyContentCreated(), notifyFriendEvent()
 │   ├── hooks
 │   │   ├── use-toast.js                         ← shadcn toast hook

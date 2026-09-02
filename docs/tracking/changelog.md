@@ -1,6 +1,37 @@
 # Changelog
 
 ---
+## [2026-09-02] feat: Sprint 6.0 — single "what's due" RPC + read-time course filter + (c) bug fixes (✅ DEPLOYED & PUSHED)
+
+Sprint 6.0 (Correctness). One RPC is now the single source of truth for the review queue, the queue is course-aware at read time, and the six logged-in-experience bugs are addressed. SQL deployed & verified in Supabase (`02_TEST` 9/9 PASS incl. every `[CRITICAL]`); frontend then applied and pushed to main.
+
+### Added
+- **`get_study_queue(p_user_id uuid)`** — `docs/database/sprint6/01_FUNCTIONS_get_study_queue.sql` (+ `02_TEST`). SECURITY DEFINER, `STABLE`, `SET search_path TO public, extensions` (unquoted, L3 lesson), `REVOKE FROM public/anon` + `GRANT EXECUTE TO authenticated`, L5 read-IDOR guard (`p_user_id IS DISTINCT FROM auth.uid() AND NOT public.is_admin()` → RAISE; null session also RAISEs). Returns the due flashcard rows (content + `subject_name`/`topic_name` + `next_review_date`/`skip_until`/`last_reviewed_at`).
+  - "Due" = review row exists AND `status='active'` AND `next_review_date <= today` AND (`skip_until IS NULL OR skip_until <= today`); *today* computed in `profiles.timezone`. Concept cards excluded. Never-reviewed cards are out of scope (StudyMode-standalone adds those client-side).
+  - **Read-time course filter:** row returned only when `course_level IS NULL OR target_course IS NULL OR target_course = course_level`. Writes nothing to `reviews` → switching course back restores the old queue automatically (verified: `02_TEST` block 9, reviews row unchanged before/after). Null policy: student with no course set → sees everything; card with no `target_course` → treated as matching.
+  - Visibility guard re-asserts the L2 read predicates (own / public / accepted-friend) since SECURITY DEFINER bypasses RLS. `vw_study_items` NOT reintroduced.
+- **`src/lib/qualityTier.js`** — shared "score/rate → colour tier" util (`qualityTier(value, [strongMin, okMin])` → `{key,text,bar,badge,emoji,label}`). Replaces ~8 copy-pasted, inconsistently-thresholded ternaries.
+
+### Changed
+- **Single "what's due" RPC wired into all three call sites; no client-side `next_review_date`/`skip_until` comparison remains in any of them:**
+  - `src/pages/Dashboard.jsx` — `fetchPersonalStats` `dueCount` date-math removed; `reviewsDue` now `= rpc('get_study_queue').length`. Weekly/streak/accuracy/mastered math untouched.
+  - `src/pages/dashboard/Study/ReviewSession.jsx` — `fetchDueCards` collapsed to one `rpc('get_study_queue')` call; RPC rows mapped to the existing card shape; `groupCardsBySubject` consumes `subject_name`.
+  - `src/pages/dashboard/Study/StudyMode.jsx` — `fetchFlashcards` Step 2: `dueIds` from the RPC + a fieldless `reviews(flashcard_id)` fetch for `reviewedIds`, then `filter(c => dueIds.has(c.id) || !reviewedIds.has(c.id))`.
+- **(c) bugs:**
+  - C1 — `AdminDashboard.fetchStats` now reads `get_admin_platform_overview` (same RPC as `AdminAnalytics`) for user/public counts; `get_platform_stats` removed from admin (landing-only); raw note/flashcard totals via direct admin `COUNT(*)`. `publicFlashcards` sub was hardcoded `0` → now real. `AdminAnalytics` "Published Items" stat card relabelled to remove the card-vs-table-column collision.
+  - C2 — `AdminAnalytics.QualityBadge` + the `lowQuality` row-highlight + `SuperAdminDashboard` daily/weekly active-user cards (extracted to `ActiveUsersCard`) all use `qualityTier`.
+  - C3 — `NavDesktop.jsx` `isStudyActive`/`isCreateActive` now match on route prefix (`underAny`); Dashboard link stays exact. Sprint 6.2 dependency.
+  - C4 — NON-ISSUE (the "Currently Live" `unfeature_content` control already works). No change.
+  - C5 — `NotePreview.jsx` + `DeckPreview.jsx` redirect logged-in users to `/dashboard/notes/:id` / `/dashboard/review-flashcards?deck=:id` instead of showing the anonymous "sign up" wall.
+  - C6 — `Progress.jsx` "Due Today" ForecastCard: green when `0`, red only when `> 0` (was hardcoded red).
+
+### Caption fix (C2)
+`src/pages/admin/AdminAnalytics.jsx` overview stat card 4 — **before:** `label="Published Items"` / `sub="Public flashcards"` (collided with the Content-Health table's "Published Items" column, which is per-course notes+flashcards). **after:** `label="Public Flashcards"` / `sub="visibility = public"`.
+
+### Files Changed
+`docs/database/sprint6/01_FUNCTIONS_get_study_queue.sql` (new), `docs/database/sprint6/02_TEST_verify_get_study_queue.sql` (new), `src/lib/qualityTier.js` (new), `src/pages/Dashboard.jsx`, `src/pages/dashboard/Study/ReviewSession.jsx`, `src/pages/dashboard/Study/StudyMode.jsx`, `src/pages/dashboard/Study/Progress.jsx`, `src/components/layout/NavDesktop.jsx`, `src/pages/public/NotePreview.jsx`, `src/pages/public/DeckPreview.jsx`, `src/pages/admin/AdminDashboard.jsx`, `src/pages/admin/AdminAnalytics.jsx`, `src/pages/admin/SuperAdminDashboard.jsx`, `docs/active/now.md`, `docs/tracking/changelog.md`, `docs/tracking/bugs.md`, `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`
+
+---
 ## [2026-07-04] fix(db): admin-writer guards + read-IDOR follow-through (✅ deployed & verified)
 
 Closes the remaining gaps the residual-IDOR sweep (`security/12`) found after the read-IDOR pass, and fixes one over-guard regression from that pass.

@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useRole } from '@/hooks/useRole';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { qualityTier } from '@/lib/qualityTier';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
@@ -816,131 +817,24 @@ Search "${targetUser.email}" and delete the auth record.
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Daily Active Users</CardTitle>
-              <CardDescription>Students active today</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-baseline gap-3">
-                  <span className="text-4xl font-bold text-gray-900">
-                    {stats?.dailyActiveUsers || 0}
-                  </span>
-                  <span className="text-2xl text-gray-500">
-                    / {stats?.students || 0}
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-gray-200 rounded-full h-3">
-                    <div 
-                      className={`h-3 rounded-full transition-all ${
-                        (stats?.dailyActivePercent || 0) >= 60 
-                          ? 'bg-green-500' 
-                          : (stats?.dailyActivePercent || 0) >= 40 
-                            ? 'bg-yellow-500' 
-                            : 'bg-red-500'
-                      }`}
-                      style={{ width: `${Math.min(stats?.dailyActivePercent || 0, 100)}%` }}
-                    />
-                  </div>
-                  <span className={`text-2xl font-bold ${
-                    (stats?.dailyActivePercent || 0) >= 60 
-                      ? 'text-green-600' 
-                      : (stats?.dailyActivePercent || 0) >= 40 
-                        ? 'text-yellow-600' 
-                        : 'text-red-600'
-                  }`}>
-                    {stats?.dailyActivePercent || 0}%
-                  </span>
-                </div>
-                
-                <div className="pt-3 border-t">
-                  <p className="text-sm text-gray-600">
-                    Target: 60% (
-                    {stats?.students ? Math.ceil((stats.students * 60) / 100) : 0} students)
-                  </p>
-                  <p className={`text-sm font-medium mt-1 ${
-                    (stats?.dailyActivePercent || 0) >= 60 
-                      ? 'text-green-600' 
-                      : (stats?.dailyActivePercent || 0) >= 40 
-                        ? 'text-yellow-600' 
-                        : 'text-red-600'
-                  }`}>
-                    {(stats?.dailyActivePercent || 0) >= 60 
-                      ? '✅ Above target' 
-                      : (stats?.dailyActivePercent || 0) >= 40 
-                        ? '⚠️ Below target' 
-                        : '🚨 Well below target'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Weekly Active Users</CardTitle>
-              <CardDescription>Students active in last 7 days</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-baseline gap-3">
-                  <span className="text-4xl font-bold text-gray-900">
-                    {stats?.weeklyActiveUsers || 0}
-                  </span>
-                  <span className="text-2xl text-gray-500">
-                    / {stats?.students || 0}
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-gray-200 rounded-full h-3">
-                    <div 
-                      className={`h-3 rounded-full transition-all ${
-                        (stats?.weeklyActivePercent || 0) >= 80 
-                          ? 'bg-green-500' 
-                          : (stats?.weeklyActivePercent || 0) >= 60 
-                            ? 'bg-yellow-500' 
-                            : 'bg-red-500'
-                      }`}
-                      style={{ width: `${Math.min(stats?.weeklyActivePercent || 0, 100)}%` }}
-                    />
-                  </div>
-                  <span className={`text-2xl font-bold ${
-                    (stats?.weeklyActivePercent || 0) >= 80 
-                      ? 'text-green-600' 
-                      : (stats?.weeklyActivePercent || 0) >= 60 
-                        ? 'text-yellow-600' 
-                        : 'text-red-600'
-                  }`}>
-                    {stats?.weeklyActivePercent || 0}%
-                  </span>
-                </div>
-                
-                <div className="pt-3 border-t">
-                  <p className="text-sm text-gray-600">
-                    Target: 80% (
-                    {stats?.students ? Math.ceil((stats.students * 80) / 100) : 0} students)
-                  </p>
-                  <p className={`text-sm font-medium mt-1 ${
-                    (stats?.weeklyActivePercent || 0) >= 80 
-                      ? 'text-green-600' 
-                      : (stats?.weeklyActivePercent || 0) >= 60 
-                        ? 'text-yellow-600' 
-                        : 'text-red-600'
-                  }`}>
-                    {(stats?.weeklyActivePercent || 0) >= 80 
-                      ? '✅ Above target' 
-                      : (stats?.weeklyActivePercent || 0) >= 60 
-                        ? '⚠️ Below target' 
-                        : '🚨 Well below target'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ActiveUsersCard
+            title="Daily Active Users"
+            description="Students active today"
+            count={stats?.dailyActiveUsers}
+            total={stats?.students}
+            pct={stats?.dailyActivePercent}
+            target={60}
+            thresholds={[60, 40]}
+          />
+          <ActiveUsersCard
+            title="Weekly Active Users"
+            description="Students active in last 7 days"
+            count={stats?.weeklyActiveUsers}
+            total={stats?.students}
+            pct={stats?.weeklyActivePercent}
+            target={80}
+            thresholds={[80, 60]}
+          />
         </div>
       </div>
 
@@ -1466,6 +1360,46 @@ Search "${targetUser.email}" and delete the auth record.
         </div>
       )}
     </div>
+  );
+}
+
+// Daily / Weekly active-user card — colour tier via the shared qualityTier util.
+function ActiveUsersCard({ title, description, count, total, pct, target, thresholds }) {
+  const tier = qualityTier(pct || 0, thresholds);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex items-baseline gap-3">
+            <span className="text-4xl font-bold text-gray-900">{count || 0}</span>
+            <span className="text-2xl text-gray-500">/ {total || 0}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex-1 bg-gray-200 rounded-full h-3">
+              <div
+                className={`h-3 rounded-full transition-all ${tier.bar}`}
+                style={{ width: `${Math.min(pct || 0, 100)}%` }}
+              />
+            </div>
+            <span className={`text-2xl font-bold ${tier.text}`}>{pct || 0}%</span>
+          </div>
+
+          <div className="pt-3 border-t">
+            <p className="text-sm text-gray-600">
+              Target: {target}% ({total ? Math.ceil((total * target) / 100) : 0} students)
+            </p>
+            <p className={`text-sm font-medium mt-1 ${tier.text}`}>
+              {tier.emoji} {tier.label}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

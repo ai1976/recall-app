@@ -1,11 +1,40 @@
 # NOW - Current Development Status
 
-**Last Updated:** 2026-07-04
-**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE** (+ deck-visibility bug fixed, + L3 search_path hotfix). DB tech-debt runway is clear. Next: **Phase 6** (dashboard reskin on S1 tokens). Deferred: **leaked-password protection is Pro-plan-gated** — cannot enable on the current Free plan (Dashboard → Auth → Passwords → "Prevent use of leaked passwords" requires Pro). ⏳ **Do on Pro upgrade.** ✅ skip_card/suspend_card column bug fixed 04/07/2026.
+**Last Updated:** 02/09/2026
+**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE.** **Sprint 6.0 (Correctness) COMPLETE — SQL deployed & verified, frontend pushed to main (02/09/2026).** Deferred: **leaked-password protection is Pro-plan-gated** — cannot enable on the current Free plan. ⏳ **Do on Pro upgrade.** ✅ skip_card/suspend_card column bug fixed 04/07/2026.
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 6.0 — Correctness (backend-first) ✅ COMPLETE — SQL deployed, frontend pushed (02/09/2026)
+
+**Objective:** one RPC as the single source of truth for the "what's due" review queue; make the queue course-aware at read time; clear a cluster of logged-in-experience bugs. No SRS algorithm change, no reskin.
+
+**(a) `get_study_queue(p_user_id uuid)` — the one RPC.** `docs/database/sprint6/01_FUNCTIONS_get_study_queue.sql` (+ `02_TEST`, 9/9 PASS in Supabase incl. every `[CRITICAL]`). SECURITY DEFINER, `STABLE`, `SET search_path TO public, extensions` (unquoted), `REVOKE FROM public/anon` + `GRANT EXECUTE TO authenticated`, L5 read-IDOR guard (`p_user_id IS DISTINCT FROM auth.uid() AND NOT public.is_admin()` → RAISE; null session also RAISEs). Returns the due flashcard rows (content + `subject_name`/`topic_name` + `next_review_date`/`skip_until`/`last_reviewed_at`).
+- **"Due" definition adopted** (reconciliation of the 3 call sites): review row exists AND `status='active'` AND `next_review_date <= today` AND (`skip_until IS NULL OR skip_until <= today`), where *today* = `(now() AT TIME ZONE profiles.timezone)::date`. Never-reviewed ("new") cards are NOT in this queue — a StudyMode-standalone concern only, still handled client-side there.
+- **(b) Read-time course filter (mutates nothing):** row returned only when `profiles.course_level IS NULL OR flashcards.target_course IS NULL OR target_course = course_level`. Reversible automatically — switching course back restores the old queue because no `reviews` row is ever written (verified by `02_TEST` block 9). **Null policy:** student with no course set → no filter (sees everything); card with no `target_course` → treated as matching.
+- Concept cards excluded. Visibility guard re-asserts the L2 read predicates (own / public / accepted-friends). `vw_study_items` NOT reintroduced.
+- **The auditor REJECTED a "pin one old-course card" flag** — Custom Course is the accepted escape hatch. No `reviews.pinned` column/flag/UI anywhere.
+
+**Frontend — the 3 call sites now consume the RPC; zero client-side `next_review_date`/`skip_until` comparison remains in any of them:**
+- `Dashboard.jsx` `fetchPersonalStats` — `reviewsDue = rpc('get_study_queue').length` (weekly/streak/accuracy/mastered math untouched).
+- `ReviewSession.jsx` `fetchDueCards` — one `rpc('get_study_queue')` call, rows mapped to the existing card shape; `groupCardsBySubject` uses `subject_name`.
+- `StudyMode.jsx` `fetchFlashcards` Step 2 — `dueIds` from the RPC + a fieldless `reviews(flashcard_id)` fetch for `reviewedIds`, then `filter(c => dueIds.has(c.id) || !reviewedIds.has(c.id))`.
+
+**(c) logged-in bugs:**
+1. **C1 stat-card sources reconciled.** `AdminDashboard.fetchStats` now reads `get_admin_platform_overview` (same RPC as `AdminAnalytics`) for user + public counts → the two dashboards agree. `get_platform_stats` removed from admin (it counts student+professor roles only, excluding admins — the source of the mismatch); it stays landing-page-only. Raw note/flashcard totals via direct admin `COUNT(*)`. `publicFlashcards` sub (was hardcoded `0`) now real. `AdminAnalytics` "Published Items" stat card relabelled → "Public Flashcards" (removed the collision with the Content-Health table's "Published Items" column).
+2. **C2 shared quality-tier util.** New `src/lib/qualityTier.js` → `qualityTier(value, [strongMin, okMin])` → `{key,text,bar,badge,emoji,label}`. Consumers migrated: `AdminAnalytics.QualityBadge` + its `lowQuality` row-highlight; `SuperAdminDashboard` daily/weekly active-user cards (extracted to an `ActiveUsersCard` helper). Caption fix reported under C1 above.
+3. **C3 route-prefix active nav.** `NavDesktop.jsx` `isStudyActive`/`isCreateActive` → prefix match (`underAny`), Create wins the tie over Study's broader prefixes, Dashboard link stays exact. Nested routes (`/dashboard/notes/:id`, `/dashboard/review-session`, `/dashboard/study`, `/dashboard/progress`) now light "Study". **Sprint 6.2 dependency satisfied.**
+4. **C4 — NON-ISSUE.** The "Currently Live" `unfeature_content` control already works (`AdminDashboard.jsx` `unfeatureContent()`). No code change.
+5. **C5 anon wall to logged-in students.** `NotePreview.jsx` + `DeckPreview.jsx` now redirect a signed-in user to `/dashboard/notes/:id` / `/dashboard/review-flashcards?deck=:id` instead of showing the "sign up to read" wall.
+6. **C6 "Due Today: 0" no longer a red alarm.** `Progress.jsx` ForecastCard: green when `0`, red only when `> 0`.
+
+**Verification:** `npm run build` clean (7.3s, no new warnings — the one `Dashboard.jsx:194` unused-eslint-disable warning is pre-existing on HEAD). `npx eslint` clean on all 11 changed files. Live-URL verification of the authenticated flows still needs a human with a real student account (see report / bugs.md).
+
+Files Changed: see changelog.md entry [2026-09-02].
+
+---
 
 ### Advisor confirmation + admin-writer guards ✅ COMPLETE (04/07/2026)
 

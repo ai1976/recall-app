@@ -204,31 +204,25 @@ export default function StudyMode({
         }
       }
 
-      // Step 2: SRS-aware filter — exclude cards already reviewed and not yet due.
-      // Logic: show card if (no review record) OR (review exists AND due today AND not suspended AND not skipped).
-      // Equivalent to LEFT JOIN reviews ON flashcard_id AND user_id WHERE r.id IS NULL OR next_review_date <= today.
+      // Step 2: SRS-aware filter — show a card if it is DUE, or if it is NEW (never reviewed).
+      // "Due" comes from the get_study_queue RPC (the single source of truth — course-aware,
+      // concept-cards excluded, status/skip_until/next_review_date resolved server-side).
+      // Cards with a review row that are NOT in the due set (not-yet-due / suspended / skipped)
+      // are excluded. No client-side date arithmetic.
       if (cleanedData.length > 0) {
-        const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
         const cardIds = cleanedData.map(c => c.id);
-        const { data: reviews } = await supabase
+
+        const { data: dueQueue } = await supabase.rpc('get_study_queue', { p_user_id: user.id });
+        const dueIds = new Set((dueQueue || []).map(r => r.flashcard_id));
+
+        const { data: reviewed } = await supabase
           .from('reviews')
-          .select('flashcard_id, status, next_review_date, skip_until')
+          .select('flashcard_id')
           .eq('user_id', user.id)
           .in('flashcard_id', cardIds);
+        const reviewedIds = new Set((reviewed || []).map(r => r.flashcard_id));
 
-        const excludedIds = new Set(
-          (reviews || [])
-            .filter(r =>
-              r.status === 'suspended' ||
-              (r.next_review_date && r.next_review_date > todayStr) ||
-              (r.skip_until && r.skip_until > todayStr)
-            )
-            .map(r => r.flashcard_id)
-        );
-
-        cleanedData = cleanedData.filter(c => !excludedIds.has(c.id));
+        cleanedData = cleanedData.filter(c => dueIds.has(c.id) || !reviewedIds.has(c.id));
       }
 
       // Shuffle

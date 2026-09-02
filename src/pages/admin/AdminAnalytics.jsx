@@ -12,6 +12,7 @@ import { useRole } from '@/hooks/useRole';
 import { supabase } from '@/lib/supabase';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
+import { qualityTier } from '@/lib/qualityTier';
 
 // ─── Recharts custom tooltip ──────────────────────────────────────────────────
 function WeeklyTooltip({ active, payload, label }) {
@@ -167,8 +168,8 @@ export default function AdminAnalytics() {
         <StatCard
           icon={<BookOpen className="h-7 w-7 text-amber-500" />}
           value={loading ? null : Number(overview?.published_items ?? 0)}
-          label="Published Items"
-          sub="Public flashcards"
+          label="Public Flashcards"
+          sub="visibility = public"
         />
       </div>
 
@@ -199,7 +200,7 @@ export default function AdminAnalytics() {
                   <tbody className="divide-y divide-gray-100">
                     {sortedHealth.map((row) => {
                       const hasPending = Number(row.pending_notes) > 0;
-                      const lowQuality = row.avg_quality != null && Number(row.avg_quality) < 3;
+                      const lowQuality = row.avg_quality != null && qualityTier(row.avg_quality).key === 'weak';
                       const rowClass   = hasPending
                         ? 'bg-red-50'
                         : lowQuality
@@ -417,12 +418,8 @@ function QualityBadge({ value, hasItems }) {
     return <span className="text-sm text-gray-400">—</span>;
   }
   const num = Number(value);
-  const cls =
-    num >= 4 ? 'text-green-700 bg-green-50 border border-green-200' :
-    num >= 3 ? 'text-amber-700 bg-amber-50 border border-amber-200' :
-               'text-red-700   bg-red-50   border border-red-200';
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${cls}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${qualityTier(num).badge}`}>
       {num.toFixed(1)} / 5
     </span>
   );

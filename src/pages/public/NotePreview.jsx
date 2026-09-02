@@ -20,6 +20,12 @@ export default function NotePreview() {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       setUser(currentUser);
 
+      // Logged-in users get the real note, not the anonymous "sign up to read" wall.
+      if (currentUser) {
+        navigate(`/dashboard/notes/${noteId}`, { replace: true });
+        return;
+      }
+
       // Fetch note preview (works for anonymous users via SECURITY DEFINER)
       try {
         const { data, error } = await supabase.rpc('get_public_note_preview', { p_note_id: noteId });
@@ -38,7 +44,7 @@ export default function NotePreview() {
       }
     }
     load();
-  }, [noteId]);
+  }, [noteId, navigate]);
 
   const setRedirectAndNavigate = (path) => {
     localStorage.setItem('postAuthRedirect', `/dashboard/notes/${noteId}`);

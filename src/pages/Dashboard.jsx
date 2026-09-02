@@ -319,10 +319,15 @@ export default function Dashboard() {
   };
 
   const fetchPersonalStats = async (userId) => {
-    // Fetch user's active reviews (exclude suspended)
+    // Reviews due — single source of truth: get_study_queue RPC (course-aware,
+    // concept-cards excluded, skip/suspend/skip_until all handled server-side).
+    const { data: dueQueue } = await supabase.rpc('get_study_queue', { p_user_id: userId });
+    setReviewsDue((dueQueue || []).length);
+
+    // Fetch user's reviews for weekly / streak / accuracy / mastered stats (exclude suspended)
     const { data: reviews } = await supabase
       .from('reviews')
-      .select('created_at, quality, flashcard_id, next_review_date, status, skip_until')
+      .select('created_at, quality, flashcard_id, status')
       .eq('user_id', userId);
 
     const reviewList = reviews || [];
@@ -363,16 +368,6 @@ export default function Dashboard() {
       // Cards mastered (unique cards ever reviewed, active only)
       const uniqueCards = new Set(actualReviews.map(r => r.flashcard_id));
       setCardsMastered(uniqueCards.size);
-
-      // Reviews due: active, not suspended, not skipped, next_review_date <= today
-      const todayString = formatLocalDate(new Date());
-
-      const dueCount = activeReviews.filter(r =>
-        r.next_review_date &&
-        r.next_review_date <= todayString &&
-        (!r.skip_until || r.skip_until <= todayString)
-      ).length;
-      setReviewsDue(dueCount);
     }
   };
 

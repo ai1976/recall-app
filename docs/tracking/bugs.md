@@ -1,5 +1,39 @@
 # Bug Tracking
 
+## Resolved — Sprint 6.0 (c) — ✅ FIXED & PUSHED 02/09/2026 (commit under changelog [2026-09-02])
+
+### [02/09/2026] C1 — Admin stat-card user/published counts disagree between Dashboard and Analytics
+- **Root cause:** `AdminDashboard.fetchStats` computed `totalUsers = get_platform_stats.student_count + educator_count` — but `get_platform_stats` is the **anon landing** RPC and `student_count`/`educator_count` = `role='student'` + `role='professor'` only (**excludes admin/super_admin**). `AdminAnalytics` "Total Users" reads `get_admin_platform_overview.total_users` (all roles). Two RPCs → two numbers. Separately, *within* AdminAnalytics: the "Published Items" stat card (`overview.published_items`) and the Content-Health table's "Published Items" column (`Σ get_content_health_stats.total_items`) are different things sharing a label.
+- **Fix:** `AdminDashboard.fetchStats` now reads `get_admin_platform_overview` for user/public counts (same RPC as `AdminAnalytics` → they agree); `get_platform_stats` removed from admin (landing-only). Raw note/flashcard totals via direct admin `COUNT(*)`. `publicFlashcards` sub (was hardcoded `0`) now real. AdminAnalytics stat card 4 relabelled **"Published Items" → "Public Flashcards"** / sub **"Public flashcards" → "visibility = public"** to kill the collision with the table column.
+- **Canonical source:** `get_admin_platform_overview` for all internal admin platform stat cards; `get_platform_stats` for the anon landing page only.
+- **Files:** `src/pages/admin/AdminDashboard.jsx` (`fetchStats`), `src/pages/admin/AdminAnalytics.jsx` (overview stat strip).
+- **Status:** ✅ RESOLVED (pushed 02/09/2026). Live screenshot comparison of the two dashboards still needs an admin account.
+
+### [02/09/2026] C2 — Quality-tier → colour logic duplicated & inconsistent
+- **Root cause:** no shared util. `AdminAnalytics.QualityBadge` tiered a 0–5 value `>=4/>=3/else`; `SuperAdminDashboard` tiered 0–100% active-rate inline ~8 times (daily `>=60/>=40`, weekly `>=80/>=60`).
+- **Fix:** new `src/lib/qualityTier.js` — `qualityTier(value, [strongMin, okMin])` → `{key,text,bar,badge,emoji,label}`. Consumers migrated: `AdminAnalytics.QualityBadge` + the `lowQuality` row-highlight; `SuperAdminDashboard` daily/weekly cards extracted to an `ActiveUsersCard` helper that calls `qualityTier`. Distinct thresholds preserved via the arg.
+- **Caption:** see C1 (the mislabelled caption was AdminAnalytics stat card 4 "Published Items").
+- **Status:** ✅ RESOLVED (pushed 02/09/2026).
+
+### [02/09/2026] C3 — Active-nav highlight matched exact route only
+- **Root cause:** `NavDesktop.jsx` `isActive`/`isStudyActive`/`isCreateActive` used `location.pathname === path`. Nested routes (`/dashboard/notes/:id`, `/dashboard/review-session`, `/dashboard/study`, `/dashboard/progress`) never lit their parent.
+- **Fix:** `underAny(paths)` prefix matcher. `isCreateActive` checked first so Create wins the tie over Study's broader `/dashboard/notes` + `/dashboard/flashcards` prefixes. Dashboard link stays exact (`isActive`).
+- **Status:** ✅ RESOLVED (pushed 02/09/2026). **Sprint 6.2 dependency satisfied.**
+
+### [02/09/2026] C4 — Featured-note "Currently Live" control — NON-ISSUE
+- **Verified working.** `AdminDashboard.jsx` `unfeatureContent()` calls the `unfeature_content` RPC and refetches; wired to the "Currently Live" table. No code change.
+- **Status:** ✅ NON-ISSUE (no change).
+
+### [02/09/2026] C5 — Anon "Sign up free" wall shown to logged-in students on share pages
+- **Root cause:** `NotePreview.jsx` (`/note/:noteId`, public) rendered the blurred preview + "Sign up free to read the full note" overlay unconditionally; only the CTA block was gated on `!user`. `DeckPreview.jsx` had the sibling issue (public preview shown to logged-in users).
+- **Fix:** `NotePreview.jsx` — when `getUser()` returns a user, `navigate('/dashboard/notes/' + noteId, { replace: true })` and skip the preview fetch. `DeckPreview.jsx` — an effect redirects to `/dashboard/review-flashcards?deck=:deckId` when `useAuth().user` is set.
+- **Status:** ✅ RESOLVED (pushed 02/09/2026). Live check (logged-in student on a `/note/:id` link) still needs a student account. `NoteDetail.jsx`'s Tier-B `ContentPreviewWall` is the intentional B2C freemium gate — untouched.
+
+### [02/09/2026] C6 — "Due Today: 0" rendered as a red alarm
+- **Root cause:** `Progress.jsx` ForecastCard for "Due Today" hardcoded `accent="text-red-600 bg-red-50 border-red-200"` regardless of `forecast.due_today`.
+- **Fix:** `accent` is now `text-green-700 bg-green-50 border-green-200` when `due_today === 0`, red only when `> 0` (existing tokens, no new ones). *(Sprint-prompt tension noted: the prompt says "reserve alarm styling for genuine problems"; the coordinator directed "red only when >0" — followed the coordinator. Flip one ternary branch to amber if the >0 case should also be de-alarmed.)*
+- **Status:** ✅ RESOLVED (pushed 02/09/2026).
+
 ## Resolved Bugs
 
 ### [04/07/2026] Unguarded admin/internal writers + a read-guard over-guard regression

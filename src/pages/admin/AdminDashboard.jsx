@@ -159,30 +159,32 @@ export default function AdminDashboard() {
 
   async function fetchStats() {
     try {
-      // Use get_platform_stats RPC (SECURITY DEFINER) for accurate totals — bypasses RLS
-      // Direct table queries are RLS-limited and undercount (e.g. flashcards shows only public)
-      const [platformRes, profilesRes, pendingRes] = await Promise.all([
-        supabase.rpc('get_platform_stats'),
+      // Canonical internal source for user + public counts: get_admin_platform_overview
+      // (the same RPC AdminAnalytics reads — keeps the two admin dashboards in agreement).
+      // get_platform_stats is the anon landing-page RPC only and is NOT used here — it
+      // counts student+professor roles (excludes admins) so it disagreed with Analytics.
+      // Raw content totals come from direct admin COUNT(*) queries (admins have SELECT-all RLS).
+      const [overviewRes, profilesRes, notesAllRes, cardsAllRes] = await Promise.all([
+        supabase.rpc('get_admin_platform_overview'),
         supabase.from('profiles').select('created_at'),
-        supabase.from('notes').select('*', { count: 'exact', head: true })
-          .eq('visibility', 'public'),
+        supabase.from('notes').select('*', { count: 'exact', head: true }),
+        supabase.from('flashcards').select('*', { count: 'exact', head: true }),
       ]);
 
-      const platform    = platformRes.data ?? {};
-      const profiles    = profilesRes.data ?? [];
-      const pendingCount = pendingRes.count ?? 0;
+      const overview = overviewRes.data?.[0] ?? {};
+      const profiles = profilesRes.data ?? [];
 
       const lastWeek = new Date();
       lastWeek.setDate(lastWeek.getDate() - 7);
 
       setStats({
-        totalUsers:       (platform.student_count ?? 0) + (platform.educator_count ?? 0),
+        totalUsers:       Number(overview.total_users ?? 0),
         newUsersThisWeek: profiles.filter(p => new Date(p.created_at) > lastWeek).length,
-        totalNotes:       platform.total_notes ?? 0,
-        publicNotes:      pendingCount,
-        totalFlashcards:  platform.total_flashcards ?? 0,
-        publicFlashcards: 0, // not shown in stat cards
-        pendingReview:    pendingCount,
+        totalNotes:       notesAllRes.count ?? 0,
+        publicNotes:      Number(overview.pending_reviews ?? 0),
+        totalFlashcards:  cardsAllRes.count ?? 0,
+        publicFlashcards: Number(overview.published_items ?? 0),
+        pendingReview:    Number(overview.pending_reviews ?? 0),
       });
     } catch (err) {
       console.error('AdminDashboard fetchStats:', err);

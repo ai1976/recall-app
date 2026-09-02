@@ -36,6 +36,11 @@ export default function DeckPreview() {
     load();
   }, [deckId]);
 
+  // Logged-in users get the real deck's study session, not the anonymous preview wall.
+  useEffect(() => {
+    if (user) navigate(`/dashboard/review-flashcards?deck=${deckId}`, { replace: true });
+  }, [user, deckId, navigate]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">

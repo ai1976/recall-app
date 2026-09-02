@@ -12,10 +12,10 @@ export default function ReviewSession() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [loading, setLoading] = useState(true);
   const [dueCards, setDueCards] = useState([]);
-  
+
   // Grouping State
   const [groupedCards, setGroupedCards] = useState({});
   const [activeSessionCards, setActiveSessionCards] = useState(null);
@@ -33,72 +33,35 @@ export default function ReviewSession() {
         return;
       }
 
-      console.log('🔄 Fetching ONLY scheduled reviews (Local Date)...');
+      // Single source of truth for the due queue -- get_study_queue RPC.
+      // Course-aware, concept-cards excluded, status / skip_until / next_review_date
+      // are all resolved server-side in the user's timezone. No client-side date math.
+      const { data: queue, error: queueError } = await supabase
+        .rpc('get_study_queue', { p_user_id: user.id });
 
-      // ✅ FIX: Strict Local Date for Querying
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      const todayString = `${year}-${month}-${day}`;
+      if (queueError) throw queueError;
 
-      console.log(`📅 Today is: ${todayString}`);
-
-      // 1. Get Scheduled Reviews (Due Today or earlier)
-      //    Exclude suspended cards and cards with active skip_until
-      const { data: dueReviews, error: reviewsError } = await supabase
-        .from('reviews')
-        .select('flashcard_id, skip_until')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .lte('next_review_date', todayString);
-
-      if (reviewsError) throw reviewsError;
-
-      // Filter out skipped cards (skip_until > today)
-      const scheduledIds = (dueReviews || [])
-        .filter(r => !r.skip_until || r.skip_until <= todayString)
-        .map(r => r.flashcard_id);
-
-      if (scheduledIds.length === 0) {
-        setLoading(false);
-        setDueCards([]);
-        return;
-      }
-
-      // 2. Get Content for Scheduled Cards ONLY
-      const { data: cards, error: cardsError } = await supabase
-        .from('flashcards')
-        .select(`
-          id,
-          user_id,
-          contributed_by,
-          target_course,
-          subject_id,
-          custom_subject,
-          topic_id,
-          custom_topic,
-          front_text,
-          front_image_url,
-          back_text,
-          back_image_url,
-          difficulty,
-          is_verified,
-          subjects:subject_id (id, name),
-          topics:topic_id (id, name)
-        `)
-        .in('id', scheduledIds);
-
-      if (cardsError) throw cardsError;
-
-      // Clean text
-      const cleanedCards = (cards || []).map(card => ({
-        ...card,
-        front_text: card.front_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || '',
-        back_text: card.back_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || ''
+      // Map RPC rows to the card shape StudyMode + groupCardsBySubject expect.
+      const cleanedCards = (queue || []).map(row => ({
+        id: row.flashcard_id,
+        user_id: row.card_user_id,
+        contributed_by: row.contributed_by,
+        target_course: row.target_course,
+        subject_id: row.subject_id,
+        custom_subject: row.custom_subject,
+        topic_id: row.topic_id,
+        custom_topic: row.custom_topic,
+        front_text: row.front_text?.replace(/[◆♦]/g, '').trim() || '',
+        front_image_url: row.front_image_url,
+        back_text: row.back_text?.replace(/[◆♦]/g, '').trim() || '',
+        back_image_url: row.back_image_url,
+        difficulty: row.difficulty,
+        is_verified: row.is_verified,
+        subject_name: row.subject_name,
+        topic_name: row.topic_name,
+        subjects: row.subject_name ? { id: row.subject_id, name: row.subject_name } : null,
+        topics: row.topic_name ? { id: row.topic_id, name: row.topic_name } : null,
       }));
-
-      console.log(`✅ Found: ${cleanedCards.length} Scheduled Reviews`);
 
       setDueCards(cleanedCards);
       groupCardsBySubject(cleanedCards);
@@ -117,16 +80,16 @@ export default function ReviewSession() {
 
   const groupCardsBySubject = (cards) => {
     const groups = {};
-    
+
     cards.forEach(card => {
-      const subjectName = card.subjects?.name || card.custom_subject || 'General';
-      
+      const subjectName = card.subject_name || card.custom_subject || 'General';
+
       if (!groups[subjectName]) {
         groups[subjectName] = [];
       }
       groups[subjectName].push(card);
     });
-    
+
     setGroupedCards(groups);
   };
 
@@ -274,7 +237,7 @@ export default function ReviewSession() {
                     </p>
                   </div>
                 </div>
-                
+
                 <Button onClick={() => startSpecificSession(subject)}>
                   <Play className="h-4 w-4 mr-2" />
                   Start

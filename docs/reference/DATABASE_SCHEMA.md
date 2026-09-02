@@ -1306,6 +1306,33 @@ SECURITY DEFINER
 
 **Total Functions:** 1
 
+### 4.0 get_study_queue(p_user_id uuid) — ✅ Sprint 6.0 (deployed & verified 02/09/2026)
+
+**Purpose:** The single source of truth for the "what's due" spaced-repetition queue. Replaced three duplicated client-side date-math implementations (`Dashboard.jsx` `fetchPersonalStats`, `ReviewSession.jsx` `fetchDueCards`, `StudyMode.jsx` `fetchFlashcards` Step-2).
+**Created:** 02/09/2026 (Sprint 6.0) — `docs/database/sprint6/01_FUNCTIONS_get_study_queue.sql` (+ `02_TEST` — 9/9 PASS in Supabase incl. every `[CRITICAL]`).
+**Security:** `SECURITY DEFINER`, `STABLE`, `SET search_path TO public, extensions` (unquoted — L3 lesson).
+**Grants:** `REVOKE ALL FROM PUBLIC` + `REVOKE ALL FROM anon`; `GRANT EXECUTE TO authenticated`.
+**IDOR guard (L5 read idiom):** `IF p_user_id IS DISTINCT FROM auth.uid() AND NOT public.is_admin() THEN RAISE EXCEPTION 'Access denied: cannot read another user''s study queue'` — a NULL session also RAISEs; admins/super_admins may read any user's queue.
+**Return Type:** `TABLE(flashcard_id uuid, card_user_id uuid, contributed_by uuid, target_course text, subject_id uuid, subject_name text, topic_id uuid, topic_name text, custom_subject text, custom_topic text, front_text text, front_image_url text, back_text text, back_image_url text, difficulty text, is_verified boolean, question_type text, next_review_date date, skip_until date, last_reviewed_at timestamptz)`
+
+**What it returns:** one row per flashcard that is **due** for `p_user_id`, where "due" =
+- a `reviews` row exists for `(p_user_id, flashcard_id)` AND `reviews.status = 'active'`
+- AND `reviews.next_review_date <= today` AND (`reviews.skip_until IS NULL OR reviews.skip_until <= today`)
+- where `today = (now() AT TIME ZONE COALESCE(profiles.timezone,'Asia/Kolkata'))::date`
+- AND `flashcards.question_type <> 'concept_card'` (concept cards are reference-only, excluded from every review metric)
+- AND the **read-time course filter**: `profiles.course_level IS NULL OR flashcards.target_course IS NULL OR flashcards.target_course = profiles.course_level`
+- AND a visibility guard mirroring the L2 read RLS (SECURITY DEFINER bypasses RLS): `f.user_id = p_user_id OR f.visibility='public' OR (f.visibility='friends' AND EXISTS accepted friendship)`
+
+Ordered by `subject_name NULLS LAST, custom_subject NULLS LAST, created_at`.
+
+**Never-reviewed ("new") cards are NOT returned** — that is a StudyMode-standalone concern; StudyMode adds new cards for a subject from its own visible-card fetch and uses this RPC only for the due set.
+
+**Course filter is read-time and non-destructive:** the function performs **no writes**. A student who switches `course_level` stops seeing the old course's cards in the queue; switching back restores the previous queue with `next_review_date` values untouched (their previous-course cards remain fully browsable in Library the whole time). Confirmed by `02_TEST` block 9 (reviews row unchanged after call) + blocks 5–6 (course filter on/off).
+
+**Do not reintroduce `vw_study_items`** or any SECURITY DEFINER view — that was an anon-leak surface dropped 02/07/2026 (L1). Authenticated pipeline logic belongs in this guarded RPC.
+
+---
+
 ### 4.1 get_user_activity_stats()
 
 **Purpose:** Calculate user activity statistics for admin dashboard  

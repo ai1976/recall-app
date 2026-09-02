@@ -39,18 +39,34 @@ export default function NavDesktop({
 }) {
   const location = useLocation();
 
+  // Exact match — only for the top-level Dashboard link (every route lives under /dashboard).
   const isActive = (path) => location.pathname === path;
 
-  const isStudyActive = () => {
-    return location.pathname === '/dashboard/review-flashcards' ||
-           location.pathname === '/dashboard/notes';
-  };
+  // Prefix match — a route is "under" `path` when it equals it or is nested beneath it.
+  // Keeps the parent nav item highlighted on nested routes (e.g. /dashboard/notes/:id).
+  const underAny = (paths) =>
+    paths.some((p) => location.pathname === p || location.pathname.startsWith(p + '/'));
 
-  const isCreateActive = () => {
-    return location.pathname === '/dashboard/notes/new' ||
-           location.pathname === '/dashboard/flashcards/new' ||
-           location.pathname === '/dashboard/bulk-upload';
-  };
+  // Create routes are nested under /dashboard/notes and /dashboard/flashcards, so Create must
+  // win the tie against Study's broader prefixes.
+  const isCreateActive = () =>
+    underAny([
+      '/dashboard/notes/new',
+      '/dashboard/flashcards/new',
+      '/dashboard/bulk-upload',
+    ]);
+
+  const isStudyActive = () =>
+    !isCreateActive() &&
+    underAny([
+      '/dashboard/review-flashcards',
+      '/dashboard/review-session',
+      '/dashboard/review-by-subject',
+      '/dashboard/study',
+      '/dashboard/notes',       // Browse Notes + note detail/edit
+      '/dashboard/flashcards',  // My Flashcards + card detail/edit
+      '/dashboard/progress',
+    ]);
 
   const isManageActive = () => {
     return location.pathname.startsWith('/admin') ||
