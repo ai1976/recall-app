@@ -32,10 +32,18 @@ Read these before making changes:
 
 ## After Making Changes
 Always update these docs:
-1. `docs/active/now.md` - Update "Just Completed" section and session notes
-2. `docs/tracking/changelog.md` - Prepend new entry with Added/Changed/Files Changed sections
-3. `docs/tracking/bugs.md` - If any bugs were fixed
-4. `docs/reference/FILE_STRUCTURE.md` - Only if new files were created
+1. `docs/active/blueprint.md` - **SSOT — always update** when schema, RPCs, architecture, branding, or phase/sprint status change
+2. `docs/active/now.md` - Update "Just Completed" section and session notes
+3. `docs/tracking/changelog.md` - Prepend new entry with Added/Changed/Files Changed sections
+4. `docs/tracking/bugs.md` - If any bugs were fixed
+5. `docs/reference/DATABASE_SCHEMA.md` - If any DB object (table/column/function/policy) changed
+6. `docs/reference/FILE_STRUCTURE.md` - Only if new files were created
+
+### Sprint Summaries (MANDATORY — phasebuilder workflow)
+When the user asks for a **sprint summary to feed the phasebuilder thread**, before/while producing it you MUST:
+1. **Update `blueprint.md` (SSOT)** along with all the tracking/reference docs above — never skip blueprint.md.
+2. **Prompt the user to git commit + push** the completed sprint (bash `printf` commit per the Git rules above) before the next sprint starts.
+Do not consider a sprint summary complete until both are done.
 
 ## Database Rules
 - **Supabase client:** `src/lib/supabase.js`

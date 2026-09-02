@@ -10,14 +10,15 @@
 
 These are locked design choices made with deliberate reasoning. Do NOT change without explicit user instruction.
 
-### Hero Gradient Treatment (decided Mar 21, 2026)
-- **`h1 "Recall"`** → gradient (`bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent`)
-- **`"The Revision Operating System."`** → solid dark (`text-gray-900 font-bold`)
-- **Why:** The gradient is the attention magnet — eye goes to it first. Brand name must be what the user sees and remembers, not the tagline. Tagline in solid dark reads as confident and authoritative. Reversing this (tagline in gradient) pushes the product name into the background.
+### Wordmark Treatment (RevisOp — CORRECTED 30/08/2026; supersedes the old Recall gradient)
+- **`"RevisOp"`** → two-tone TYPOGRAPHY, no icon, no gradient: `Revis` in amber (`#f59e0b`) + `Op` in navy (`#1e1b4b`). Shipped in `NavDesktop.jsx:65-67`; canonical spec in `blueprint.md` §1041 + §1209 (the SSOT).
+- **`"The Revision Operating System."`** → solid dark tagline beside/below the wordmark.
+- **⚠️ STALE (do not use):** an earlier version of this section described the pre-rebrand **Recall** hero as a `from-blue-600 to-purple-600` gradient wordmark. That is the OLD Recall treatment and does NOT apply to RevisOp — it is exactly the stale line that caused three design prototypes to render the wrong logo. blueprint.md §1041/§1209 is authoritative for branding.
+- **Why:** The two-tone split (Blinkit-style) makes the brand name the attention anchor in pure type — scales sharp at any size, no SVG, and stays on-palette (amber + navy) instead of introducing off-brand blue/purple.
 
 ### Hero CTA Hierarchy (decided Mar 20, 2026)
-- **Primary:** "Start free" → full gradient button (B2C)
-- **Secondary:** "Get your institute on Recall" → text link below stats, after a horizontal divider (B2B)
+- **Primary:** "Start free" → solid navy button (`#1e1b4b`) (B2C). *(Note: originally a gradient button under Recall; RevisOp uses flat navy — see the rebrand colour mapping in blueprint.md §Wordmark Pattern.)*
+- **Secondary:** "Get your institute on RevisOp" → text link below stats, after a horizontal divider (B2B)
 - **Why:** B2C students find the page organically. B2B institute owners come via referral/direct outreach — they won't cold-convert from a hero CTA.
 
 ### Stat Labels (decided Mar 20, 2026)
