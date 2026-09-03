@@ -1,6 +1,8 @@
 # SRS Ladder Epic — Phase 0 Proposal
 
-**Status:** DRAFT — diagnostics landed 03/09/2026 (§1 filled). Awaiting phasebuilder approval. No engine SQL, config table, or migration is written until this proposal is approved.
+**Status:** APPROVED 03/09/2026 (quality auditor — all 5 open questions + Phase 1/2 authorization). Phase 1 + Phase 2 SQL written in `docs/database/srs-ladder/01`–`05` (⏳ NOT deployed). This doc is the design of record; the "Open questions" section below records the auditor's answers.
+
+**Signature deviation (built vs. this doc):** `submit_review` was implemented as **`submit_review(p_user_id uuid, p_flashcard_id uuid, p_rating text)`**, not `submit_review(p_review_id, p_rating)`. Reason: the client holds `flashcard_id` at grade time (`get_study_queue` does not expose the review row id), and keying on `(auth.uid(), flashcard_id)` — exactly like the existing `skip_card` / `suspend_card` / `reset_card` RPCs — makes cross-user mutation *structurally* impossible rather than validated after the fact. IDOR guard is the same L5 idiom (`p_user_id` must equal `auth.uid()`; admins exempt; NULL session RAISEs). `03_TEST` covers both the cross-user and null-session cases.
 **Author:** Claude Code
 **Date:** 03/09/2026
 **Scope:** deliver the deterministic expanding-ladder engine + a server-side preview function. Grade-button reskin and prominent interval UI are **Sprint 6.4**, not this epic.
@@ -344,10 +346,12 @@ If any phase's SQL cannot be deployed during the sprint, hold all downstream fro
 
 ---
 
-## 11. Open questions for the phasebuilder
+## 11. Open questions — AUDITOR DECISIONS (03/09/2026)
 
-1. **Hard drop depth** — full reset to rung 0 (recommended) vs `max(R-2,0)` 2-rung penalty?
-2. **`master_threshold`** — 1 success at rung 7 (recommended) vs 2?
-3. **Medium at rung 7** — hold at 7 (recommended) vs also count toward mastery?
-4. **`get_due_forecast`** — confirm option (a) (rewrite body, keep signature) vs (b) (keep separate, document why)?
-5. **`get_srs_ladder_config()` grant** — `authenticated` only (recommended) vs also `anon` (would let the landing-page hero demo show real intervals)?
+1. **Hard drop depth** → **Full reset to rung 0.** "Hard" is the lapse/fail state; a lapsed card needs re-consolidation. Rung 0 + 1 day is the scientifically correct lapse handling.
+2. **`master_threshold`** → **1.** A successful recall at the 240-day interval means they know it; making them wait another 8 months to re-prove is bad UX. Graduate on that Easy grade.
+3. **Medium at rung 7** → **Hold.** "Medium" implies hesitation — do not graduate a card the student is still hesitating on. Reschedule for another 240 days at rung 7.
+4. **`get_due_forecast`** → **Option (a).** Enforce a single source of truth for the "due" predicate — rewrite the body to share the exact `get_study_queue` logic.
+5. **`get_srs_ladder_config()` grant** → **anon AND authenticated.** The anonymous landing-page hero demo needs the config to render button text without hardcoding intervals (which would violate the no-client-side-interval-math rule). Read-only access to a static config table is zero risk.
+
+**Also authorized:** proceed to Phase 1 (Engine + Schema) and Phase 2 (Migration). Execute the migration in a single transaction (2.7 MB). Verify due-counts pre/post migration. Report back after Phase 1 + 2 are deployed and verified in Supabase, BEFORE pushing Phase 3 frontend.

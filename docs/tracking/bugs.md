@@ -8,12 +8,20 @@
 - **Fix (Option A):** "Today's Reviews" → `/dashboard/review-session` added as the first item in the Study menu, all roles — `NavDesktop.jsx` dropdown + `NavMobile.jsx` Study section. No dashboard restructure (Option B — a professor-dashboard CTA card — was declined to avoid touching the settled professor dashboard).
 - **Status:** ✅ RESOLVED (pushed 03/09/2026).
 
-### [03/09/2026] Progress "Due Items Forecast" disagrees with the review queue — ⏳ OPEN (follow-up)
+### [03/09/2026] Progress "Due Items Forecast" disagrees with the review queue — 🔧 FIX WRITTEN (SRS Ladder Phase 1, not yet deployed)
 - **Symptom:** `/dashboard/progress` "Due Today" showed **24** for a student whose Dashboard CTA + Review Session (both `get_study_queue`-backed) showed **4**. Student on CA Intermediate; the 20-card gap = due reviews on out-of-course cards the queue correctly filters out.
-- **Root cause:** `Progress.jsx` "Due Items Forecast" reads a separate `forecast` source that is **not** wired to `get_study_queue` — no course filter, no concept-card exclusion. It's a 4th "due" surface off the SSOT.
+- **Root cause:** `Progress.jsx` "Due Items Forecast" reads a separate `forecast` source (`get_due_forecast`) that was **not** wired to the `get_study_queue` predicate — no course filter, no concept-card exclusion, server date instead of user-tz. A 4th "due" surface off the SSOT.
 - **Not a 6.0 regression:** Progress was not among the three call sites 6.0 rewired, and the forecast was always its own query. But it contradicts the sprint objective ("every surface showing 'due' counts reads from one RPC").
-- **Proposed fix:** point the forecast's "Due Today" at the `get_study_queue` count; keep "Next 7 / Next 30 Days" on a dedicated forward-looking query (the RPC only returns what's due now). Flag for the SRS Ladder Epic.
-- **Status:** ⏳ OPEN — logged, deferred.
+- **Fix (SRS Ladder Epic, `docs/database/srs-ladder/02_FUNCTIONS_srs_ladder_engine.sql`):** rewrite the body of `get_due_forecast(p_user_id)` (signature unchanged → no frontend change). `due_today` now uses the **exact** `get_study_queue` due predicate (user-tz today, `status='active'`, `next_review_date <= today`, `skip_until` null/≤today, `question_type <> 'concept_card'`, read-time course filter, L2 visibility guard); `due_next_7`/`due_next_30` = same predicate, forward cumulative window. Auditor decision: Option (a), single source of truth for the "due" predicate.
+- **Expected visible effect on deploy:** ~25 CA-Intermediate students see "Due Today" drop (their CA-Foundation review rows get course-filtered — the same 1,648 rows behind the course-"drift" note below). This is the fix working as designed; worth a release note.
+- **Status:** 🔧 FIX WRITTEN — deploys with SRS Ladder Phase 1; flip to ✅ RESOLVED after `02_FUNCTIONS` is live and `03_TEST` block 17 passes.
+
+### [03/09/2026] Course "drift" — 1,648 cross-level review rows (CA-Inter students on CA-Foundation cards) — ℹ️ INFORMATIONAL (no action)
+- **Found by:** SRS Ladder Phase 0 diagnostics (Q8/Q9/Q10/Q10b, `docs/database/srs-ladder/00_DIAGNOSTIC_srs_ladder_phase0.sql`).
+- **Measurement:** 1,659 active reviews across 25 students / 256 cards where `flashcards.target_course <> profiles.course_level`. Q10b: **1,648 are CA-Intermediate students with review history on CA-Foundation cards** (legitimate cross-level revision), + 11 stragglers.
+- **Not a data-quality bug:** Q8/Q9 show `course_level` (`CA Foundation`/`CA Intermediate`/`CA Final` + 5 one-off test values) and `target_course` (`CA Intermediate`/`CA Foundation`) are **clean exact-match values with zero spelling variants**. The feared `CA Inter` vs `CA Intermediate` normalization problem does not exist.
+- **Interpretation:** this is the Sprint 6.0 read-time course filter working as designed — a CA-Inter student's `get_study_queue` excludes CA-Foundation cards; Custom Course is the accepted escape hatch (per the 6.0 auditor). It is also the mechanism behind the forecast discrepancy above.
+- **Status:** ℹ️ INFORMATIONAL — no normalization slice. Recorded for context.
 
 ## Resolved — Sprint 6.0 (c) — ✅ FIXED & PUSHED 02/09/2026 (commit under changelog [2026-09-02])
 

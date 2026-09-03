@@ -28,13 +28,16 @@ recall-app
 │   ├── active
 │   │   ├── context.md                           ← project context, architecture decisions, bug protocols
 │   │   ├── git-guide.md                         ← bash git commit guide (printf syntax, NEVER PowerShell heredoc)
-│   │   └── now.md                               ← current sprint status + session notes
+│   │   ├── now.md                               ← current sprint status + session notes
+│   │   └── design-review/                       ← screenshot-critique inputs + srs-ladder-proposal.md (SRS Ladder Epic Phase 0)
 │   ├── archive
 │   │   ├── APPROVED_DECISIONS.md
 │   │   ├── CONTEXT_FOR_CLAUDE.md
 │   │   └── FEATURE_PRIORITY.md
 │   ├── database
-│   │   └── Reviews_Table_Usage.md
+│   │   ├── Reviews_Table_Usage.md
+│   │   ├── sprint6/                            ← get_study_queue RPC (01) + tests (02, 03)
+│   │   └── srs-ladder/                         ← SRS Ladder Epic: 00_DIAGNOSTIC, 01_SCHEMA, 02_FUNCTIONS, 03_TEST, 04_MIGRATION, 05_TEST  (⏳ 01–05 written, NOT deployed)
 │   ├── design
 │   │   ├── ACHIEVEMENT_BADGES.md
 │   │   ├── SPACED_REPETITION_PHILOSOPHY.md

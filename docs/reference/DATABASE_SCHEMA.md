@@ -292,14 +292,15 @@
 | user_id | uuid | NO | - | Foreign key to profiles.id |
 | flashcard_id | uuid | NO | - | Foreign key to flashcards.id |
 | quality | integer | NO | - | 1=Hard, 3=Medium, 5=Easy |
-| easiness | numeric | NO | 2.5 | SuperMemo-2 EF value — ⚠️ column is `easiness` NOT `easiness_factor` |
-| interval | integer | NO | 1 | Days until next review |
-| repetition | integer | NO | 0 | Consecutive correct reviews — ⚠️ column is `repetition` NOT `repetitions` |
-| next_review_date | timestamp | NO | NOW() | When card is due next |
-| last_reviewed_at | timestamp | YES | NULL | Timestamp of most recent rating |
-| status | text | NO | 'active' | active/suspended (card suspension system) |
+| easiness | double precision | YES | 2.5 | SuperMemo-2 EF value — ⚠️ column is `easiness` NOT `easiness_factor`; type is `double precision` (float8) NOT numeric. **Legacy-cosmetic after the SRS Ladder Epic** — still written by `submit_review`, no longer drives scheduling. |
+| interval | integer | YES | 0 | Days until next review. **Legacy-cosmetic after the SRS Ladder Epic** (= the resolved rung interval). Reserved word — quote as `"interval"` in raw SQL. |
+| repetition | integer | YES | 0 | Times graded (incremented every grade, incl. Hard) — ⚠️ column is `repetition` NOT `repetitions`. **Legacy-cosmetic after the SRS Ladder Epic**; also the source column for the one-time `rung` backfill. |
+| next_review_date | **date** | YES | NULL | When the card is due next. ⚠️ **DATE, not timestamp** — stored as `YYYY-MM-DD` (`StudyMode.jsx` / `submit_review` build it from local Y/M/D). Treating it as a timestamp causes "wrong day" bugs. *(Prior versions of this doc said `timestamp NOT NULL DEFAULT NOW()` — that was stale; verified `date` NULLable via Phase 0 Q6, 03/09/2026.)* |
+| last_reviewed_at | timestamptz | YES | now() | Timestamp of most recent rating |
+| status | text | NO | 'active' | `active` / `suspended` / **`mastered`** (the last added by the SRS Ladder Epic — see below). CHECK: `status IN ('active','suspended','mastered')`. |
 | skip_until | date | YES | NULL | Date until which card is hidden (skip 24hr) |
-| created_at | timestamp | NO | NOW() | When review happened |
+| rung | smallint | YES | NULL | **SRS Ladder Epic (⏳ SQL not deployed).** Ladder position (0..7 for the `_default` curve; CHECK 0..20). `NULL` = not yet on the ladder. Authoritative scheduling state — `submit_review` computes it, `get_study_queue` returns it. |
+| created_at | timestamptz | YES | now() | When the review row was first created (first-ever grade of the card). Used for streak calc. NOT touched on re-grade. |
 
 **Card Suspension System (NEW - February 6, 2026):**
 - `status` column enables indefinite card suspension ('active' or 'suspended')
@@ -325,6 +326,15 @@
 - Column is `easiness`, NOT `easiness_factor` (caused error 42703 on 2026-04-04)
 - Column is `repetition`, NOT `repetitions` (caused error 42703 on 2026-04-04)
 - Any SQL written against this table MUST be verified against `StudyMode.jsx` handleRating INSERT before deploying
+
+**SRS Ladder Epic additions (⏳ `docs/database/srs-ladder/01`–`05`, SQL WRITTEN, NOT DEPLOYED):**
+- `reviews.rung smallint NULL` (CHECK 0..20) — the ladder position; authoritative scheduling state.
+- `reviews_status_check` extended: `('active','suspended')` → `('active','suspended','mastered')`.
+- `idx_reviews_user_mastered` — partial index `ON reviews(user_id) WHERE status = 'mastered'` (Mastered list).
+- New table `srs_ladder_curves(question_type text, rung_index smallint, interval_days integer, PK(question_type, rung_index))` — per-type rung→interval. `_default` curve seeded 1/3/7/14/30/60/120/240. RLS on, `SELECT` to anon+authenticated, no client write.
+- New table `srs_ladder_rules(id smallint PK DEFAULT 1 CHECK(id=1), rules jsonb)` — single row of the transition rules, read by `submit_review` / `srs_preview` / `get_srs_ladder_config` so client + server cannot drift.
+- New RPCs: `submit_review(p_user_id,p_flashcard_id,p_rating)` (write SSOT), `srs_preview(p_rung,p_question_type)`, `get_srs_ladder_config()`, internal `srs_interval_for_rung(p_rung,p_question_type)`.
+- Changed: `get_study_queue` return shape gains `rung smallint`; `get_due_forecast` body rewritten to share the exact `get_study_queue` due predicate (signature unchanged).
 
 ---
 

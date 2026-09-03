@@ -1,7 +1,36 @@
 # NOW - Current Development Status
 
 **Last Updated:** 03/09/2026
-**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE.** **Sprint 6.0 (Correctness) COMPLETE — SQL deployed & verified, frontend pushed to main (02/09/2026).** Deferred: **leaked-password protection is Pro-plan-gated** — cannot enable on the current Free plan. ⏳ **Do on Pro upgrade.** ✅ skip_card/suspend_card column bug fixed 04/07/2026.
+**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE.** **Sprint 6.0 (Correctness) COMPLETE — SQL deployed & verified, frontend pushed to main (02/09/2026).** **SRS Ladder Epic: Phase 0 approved; Phase 1 + Phase 2 SQL WRITTEN, NOT DEPLOYED (see below).** Deferred: **leaked-password protection is Pro-plan-gated** — cannot enable on the current Free plan. ⏳ **Do on Pro upgrade.** ✅ skip_card/suspend_card column bug fixed 04/07/2026.
+
+---
+
+## In Progress 🔨
+
+### SRS Ladder Epic — Phase 1 (engine + schema) + Phase 2 (migration) — ⏳ SQL WRITTEN, NOT DEPLOYED
+
+**Objective:** replace the flat per-rating interval in `StudyMode.jsx` (Easy +7 / Medium +3 / Hard +1, applied unconditionally, computed client-side) with a deterministic expanding ladder driven server-side. Interval maths moves into `submit_review` (the new write SSOT); the UI never computes intervals again. Phase 3 (frontend wire-up) is gated on Phase 1 + 2 being deployed & verified.
+
+**Phase 0 (approved 03/09/2026):** `docs/active/design-review/srs-ladder-proposal.md` (committed `d96559f`). Diagnostics `docs/database/srs-ladder/00_DIAGNOSTIC_*.sql`. Auditor approved all 5 open questions + authorized Phase 1 & 2.
+
+**Ladder (approved):**
+- 8 rungs (0–7), intervals **1 / 3 / 7 / 14 / 30 / 60 / 120 / 240** days (`srs_ladder_curves`, `_default` curve).
+- **Easy** → +1 rung (cap 7). **Medium** → hold at current rung. **Hard** → drop to rung 0 + `next_review_date = today + 1` (relearn step). New card's first grade → rung 0 / 1 / 2 for Hard / Medium / Easy.
+- **MASTERED** = Easy grade while already at rung 7 → `reviews.status = 'mastered'` (new value). `get_study_queue` filter is already `status='active'` → exclusion is a no-op. Any non-mastering grade on a mastered card un-masters it (→ `active`).
+- Transition rules live in a single `srs_ladder_rules` jsonb row read by `submit_review`, `srs_preview` AND `get_srs_ladder_config` → client and server cannot drift.
+
+**Phase 1 SQL (`docs/database/srs-ladder/`, NOT deployed):**
+- `01_SCHEMA_srs_ladder_engine.sql` — `reviews.rung smallint NULL` (+ CHECK 0..20); `reviews_status_check` → adds `'mastered'`; `idx_reviews_user_mastered` partial index; `srs_ladder_curves` + `srs_ladder_rules` tables (RLS on, public SELECT, no client write) + seed.
+- `02_FUNCTIONS_srs_ladder_engine.sql` — `srs_interval_for_rung` (internal), `get_srs_ladder_config()` (jsonb; anon+authenticated), `srs_preview(p_rung, p_question_type)` (3-row hard/medium/easy mirror; anon+authenticated), **`submit_review(p_user_id, p_flashcard_id, p_rating)`** (SECURITY DEFINER, L5 IDOR idiom, SELECT-or-INSERT, deterministic transition, applies/reverts MASTERED; authenticated only), `get_study_queue` **DROP+CREATE** to append `rung` to the return shape (body otherwise byte-identical to sprint6/01), `get_due_forecast` **body rewrite** (now shares the exact `get_study_queue` due predicate — closes the 6.0 forecast follow-up; signature unchanged → zero frontend change).
+- `03_TEST_srs_ladder_engine.sql` — 25+ checks: config shape, preview at rungs {NULL,2,7}, advance / hold / drop / MASTERED / un-master, **preview parity** (3 rungs × 3 ratings: `submit_review` interval == `srs_preview` interval), IDOR (cross-user + null session), concept-card rejection, `get_study_queue` exposes `rung` + excludes mastered, `get_due_forecast` course-filter parity. BEGIN/ROLLBACK, impersonation idiom from sprint6/02_TEST.
+
+**Phase 2 SQL (NOT deployed):**
+- `04_MIGRATION_backfill_rung.sql` — single `UPDATE` (7,824 rows / 2.7 MB, no batching): `rung = CASE WHEN easiness <= 2.35 THEN LEAST(repetition,2) ELSE LEAST(repetition,4) END WHERE rung IS NULL`. Caps entry at rung 4 (30 d) — the ladder earns 60/120/240 d through real reviews; last-Hard cards re-enter at rung 2 (7 d). **`next_review_date` untouched.** Idempotent; reversible via `UPDATE reviews SET rung = NULL`.
+- `05_TEST_migration_safety.sql` — PART A (before) snapshots every row's `next_review_date`/`status`/`skip_until` + per-student `get_study_queue()` due-count (impersonating each of ~176 students); PART B (after) asserts **0 rows changed schedule**, **0 students changed due-count**, **0 rows left NULL rung**, prints the rung distribution, drops the baselines.
+
+**Deploy order (non-negotiable):** `01_SCHEMA` → `02_FUNCTIONS` → `03_TEST` → `05_TEST PART A` → `04_MIGRATION` → `05_TEST PART B` — each as its own SQL Editor submission (01/02/04 commit; 03 is BEGIN/ROLLBACK). Report back BEFORE the Phase 3 frontend push.
+
+**Phase 0 findings that changed the plan:** migration cap is rung 4 / rung 2 (not `LEAST(repetition,7)` — Q3 showed 424 rows would pile on rung 7, Q4b showed 164 struggling cards would land rungs 4–7); migration is one statement (Q5: 7,824 rows); **course normalization dropped** — Q8/Q9 show clean exact-match values, the 1,648 "drifted" reviews are CA-Inter students revising CA-Foundation cards (accepted 6.0 behaviour). `get_due_forecast` alignment will visibly drop "Due Today" for ~25 CA-Inter students → release note.
 
 ---
 

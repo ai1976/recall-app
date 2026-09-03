@@ -1,6 +1,35 @@
 # Changelog
 
 ---
+## [2026-09-03] feat(srs-ladder): Phase 0 proposal + Phase 1/2 SQL — ⏳ SQL WRITTEN, NOT DEPLOYED
+
+SRS Ladder Epic. Replaces the flat client-side per-rating interval (`StudyMode.jsx`: Easy +7 / Medium +3 / Hard +1) with a deterministic server-side expanding ladder. Phase 0 approved by the quality auditor (all 5 open questions + Phase 1/2 authorization). **No frontend change yet — Phase 3 is gated on Phase 1 + 2 deploy + verify.**
+
+### Added (docs)
+- `docs/active/design-review/srs-ladder-proposal.md` — Phase 0 proposal, diagnostics filled (commit `d96559f` / `b99dbc1`).
+- `docs/database/srs-ladder/00_DIAGNOSTIC_srs_ladder_phase0.sql` — 12 read-only measurement blocks.
+
+### Added (SQL — written, NOT deployed)
+- `docs/database/srs-ladder/01_SCHEMA_srs_ladder_engine.sql` — `reviews.rung smallint NULL` (+ CHECK 0..20); `reviews_status_check` extended with `'mastered'`; `idx_reviews_user_mastered`; `srs_ladder_curves(question_type, rung_index, interval_days)` + `srs_ladder_rules(id, rules jsonb)` config tables (RLS on, `SELECT` to anon+authenticated, no client write) + seed (`_default` curve 1/3/7/14/30/60/120/240; rules row).
+- `docs/database/srs-ladder/02_FUNCTIONS_srs_ladder_engine.sql`:
+  - `submit_review(p_user_id uuid, p_flashcard_id uuid, p_rating text)` → `(new_rung, next_review_date, new_status, interval_days)` — **the write SSOT for review scheduling.** SECURITY DEFINER, L5 IDOR idiom (`p_user_id` must equal `auth.uid()`; admins exempt; NULL session RAISEs), `search_path` unquoted. SELECT-or-INSERT on `(user_id, flashcard_id)`; deterministic rung transition (Easy +1 cap 7 / Medium hold / Hard → 0 + 1-day relearn; new card → rung 0/1/2); graduates to `status='mastered'` on Easy at rung 7; un-masters on any other grade. `GRANT EXECUTE TO authenticated`.
+  - `srs_preview(p_rung integer, p_question_type text DEFAULT NULL)` → 3 rows (hard/medium/easy) of `(resulting_rung, interval_days)`. Server-side mirror for Sprint 6.4 + the drift-parity test; not called in the study loop. `GRANT EXECUTE TO anon, authenticated`.
+  - `get_srs_ladder_config()` → `jsonb {curves, rules}`. Client's one-time mount fetch; returns the same `srs_ladder_rules` row the server enforces. `GRANT EXECUTE TO anon, authenticated`.
+  - `srs_interval_for_rung(p_rung, p_question_type)` — internal calculator (card's curve else `_default`); EXECUTE revoked from anon/authenticated.
+  - `get_study_queue(p_user_id)` — **DROP + CREATE** to append `rung smallint` to the return shape (Phase 3 needs it for local preview). Body otherwise byte-identical to `sprint6/01`. MASTERED excluded automatically (`status='active'` filter). Grants re-issued, `NOTIFY pgrst`.
+  - `get_due_forecast(p_user_id)` — **body rewrite, signature unchanged.** `due_today` now uses the exact `get_study_queue` due predicate (user-tz today, `status='active'`, `next_review_date <= today`, `skip_until` null/≤today, `question_type <> 'concept_card'`, read-time course filter, L2 visibility guard); `due_next_7`/`due_next_30` = same predicate with a forward cumulative window. Closes the bugs.md "Due Items Forecast disagrees with the review queue" follow-up. **Zero frontend change** (`Progress.jsx` already consumes the 3-bucket shape).
+- `docs/database/srs-ladder/03_TEST_srs_ladder_engine.sql` — Phase 1 verification (25+ checks incl. preview parity + IDOR), BEGIN/ROLLBACK.
+- `docs/database/srs-ladder/04_MIGRATION_backfill_rung.sql` — Phase 2 single `UPDATE` backfill of `reviews.rung` from `repetition`, capped by `easiness` (rung 4 / rung 2). `next_review_date` untouched. Reversible.
+- `docs/database/srs-ladder/05_TEST_migration_safety.sql` — before/after due-count stability + schedule-integrity check (impersonates every student via `get_study_queue`).
+
+### Changed
+- Migration mapping deviates from the epic's `LEAST(repetition, 7)` starting point → `LEAST(repetition, 4)` (rung 2 for last-Hard cards). Phase 0 Q3/Q4b: prevents 424 rows piling on rung 7 and 164 struggling cards landing rungs 4–7.
+- Course-value normalization **dropped** — Phase 0 Q8/Q9 proved no spelling drift exists.
+
+### Deploy order (non-negotiable)
+`01_SCHEMA` → `02_FUNCTIONS` → `03_TEST` → `05_TEST PART A` → `04_MIGRATION` → `05_TEST PART B`, each its own SQL Editor submission. Report back BEFORE any Phase 3 frontend push.
+
+---
 ## [2026-09-03] feat: Sprint 6.0 follow-up — "Today's Reviews" nav entry + friends/private RPC test (✅ PUSHED)
 
 Post-6.0 QA follow-ups. No SQL. Frontend + docs only.
