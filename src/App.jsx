@@ -64,9 +64,13 @@ const NotePreview = lazy(() => import('@/pages/public/NotePreview'))
 const StudentGuide = lazy(() => import('@/pages/guide/StudentGuide'))
 const Educators = lazy(() => import('@/pages/public/Educators'))
 
-// DEV-ONLY design-system showcase (Phase 5 Sprint 1) — route /__design, not in any nav.
-// No auth, no DB. Sprint 4 may remove or keep this.
-const DesignShowcase = lazy(() => import('@/pages/dev/DesignShowcase'))
+// DEV-ONLY design-system showcase — route /__design, not in any nav. The import
+// and the route are both gated on import.meta.env.DEV, so in a production build
+// Vite statically drops this and no chunk for it is emitted.
+// Phase 5 S1 tokens/components + Phase 6 S6.1 RevisOp reskin token layer + primitives.
+const DesignShowcase = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/DesignShowcase'))
+  : null
 
 // Admin Pages
 const SuperAdminDashboard = lazy(() => import('@/pages/admin/SuperAdminDashboard'))
@@ -180,8 +184,11 @@ if (!user || loading) return
           <Route path="/guide" element={<StudentGuide />} />
           <Route path="/educators" element={<Educators />} />
 
-          {/* DEV-ONLY design-system showcase — no auth, no DB, not linked in nav (Sprint 1) */}
-          <Route path="/__design" element={<DesignShowcase />} />
+          {/* DEV-ONLY design-system showcase — no auth, no DB, not linked in nav.
+              Gated on import.meta.env.DEV so it is not registered in prod builds. */}
+          {import.meta.env.DEV && (
+            <Route path="/__design" element={<DesignShowcase />} />
+          )}
 
           {/* Dashboard Route */}
           <Route

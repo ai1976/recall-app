@@ -1,5 +1,5 @@
 # RECALL APP - FILE STRUCTURE
-**Last Updated: September 2026 (SRS Ladder Epic)**
+**Last Updated: September 2026 (Sprint 6.1 — Design Foundation)**
 
 ---
 
@@ -118,6 +118,19 @@ recall-app
 │   │   │   ├── PlatformHeatmap.jsx              ← 52-week platform-wide heatmap (super_admin only; blue scale)
 │   │   │   ├── StudyHeatmap.jsx                 ← 90-day per-user study heatmap (green scale)
 │   │   │   └── SubjectMasteryTable.jsx          ← per-subject mastery %; responsive table + mobile card list
+│   │   ├── revisop                             ← RevisOp reskin primitives (Phase 6 S6.1); --rv-* tokens + self-hosted Plex/Literata; NOT wired to prod pages (QA route only)
+│   │   │   ├── AnswerOption.jsx                 ← answered choice row — glyph + label, slate miss (no red/green)
+│   │   │   ├── Card.jsx                         ← study-object container (r14)
+│   │   │   ├── ForwardLedgerMacro.jsx           ← scheduled-load bar rail (Today / cohort); consumes get_study_queue/get_due_forecast shapes
+│   │   │   ├── ForwardLedgerMicro.jsx           ← single-item bucket rail (lives inside a grade button)
+│   │   │   ├── GradeButtonRow.jsx               ← the climax — ≥48px navy-outline, mono interval, slate miss
+│   │   │   ├── IntervalChip.jsx                 ← mono micro forward-ledger marker (r4)
+│   │   │   ├── Label.jsx                        ← uppercase tracked eyebrow (type atom)
+│   │   │   ├── Num.jsx                          ← Plex Mono tabular numeric span (type atom)
+│   │   │   ├── Row.jsx                          ← record container (r4) + optional VerifiedEdge
+│   │   │   ├── VerifiedEdge.jsx                 ← 3px navy verified rail
+│   │   │   ├── Wordmark.jsx                     ← two-tone logotype (amber Revis + navy Op), token-driven, no gradient
+│   │   │   └── index.js                         ← barrel
 │   │   └── ui
 │   │       ├── alert.jsx
 │   │       ├── button.jsx
@@ -152,8 +165,8 @@ recall-app
 │   │   │   ├── Login.jsx                        ← reads+clears postAuthRedirect from localStorage BEFORE signIn()
 │   │   │   ├── ResetPassword.jsx
 │   │   │   └── Signup.jsx
-│   │   ├── dev                                  ← DEV-ONLY pages (not in nav; safe to remove)
-│   │   │   └── DesignShowcase.jsx               ← /__design — Phase 5 S1 token + component QA (no auth, no DB)
+│   │   ├── dev                                  ← DEV-ONLY pages (route + import gated on import.meta.env.DEV; absent from prod builds)
+│   │   │   └── DesignShowcase.jsx               ← /__design — Phase 5 S1 tokens/components + Phase 6 S6.1 RevisOp reskin gallery (light/dark toggle); no auth, no DB
 │   │   ├── guide
 │   │   │   └── StudentGuide.jsx                 ← public /guide page; 9 situations; scroll spy; no auth, no DB calls
 │   │   ├── public                               ← unauthenticated share/join pages (RPC-only data, no direct table access)
@@ -258,6 +271,7 @@ recall-app
 ### Supabase / Backend
 - `src/lib/supabase.js` — Supabase client
 - `src/lib/notifyEdge.js` — fire-and-forget helpers for Edge Function calls
+- `src/lib/revisop-tokens.js` — RevisOp reskin shared JS (Phase 6 S6.1): `REVISOP_LITERATA_ENABLED` gate (off), `REVISOP_BUCKETS`, `bucketForDays()` / `ledgerFromForecast()`. No Supabase.
 - `src/hooks/usePushNotifications.js` — Web Push permission + VAPID subscribe/unsubscribe
 - `src/components/notifications/PushPermissionBanner.jsx` — one-time push opt-in prompt on Dashboard
 
@@ -275,6 +289,7 @@ recall-app
 ### Configuration
 - `vite.config.js` — manualChunks splits vendor bundles for caching
 - `public/sw.js` — service worker (push + notificationclick + install/activate)
+- `public/fonts/*.woff2` — self-hosted Latin-subset webfonts (Phase 6 S6.1): `plex-sans.woff2` (variable), `plex-mono-400/500.woff2`, `literata.woff2` (variable, gated off). `@font-face` in `src/index.css`, `font-display: swap`, same-origin — no font-CDN request.
 - `vercel.json` — routing config
 - `package.json` — React 19, React Router v7, Vite 7, Recharts, Tesseract.js
 

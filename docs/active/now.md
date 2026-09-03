@@ -1,7 +1,23 @@
 # NOW - Current Development Status
 
-**Last Updated:** 03/09/2026
-**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE.** **Sprint 6.0 (Correctness) COMPLETE — SQL deployed & verified, frontend pushed to main (02/09/2026).** **SRS Ladder Epic — Phase 1 + 2 + 3 ✅ SHIPPED (03/09/2026): all SQL (`01`–`06`) deployed & verified in Supabase; frontend pushed to `main` (commit `8323ee3`) → Vercel auto-deploy. ⏳ Final step: live-verify on recallapp.co.in with a logged-in student (grade-up / rung-table / MASTERED / one-write-per-grade). Deferred to Sprint 6.4: grade-button reskin + prominent interval UI + the "Items Mastered" headline stat.** Deferred: **leaked-password protection is Pro-plan-gated** — cannot enable on the current Free plan. ⏳ **Do on Pro upgrade.** ✅ skip_card/suspend_card column bug fixed 04/07/2026.
+**Last Updated:** 04/09/2026
+**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE.** **Sprint 6.0 (Correctness) COMPLETE — SQL deployed & verified, frontend pushed to main (02/09/2026).** **SRS Ladder Epic — Phase 1 + 2 + 3 ✅ SHIPPED (03/09/2026): all SQL (`01`–`06`) deployed & verified in Supabase; frontend pushed to `main` (commit `8323ee3`) → Vercel auto-deploy. ⏳ Final step: live-verify on recallapp.co.in with a logged-in student (grade-up / rung-table / MASTERED / one-write-per-grade). Deferred to Sprint 6.4: grade-button reskin + prominent interval UI + the "Items Mastered" headline stat.** **Sprint 6.1 (Design Foundation) ✅ CODE COMPLETE (04/09/2026) — additive `--rv-*` token layer + self-hosted Plex/Literata + `src/components/revisop/*` primitives + `/__design` QA route; zero pages migrated, zero behaviour change, zero SQL; `npm run build` clean. ⏳ Not yet committed/pushed.** Deferred: **leaked-password protection is Pro-plan-gated** — cannot enable on the current Free plan. ⏳ **Do on Pro upgrade.** ✅ skip_card/suspend_card column bug fixed 04/07/2026.
+
+---
+
+## Just Completed ✅ — Sprint 6.1: Design Foundation (04/09/2026)
+
+**Reskin foundation, additive only. No existing page touched, no behaviour change, no SQL.** `npm run build` clean (no new warnings); eslint clean on all new files. **Not yet committed/pushed** — operator to `git commit` + push per the Git rules.
+
+- **Token layer** (`src/index.css`, additive): full LIGHT + DARK objects from `docs/active/design-review/revisop-pass2-reference.jsx` → precise HSL triplets, namespaced `--rv-*` (bg/border/ink/navy/amber/green/slate/danger scales), two-tier radius (`--rv-radius-rec` 4px / `--rv-radius-obj` 14px), `--rv-shadow`/`-bar`, `--rv-font-sans/mono/read`. Dark under the existing `.dark` selector. **Zero shadcn / Phase-5 `--brand-*`/`--surface-*` values changed** (`git diff` = 100% additions).
+- **`tailwind.config.js`** (new keys only): `colors.rv.*`, `borderRadius.rec/.obj`, `fontFamily.plex/plex-mono/literata`, `boxShadow.rv/rv-bar`.
+- **Self-hosted fonts** (`public/fonts/`, `@font-face` in `index.css`, `font-display: swap`, Latin subset, same-origin — **no font-CDN request**): IBM Plex Sans (variable, wght 100–700), IBM Plex Mono 400/500, Literata (variable). Weights 400/500 + 600 titles (Plex Sans). Applied only by the new primitives — no global `body` rule.
+- **Primitives** (`src/components/revisop/`, presentational, NOT wired to any prod page): `Wordmark` (two-tone, token-driven, no gradient), `IntervalChip`, `Card` (r14), `Row` (r4), `VerifiedEdge`, `AnswerOption` (glyph+label, slate miss, no red/green), `ForwardLedgerMicro`, `ForwardLedgerMacro` (consumes `get_study_queue`/`get_due_forecast` shapes), `GradeButtonRow` (≥48px @ 88px, navy-outline, mono interval, slate miss), `Label`, `Num`, `index.js` barrel. Shared JS in `src/lib/revisop-tokens.js` (`REVISOP_LITERATA_ENABLED` = **OFF**, `REVISOP_BUCKETS`, `bucketForDays`, `ledgerFromForecast`).
+- **QA route** — extended the existing dev-only `/__design` (`DesignShowcase.jsx`) with the full reskin gallery, light + dark via a theme toggle. Route **and** lazy import now gated on `import.meta.env.DEV` → absent from prod builds (`dist/` has no `DesignShowcase-*.js`).
+- **`context.md` branding line** — verified already corrected (30/08/2026); no stale blue→purple gradient instruction remains. Step 7 was already satisfied.
+- **Literata verdict:** keep files + `@font-face` (0 wire cost while unmatched); measured cost when 6.4 uses it ≈ **85.7 KB** Latin-subset woff2 — larger than all UI faces combined, so 6.4 should lazy-trigger it, not put it in the critical path.
+- **Verified:** QA route light+dark screenshots; font network trace (all `/fonts/*.woff2`, no gstatic/googleapis); `/login` + `/` pixel-identical stashed-vs-applied; no console errors. Auth'd dashboard/study-loop pages not screenshotted (no test session) — they consume identical CSS/Tailwind output and import none of the new code.
+- **Follow-ups for 6.2/6.3/6.4:** wordmark→Nav swap (6.2); ledger + dashboards live-wiring (6.3); grade-button→`get_srs_ladder_config`, flip Literata on with lazy load, study loop onto tokens (6.4).
 
 ---
 

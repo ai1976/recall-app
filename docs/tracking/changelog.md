@@ -1,6 +1,43 @@
 # Changelog
 
 ---
+## [2026-09-04] feat(reskin): Sprint 6.1 — Design Foundation (additive token layer + self-hosted fonts + RevisOp primitives)
+
+Phase 6 reskin foundation. **Additive only — zero existing pages migrated, zero behaviour change, zero SQL.** `npm run build` passes clean (no new warnings); `npx eslint` on all new files clean. Not yet pushed.
+
+### Added
+- **`docs/active/design-review/revisop-pass2-reference.jsx`** — the Pass 2 reference artifact (committed input; source for the LIGHT/DARK token objects + primitive specs). Its blue→purple gradient wordmark is NOT followed — the locked two-tone spec is.
+- **`src/index.css` — `--rv-*` token layer** (additive): full LIGHT + DARK objects from the reference translated to precise HSL triplets. `--rv-bg-0/1/2`, `--rv-border(-strong)`, `--rv-ink-900/600/400`, `--rv-navy(/-400/-100/-50)`, `--rv-amber(/-ink/-50/-edge)`, `--rv-green(/-50)`, `--rv-slate(/-50)`, `--rv-danger`, two-tier radius `--rv-radius-rec` (4px) / `--rv-radius-obj` (14px), `--rv-shadow` / `--rv-shadow-bar`, `--rv-font-sans/mono/read`. Dark values under the existing `.dark` selector. **No shadcn or Phase-5 `--brand-*`/`--surface-*` value changed.**
+- **`src/index.css` — `@font-face` block**: self-hosted, Latin-subset `woff2`, `font-display: swap`, served same-origin from `/fonts/` (no font-CDN request). IBM Plex Sans (variable, wght 100–700) + IBM Plex Mono 400/500 (static) + Literata (variable, gated off). Applied only by the new primitives — no global `body`/base rule.
+- **`public/fonts/`** — `plex-sans.woff2` (45.7 KB), `plex-mono-400.woff2` (14.7 KB), `plex-mono-500.woff2` (14.9 KB), `literata.woff2` (85.7 KB). UI faces total ≈ 75 KB; Literata adds ≈ 85.7 KB (woff2 barely gzips further).
+- **`tailwind.config.js`** (`theme.extend`, new keys only): `colors.rv.*` → `hsl(var(--rv-*))`, `borderRadius.rec`/`.obj`, `fontFamily.plex`/`plex-mono`/`literata`, `boxShadow.rv`/`rv-bar`.
+- **`src/components/revisop/`** — design-language primitives (presentational, isolated, NOT imported by any prod page): `Wordmark` (two-tone, token-driven, no gradient — light-mode output byte-identical to the current `NavDesktop.jsx` inline mark), `IntervalChip`, `Card` (r14), `Row` (r4, optional verified edge), `VerifiedEdge`, `AnswerOption` (glyph + label, slate miss, no red/green), `ForwardLedgerMicro`, `ForwardLedgerMacro` (consumes `get_study_queue`/`get_due_forecast` shapes; sample data on QA route), `GradeButtonRow` (≥48px targets @ 88px, navy-outline equal weight, mono interval, slate miss), plus `Label` / `Num` type atoms and an `index.js` barrel.
+- **`src/lib/revisop-tokens.js`** — `REVISOP_LITERATA_ENABLED` (the trivial on/off — **OFF**), `REVISOP_BUCKETS` (the 8-lane forward-ledger scale), `bucketForDays()` / `ledgerFromForecast()` helpers for wiring the ledger primitives to real RPC data in 6.3/6.4.
+
+### Changed
+- **`src/pages/dev/DesignShowcase.jsx`** (`/__design` QA route) — extended with the full reskin section: every `--rv-*` swatch, every primitive, in light **and** dark via a theme toggle (`.dark`-class wrapper), plus a collapsible both-themes-side-by-side view. Phase 5 S1 sections kept.
+- **`src/App.jsx`** — the `/__design` route **and** its lazy import are now gated on `import.meta.env.DEV`, so a production build registers no route and emits no chunk for it (verified: `dist/` has no `DesignShowcase-*.js`).
+- **`docs/active/context.md`** — the stale Recall blue→purple gradient branding line was **already corrected 30/08/2026** (lines 13–17 now flag it as "⚠️ STALE — do not use"). No change needed; Sprint 6.1 step 7 verified already satisfied.
+
+### Literata verdict
+**Keep the files + `@font-face`, apply to nothing until 6.4.** An unmatched `@font-face` costs 0 bytes over the wire, so keeping it is free while unused. Measured cost when 6.4 wires it to reading bodies (note / case-study / long passages): **≈ 85.7 KB** (Latin-subset woff2, ~identical gzipped). That is larger than all three UI faces combined (~75 KB), so 6.4 should lazy-trigger the download when a reading body mounts rather than put it in the critical path.
+
+### Verification
+- `npm run build` clean, no new warnings. Dev-route chunk absent from `dist/`.
+- `/__design` renders every primitive in light + dark (theme toggle works; `.dark` scope contained — Phase 5 sections stay light). Screenshots captured.
+- `read_network_requests` on a dev page load: fonts served from `http://localhost:5173/fonts/*.woff2` (200), **zero `fonts.googleapis.com` / `fonts.gstatic.com`**.
+- No-regression: `/login` and `/` (landing) pixel-identical with the layer stashed vs applied; default fonts still in use on un-migrated pages (no Plex leak); no console errors. `git diff src/index.css` = 100% additions; `tailwind.config.js` only gains a trailing comma on the `sm` radius line + new keys (no value changed). *(Auth'd dashboard / study-loop pages not screenshotted this session — no test session available — but they consume the identical CSS/Tailwind output and import none of the new code.)*
+- Wordmark renders two-tone (amber `Revis` + navy `Op`), no gradient, both themes.
+
+### Follow-ups
+- **6.2:** swap `<Wordmark />` into `NavDesktop.jsx` / `NavMobile.jsx` (deferred — kept this sprint additive; output is byte-identical in light so the swap is low-risk).
+- **6.3:** wire `ForwardLedgerMacro` to live `get_study_queue` / `get_due_forecast`; dashboards onto the token layer.
+- **6.4:** wire `GradeButtonRow` to `get_srs_ladder_config`; flip `REVISOP_LITERATA_ENABLED` on with a lazy-load trigger; study loop onto the token layer.
+
+### Files Changed
+`docs/active/design-review/revisop-pass2-reference.jsx` (new), `src/index.css`, `tailwind.config.js`, `src/App.jsx`, `src/pages/dev/DesignShowcase.jsx`, `src/components/revisop/*` (new, 12 files), `src/lib/revisop-tokens.js` (new), `public/fonts/*.woff2` (new, 4 files), `docs/active/now.md`, `docs/active/blueprint.md`, `docs/tracking/changelog.md`, `docs/reference/FILE_STRUCTURE.md`.
+
+---
 ## [2026-09-03] feat(srs-ladder): Phase 3 frontend — StudyMode/ReviewSession/Progress on the ladder (✅ 06 SQL deployed; pushed 8323ee3; ⏳ live-verify)
 
 Phase 3 wires the frontend to the deployed ladder engine. `npm run build` + `npx eslint` clean. **Not pushed** — `06_FUNCTIONS_get_mastered_cards.sql` deploys first, then the push, then live-verify.
