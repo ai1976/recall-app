@@ -1,6 +1,6 @@
 # SRS Ladder Epic — Phase 0 Proposal
 
-**Status:** DRAFT — awaiting (1) diagnostic numbers from `docs/database/srs-ladder/00_DIAGNOSTIC_srs_ladder_phase0.sql` and (2) phasebuilder approval. No engine SQL, config table, or migration is written until this proposal is approved.
+**Status:** DRAFT — diagnostics landed 03/09/2026 (§1 filled). Awaiting phasebuilder approval. No engine SQL, config table, or migration is written until this proposal is approved.
 **Author:** Claude Code
 **Date:** 03/09/2026
 **Scope:** deliver the deterministic expanding-ladder engine + a server-side preview function. Grade-button reskin and prominent interval UI are **Sprint 6.4**, not this epic.
@@ -14,80 +14,120 @@
 | **Rung table** | 8 rungs, index 0–7, intervals **1 / 3 / 7 / 14 / 30 / 60 / 120 / 240** days. First three rungs deliberately equal today's Hard/Medium/Easy constants (1/3/7) so migration and "no sudden change" are trivial. |
 | **Transition rules** | **Easy** → advance +1 rung (cap at 7). **Medium** → **hold** at current rung (re-schedule same interval). **Hard** → **full drop to rung 0** + relearning step `next_review_date = today + 1` (exactly preserves today's "Hard = 1 day"). New card's first grade enters at rung **0 / 1 / 2** for Hard / Medium / Easy respectively (exactly reproduces today's new-card behaviour). |
 | **MASTERED** | Threshold = **a successful (Easy) review while already at rung 7**. Mechanism = **new `status = 'mastered'`** value (CHECK `active`→`active,suspended,mastered`). `get_study_queue` filter is already `status = 'active'` → **exclusion is a no-op**. Un-mastering only via an explicit manual review from the Mastered list / Library (never silent); `submit_review` flips `status` back to `'active'`, keeps rung 7. |
-| **Migration mapping** | `rung = LEAST(repetition, 7)`, **hardened by easiness**: if `easiness <= 2.35` (last grade was Hard) then `rung = LEAST(repetition, 3)`. **`next_review_date` is NOT recomputed** — only the new `rung` column is backfilled. The ladder engages on each card's next real `submit_review`. A backfilled rung of 7 does **not** auto-master. |
-| **Progress "Due Items Forecast"** (6.0 deviation 4 / bugs.md OPEN) | **Option (a)** — rewrite the body of the **existing** `get_due_forecast(p_user_id)` RPC to share the exact `get_study_queue` due predicate (course filter, visibility guard, concept-card exclusion, user-tz "today", `skip_until <= today`). Keep its current 3-bucket signature (`due_today`, `due_next_7`, `due_next_30`) — `Progress.jsx` already consumes that shape, so **zero frontend change**. `due_next_7/30` legitimately stay forward-looking. Closes the bug. |
+| **Migration mapping** | **`rung = CASE WHEN easiness <= 2.35 THEN LEAST(repetition, 2) ELSE LEAST(repetition, 4) END`.** Nobody enters above rung 4 (30 d) — the ladder must *earn* the 60/120/240-day rungs through real post-migration reviews; cards whose last grade was Hard re-enter at rung 2 (7 d) max. **`next_review_date` is NOT recomputed** — only the new `rung` column is backfilled. The ladder engages on each card's next real `submit_review`. No card is mastered at migration. Single `UPDATE` (7,824 rows / 2.7 MB — no batching). |
+| **Progress "Due Items Forecast"** (6.0 deviation 4 / bugs.md OPEN) | **Option (a)** — rewrite the body of the **existing** `get_due_forecast(p_user_id)` RPC to share the exact `get_study_queue` due predicate (course filter, visibility guard, concept-card exclusion, user-tz "today", `skip_until <= today`). Keep its current 3-bucket signature (`due_today`, `due_next_7`, `due_next_30`) — `Progress.jsx` already consumes that shape, so **zero frontend change**. `due_next_7/30` legitimately stay forward-looking. Closes the bug. **Expected visible effect:** ~25 CA-Intermediate students see "Due Today" drop (their CA-Foundation review rows get course-filtered), matching what their Review Session already shows — worth a release note. |
 
-**Parameters that are provisional until the diagnostics land:** the easiness governor threshold (Q4/Q4b), the migration batch size (Q5), whether `'mastered'` is safe to add (Q1/Q2), and confirmation that `next_review_date` is `DATE` (Q6). Everything else is structural and does not depend on the numbers.
+**Deviations from the brief's stated starting points (all data-driven, see §1):**
+- Migration cap is **rung 4 / rung 2** (not `LEAST(repetition, 7)`). Q3 + Q4b show 424 rows would land on rung 7 and 164 heavily-reviewed-but-last-failed cards would land on rungs 4–7 under a naive map — exactly the "near-MASTERED" hazard the brief asks the cap to prevent.
+- Migration is a **single statement, not batched** — Q5: 7,824 rows / 2.7 MB total. Batching would be theatre.
+- Course-value **normalization is dropped** (§7): Q8/Q9 show clean exact-match values with **zero spelling variants**. The "drift" is 1,648 legitimate cross-level review rows, an accepted 6.0 course-filter consequence, not a data-quality bug.
 
 ---
 
-## 1. Phase 0 measured numbers
-
-> Fill from `00_DIAGNOSTIC_srs_ladder_phase0.sql`. **Left blank until the founder runs it in the Supabase SQL Editor.**
+## 1. Phase 0 measured numbers (03/09/2026)
 
 ### 1.1 `reviews.status` distinct values (Q1)
 
 | status | rows |
 |---|---|
-| _TBD_ | _TBD_ |
+| active | 7122 |
+| suspended | 702 |
 
-- `'mastered'` currently present? **_TBD (must be NO to proceed with the status-value design)_**
+- `'mastered'` currently present? **NO** → safe to add as a new `status` value. ✅
 
 ### 1.2 `reviews.status` CHECK constraint (Q2)
 
 ```
-_TBD — paste pg_get_constraintdef output_
+reviews_status_check  CHECK ((status = ANY (ARRAY['active'::text, 'suspended'::text])))
+reviews_quality_check CHECK (((quality >= 0) AND (quality <= 5)))
 ```
+
+Phase 1 `ALTER`: drop + recreate `reviews_status_check` as `CHECK (status = ANY (ARRAY['active','suspended','mastered']))`. `reviews_quality_check` is untouched (our qualities are 1/3/5).
 
 ### 1.3 `reviews.repetition` histogram (Q3 / Q3b)
 
 | repetition | rows | pct |
 |---|---|---|
-| _TBD_ | | |
+| 0 | 856 | 10.9 |
+| 1 | 3065 | 39.2 |
+| 2 | 1650 | 21.1 |
+| 3 | 838 | 10.7 |
+| 4 | 486 | 6.2 |
+| 5 | 329 | 4.2 |
+| 6 | 176 | 2.2 |
+| 7 | 97 | 1.2 |
+| 8+ | 327 | 4.2 (tail out to repetition = 33) |
 
-- Rows that would land on rung 7 under a naive `LEAST(repetition,7)` map: **_TBD_**
+- Rows that would land on rung 7 under a naive `LEAST(repetition,7)` map: **424** (97 + 327). → the migration caps at rung 4 instead (see §0 deviations).
+- `repetition = 1` is 39% of the table because the current INSERT seeds `repetition = 1` on the first grade; it means "graded once".
 
 ### 1.4 `reviews.easiness` distribution (Q4 / Q4b)
 
-| easiness | rows |
-|---|---|
-| _TBD_ | |
+| easiness | rows | = last grade |
+|---|---|---|
+| 2.30 | 771 | Hard |
+| 2.50 | 2162 | Medium |
+| 2.60 | 4891 | Easy |
 
-- High-repetition (`>=7`) **and** low-easiness (`<=2.35`) rows — the ones the easiness governor protects from a false near-MASTERED landing: **_TBD_**
+`easiness` holds **exactly 3 discrete values** — it is a faithful "last grade" flag, so it is a reliable governor input.
+
+- Heavily-reviewed (`repetition >= 4`) **and** last-graded-Hard (`easiness <= 2.35`) rows — the false-near-MASTERED hazard the cap removes: **164** (rep4:56 + rep5:32 + rep6:14 + rep7+:62). Under the migration map these land at **rung 2** (7 d), not rungs 4–7.
+- Last-graded-Hard at `repetition` 1–3: another 421 + 129 + 57 = 607 rows, also capped at rung 2.
 
 ### 1.5 `reviews` volume + size (Q5)
 
 | metric | value |
 |---|---|
-| total review rows | _TBD_ |
-| table total size | _TBD_ |
-| indexes size | _TBD_ |
+| total review rows | **7824** |
+| table total size | 2768 kB |
+| heap size | 1112 kB |
+| indexes size | 1616 kB |
 
-**Backfill cost assessment (to confirm against the number):** the Phase 2 backfill is an in-place `UPDATE reviews SET rung = …` of a single `smallint` column. It generates **no client egress** (egress = bytes leaving the DB to API clients; this is a server-internal write). Free-plan exposure is DB size (500 MB cap) and disk-IO budget — a smallint column across the measured row count adds well under 1 MB and a few seconds of IO. The 2026 image-migration quota incident was a *read*-heavy 110 MB base64 pull; this is not comparable. **Recommended batch size: 2,000 rows per statement, keyed by `id`, `WHERE rung IS NULL`** (resumable) — but a single statement is acceptable if total rows < ~20,000. Final call after Q5.
+**Backfill cost:** negligible. 7,824 rows, in-place `UPDATE` of one `smallint` column → **single statement**, sub-second, **zero client egress** (server-internal write), well under any Free-plan size/IO concern. No batching, no resumable-chunk scaffolding. (The 2026 image-migration quota incident was a *read*-heavy 110 MB base64 pull — not comparable.)
 
-### 1.6 Course value inventory + drift (Q8 / Q9 / Q10 / Q10b)
+### 1.6 Course value inventory + "drift" (Q8 / Q9 / Q10 / Q10b)
 
-- `profiles.course_level` distinct values: **_TBD_**
-- `flashcards.target_course` distinct values: **_TBD_**
-- Active reviews with `target_course <> course_level` (drift): **_TBD_** across **_TBD_** students
-- Most common mismatched pairs: **_TBD_** (this reveals the normalization map, e.g. `CA Inter` ↔ `CA Intermediate`)
+- `profiles.course_level`: **CA Foundation 98, CA Intermediate 53, CA Final 22**, NULL 2, plus 5 one-off free-text values (one user each: `Technical Analysis`, `Class 9. CBSE`, `AI and Data science`, `MBA`, `SSC CGL`).
+- `flashcards.target_course`: **CA Intermediate 1736, CA Foundation 419** — only two values, both clean.
+- **No spelling variants anywhere** (`CA Inter` vs `CA Intermediate` etc. do not occur). The originally-feared normalization problem does not exist.
+- Q10: 1659 active reviews across 25 students, 256 cards, where `target_course <> course_level`. Q10b: **1648 of those are CA-Intermediate students with review history on CA-Foundation cards** (legitimate cross-level revision), + 11 stragglers.
+- **Interpretation:** this is not data drift — it is the Sprint 6.0 read-time course filter working as designed (a CA-Inter student's queue excludes CA-Foundation cards; Custom Course is the accepted escape hatch, per the 6.0 auditor). It is also the mechanism behind the Progress "24 vs 4" forecast discrepancy. Aligning `get_due_forecast` (§0, option a) will make Progress agree with the queue for these 25 students. **No normalization slice needed** — logged informational in `bugs.md`, not OPEN.
+- Side note: the 5 one-off `course_level` users have no matching `target_course` cards → their `get_study_queue` is always empty today. Pre-existing 6.0 consequence, out of scope here.
 
 ### 1.7 `question_type` coverage (Q11)
 
 | question_type | cards |
 |---|---|
-| _TBD_ | |
+| flashcard | 2155 |
 
-Every value here except `concept_card` must resolve to a curve (all fall through to `_default` for now).
+**Only one type exists.** `srs_ladder_curves` seeds just `_default` × 8; every card resolves to `_default`. No `concept_card` rows exist yet (the `get_study_queue` exclusion is a correct no-op). New types + curves are Phase 7.
 
 ### 1.8 `next_review_date` type + uniqueness (Q6 / Q7)
 
-- `reviews.next_review_date` data_type: **_TBD_** (expected `date`)
-- Duplicate `(user_id, flashcard_id)` rows: **_TBD_** (expected 0 — one row per user per card)
+- `reviews.next_review_date` = **`date`** ✅ (confirms blueprint §185; **DATABASE_SCHEMA.md §298 "timestamp" is stale — fix in the Phase 1 doc-sync**). `skip_until` = `date`. `interval` nullable default 0. `easiness` = `double precision` nullable default 2.5. `status` NOT NULL default `'active'`.
+- Q7 output came back as the column list again (query mis-run). One-row-per-`(user_id, flashcard_id)` is taken as confirmed from the documented `reviews_user_flashcard_unique` constraint + `handleRating`'s `.maybeSingle()` dependence. **Optional belt-and-braces: re-run the Q7 dup-check** before Phase 2.
 
 ### 1.9 Per-student due-count baseline (Q12)
 
-> Snapshot table pasted here becomes the Phase 2 "before" side of the migration-safety check.
+Captured — 15 heaviest students, `due_today_raw` 137–410 (server-date, **no** course/visibility filter, so higher than `get_study_queue` for the CA-Inter students). This is the Phase 2 "before" snapshot; the Phase 2 script re-runs it **plus** an inline replica of the `get_study_queue` predicate per student, before and after the backfill — both must be materially unchanged.
+
+| full_name | course_level | due_today_raw | active_rows_total |
+|---|---|---|---|
+| Chinmay Pansare | CA Intermediate | 410 | 445 |
+| Aryan Pamnani | CA Intermediate | 301 | 314 |
+| Mohak Agrawal | CA Intermediate | 223 | 223 |
+| Jayesh Pande | CA Intermediate | 210 | 210 |
+| Avanti Soman | CA Intermediate | 206 | 315 |
+| Shashwat Amit Randive | CA Intermediate | 204 | 211 |
+| Shreyas Dhaygude | CA Intermediate | 179 | 179 |
+| Aayodh Inamke | CA Foundation | 174 | 174 |
+| Mitesh Aher | CA Intermediate | 161 | 296 |
+| Aryan Pargaonkar | CA Intermediate | 161 | 188 |
+| Chaitanya Bhide | CA Foundation | 160 | 160 |
+| arjun sathe | CA Foundation | 152 | 152 |
+| Chinmay Bhave | CA Intermediate | 148 | 148 |
+| Ananya | CA Foundation | 146 | 146 |
+| Shardul Karnik | CA Intermediate | 137 | 137 |
 
 ---
 
@@ -223,12 +263,19 @@ New / replaced functions → `NOTIFY pgrst, 'reload schema'`. `search_path` **un
 
 ## 5. Migration (Phase 2 — for reference; built only after approval)
 
-- **Backfill:** `UPDATE reviews SET rung = CASE WHEN easiness <= 2.35 THEN LEAST(repetition, 3) ELSE LEAST(repetition, 7) END WHERE rung IS NULL;` (the `2.35` governor threshold to be confirmed against Q4/Q4b — it may become `2.4`, or a repetition-only cap if the cross-tab shows the governor is unnecessary).
-- **`next_review_date` is never touched.** No card's due date moves. A backfilled `rung = 7` does **not** master the card — mastering requires a successful `submit_review` at rung 7.
-- **Batch:** per Q5 — `id`-keyed batches of 2,000 with `WHERE rung IS NULL`, or one statement if < ~20k rows. Report rows processed + wall-clock.
+- **Backfill (single statement):**
+  ```sql
+  UPDATE reviews
+  SET rung = CASE WHEN easiness <= 2.35 THEN LEAST(repetition, 2)
+                  ELSE LEAST(repetition, 4) END
+  WHERE rung IS NULL;
+  ```
+  `easiness <= 2.35` catches exactly the `easiness = 2.30` (last = Hard) rows (Q4 confirms only 3 discrete values). Cap 4 = 30 d max on entry for everyone; cap 2 = 7 d max for last-failed cards. Nobody enters rungs 5–7; nobody is near MASTERED. Expected post-backfill rung spread (from Q3, before the low-easiness re-cap): rung 0 ≈ 856, rung 1 ≈ 3065, rung 2 ≈ 1650 (+ ~600 pulled down by the governor), rung 3 ≈ 838, rung 4 ≈ ~1000 (486 + the 5–33 tail collapsed in). Exact numbers reported at deploy.
+- **`next_review_date` is never touched.** No card's due date moves. No card is mastered.
+- **Batch:** none — Q5 is 7,824 rows / 2.7 MB. One `UPDATE`, `WHERE rung IS NULL`. Report rows processed + wall-clock.
 - **Reversibility:** documented in the migration file — `UPDATE reviews SET rung = NULL;` (or `ALTER TABLE reviews DROP COLUMN rung;`) fully reverts; nothing else changed, so schedules are already intact.
 - **Verification before "done":**
-  1. For ≥10 active students (the Q12 sample + 5 more), capture `get_study_queue(uid)` count **immediately before and immediately after** the backfill — must be materially unchanged.
+  1. For the Q12 15 students + 5 more, capture **(a)** `due_today_raw` (the Q12 query) and **(b)** an inline replica of the `get_study_queue` due predicate (status/date/skip + course + visibility + concept) **immediately before and immediately after** the backfill — both must be materially unchanged.
   2. Diff `next_review_date` for a sample of ≥50 rows before/after — must be byte-identical.
   3. Paste the before/after table into this doc and `now.md`.
 
@@ -247,12 +294,13 @@ New / replaced functions → `NOTIFY pgrst, 'reload schema'`. `search_path` **un
 
 ---
 
-## 7. Course-drift finding (measure only — separate follow-up)
+## 7. Course-"drift" finding (no action — measured only)
 
-Q10 quantifies it. **Not fixed in this epic.** Proposed follow-up (its own `[DATA]` + `[SCHEMA]` slice):
-- `[DATA]` one-time `UPDATE profiles`/`flashcards` mapping the drift pairs Q10b reveals (e.g. `'CA Inter'` → `'CA Intermediate'`), founder-reviewed pair list.
-- `[SCHEMA]` optional: a soft FK / trigger check of `course_level` and `target_course` against `disciplines.name` to stop future free-text drift.
-- Logged **OPEN** in `bugs.md` with the Q10 number and this plan.
+Q8/Q9/Q10b resolve this: **there are no misspelled or variant course values.** `course_level` is `CA Foundation` / `CA Intermediate` / `CA Final` (+ NULL ×2, + 5 one-off free-text test users); `target_course` is `CA Intermediate` / `CA Foundation`. Every value is a clean exact match to its counterpart set.
+
+The 1,659 "mismatched" active reviews (Q10) are **1,648 CA-Intermediate students reviewing CA-Foundation cards** + 11 stragglers — legitimate cross-level revision history that the Sprint 6.0 read-time course filter intentionally excludes from the queue (Custom Course being the accepted escape hatch, per the 6.0 auditor). It is also the mechanism behind the Progress "24 vs 4" discrepancy, which §0 option (a) fixes.
+
+**No normalization slice.** No `[DATA]` mapping, no `[SCHEMA]` FK. Logged **informational** in `bugs.md` (with the Q10b numbers) alongside the resolved forecast entry — not OPEN.
 
 ---
 
@@ -276,7 +324,7 @@ srs_preview(p_rung int, p_question_type text DEFAULT NULL)
 |---|---|
 | Exam-date anchor for interval capping | Phase 7+ (needs an exam-date field not yet captured) |
 | Grade-button restyle + prominent interval-preview UI | Sprint 6.4 |
-| Course-value normalization | separate follow-up (§7); Phase 0 measures only |
+| Course-value normalization | **no action** — Phase 0 proved no drift exists (§7) |
 | Token / font / wordmark / reskin | Sprint 6.1+ |
 | New question types + their curves | Phase 7 |
 | `Progress.jsx` "Items Mastered" → real `status='mastered'` count | Phase 3 / 6.4 polish, not engine-critical |
