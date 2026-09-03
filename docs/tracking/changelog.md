@@ -1,7 +1,7 @@
 # Changelog
 
 ---
-## [2026-09-03] feat(srs-ladder): Phase 3 frontend — StudyMode/ReviewSession/Progress on the ladder (build clean; ⏳ 06 SQL + push pending)
+## [2026-09-03] feat(srs-ladder): Phase 3 frontend — StudyMode/ReviewSession/Progress on the ladder (✅ 06 SQL deployed; pushed 8323ee3; ⏳ live-verify)
 
 Phase 3 wires the frontend to the deployed ladder engine. `npm run build` + `npx eslint` clean. **Not pushed** — `06_FUNCTIONS_get_mastered_cards.sql` deploys first, then the push, then live-verify.
 

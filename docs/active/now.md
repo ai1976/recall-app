@@ -1,7 +1,7 @@
 # NOW - Current Development Status
 
 **Last Updated:** 03/09/2026
-**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE.** **Sprint 6.0 (Correctness) COMPLETE — SQL deployed & verified, frontend pushed to main (02/09/2026).** **SRS Ladder Epic: Phase 1 + Phase 2 ✅ DEPLOYED & VERIFIED in Supabase (03/09/2026). Phase 3 (frontend) — code written, `npm run build` + eslint clean; ⏳ `06_FUNCTIONS_get_mastered_cards.sql` must deploy before the frontend push; then live-verify on recallapp.co.in.** Deferred: **leaked-password protection is Pro-plan-gated** — cannot enable on the current Free plan. ⏳ **Do on Pro upgrade.** ✅ skip_card/suspend_card column bug fixed 04/07/2026.
+**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE.** **Sprint 6.0 (Correctness) COMPLETE — SQL deployed & verified, frontend pushed to main (02/09/2026).** **SRS Ladder Epic — Phase 1 + 2 + 3 ✅ SHIPPED (03/09/2026): all SQL (`01`–`06`) deployed & verified in Supabase; frontend pushed to `main` (commit `8323ee3`) → Vercel auto-deploy. ⏳ Final step: live-verify on recallapp.co.in with a logged-in student (grade-up / rung-table / MASTERED / one-write-per-grade). Deferred to Sprint 6.4: grade-button reskin + prominent interval UI + the "Items Mastered" headline stat.** Deferred: **leaked-password protection is Pro-plan-gated** — cannot enable on the current Free plan. ⏳ **Do on Pro upgrade.** ✅ skip_card/suspend_card column bug fixed 04/07/2026.
 
 ---
 
