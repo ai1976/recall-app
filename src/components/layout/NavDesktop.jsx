@@ -10,6 +10,7 @@ import {
   Upload,
   Network,
   BarChart3,
+  Play,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -121,6 +122,12 @@ export default function NavDesktop({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="center" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard/review-session" className="flex items-center gap-2 cursor-pointer">
+                    <Play className="h-4 w-4" />
+                    Today's Reviews
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/dashboard/review-flashcards" className="flex items-center gap-2 cursor-pointer">
                     <CreditCard className="h-4 w-4" />

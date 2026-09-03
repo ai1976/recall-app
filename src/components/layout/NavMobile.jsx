@@ -18,6 +18,7 @@ import {
   Settings,
   GraduationCap,
   Rss,
+  Play,
 } from 'lucide-react';
 import { useCourseContext } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
@@ -201,6 +202,13 @@ export default function NavMobile({
                           Study
                         </p>
                       </div>
+                      <button
+                        onClick={() => handleNavClick('/dashboard/review-session')}
+                        className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"
+                      >
+                        <Play className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-gray-700">Today's Reviews</span>
+                      </button>
                       <button
                         onClick={() => handleNavClick('/dashboard/review-flashcards')}
                         className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-gray-50"

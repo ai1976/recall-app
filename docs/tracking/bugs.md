@@ -1,5 +1,20 @@
 # Bug Tracking
 
+## Sprint 6.0 follow-ups — 03/09/2026
+
+### [03/09/2026] Review-session queue had no in-app nav link (any role) — ✅ FIXED
+- **Found:** during 6.0 live QA on a professor account. `/dashboard/review-session` was reachable only via the student dashboard's green "Start Review Session" CTA (professors render a different dashboard branch with no review UI) and the push-notification deep link. The **Study** nav dropdown had only "Review Flashcards" + "Browse Notes". So a professor with due personal reviews — or any user not on the dashboard — had no way in.
+- **Not a 6.0 regression:** the professor dashboard branch never had a review CTA; 6.0 only swapped the `reviewsDue` *count* computation to `get_study_queue`. `fetchPersonalStats` does run for professors, so `reviewsDue` was computed — just never rendered in that branch.
+- **Fix (Option A):** "Today's Reviews" → `/dashboard/review-session` added as the first item in the Study menu, all roles — `NavDesktop.jsx` dropdown + `NavMobile.jsx` Study section. No dashboard restructure (Option B — a professor-dashboard CTA card — was declined to avoid touching the settled professor dashboard).
+- **Status:** ✅ RESOLVED (pushed 03/09/2026).
+
+### [03/09/2026] Progress "Due Items Forecast" disagrees with the review queue — ⏳ OPEN (follow-up)
+- **Symptom:** `/dashboard/progress` "Due Today" showed **24** for a student whose Dashboard CTA + Review Session (both `get_study_queue`-backed) showed **4**. Student on CA Intermediate; the 20-card gap = due reviews on out-of-course cards the queue correctly filters out.
+- **Root cause:** `Progress.jsx` "Due Items Forecast" reads a separate `forecast` source that is **not** wired to `get_study_queue` — no course filter, no concept-card exclusion. It's a 4th "due" surface off the SSOT.
+- **Not a 6.0 regression:** Progress was not among the three call sites 6.0 rewired, and the forecast was always its own query. But it contradicts the sprint objective ("every surface showing 'due' counts reads from one RPC").
+- **Proposed fix:** point the forecast's "Due Today" at the `get_study_queue` count; keep "Next 7 / Next 30 Days" on a dedicated forward-looking query (the RPC only returns what's due now). Flag for the SRS Ladder Epic.
+- **Status:** ⏳ OPEN — logged, deferred.
+
 ## Resolved — Sprint 6.0 (c) — ✅ FIXED & PUSHED 02/09/2026 (commit under changelog [2026-09-02])
 
 ### [02/09/2026] C1 — Admin stat-card user/published counts disagree between Dashboard and Analytics

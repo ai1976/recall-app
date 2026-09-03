@@ -1,11 +1,18 @@
 # NOW - Current Development Status
 
-**Last Updated:** 02/09/2026
+**Last Updated:** 03/09/2026
 **Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE.** **Sprint 6.0 (Correctness) COMPLETE — SQL deployed & verified, frontend pushed to main (02/09/2026).** Deferred: **leaked-password protection is Pro-plan-gated** — cannot enable on the current Free plan. ⏳ **Do on Pro upgrade.** ✅ skip_card/suspend_card column bug fixed 04/07/2026.
 
 ---
 
 ## Just Completed ✅
+
+### Sprint 6.0 follow-ups ✅ (03/09/2026, pushed)
+
+- **"Today's Reviews" nav entry** → `/dashboard/review-session`, first item in the Study menu (`NavDesktop.jsx` dropdown + `NavMobile.jsx` Study section). Closes a pre-existing gap found during 6.0 QA: the review-session queue had **no in-app link for any role** — students used the dashboard green CTA, professors only the push-notification deep link (the professor dashboard branch renders no review UI). Option A of three; the professor-dashboard CTA card (Option B) was declined to leave the settled professor dashboard untouched.
+- **`docs/database/sprint6/03_TEST_verify_get_study_queue_visibility.sql`** — friends / private / reverse-friendship / friendship-downgrade branches of `get_study_queue`'s visibility guard (not covered by `02_TEST`). **6/6 PASS** in Supabase.
+- **Live verification (revisop.com, logged-in student):** C3 nav highlight correct on 6 nested routes incl. the Create-vs-Study tie-break; C5 logged-in student on `/note/:id` redirects to `/dashboard/notes/:id` with no wall (anon still walled); C6 code conditional confirmed (`due_today>0 ? red : green`), live showed red at 24 (intended). Console clean throughout. C1 stat parity confirmed on live (180 / 107 / 693 match across `/admin` and `/admin/analytics`); `get_admin_platform_overview` verified — `pending_reviews` = `COUNT(*) notes WHERE visibility='public'`, `published_items` = same for flashcards (misleading field names, correct values/labels — no change).
+- **⏳ Follow-up logged (bugs.md):** `Progress.jsx` "Due Items Forecast" is a 4th "due" surface not on `get_study_queue` — showed "Due Today: 24" vs the queue's 4 for a CA-Intermediate student (the 20 = out-of-course cards the queue correctly drops). Point the forecast's "Due Today" at `get_study_queue` in a later slice; keep Next-7/Next-30 on a forward query. Relevant to the SRS Ladder Epic.
 
 ### Sprint 6.0 — Correctness (backend-first) ✅ COMPLETE — SQL deployed, frontend pushed (02/09/2026)
 

@@ -1,6 +1,26 @@
 # Changelog
 
 ---
+## [2026-09-03] feat: Sprint 6.0 follow-up — "Today's Reviews" nav entry + friends/private RPC test (✅ PUSHED)
+
+Post-6.0 QA follow-ups. No SQL. Frontend + docs only.
+
+### Added
+- **"Today's Reviews" nav item** → `/dashboard/review-session`, first item in the **Study** menu (`NavDesktop.jsx` dropdown + `NavMobile.jsx` Study section). Closes a pre-existing gap: the review-session queue had **no in-app link for any role** — students reached it only via the dashboard green CTA, professors only via the push-notification deep link (found during 6.0 QA on a professor account). `fetchPersonalStats` already computed `reviewsDue` for professors; it was just never rendered in the professor dashboard branch.
+- **`docs/database/sprint6/03_TEST_verify_get_study_queue_visibility.sql`** — covers the friends / private / reverse-direction-friendship / friendship-downgrade branches of `get_study_queue`'s visibility guard that `02_TEST` did not. **6/6 PASS** in Supabase (all `[CRITICAL]`).
+
+### Verified on live (revisop.com, logged-in student)
+- **C3** — nav highlight correct on 6 nested routes incl. the Create-vs-Study tie-break; console clean.
+- **C5** — logged-in student on `/note/:id` redirects to `/dashboard/notes/:id`, full content, no wall; anon still walled.
+- **C6** — code conditional confirmed (`due_today > 0 ? red : green`); live showed red at `due_today = 24` (intended). Zero-state green not reproducible on the test account.
+
+### Known follow-up (NOT a 6.0 regression — logged, not fixed)
+- **`Progress.jsx` "Due Items Forecast" is a 4th "due" surface not on the SSOT.** It reads its own `forecast` source, bypassing `get_study_queue`'s course filter + concept-card exclusion → showed **"Due Today: 24"** where the Dashboard/ReviewSession queue showed **4** (student on CA Intermediate; the 20-card gap is out-of-course cards the queue correctly drops). Recommend pointing the forecast's "Due Today" at the `get_study_queue` count in a later slice (keep "Next 7 / Next 30 Days" on a forward-looking query). Relevant to the SRS Ladder Epic — another "due" consumer.
+
+### Files Changed
+`src/components/layout/NavDesktop.jsx`, `src/components/layout/NavMobile.jsx`, `docs/database/sprint6/03_TEST_verify_get_study_queue_visibility.sql` (new), `docs/tracking/changelog.md`, `docs/tracking/bugs.md`, `docs/active/now.md`, `docs/active/blueprint.md`
+
+---
 ## [2026-09-02] feat: Sprint 6.0 — single "what's due" RPC + read-time course filter + (c) bug fixes (✅ DEPLOYED & PUSHED)
 
 Sprint 6.0 (Correctness). One RPC is now the single source of truth for the review queue, the queue is course-aware at read time, and the six logged-in-experience bugs are addressed. SQL deployed & verified in Supabase (`02_TEST` 9/9 PASS incl. every `[CRITICAL]`); frontend then applied and pushed to main.
