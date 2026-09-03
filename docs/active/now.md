@@ -1,7 +1,7 @@
 # NOW - Current Development Status
 
 **Last Updated:** 03/09/2026
-**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE.** **Sprint 6.0 (Correctness) COMPLETE — SQL deployed & verified, frontend pushed to main (02/09/2026).** **SRS Ladder Epic: Phase 0 approved; Phase 1 (engine + schema) + Phase 2 (migration) ✅ DEPLOYED & VERIFIED in Supabase (03/09/2026). Phase 3 (frontend wire-up) NOT STARTED — awaiting go-ahead.** Deferred: **leaked-password protection is Pro-plan-gated** — cannot enable on the current Free plan. ⏳ **Do on Pro upgrade.** ✅ skip_card/suspend_card column bug fixed 04/07/2026.
+**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE.** **Sprint 6.0 (Correctness) COMPLETE — SQL deployed & verified, frontend pushed to main (02/09/2026).** **SRS Ladder Epic: Phase 1 + Phase 2 ✅ DEPLOYED & VERIFIED in Supabase (03/09/2026). Phase 3 (frontend) — code written, `npm run build` + eslint clean; ⏳ `06_FUNCTIONS_get_mastered_cards.sql` must deploy before the frontend push; then live-verify on recallapp.co.in.** Deferred: **leaked-password protection is Pro-plan-gated** — cannot enable on the current Free plan. ⏳ **Do on Pro upgrade.** ✅ skip_card/suspend_card column bug fixed 04/07/2026.
 
 ---
 
@@ -17,11 +17,16 @@
 - `05_TEST` — platform `get_study_queue` due total **4830 → 4830 (delta 0)** across all 175 students; `next_review_date`/`status`/`skip_until` untouched (guaranteed by construction — the `UPDATE` names only `rung`; no BEFORE-UPDATE trigger on `reviews` touches schedule columns). *(PART B's row-level snapshot diff was not retained — PART B self-drops its baseline tables — so integrity was re-confirmed via a baseline-free recount; equivalent assurance.)*
 - **`get_due_forecast` fix is now LIVE** — `Progress.jsx` "Due Items Forecast" now shares the exact `get_study_queue` predicate. bugs.md forecast entry → RESOLVED. ~25 CA-Intermediate students will see "Due Today" drop (CA-Foundation review rows now course-filtered) — release note when Phase 3 ships.
 
-**⏭️ NEXT — Phase 3 (frontend, NOT started; gated on go-ahead):**
-- `StudyMode.jsx` `handleRating` → `supabase.rpc('submit_review', { p_user_id, p_flashcard_id, p_rating })` for both the review-session grade path and the new-card first-grade path. Remove the `+7`/`+3`/`+1` constants and the client SELECT→UPDATE/INSERT. (`ReviewSession.jsx` already only reads — no constants there.)
-- One-time `get_srs_ladder_config()` fetch on mount → compute the Hard/Medium/Easy button interval text locally from `curves` + `rules` + the current card's `rung` (from `get_study_queue`). No per-card network. Replace the hardcoded "Review in N days" sublabels.
-- Minimal Mastered list (functional, no reskin — match nearest existing list pattern) so `status='mastered'` cards never silently vanish.
-- `npm run build` clean; verify on `https://www.recallapp.co.in` with a logged-in student.
+**Phase 3 — frontend (code written 03/09/2026; `npm run build` + `npx eslint` clean):**
+- **`06_FUNCTIONS_get_mastered_cards.sql`** — NEW RPC `get_mastered_cards(p_user_id)` mirroring `get_suspended_cards` (same shape + L5 self-guard; adds `rung` / `next_review_date` / `mastered_at`). **⏳ HARD PREREQUISITE — deploy this before the frontend push** (Progress.jsx's Mastered list calls it). `submit_review` / `get_srs_ladder_config` / `get_study_queue` v2 are already live from Phase 1.
+- `src/pages/dashboard/Study/StudyMode.jsx`:
+  - `handleRating` — the whole client interval block (`+7/+3/+1`, `easinessFactor`, local date string, SELECT→UPDATE/INSERT) is **gone**; one `supabase.rpc('submit_review', { p_user_id, p_flashcard_id, p_rating })` call. Serves BOTH the review-session grade path (via `<StudyMode propFlashcards>`) and the new-card first-grade path (standalone). Toast shows the server-returned `interval_days`, or a "Mastered! 🎓" message when `new_status === 'mastered'`.
+  - One-time `get_srs_ladder_config()` fetch on mount (`ladderCfg` state); `gradePreview` `useMemo` computes each button's interval **locally** from `curves` + `rules` + the current card's `rung`. Zero per-card network. Hardcoded "Review in N days" sublabels replaced (fall back to the old literals only if the one-time config fetch fails).
+  - `fetchFlashcards` step 2 now attaches `rung` (from the `get_study_queue` rows) to standalone session cards; never-reviewed cards → `rung` undefined → new-card ladder entry in the preview.
+  - The only remaining `.from('reviews')` in the file is the read for `reviewedIds` — no client write path left.
+- `src/pages/dashboard/Study/ReviewSession.jsx` — passes `rung` + `question_type` through in the `get_study_queue` → card mapping (for StudyMode's preview). Still read-only, still delegates all grading to `<StudyMode>`.
+- `src/pages/dashboard/Study/Progress.jsx` — new **"Mastered Items"** collapsible section in `ProgressBody` (mirrors the "Suspended Items" pattern; green/`Award` palette; display-only, grouped by subject) fed by `get_mastered_cards`. The headline "Items Mastered" stat card is **unchanged** (still "distinct started cards") — re-defining a settled dashboard stat is deferred to Sprint 6.4 per the settled-design rule.
+- **Deploy order:** `06_FUNCTIONS` in Supabase → `git push` frontend → live-verify on `https://www.recallapp.co.in` with a logged-in student (grade a card up several rungs, confirm the next-review date matches the rung table; push one card to MASTERED, confirm it leaves the queue + appears in the Mastered list; `read_network_requests` shows one `submit_review` per grade, zero config/preview fetches between cards).
 
 **Original SQL (deployed):** `docs/database/srs-ladder/01`–`05`. Proposal: `docs/active/design-review/srs-ladder-proposal.md`.
 

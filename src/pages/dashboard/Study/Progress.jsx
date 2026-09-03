@@ -102,6 +102,12 @@ export default function MyProgress() {
   const [suspendedExpanded, setSuspendedExpanded] = useState(false);
   const [unsuspendDialog, setUnsuspendDialog] = useState({ open: false, card: null });
 
+  // ── Mastered cards (SRS Ladder Epic — cards that graduated at the top rung;
+  //    they leave the daily queue, so they must stay visible here) ────────────
+  const [masteredCards, setMasteredCards] = useState([]);
+  const [masteredLoading, setMasteredLoading] = useState(true);
+  const [masteredExpanded, setMasteredExpanded] = useState(false);
+
   // ─── Fetch profile ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
@@ -211,6 +217,18 @@ export default function MyProgress() {
     load();
   }, [user]);
 
+  // ─── Fetch mastered cards ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      setMasteredLoading(true);
+      const { data } = await supabase.rpc('get_mastered_cards', { p_user_id: user.id });
+      setMasteredCards(data || []);
+      setMasteredLoading(false);
+    };
+    load();
+  }, [user]);
+
   // ─── Unsuspend handler ────────────────────────────────────────────────────
   const handleUnsuspend = async (card) => {
     try {
@@ -267,6 +285,11 @@ export default function MyProgress() {
   const courseLabel       = selectedCourse ?? profile?.course_level ?? 'By Course';
   const activeCourseLevel = tab === 'course' ? selectedCourse : null;
   const groupedSuspended  = suspendedCards.reduce((acc, card) => {
+    const subject = card.subject_name || 'General';
+    (acc[subject] = acc[subject] || []).push(card);
+    return acc;
+  }, {});
+  const groupedMastered   = masteredCards.reduce((acc, card) => {
     const subject = card.subject_name || 'General';
     (acc[subject] = acc[subject] || []).push(card);
     return acc;
@@ -341,6 +364,11 @@ export default function MyProgress() {
               setSuspendedExpanded={setSuspendedExpanded}
               groupedSuspended={groupedSuspended}
               setUnsuspendDialog={setUnsuspendDialog}
+              masteredCards={masteredCards}
+              masteredLoading={masteredLoading}
+              masteredExpanded={masteredExpanded}
+              setMasteredExpanded={setMasteredExpanded}
+              groupedMastered={groupedMastered}
             />
           </div>
         )}
@@ -402,6 +430,11 @@ export default function MyProgress() {
                   setSuspendedExpanded={setSuspendedExpanded}
                   groupedSuspended={groupedSuspended}
                   setUnsuspendDialog={setUnsuspendDialog}
+                  masteredCards={masteredCards}
+                  masteredLoading={masteredLoading}
+                  masteredExpanded={masteredExpanded}
+                  setMasteredExpanded={setMasteredExpanded}
+                  groupedMastered={groupedMastered}
                 />
               </>
             )}
@@ -454,6 +487,7 @@ function ProgressBody({
   qtPerf, qtLoading,
   suspendedCards, suspendedLoading, suspendedExpanded, setSuspendedExpanded,
   groupedSuspended, setUnsuspendDialog,
+  masteredCards, masteredLoading, masteredExpanded, setMasteredExpanded, groupedMastered,
 }) {
   const windowLabel = window === '7d' ? 'Last 7 days' : window === '30d' ? 'Last 30 days' : 'All time';
 
@@ -606,6 +640,60 @@ function ProgressBody({
                           <PlayCircle className="h-3.5 w-3.5" />
                           Unsuspend
                         </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Mastered Items (SRS Ladder — graduated at the top rung) ─────────── */}
+      {!masteredLoading && masteredCards.length > 0 && (
+        <div>
+          <button
+            onClick={() => setMasteredExpanded(!masteredExpanded)}
+            className="w-full flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-4 hover:bg-green-100 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Award className="h-5 w-5 text-green-600" />
+              <div className="text-left">
+                <h3 className="font-semibold text-green-900">
+                  Mastered Items ({masteredCards.length})
+                </h3>
+                <p className="text-xs text-green-700">
+                  You&apos;ve nailed these — they&apos;ve left your daily reviews. Grade one again anytime to bring it back.
+                </p>
+              </div>
+            </div>
+            {masteredExpanded
+              ? <ChevronDown className="h-5 w-5 text-green-600" />
+              : <ChevronRight className="h-5 w-5 text-green-600" />
+            }
+          </button>
+
+          {masteredExpanded && (
+            <div className="mt-2 space-y-4">
+              {Object.entries(groupedMastered).map(([subject, cards]) => (
+                <div key={subject} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                    <h4 className="text-sm font-semibold text-gray-700">{subject} ({cards.length})</h4>
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                    {cards.map((card) => (
+                      <div key={card.flashcard_id} className="px-4 py-3 flex items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{card.front_text}</p>
+                          {card.topic_name && (
+                            <p className="text-xs text-gray-500 mt-0.5">{card.topic_name}</p>
+                          )}
+                        </div>
+                        <span className="inline-flex items-center gap-1 shrink-0 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">
+                          <Award className="h-3.5 w-3.5" />
+                          Mastered
+                        </span>
                       </div>
                     ))}
                   </div>

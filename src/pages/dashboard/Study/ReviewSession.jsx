@@ -57,6 +57,8 @@ export default function ReviewSession() {
         back_image_url: row.back_image_url,
         difficulty: row.difficulty,
         is_verified: row.is_verified,
+        question_type: row.question_type,
+        rung: row.rung, // current SRS ladder position — drives StudyMode's local grade-button preview
         subject_name: row.subject_name,
         topic_name: row.topic_name,
         subjects: row.subject_name ? { id: row.subject_id, name: row.subject_name } : null,

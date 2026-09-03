@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -61,6 +61,12 @@ export default function StudyMode({
     hard: 0
   });
 
+  // SRS ladder config (curves + transition rules) — fetched ONCE per session.
+  // Button interval text is computed locally from this + the current card's rung;
+  // there is NO network request between cards. submit_review is the server-side
+  // authority on click; srs_preview is its mirror for tests, not called here.
+  const [ladderCfg, setLadderCfg] = useState(null);
+
   // TTS
   const { speak, stop, isSpeaking, isSupported, voices, selectedVoice, selectVoice, rate, setRate } = useSpeech();
 
@@ -113,6 +119,49 @@ export default function StudyMode({
   useEffect(() => {
     stop();
   }, [currentIndex, showAnswer, stop]);
+
+  // One-time ladder-config fetch. Failure is non-fatal — the grade buttons just
+  // fall back to no interval text; submit_review still schedules correctly.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.rpc('get_srs_ladder_config');
+      if (!cancelled && !error && data) setLadderCfg(data);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Local grade-button interval preview for the current card: computed from the
+  // once-fetched ladder config + the card's current rung. Mirrors the server's
+  // srs_preview / submit_review transition maths (Easy +1 rung, Medium hold,
+  // Hard -> relearn step). No per-card network call.
+  const gradePreview = useMemo(() => {
+    const card = flashcards[currentIndex];
+    if (!card || !ladderCfg?.curves?.length || !ladderCfg?.rules) return null;
+    const { curves, rules } = ladderCfg;
+    const qt = card.question_type || 'flashcard';
+    const top = rules.top_rung ?? 7;
+    const relearn = rules.relearn_step_days ?? 1;
+    const intervalFor = (rung) => {
+      const hit =
+        curves.find((c) => c.question_type === qt && c.rung_index === rung) ??
+        curves.find((c) => c.question_type === '_default' && c.rung_index === rung);
+      return hit ? hit.interval_days : null;
+    };
+    const rung = card.rung;
+    if (rung === null || rung === undefined) {
+      const nc = rules.new_card_rung || {};
+      return { hard: relearn, medium: intervalFor(nc.medium ?? 1), easy: intervalFor(nc.easy ?? 2) };
+    }
+    return {
+      hard: relearn,
+      medium: intervalFor(Math.min(rung, top)),
+      easy: intervalFor(Math.min(rung + 1, top)),
+    };
+  }, [flashcards, currentIndex, ladderCfg]);
+
+  const fmtInterval = (n, fallback) =>
+    n == null ? fallback : `Review in ${n} day${n === 1 ? '' : 's'}`;
 
   const handleSpeakFront = () => {
     if (isSpeaking) {
@@ -214,6 +263,8 @@ export default function StudyMode({
 
         const { data: dueQueue } = await supabase.rpc('get_study_queue', { p_user_id: user.id });
         const dueIds = new Set((dueQueue || []).map(r => r.flashcard_id));
+        // current ladder rung per due card — drives the local grade-button interval text
+        const rungById = new Map((dueQueue || []).map(r => [r.flashcard_id, r.rung]));
 
         const { data: reviewed } = await supabase
           .from('reviews')
@@ -222,7 +273,10 @@ export default function StudyMode({
           .in('flashcard_id', cardIds);
         const reviewedIds = new Set((reviewed || []).map(r => r.flashcard_id));
 
-        cleanedData = cleanedData.filter(c => dueIds.has(c.id) || !reviewedIds.has(c.id));
+        cleanedData = cleanedData
+          .filter(c => dueIds.has(c.id) || !reviewedIds.has(c.id))
+          // due card -> its stored rung; never-reviewed card -> undefined (new-card ladder entry)
+          .map(c => ({ ...c, rung: rungById.has(c.id) ? rungById.get(c.id) : undefined }));
       }
 
       // Shuffle
@@ -253,83 +307,28 @@ export default function StudyMode({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 1. Calculate Interval
-      let intervalDays;
-      let qualityScore;
-      let easinessFactor;
+      // The SRS ladder governs every transition server-side. No client-side
+      // interval math, no direct reviews write — submit_review does the
+      // SELECT-or-INSERT, computes the rung transition, sets next_review_date
+      // (kept DATE, user-tz), and applies/reverts MASTERED at the threshold.
+      const { data, error } = await supabase.rpc('submit_review', {
+        p_user_id: user.id,
+        p_flashcard_id: currentCard.id,
+        p_rating: quality, // 'easy' | 'medium' | 'hard'
+      });
+      if (error) throw error;
 
-      if (quality === 'easy') {
-        intervalDays = 7;
-        qualityScore = 5;
-        easinessFactor = 2.6;
-      } else if (quality === 'medium') {
-        intervalDays = 3;
-        qualityScore = 3;
-        easinessFactor = 2.5;
-      } else { // hard
-        intervalDays = 1;
-        qualityScore = 1;
-        easinessFactor = 2.3;
-      }
-
-      // 2. Strict Local Date Calculation
-      const today = new Date();
-      const nextDate = new Date(today);
-      nextDate.setDate(today.getDate() + intervalDays);
-
-      const year = nextDate.getFullYear();
-      const month = String(nextDate.getMonth() + 1).padStart(2, '0');
-      const day = String(nextDate.getDate()).padStart(2, '0');
-      const dateString = `${year}-${month}-${day}`;
-
-      // 3. Check for existing review
-      const { data: existingReview, error: selectError } = await supabase
-        .from('reviews')
-        .select('id, repetition')
-        .eq('user_id', user.id)
-        .eq('flashcard_id', currentCard.id)
-        .maybeSingle();
-
-      if (selectError) throw selectError;
-
-      if (existingReview) {
-        const { error: updateError } = await supabase
-          .from('reviews')
-          .update({
-            quality: qualityScore,
-            interval: intervalDays,
-            repetition: (existingReview.repetition || 0) + 1,
-            easiness: easinessFactor,
-            next_review_date: dateString,
-            last_reviewed_at: new Date().toISOString(),
-            status: 'active',
-            skip_until: null
-          })
-          .eq('id', existingReview.id);
-
-        if (updateError) throw updateError;
-
-      } else {
-        const { error: insertError } = await supabase
-          .from('reviews')
-          .insert({
-            user_id: user.id,
-            flashcard_id: currentCard.id,
-            quality: qualityScore,
-            interval: intervalDays,
-            repetition: 1,
-            easiness: easinessFactor,
-            next_review_date: dateString,
-            last_reviewed_at: new Date().toISOString(),
-            status: 'active'
-          });
-
-        if (insertError) throw insertError;
-      }
+      const result = Array.isArray(data) ? data[0] : data;
+      const intervalDays = result?.interval_days ?? null;
+      const mastered = result?.new_status === 'mastered';
 
       toast({
-        title: "Progress saved!",
-        description: `Next review in ${intervalDays} day${intervalDays > 1 ? 's' : ''}`,
+        title: mastered ? "Mastered! 🎓" : "Progress saved!",
+        description: mastered
+          ? "This item graduated — it leaves your daily reviews and moves to your Mastered list."
+          : (intervalDays != null
+              ? `Next review in ${intervalDays} day${intervalDays === 1 ? '' : 's'}`
+              : "Review scheduled."),
       });
 
     } catch (error) {
@@ -1058,7 +1057,9 @@ export default function StudyMode({
                       >
                         <XCircle className="h-6 w-6 text-red-600" />
                         <span className="font-semibold">Hard</span>
-                        <span className="text-xs text-gray-500">Review in 1 day</span>
+                        <span className="text-xs text-gray-500">
+                          {fmtInterval(gradePreview?.hard, 'Review in 1 day')}
+                        </span>
                       </Button>
                       <Button
                         onClick={() => handleRating('medium')}
@@ -1067,7 +1068,9 @@ export default function StudyMode({
                       >
                         <AlertCircle className="h-6 w-6 text-yellow-600" />
                         <span className="font-semibold">Medium</span>
-                        <span className="text-xs text-gray-500">Review in 3 days</span>
+                        <span className="text-xs text-gray-500">
+                          {fmtInterval(gradePreview?.medium, 'Review in 3 days')}
+                        </span>
                       </Button>
                       <Button
                         onClick={() => handleRating('easy')}
@@ -1076,7 +1079,9 @@ export default function StudyMode({
                       >
                         <CheckCircle className="h-6 w-6 text-green-600" />
                         <span className="font-semibold">Easy</span>
-                        <span className="text-xs text-gray-500">Review in 7 days</span>
+                        <span className="text-xs text-gray-500">
+                          {fmtInterval(gradePreview?.easy, 'Review in 7 days')}
+                        </span>
                       </Button>
                     </div>
 

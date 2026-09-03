@@ -333,7 +333,7 @@
 - `idx_reviews_user_mastered` — partial index `ON reviews(user_id) WHERE status = 'mastered'` (Mastered list).
 - New table `srs_ladder_curves(question_type text, rung_index smallint, interval_days integer, PK(question_type, rung_index))` — per-type rung→interval. `_default` curve seeded 1/3/7/14/30/60/120/240. RLS on, `SELECT` to anon+authenticated, no client write.
 - New table `srs_ladder_rules(id smallint PK DEFAULT 1 CHECK(id=1), rules jsonb)` — single row of the transition rules, read by `submit_review` / `srs_preview` / `get_srs_ladder_config` so client + server cannot drift.
-- New RPCs: `submit_review(p_user_id,p_flashcard_id,p_rating)` (write SSOT), `srs_preview(p_rung,p_question_type)`, `get_srs_ladder_config()`, internal `srs_interval_for_rung(p_rung,p_question_type)`.
+- New RPCs: `submit_review(p_user_id,p_flashcard_id,p_rating)` (write SSOT), `srs_preview(p_rung,p_question_type)`, `get_srs_ladder_config()`, `get_mastered_cards(p_user_id)` (Phase 3, `06`), internal `srs_interval_for_rung(p_rung,p_question_type)`.
 - Changed: `get_study_queue` return shape gains `rung smallint`; `get_due_forecast` body rewritten to share the exact `get_study_queue` due predicate (signature unchanged).
 
 ---

@@ -1,6 +1,25 @@
 # Changelog
 
 ---
+## [2026-09-03] feat(srs-ladder): Phase 3 frontend — StudyMode/ReviewSession/Progress on the ladder (build clean; ⏳ 06 SQL + push pending)
+
+Phase 3 wires the frontend to the deployed ladder engine. `npm run build` + `npx eslint` clean. **Not pushed** — `06_FUNCTIONS_get_mastered_cards.sql` deploys first, then the push, then live-verify.
+
+### Added (SQL)
+- `docs/database/srs-ladder/06_FUNCTIONS_get_mastered_cards.sql` — `get_mastered_cards(p_user_id uuid)` (SECURITY DEFINER, L5 self-guard, mirrors `get_suspended_cards`; returns card content + `rung` / `next_review_date` / `mastered_at`). `GRANT EXECUTE TO authenticated`. **Hard prerequisite for the Progress.jsx Mastered list.**
+
+### Changed (frontend)
+- `src/pages/dashboard/Study/StudyMode.jsx`:
+  - `handleRating` — removed the client interval constants (`+7 / +3 / +1`), the `easinessFactor` map, the local `YYYY-MM-DD` date build, and the `reviews` SELECT→UPDATE/INSERT. Now one `supabase.rpc('submit_review', { p_user_id, p_flashcard_id, p_rating })`. Covers the review-session grade path and the new-card first-grade path (same function). Toast uses the server `interval_days`; shows "Mastered! 🎓" when `new_status === 'mastered'`.
+  - Added a one-time `get_srs_ladder_config()` fetch on mount + a `gradePreview` `useMemo` that computes each grade button's interval locally from `curves` + `rules` + the current card's `rung`. Zero per-card network. Replaced the hardcoded "Review in N days" sublabels (old literals kept only as a config-fetch-failure fallback).
+  - `fetchFlashcards` step 2 attaches `rung` (from `get_study_queue`) to standalone session cards.
+- `src/pages/dashboard/Study/ReviewSession.jsx` — passes `rung` + `question_type` through in the `get_study_queue` → card mapping. Still read-only.
+- `src/pages/dashboard/Study/Progress.jsx` — new "Mastered Items" collapsible section in `ProgressBody` (mirrors "Suspended Items"; green/`Award`; display-only, grouped by subject), fed by `get_mastered_cards`. Headline "Items Mastered" stat unchanged (deferred to 6.4).
+
+### Files Changed
+`docs/database/srs-ladder/06_FUNCTIONS_get_mastered_cards.sql` (new), `src/pages/dashboard/Study/StudyMode.jsx`, `src/pages/dashboard/Study/ReviewSession.jsx`, `src/pages/dashboard/Study/Progress.jsx`, `docs/active/now.md`, `docs/active/blueprint.md`, `docs/tracking/changelog.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`.
+
+---
 ## [2026-09-03] feat(srs-ladder): Phase 0 proposal + Phase 1 engine + Phase 2 migration — ✅ DEPLOYED & VERIFIED
 
 SRS Ladder Epic. Replaces the flat client-side per-rating interval (`StudyMode.jsx`: Easy +7 / Medium +3 / Hard +1) with a deterministic server-side expanding ladder. Phase 0 approved by the quality auditor (all 5 open questions + Phase 1/2 authorization). **Phase 1 + Phase 2 SQL deployed & verified in Supabase 03/09/2026. Phase 3 (frontend) NOT started — next.**
