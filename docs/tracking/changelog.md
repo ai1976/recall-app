@@ -1,15 +1,20 @@
 # Changelog
 
 ---
-## [2026-09-03] feat(srs-ladder): Phase 0 proposal + Phase 1/2 SQL — ⏳ SQL WRITTEN, NOT DEPLOYED
+## [2026-09-03] feat(srs-ladder): Phase 0 proposal + Phase 1 engine + Phase 2 migration — ✅ DEPLOYED & VERIFIED
 
-SRS Ladder Epic. Replaces the flat client-side per-rating interval (`StudyMode.jsx`: Easy +7 / Medium +3 / Hard +1) with a deterministic server-side expanding ladder. Phase 0 approved by the quality auditor (all 5 open questions + Phase 1/2 authorization). **No frontend change yet — Phase 3 is gated on Phase 1 + 2 deploy + verify.**
+SRS Ladder Epic. Replaces the flat client-side per-rating interval (`StudyMode.jsx`: Easy +7 / Medium +3 / Hard +1) with a deterministic server-side expanding ladder. Phase 0 approved by the quality auditor (all 5 open questions + Phase 1/2 authorization). **Phase 1 + Phase 2 SQL deployed & verified in Supabase 03/09/2026. Phase 3 (frontend) NOT started — next.**
+
+### Deploy + verification (03/09/2026, Supabase SQL Editor)
+- `01_SCHEMA` + `02_FUNCTIONS` live; `03_TEST` **30/30 PASS** (every `[CRITICAL]`; preview parity across 9 rung×rating combos; IDOR cross-user + null-session RAISE; MASTERED graduate + un-master; forecast course-filter parity).
+- `04_MIGRATION` backfill applied — `reviews_still_null_rung = 0`, rung distribution `0:856 / 1:3065 / 2:1871 / 3:781 / 4:1251` (matches the Phase 0 Q3/Q4b prediction exactly; nobody above rung 4, nobody mastered).
+- `05_TEST` — platform `get_study_queue` due total **4830 → 4830 (delta 0)** across all 175 students; schedule columns (`next_review_date`/`status`/`skip_until`) untouched. `get_due_forecast` rewrite is live → the Progress "Due Items Forecast" off-SSOT bug is RESOLVED.
 
 ### Added (docs)
 - `docs/active/design-review/srs-ladder-proposal.md` — Phase 0 proposal, diagnostics filled (commit `d96559f` / `b99dbc1`).
 - `docs/database/srs-ladder/00_DIAGNOSTIC_srs_ladder_phase0.sql` — 12 read-only measurement blocks.
 
-### Added (SQL — written, NOT deployed)
+### Added (SQL — ✅ deployed & verified 03/09/2026)
 - `docs/database/srs-ladder/01_SCHEMA_srs_ladder_engine.sql` — `reviews.rung smallint NULL` (+ CHECK 0..20); `reviews_status_check` extended with `'mastered'`; `idx_reviews_user_mastered`; `srs_ladder_curves(question_type, rung_index, interval_days)` + `srs_ladder_rules(id, rules jsonb)` config tables (RLS on, `SELECT` to anon+authenticated, no client write) + seed (`_default` curve 1/3/7/14/30/60/120/240; rules row).
 - `docs/database/srs-ladder/02_FUNCTIONS_srs_ladder_engine.sql`:
   - `submit_review(p_user_id uuid, p_flashcard_id uuid, p_rating text)` → `(new_rung, next_review_date, new_status, interval_days)` — **the write SSOT for review scheduling.** SECURITY DEFINER, L5 IDOR idiom (`p_user_id` must equal `auth.uid()`; admins exempt; NULL session RAISEs), `search_path` unquoted. SELECT-or-INSERT on `(user_id, flashcard_id)`; deterministic rung transition (Easy +1 cap 7 / Medium hold / Hard → 0 + 1-day relearn; new card → rung 0/1/2); graduates to `status='mastered'` on Easy at rung 7; un-masters on any other grade. `GRANT EXECUTE TO authenticated`.

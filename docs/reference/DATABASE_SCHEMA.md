@@ -299,7 +299,7 @@
 | last_reviewed_at | timestamptz | YES | now() | Timestamp of most recent rating |
 | status | text | NO | 'active' | `active` / `suspended` / **`mastered`** (the last added by the SRS Ladder Epic — see below). CHECK: `status IN ('active','suspended','mastered')`. |
 | skip_until | date | YES | NULL | Date until which card is hidden (skip 24hr) |
-| rung | smallint | YES | NULL | **SRS Ladder Epic (⏳ SQL not deployed).** Ladder position (0..7 for the `_default` curve; CHECK 0..20). `NULL` = not yet on the ladder. Authoritative scheduling state — `submit_review` computes it, `get_study_queue` returns it. |
+| rung | smallint | YES | NULL | **SRS Ladder Epic (✅ deployed 03/09/2026).** Ladder position (0..7 for the `_default` curve; CHECK 0..20). `NULL` = not yet on the ladder. Authoritative scheduling state — `submit_review` computes it, `get_study_queue` returns it. |
 | created_at | timestamptz | YES | now() | When the review row was first created (first-ever grade of the card). Used for streak calc. NOT touched on re-grade. |
 
 **Card Suspension System (NEW - February 6, 2026):**
@@ -327,7 +327,7 @@
 - Column is `repetition`, NOT `repetitions` (caused error 42703 on 2026-04-04)
 - Any SQL written against this table MUST be verified against `StudyMode.jsx` handleRating INSERT before deploying
 
-**SRS Ladder Epic additions (⏳ `docs/database/srs-ladder/01`–`05`, SQL WRITTEN, NOT DEPLOYED):**
+**SRS Ladder Epic additions (✅ `docs/database/srs-ladder/01`–`05`, DEPLOYED & VERIFIED 03/09/2026):**
 - `reviews.rung smallint NULL` (CHECK 0..20) — the ladder position; authoritative scheduling state.
 - `reviews_status_check` extended: `('active','suspended')` → `('active','suspended','mastered')`.
 - `idx_reviews_user_mastered` — partial index `ON reviews(user_id) WHERE status = 'mastered'` (Mastered list).

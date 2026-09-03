@@ -8,13 +8,13 @@
 - **Fix (Option A):** "Today's Reviews" → `/dashboard/review-session` added as the first item in the Study menu, all roles — `NavDesktop.jsx` dropdown + `NavMobile.jsx` Study section. No dashboard restructure (Option B — a professor-dashboard CTA card — was declined to avoid touching the settled professor dashboard).
 - **Status:** ✅ RESOLVED (pushed 03/09/2026).
 
-### [03/09/2026] Progress "Due Items Forecast" disagrees with the review queue — 🔧 FIX WRITTEN (SRS Ladder Phase 1, not yet deployed)
+### [03/09/2026] Progress "Due Items Forecast" disagrees with the review queue — ✅ RESOLVED (SRS Ladder Phase 1, deployed 03/09/2026)
 - **Symptom:** `/dashboard/progress` "Due Today" showed **24** for a student whose Dashboard CTA + Review Session (both `get_study_queue`-backed) showed **4**. Student on CA Intermediate; the 20-card gap = due reviews on out-of-course cards the queue correctly filters out.
 - **Root cause:** `Progress.jsx` "Due Items Forecast" reads a separate `forecast` source (`get_due_forecast`) that was **not** wired to the `get_study_queue` predicate — no course filter, no concept-card exclusion, server date instead of user-tz. A 4th "due" surface off the SSOT.
 - **Not a 6.0 regression:** Progress was not among the three call sites 6.0 rewired, and the forecast was always its own query. But it contradicts the sprint objective ("every surface showing 'due' counts reads from one RPC").
 - **Fix (SRS Ladder Epic, `docs/database/srs-ladder/02_FUNCTIONS_srs_ladder_engine.sql`):** rewrite the body of `get_due_forecast(p_user_id)` (signature unchanged → no frontend change). `due_today` now uses the **exact** `get_study_queue` due predicate (user-tz today, `status='active'`, `next_review_date <= today`, `skip_until` null/≤today, `question_type <> 'concept_card'`, read-time course filter, L2 visibility guard); `due_next_7`/`due_next_30` = same predicate, forward cumulative window. Auditor decision: Option (a), single source of truth for the "due" predicate.
-- **Expected visible effect on deploy:** ~25 CA-Intermediate students see "Due Today" drop (their CA-Foundation review rows get course-filtered — the same 1,648 rows behind the course-"drift" note below). This is the fix working as designed; worth a release note.
-- **Status:** 🔧 FIX WRITTEN — deploys with SRS Ladder Phase 1; flip to ✅ RESOLVED after `02_FUNCTIONS` is live and `03_TEST` block 17 passes.
+- **Expected visible effect:** ~25 CA-Intermediate students will see "Due Today" drop (their CA-Foundation review rows are now course-filtered — the same 1,648 rows behind the course-"drift" note below). This is the fix working as designed; worth a release note **when Phase 3 ships** (the RPC is live now, but no UI text has changed yet).
+- **Status:** ✅ RESOLVED — `get_due_forecast` body rewritten to the exact `get_study_queue` due predicate; deployed 03/09/2026 (`docs/database/srs-ladder/02_FUNCTIONS`); `03_TEST` block 17 (forecast course-filter parity) PASS. Signature unchanged → no `Progress.jsx` change.
 
 ### [03/09/2026] Course "drift" — 1,648 cross-level review rows (CA-Inter students on CA-Foundation cards) — ℹ️ INFORMATIONAL (no action)
 - **Found by:** SRS Ladder Phase 0 diagnostics (Q8/Q9/Q10/Q10b, `docs/database/srs-ladder/00_DIAGNOSTIC_srs_ladder_phase0.sql`).

@@ -1,13 +1,33 @@
 # NOW - Current Development Status
 
 **Last Updated:** 03/09/2026
-**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE.** **Sprint 6.0 (Correctness) COMPLETE — SQL deployed & verified, frontend pushed to main (02/09/2026).** **SRS Ladder Epic: Phase 0 approved; Phase 1 + Phase 2 SQL WRITTEN, NOT DEPLOYED (see below).** Deferred: **leaked-password protection is Pro-plan-gated** — cannot enable on the current Free plan. ⏳ **Do on Pro upgrade.** ✅ skip_card/suspend_card column bug fixed 04/07/2026.
+**Current Phase:** Phase 5 COMPLETE (shipped 2026-07-02). **Landmine Cleanup L1–L4 + L5 ALL COMPLETE.** **Sprint 6.0 (Correctness) COMPLETE — SQL deployed & verified, frontend pushed to main (02/09/2026).** **SRS Ladder Epic: Phase 0 approved; Phase 1 (engine + schema) + Phase 2 (migration) ✅ DEPLOYED & VERIFIED in Supabase (03/09/2026). Phase 3 (frontend wire-up) NOT STARTED — awaiting go-ahead.** Deferred: **leaked-password protection is Pro-plan-gated** — cannot enable on the current Free plan. ⏳ **Do on Pro upgrade.** ✅ skip_card/suspend_card column bug fixed 04/07/2026.
 
 ---
 
 ## In Progress 🔨
 
-### SRS Ladder Epic — Phase 1 (engine + schema) + Phase 2 (migration) — ⏳ SQL WRITTEN, NOT DEPLOYED
+### SRS Ladder Epic — Phase 1 + Phase 2 ✅ DEPLOYED & VERIFIED (03/09/2026); Phase 3 NOT STARTED
+
+**Deploy + verification results (03/09/2026, Supabase SQL Editor):**
+- `01_SCHEMA` live — `reviews.rung smallint`, `reviews_status_check` → `('active','suspended','mastered')`, `srs_ladder_curves` (8 `_default` rows) + `srs_ladder_rules` (1 row) seeded.
+- `02_FUNCTIONS` live — `submit_review`, `srs_preview`, `get_srs_ladder_config`, `srs_interval_for_rung`, `get_study_queue` v2 (+`rung`), `get_due_forecast` rewrite. PostgREST reloaded.
+- `03_TEST` — **30/30 PASS**, every `[CRITICAL]`. Preview parity holds across all 9 rung×rating combos (client previews will match `submit_review` exactly). IDOR cross-user + null-session both RAISE. MASTERED graduate + un-master confirmed. `get_due_forecast` course-filter parity confirmed.
+- `04_MIGRATION` — backfill applied, `reviews_still_null_rung = 0`. Rung distribution **0:856 / 1:3065 / 2:1871 / 3:781 / 4:1251** (= 7824; matches the Phase 0 Q3/Q4b prediction exactly). Nobody above rung 4, nobody mastered.
+- `05_TEST` — platform `get_study_queue` due total **4830 → 4830 (delta 0)** across all 175 students; `next_review_date`/`status`/`skip_until` untouched (guaranteed by construction — the `UPDATE` names only `rung`; no BEFORE-UPDATE trigger on `reviews` touches schedule columns). *(PART B's row-level snapshot diff was not retained — PART B self-drops its baseline tables — so integrity was re-confirmed via a baseline-free recount; equivalent assurance.)*
+- **`get_due_forecast` fix is now LIVE** — `Progress.jsx` "Due Items Forecast" now shares the exact `get_study_queue` predicate. bugs.md forecast entry → RESOLVED. ~25 CA-Intermediate students will see "Due Today" drop (CA-Foundation review rows now course-filtered) — release note when Phase 3 ships.
+
+**⏭️ NEXT — Phase 3 (frontend, NOT started; gated on go-ahead):**
+- `StudyMode.jsx` `handleRating` → `supabase.rpc('submit_review', { p_user_id, p_flashcard_id, p_rating })` for both the review-session grade path and the new-card first-grade path. Remove the `+7`/`+3`/`+1` constants and the client SELECT→UPDATE/INSERT. (`ReviewSession.jsx` already only reads — no constants there.)
+- One-time `get_srs_ladder_config()` fetch on mount → compute the Hard/Medium/Easy button interval text locally from `curves` + `rules` + the current card's `rung` (from `get_study_queue`). No per-card network. Replace the hardcoded "Review in N days" sublabels.
+- Minimal Mastered list (functional, no reskin — match nearest existing list pattern) so `status='mastered'` cards never silently vanish.
+- `npm run build` clean; verify on `https://www.recallapp.co.in` with a logged-in student.
+
+**Original SQL (deployed):** `docs/database/srs-ladder/01`–`05`. Proposal: `docs/active/design-review/srs-ladder-proposal.md`.
+
+---
+
+### (superseded) SRS Ladder Epic — Phase 1 + Phase 2 SQL notes (pre-deploy)
 
 **Objective:** replace the flat per-rating interval in `StudyMode.jsx` (Easy +7 / Medium +3 / Hard +1, applied unconditionally, computed client-side) with a deterministic expanding ladder driven server-side. Interval maths moves into `submit_review` (the new write SSOT); the UI never computes intervals again. Phase 3 (frontend wire-up) is gated on Phase 1 + 2 being deployed & verified.
 

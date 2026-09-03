@@ -37,7 +37,7 @@ recall-app
 │   ├── database
 │   │   ├── Reviews_Table_Usage.md
 │   │   ├── sprint6/                            ← get_study_queue RPC (01) + tests (02, 03)
-│   │   └── srs-ladder/                         ← SRS Ladder Epic: 00_DIAGNOSTIC, 01_SCHEMA, 02_FUNCTIONS, 03_TEST, 04_MIGRATION, 05_TEST  (⏳ 01–05 written, NOT deployed)
+│   │   └── srs-ladder/                         ← SRS Ladder Epic: 00_DIAGNOSTIC, 01_SCHEMA, 02_FUNCTIONS, 03_TEST, 04_MIGRATION, 05_TEST  (01–05 ✅ deployed & verified 03/09/2026; Phase 3 frontend pending)
 │   ├── design
 │   │   ├── ACHIEVEMENT_BADGES.md
 │   │   ├── SPACED_REPETITION_PHILOSOPHY.md
