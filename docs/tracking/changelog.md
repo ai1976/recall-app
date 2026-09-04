@@ -1,6 +1,47 @@
 # Changelog
 
 ---
+## [2026-09-04] feat(reskin): Sprint 6.2 — Shared Chrome Reskin (nav shell + Button/Input/Textarea/Label atoms onto --rv-*)
+
+First sprint that intentionally changes shipped UI — **chrome skin only: same DOM, same layout, same behaviour, new skin.** No SQL. `npm run build` clean (6.80s); `npx eslint` clean on every changed file — `src/components/ui/button.jsx`'s one `react-refresh/only-export-components` error is **pre-existing on HEAD** (the shadcn atom also exports `buttonVariants`), same baseline class as the `tailwind.config.js` `require` error. Not yet pushed.
+
+### Pre-work — shared-atom inventory
+- Import counts: `Button` 55 files · `Input` 24 · `Label` 16 · `select` 15 · `Textarea` 7 · `switch` 1 · `checkbox` 0. Button variant usage across `src/`: `outline` 108 · `ghost` 56 · `destructive` 20 · `link` 5 · explicit `default` 2 (most `<Button>` use the `default` defaultVariant) · `secondary` 0.
+- **In scope (genuine app-wide chrome):** `Button`, `Input`, `Textarea`, `Label`.
+- **Deferred:** `select.jsx` → 6.3 (Radix portal dropdown — trigger shares the input shell but content/item is a popover *surface*; migrate with `dropdown-menu`/`popover`/`command` as one unit); `switch.jsx` (1 file, not app-wide); all overlay/feedback primitives (`dialog`/`sheet`/`alert`/`card`/`progress`/`toast`) → 6.3/6.4.
+
+### Changed — nav
+- **`src/components/layout/Navigation.jsx`** — shell `bg-white border-b border-gray-200` → `bg-rv-bg-1 border-b border-rv-border` + `font-plex` (cascades Plex Sans to the whole visible bar).
+- **`src/components/layout/NavDesktop.jsx`** — inline two-tone `#f59e0b`/`#1e1b4b` `<span>` wordmark → shared **`<Wordmark />`** (`@/components/revisop`). Active nav item `bg-amber-50 text-amber-700` → `bg-rv-navy-50 text-rv-navy` (×6); inactive `text-gray-700 hover:bg-gray-50 hover:text-gray-900` → `text-rv-ink-600 hover:bg-rv-bg-2 hover:text-rv-ink-900` (×6); nav-pill `rounded-md` → `rounded-rec`. **Sprint 6.0's `underAny`/`isStudyActive`/`isCreateActive` route-prefix logic is byte-for-byte unchanged — only the className strings it selects were restyled.** `DropdownMenuContent`/`DropdownMenuItem` (shadcn dropdown-menu surface) left for 6.3.
+- **`src/components/layout/NavMobile.jsx`** — same `<Wordmark />` swap. `SheetContent` gains `font-plex bg-rv-bg-1 text-rv-ink-900` (the sheet portals out of the `<nav>` subtree, so it can't inherit the shell's `font-plex`). Sheet interior migrated **colour-only**: `text-gray-{900,700,500,400}` → `text-rv-ink-{900,600,400,400}`, `hover:bg-gray-50`/`bg-gray-50` → `hover:bg-rv-bg-2`/`bg-rv-bg-2`, `border-gray-200` → `border-rv-border`, `bg-[#1e1b4b]` avatar → `bg-rv-navy`, active course-switcher tint `bg-amber-50`/`text-amber-700`/`text-amber-600`/`bg-amber-500` → `bg-rv-navy-50`/`text-rv-navy`/`bg-rv-navy`, inactive dot `bg-gray-300` → `bg-rv-border-strong`, super-admin icon `text-amber-400` → `text-rv-amber`. **Left deliberately:** `getRoleBadgeClass()` role badges (`bg-amber-100`/`bg-red-100`/`bg-green-100` — semantic role indicators) and the sign-out `text-red-600 hover:bg-red-50` affordance (semantic, not a chrome-palette or `Button` destructive concern).
+
+### Changed — shared atoms (`src/components/ui/`)
+- **`button.jsx`** — `cva` base: `rounded-md` → `rounded-rec`, added `font-plex`, focus ring `ring-ring` → `ring-2 ring-rv-navy` (navy in light / accent lavender in dark — one token). Variants: `default` `bg-primary` → `bg-rv-navy text-rv-bg-1 hover:bg-rv-navy-400`; `secondary` → `bg-rv-navy-50 text-rv-navy`; `outline` → `border-rv-navy-400 bg-rv-bg-1 text-rv-ink-900 hover:bg-rv-navy-50 hover:text-rv-navy`; `ghost` → `text-rv-ink-600 hover:bg-rv-bg-2 hover:text-rv-ink-900`; `link` → `text-rv-navy`; `destructive` → `bg-rv-danger text-white` (`#b91c1c` light / `#ef4444` dark) — delete-confirmations only. `sm`/`lg` size `rounded-md` → `rounded-rec`. **Ripples to every `Button` on every page — intended.** `GradeButtonRow` is NOT affected (raw `<button>`).
+- **`input.jsx`** — `rounded-md` → `rounded-rec`, `border-input` → `border-rv-border` (identical HSL in light — border colour visually unchanged), added `font-plex text-rv-ink-900`, `placeholder:text-muted-foreground` → `placeholder:text-rv-ink-400`, focus `ring-ring` → `border-rv-navy-400 ring-2 ring-rv-navy`, `disabled:bg-rv-bg-2`, `aria-[invalid=true]:border-rv-danger`. `bg-transparent` kept (regression-safe on tinted containers).
+- **`textarea.jsx`** — same treatment as `input.jsx`.
+- **`label.jsx`** — `labelVariants` gains `font-plex text-rv-ink-900`. (This is the shadcn form-field label; `src/components/revisop/Label.jsx` — the uppercase section eyebrow — is a different component and unchanged.)
+
+### Changed — QA route & docs
+- **`src/pages/dev/DesignShowcase.jsx`** — new "Chrome" section inside `ReskinGallery` (so it inherits the page's light↔dark toggle + both-themes view): representative reskinned nav strip (Wordmark + active/inactive pills), all six `Button` variants + sizes + disabled, and `Input`/`Textarea`/shadcn-`Label` in default / simulated-focus / disabled / `aria-invalid` states. Imports `Button`/`Input`/`Textarea` and `Label as UiLabel` from `@/components/ui/*`.
+- **`docs/active/context.md`** — the "⚠️ STALE (do not use)" blue→purple gradient tombstone bullet (Sprint 6.2 step 6) replaced with a positive description of the current two-tone typographic mark (flat Plex text, `Revis` `--rv-amber` / `Op` `--rv-navy`→accent in dark, no gradient anywhere), pointing at blueprint §1041/§1209 and noting `<Wordmark />` is live in the nav since 6.2.
+
+### Verification
+- `npm run build` clean, 6.80s, no new warnings.
+- `npx eslint` clean on all changed files except the pre-existing `button.jsx` `react-refresh` baseline error (confirmed present on HEAD via `git stash`).
+- **`/__design` Chrome section, local dev, light + dark:** nav strip active item = navy tint + navy ink; `Op` legible in dark (accent lavender on dark navy bg); all six Button variants render correctly (`destructive` = `#b91c1c` light / `#ef4444` dark); Input default/simulated-focus/disabled(`bg-rv-bg-2`)/error(`border-rv-danger`) + Textarea + Label all on tokens. Console clean.
+- **`/login`** (public page, a `Button`/`Input` ripple target) renders with the navy `default` Sign-In button + reskinned fields; console clean.
+- Authed baselines captured on revisop.com from the available **super_admin** session (no student session this run): `/dashboard`, a note-detail page, the study-loop "All Caught Up" empty state — for the post-push "non-chrome unchanged" re-shoot.
+- **Note:** the authenticated app has **no dark-mode toggle** — `.dark` is only ever applied on `/__design` — so authed dark verification is not reachable; nav dark styling is proven on `/__design` only.
+
+### Deferred / follow-ups
+- **Push + live-verify:** `git push` → verify authed nav on `https://www.revisop.com` (desktop + mobile, nested-route active-state check, re-shoot the three baseline pages). A student-session eyeball is recommended in addition to the super_admin pass.
+- **6.3:** dashboard content / cards / stat tiles / charts / badges; the dropdown-surface atom family (`select`/`dropdown-menu`/`popover`/`command`).
+- **6.4:** study-loop primitives (`GradeButtonRow`/`AnswerOption`), reading bodies + Literata activation, `AnswerOption` correct-state green removal, the three carried items (Items-Mastered stat re-point, seeded test card, Items-Reviewed `created_at`).
+
+### Files Changed
+`src/components/layout/Navigation.jsx`, `src/components/layout/NavDesktop.jsx`, `src/components/layout/NavMobile.jsx`, `src/components/ui/button.jsx`, `src/components/ui/input.jsx`, `src/components/ui/textarea.jsx`, `src/components/ui/label.jsx`, `src/pages/dev/DesignShowcase.jsx`, `docs/active/context.md`, `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md`.
+
+---
 ## [2026-09-04] feat(reskin): Sprint 6.1 — Design Foundation (additive token layer + self-hosted fonts + RevisOp primitives)
 
 Phase 6 reskin foundation. **Additive only — zero existing pages migrated, zero behaviour change, zero SQL.** `npm run build` passes clean (no new warnings); `npx eslint` on all new files clean. Not yet pushed.

@@ -13,7 +13,7 @@ These are locked design choices made with deliberate reasoning. Do NOT change wi
 ### Wordmark Treatment (RevisOp — CORRECTED 30/08/2026; supersedes the old Recall gradient)
 - **`"RevisOp"`** → two-tone TYPOGRAPHY, no icon, no gradient: `Revis` in amber (`#f59e0b`) + `Op` in navy (`#1e1b4b`). Shipped in `NavDesktop.jsx:65-67`; canonical spec in `blueprint.md` §1041 + §1209 (the SSOT).
 - **`"The Revision Operating System."`** → solid dark tagline beside/below the wordmark.
-- **⚠️ STALE (do not use):** an earlier version of this section described the pre-rebrand **Recall** hero as a `from-blue-600 to-purple-600` gradient wordmark. That is the OLD Recall treatment and does NOT apply to RevisOp — it is exactly the stale line that caused three design prototypes to render the wrong logo. blueprint.md §1041/§1209 is authoritative for branding.
+- **Rendering:** flat two-tone text set in the Plex Sans UI face — `Revis` in `--rv-amber`, `Op` in `--rv-navy` (which resolves to the accent lavender `#a5b4fc` in dark mode). No SVG, no icon, **no gradient of any kind** — there is no blue, no purple, and no `from-*/to-*` colour ramp anywhere in the mark. Shipped via the shared `<Wordmark />` component (`src/components/revisop/Wordmark.jsx`), live in `NavDesktop.jsx` + `NavMobile.jsx` since Sprint 6.2. `blueprint.md` §1041/§1209 is the authoritative branding spec.
 - **Why:** The two-tone split (Blinkit-style) makes the brand name the attention anchor in pure type — scales sharp at any size, no SVG, and stays on-palette (amber + navy) instead of introducing off-brand blue/purple.
 
 ### Hero CTA Hierarchy (decided Mar 20, 2026)

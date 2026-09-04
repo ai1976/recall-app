@@ -9,6 +9,10 @@ import { useState } from 'react'
 import { BookOpen, Layers, Brain } from 'lucide-react'
 import { StudyItemCard } from '@/components/ui/StudyItemCard'
 import { FlipCard } from '@/components/ui/FlipCard'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label as UiLabel } from '@/components/ui/label'
 import {
   Wordmark,
   Label,
@@ -240,6 +244,69 @@ function ReskinGallery() {
             missIndex={0}
             prompt="Miss state — slate, never red"
           />
+        </div>
+      </section>
+
+      {/* ════════ Sprint 6.2 — Shared chrome: nav shell + Button/Input atoms ════════ */}
+      <section className="space-y-3">
+        <Label>Chrome — reskinned nav strip (representative; DOM unchanged in the real nav)</Label>
+        <div className="flex h-16 items-center gap-1 rounded-rec border border-rv-border bg-rv-bg-1 px-4 font-plex">
+          <div className="mr-3"><Wordmark size="sm" /></div>
+          <span className="rounded-rec bg-rv-navy-50 px-3 py-2 text-sm font-medium text-rv-navy">Dashboard</span>
+          <span className="rounded-rec px-3 py-2 text-sm font-medium text-rv-ink-600 hover:bg-rv-bg-2 hover:text-rv-ink-900">Study</span>
+          <span className="rounded-rec px-3 py-2 text-sm font-medium text-rv-ink-600 hover:bg-rv-bg-2 hover:text-rv-ink-900">Create</span>
+          <span className="rounded-rec px-3 py-2 text-sm font-medium text-rv-ink-600 hover:bg-rv-bg-2 hover:text-rv-ink-900">Groups</span>
+        </div>
+        <p className="font-plex text-[12px] text-rv-ink-400">
+          Active item = navy tint + navy ink (was amber). Route-prefix active-state logic (Sprint 6.0) is untouched — only its output is restyled.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <Label>Chrome — shared Button atom, all variants (ripples to every page)</Label>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button>Default · navy</Button>
+          <Button variant="secondary">Secondary</Button>
+          <Button variant="outline">Outline</Button>
+          <Button variant="ghost">Ghost</Button>
+          <Button variant="link">Link</Button>
+          <Button variant="destructive">Delete</Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button size="sm">Small</Button>
+          <Button size="lg">Large</Button>
+          <Button disabled>Disabled</Button>
+          <Button variant="outline" disabled>Disabled outline</Button>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <Label>Chrome — shared Input / Textarea / Label atoms</Label>
+        <div className="grid max-w-md gap-3">
+          <div className="space-y-1.5">
+            <UiLabel htmlFor="dq-default">Default</UiLabel>
+            <Input id="dq-default" placeholder="Placeholder text" />
+          </div>
+          <div className="space-y-1.5">
+            <UiLabel htmlFor="dq-focus">Focus (navy light / accent dark)</UiLabel>
+            <Input
+              id="dq-focus"
+              placeholder="Simulated focus ring"
+              className="border-rv-navy-400 ring-2 ring-rv-navy"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <UiLabel htmlFor="dq-disabled">Disabled</UiLabel>
+            <Input id="dq-disabled" placeholder="Disabled input" disabled />
+          </div>
+          <div className="space-y-1.5">
+            <UiLabel htmlFor="dq-error">Error (aria-invalid)</UiLabel>
+            <Input id="dq-error" defaultValue="bad value" aria-invalid="true" />
+          </div>
+          <div className="space-y-1.5">
+            <UiLabel htmlFor="dq-ta">Textarea</UiLabel>
+            <Textarea id="dq-ta" placeholder="Multi-line field on the same input shell" />
+          </div>
         </div>
       </section>
 

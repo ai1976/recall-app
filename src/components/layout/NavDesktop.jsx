@@ -18,6 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Wordmark } from '@/components/revisop';
 import FriendsDropdown from './FriendsDropdown';
 import ActivityDropdown from './ActivityDropdown';
 import ProfileDropdown from './ProfileDropdown';
@@ -76,12 +77,11 @@ export default function NavDesktop({
 
   return (
     <>
-      {/* Left: Logo */}
+      {/* Left: Logo — shared <Wordmark /> (Sprint 6.2). Two-tone typographic mark,
+          token-driven: identical amber/navy in light, 'Op' → accent in dark. */}
       <div className="hidden md:flex md:items-center">
         <Link to="/dashboard" className="flex items-center gap-2">
-          <span className="text-2xl font-bold tracking-tight leading-none">
-            <span style={{ color: '#f59e0b' }}>Revis</span><span style={{ color: '#1e1b4b' }}>Op</span>
-          </span>
+          <Wordmark />
         </Link>
       </div>
 
@@ -93,10 +93,10 @@ export default function NavDesktop({
             <Link
               to="/dashboard"
               className={`
-                px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
+                px-3 py-2 rounded-rec text-sm font-medium flex items-center gap-2
                 ${isActive('/dashboard')
-                  ? 'bg-amber-50 text-amber-700'
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-rv-navy-50 text-rv-navy'
+                  : 'text-rv-ink-600 hover:bg-rv-bg-2 hover:text-rv-ink-900'
                 }
               `}
             >
@@ -109,10 +109,10 @@ export default function NavDesktop({
               <DropdownMenuTrigger asChild>
                 <button
                   className={`
-                    px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
+                    px-3 py-2 rounded-rec text-sm font-medium flex items-center gap-2
                     ${isStudyActive()
-                      ? 'bg-amber-50 text-amber-700'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-rv-navy-50 text-rv-navy'
+                      : 'text-rv-ink-600 hover:bg-rv-bg-2 hover:text-rv-ink-900'
                     }
                   `}
                 >
@@ -148,10 +148,10 @@ export default function NavDesktop({
               <DropdownMenuTrigger asChild>
                 <button
                   className={`
-                    px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
+                    px-3 py-2 rounded-rec text-sm font-medium flex items-center gap-2
                     ${isCreateActive()
-                      ? 'bg-amber-50 text-amber-700'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-rv-navy-50 text-rv-navy'
+                      : 'text-rv-ink-600 hover:bg-rv-bg-2 hover:text-rv-ink-900'
                     }
                   `}
                 >
@@ -186,10 +186,10 @@ export default function NavDesktop({
             <Link
               to="/dashboard/groups"
               className={`
-                px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
+                px-3 py-2 rounded-rec text-sm font-medium flex items-center gap-2
                 ${isActive('/dashboard/groups') || location.pathname.startsWith('/dashboard/groups/')
-                  ? 'bg-amber-50 text-amber-700'
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-rv-navy-50 text-rv-navy'
+                  : 'text-rv-ink-600 hover:bg-rv-bg-2 hover:text-rv-ink-900'
                 }
               `}
             >
@@ -202,10 +202,10 @@ export default function NavDesktop({
               <Link
                 to="/dashboard/professor-analytics"
                 className={`
-                  px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
+                  px-3 py-2 rounded-rec text-sm font-medium flex items-center gap-2
                   ${isActive('/dashboard/professor-analytics')
-                    ? 'bg-amber-50 text-amber-700'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-rv-navy-50 text-rv-navy'
+                    : 'text-rv-ink-600 hover:bg-rv-bg-2 hover:text-rv-ink-900'
                   }
                 `}
               >
@@ -220,10 +220,10 @@ export default function NavDesktop({
                 <DropdownMenuTrigger asChild>
                   <button
                     className={`
-                      px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
+                      px-3 py-2 rounded-rec text-sm font-medium flex items-center gap-2
                       ${isManageActive()
-                        ? 'bg-amber-50 text-amber-700'
-                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                        ? 'bg-rv-navy-50 text-rv-navy'
+                        : 'text-rv-ink-600 hover:bg-rv-bg-2 hover:text-rv-ink-900'
                       }
                     `}
                   >
