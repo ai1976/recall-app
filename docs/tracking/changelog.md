@@ -3,7 +3,7 @@
 ---
 ## [2026-09-04] feat(reskin): Sprint 6.2 — Shared Chrome Reskin (nav shell + Button/Input/Textarea/Label atoms onto --rv-*)
 
-First sprint that intentionally changes shipped UI — **chrome skin only: same DOM, same layout, same behaviour, new skin.** No SQL. `npm run build` clean (6.80s); `npx eslint` clean on every changed file — `src/components/ui/button.jsx`'s one `react-refresh/only-export-components` error is **pre-existing on HEAD** (the shadcn atom also exports `buttonVariants`), same baseline class as the `tailwind.config.js` `require` error. Not yet pushed.
+First sprint that intentionally changes shipped UI — **chrome skin only: same DOM, same layout, same behaviour, new skin.** No SQL. `npm run build` clean (6.80s); `npx eslint` clean on every changed file — `src/components/ui/button.jsx`'s one `react-refresh/only-export-components` error is **pre-existing on HEAD** (the shadcn atom also exports `buttonVariants`), same baseline class as the `tailwind.config.js` `require` error. **Pushed to `main` (`a858e3b`) + live-verified on revisop.com (super_admin + student sessions).**
 
 ### Pre-work — shared-atom inventory
 - Import counts: `Button` 55 files · `Input` 24 · `Label` 16 · `select` 15 · `Textarea` 7 · `switch` 1 · `checkbox` 0. Button variant usage across `src/`: `outline` 108 · `ghost` 56 · `destructive` 20 · `link` 5 · explicit `default` 2 (most `<Button>` use the `default` defaultVariant) · `secondary` 0.
@@ -30,11 +30,16 @@ First sprint that intentionally changes shipped UI — **chrome skin only: same 
 - `npx eslint` clean on all changed files except the pre-existing `button.jsx` `react-refresh` baseline error (confirmed present on HEAD via `git stash`).
 - **`/__design` Chrome section, local dev, light + dark:** nav strip active item = navy tint + navy ink; `Op` legible in dark (accent lavender on dark navy bg); all six Button variants render correctly (`destructive` = `#b91c1c` light / `#ef4444` dark); Input default/simulated-focus/disabled(`bg-rv-bg-2`)/error(`border-rv-danger`) + Textarea + Label all on tokens. Console clean.
 - **`/login`** (public page, a `Button`/`Input` ripple target) renders with the navy `default` Sign-In button + reskinned fields; console clean.
-- Authed baselines captured on revisop.com from the available **super_admin** session (no student session this run): `/dashboard`, a note-detail page, the study-loop "All Caught Up" empty state — for the post-push "non-chrome unchanged" re-shoot.
+- **✅ Live-verified on `https://www.revisop.com`** (deploy `a858e3b`) with **both** a super_admin session (Anand) and a real **student** session (TestOutlook):
+  - Desktop nav computed styles: shell `bg #fff` (`--rv-bg-1`) / border `#e2e8f0` (`--rv-border`) / `font-family "IBM Plex Sans"`; active item `bg #f0f0f8` (`--rv-navy-50`) / ink `#1e1b4b` (`--rv-navy`) / radius `4px`. Student nav has no "Manage" item (correct).
+  - **Nested-route active state 7/7:** notes→Study, flashcards→Study, flashcards/new→**Create**, notes/new→**Create**, progress→Study, review-session→Study, /dashboard→Dashboard; every highlight = `--rv-navy-50`. Sprint 6.0 prefix logic + Create/Study tie-break intact.
+  - Mobile sheet (student): `bg #fff`, Plex Sans across the portal, header `#f0f0f8`, avatar `#1e1b4b`, inks `--rv-ink-*`, no admin sections, green "student" badge + red Sign Out preserved.
+  - `Button` ripple confirmed: `default` → navy `#1e1b4b` `rounded-rec`; `outline` → `border-rv-navy-400` `rounded-rec` (study loop, note-detail, review-session, dashboard).
+  - **Study loop NOT touched:** opened a real due card (TestOutlook) → QUESTION/ANSWER card + red/amber/green Hard/Medium/Easy grade buttons are exactly the pre-6.2 design; the shared `Button` restyle did not leak into `GradeButtonRow` / the study-loop grade UI. Not graded (no test-account mutation).
+  - Non-chrome pixel-identical to baselines (dashboard / note-detail / study-loop empty state); console clean on every page.
 - **Note:** the authenticated app has **no dark-mode toggle** — `.dark` is only ever applied on `/__design` — so authed dark verification is not reachable; nav dark styling is proven on `/__design` only.
 
 ### Deferred / follow-ups
-- **Push + live-verify:** `git push` → verify authed nav on `https://www.revisop.com` (desktop + mobile, nested-route active-state check, re-shoot the three baseline pages). A student-session eyeball is recommended in addition to the super_admin pass.
 - **6.3:** dashboard content / cards / stat tiles / charts / badges; the dropdown-surface atom family (`select`/`dropdown-menu`/`popover`/`command`).
 - **6.4:** study-loop primitives (`GradeButtonRow`/`AnswerOption`), reading bodies + Literata activation, `AnswerOption` correct-state green removal, the three carried items (Items-Mastered stat re-point, seeded test card, Items-Reviewed `created_at`).
 
