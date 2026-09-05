@@ -37,6 +37,7 @@ recall-app
 │   ├── database
 │   │   ├── Reviews_Table_Usage.md
 │   │   ├── sprint6/                            ← get_study_queue RPC (01) + tests (02, 03)
+│   │   ├── sprint6.3/                          ← Dashboards reskin RPCs: 01_FUNCTIONS (get_due_forecast_buckets / get_educator_accuracy_by_qtype / get_educator_cohort_forecast_buckets) + 02_TEST (✅ deployed & verified 05/09/2026)
 │   │   └── srs-ladder/                         ← SRS Ladder Epic: 00_DIAGNOSTIC .. 05_TEST (✅ deployed 03/09/2026) + 06_FUNCTIONS_get_mastered_cards (Phase 3, ⏳ deploy before frontend push)
 │   ├── design
 │   │   ├── ACHIEVEMENT_BADGES.md

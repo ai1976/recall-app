@@ -15,13 +15,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import AnonymousStats from '@/components/dashboard/AnonymousStats';
 import OnboardingModal from '@/components/dashboard/OnboardingModal';
 import StudyTimerWidget from '@/components/dashboard/StudyTimerWidget';
 import LeaderboardWidget from '@/components/dashboard/LeaderboardWidget';
 import GoalProgressWidget from '@/components/dashboard/GoalProgressWidget';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
 import PushPermissionBanner from '@/components/notifications/PushPermissionBanner';
+// RevisOp reskin — Sprint 6.3. Section eyebrows, mono numerals, forward ledger.
+import { Num, ForwardLedgerMacro } from '@/components/revisop';
 import { useBadges } from '@/hooks/useBadges';
 import { useToast } from '@/hooks/use-toast';
 import BadgeToast from '@/components/badges/BadgeToast';
@@ -85,6 +86,24 @@ const formatLocalDate = (date) => {
   return new Date(date).toLocaleDateString('en-CA');
 };
 
+// question_type slug → readable label for the educator accuracy widget
+const formatQuestionType = (qt) => {
+  if (!qt) return 'Other';
+  const map = {
+    flashcard: 'Flashcard',
+    mcq: 'MCQ',
+    true_false: 'True / False',
+    correct_incorrect: 'Correct / Incorrect',
+    theory: 'Theory',
+    test_your_understanding: 'Test your understanding',
+    case_study_mcq: 'Case study MCQ',
+    integrated_case: 'Integrated case',
+    match_the_following: 'Match the following',
+    fill_in_the_blanks: 'Fill in the blanks',
+  };
+  return map[qt] || qt.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
 // Format seconds → "1h 23m" / "45m" / "< 1m"
 const formatStudyTime = (seconds) => {
   if (!seconds || seconds < 60) return '< 1m';
@@ -117,18 +136,16 @@ export default function Dashboard() {
   const [notesCount, setNotesCount] = useState(0);
   const [flashcardsCount, setFlashcardsCount] = useState(0);
   
-  // Anonymous class stats
-  const [classStats, setClassStats] = useState({
-    avgReviewsThisWeek: 0,
-    totalActiveStudents: 0,
-    studentsWithStreak: 0,
-    studentsStudiedToday: 0,
-    minUsersMet: false
-  });
-  
+  // Forward Ledger — student's 8-lane scheduled-load series (Sprint 6.3).
+  // Sourced from get_due_forecast_buckets; folded to number[8] for ForwardLedgerMacro.
+  const [forecastSeries, setForecastSeries] = useState(null);
+
+  // Educator dashboard — accuracy by question type + cohort forward load (Sprint 6.3)
+  const [educatorAccuracy, setEducatorAccuracy] = useState(null);
+  const [cohortForecastSeries, setCohortForecastSeries] = useState(null);
+
   // User state flags
   const [isNewUser, setIsNewUser] = useState(false);
-  const [hasUserActivity, setHasUserActivity] = useState(false);
   const [userRole, setUserRole] = useState('');
   const [userCourseLevel, setUserCourseLevel] = useState('');
   const [needsAttentionItems, setNeedsAttentionItems] = useState([]);
@@ -181,15 +198,15 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-fetch class stats when a professor/admin switches active course context
+  // Re-fetch the educator widgets when a professor switches active course context
   // Skip the very first render (fetchDashboardData already handles initial load)
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
-    if (activeCourse) {
-      fetchClassStats(activeCourse);
+    if (activeCourse && userRole === 'professor' && authUserId) {
+      fetchEducatorWidgets(authUserId, activeCourse);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCourse]);
@@ -254,12 +271,16 @@ export default function Dashboard() {
       }
 
       // Fetch all data in parallel
-      // For professors/admins: activeCourse may override profile.course_level for class stats
+      // For professors: activeCourse may override profile.course_level for cohort widgets
       const courseForStats = activeCourse || profile?.course_level;
+      const isStudent = !['professor', 'admin', 'super_admin'].includes(profile?.role);
       await Promise.all([
         fetchPersonalStats(authUser.id),
         fetchContentCounts(authUser.id),
-        fetchClassStats(courseForStats)
+        isStudent ? fetchForecastSeries(authUser.id) : Promise.resolve(),
+        profile?.role === 'professor'
+          ? fetchEducatorWidgets(authUser.id, courseForStats)
+          : Promise.resolve(),
       ]);
 
       // Fetch flagged content for professor/admin dashboard cards
@@ -288,12 +309,10 @@ export default function Dashboard() {
         .eq('user_id', authUser.id);
 
       setIsNewUser(
-        (!reviewsCount || reviewsCount === 0) && 
-        (!notesTotal || notesTotal === 0) && 
+        (!reviewsCount || reviewsCount === 0) &&
+        (!notesTotal || notesTotal === 0) &&
         (!flashcardsTotal || flashcardsTotal === 0)
       );
-
-      setHasUserActivity(reviewsCount > 0);
 
       // Fetch study time stats for student dashboard
       if (!['professor', 'admin', 'super_admin'].includes(profile?.role)) {
@@ -324,7 +343,12 @@ export default function Dashboard() {
     const { data: dueQueue } = await supabase.rpc('get_study_queue', { p_user_id: userId });
     setReviewsDue((dueQueue || []).length);
 
-    // Fetch user's reviews for weekly / streak / accuracy / mastered stats (exclude suspended)
+    // Items Mastered — the real count (reviews.status='mastered' via the SRS ladder),
+    // re-pointed in Sprint 6.3 from the old "distinct cards ever reviewed" proxy.
+    const { data: masteredRows } = await supabase.rpc('get_mastered_cards', { p_user_id: userId });
+    setCardsMastered((masteredRows || []).length);
+
+    // Fetch user's reviews for weekly / streak / accuracy stats (exclude suspended)
     const { data: reviews } = await supabase
       .from('reviews')
       .select('created_at, quality, flashcard_id, status')
@@ -365,9 +389,6 @@ export default function Dashboard() {
         setAccuracy(Math.round((easyMedium / weeklyReviews.length) * 100));
       }
 
-      // Cards mastered (unique cards ever reviewed, active only)
-      const uniqueCards = new Set(actualReviews.map(r => r.flashcard_id));
-      setCardsMastered(uniqueCards.size);
     }
   };
 
@@ -385,30 +406,44 @@ export default function Dashboard() {
     setFlashcardsCount(flashcards || 0);
   };
 
-  const fetchClassStats = async (userCourseLevel) => {
-    if (!userCourseLevel) return;
-
+  // Fold the 8-row get_due_forecast_buckets result into the number[8] series the
+  // ForwardLedgerMacro renders. Ordered 0..7 by bucket_index server-side.
+  const fetchForecastSeries = async (userId) => {
     try {
-      const { data, error } = await supabase
-        .rpc('get_anonymous_class_stats', { p_course_level: userCourseLevel });
+      const { data, error } = await supabase.rpc('get_due_forecast_buckets', { p_user_id: userId });
+      if (error) { console.error('🔴 Forecast buckets error:', error); return; }
+      const series = Array.from({ length: 8 }, (_, i) => {
+        const row = (data || []).find(r => Number(r.bucket_index) === i);
+        return row ? Number(row.scheduled_count) || 0 : 0;
+      });
+      setForecastSeries(series);
+    } catch (err) {
+      console.error('🔴 Forecast buckets RPC error:', err);
+    }
+  };
 
-      if (error) {
-        console.error('🔴 Class Stats Error:', error);
-        return;
-      }
-
-      if (data && data.length > 0) {
-        const stats = data[0];
-        setClassStats({
-          avgReviewsThisWeek: Number(stats.avg_reviews_this_week) || 0,
-          totalActiveStudents: stats.total_active_students || 0,
-          studentsWithStreak: stats.students_with_7day_streak || 0,
-          studentsStudiedToday: stats.students_studied_today || 0,
-          minUsersMet: stats.min_users_met || false
+  // Educator dashboard widgets — accuracy by question type + cohort forward load.
+  const fetchEducatorWidgets = async (professorId, courseLevel) => {
+    if (!courseLevel) return;
+    try {
+      const [acc, cohort] = await Promise.all([
+        supabase.rpc('get_educator_accuracy_by_qtype', {
+          p_professor_id: professorId, p_course_level: courseLevel,
+        }),
+        supabase.rpc('get_educator_cohort_forecast_buckets', {
+          p_professor_id: professorId, p_course_level: courseLevel,
+        }),
+      ]);
+      if (!acc.error) setEducatorAccuracy(acc.data || []);
+      if (!cohort.error) {
+        const series = Array.from({ length: 8 }, (_, i) => {
+          const row = (cohort.data || []).find(r => Number(r.bucket_index) === i);
+          return row ? Number(row.scheduled_count) || 0 : 0;
         });
+        setCohortForecastSeries(series);
       }
     } catch (err) {
-      console.error('🔴 RPC Error:', err);
+      console.error('🔴 Educator widgets RPC error:', err);
     }
   };
 
@@ -549,7 +584,7 @@ export default function Dashboard() {
   }
 
   return (
-    <PageContainer width="full">
+    <PageContainer width="full" className="font-plex">
 
         {/* ===== ONBOARDING MODAL ===== */}
         <OnboardingModal open={showOnboarding} onDismiss={handleDismissOnboarding} />
@@ -628,7 +663,7 @@ export default function Dashboard() {
               <h1 className="text-2xl sm:text-3xl font-bold">
                 Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}!
               </h1>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-rv-ink-400 mt-2">
                 Manage your content and track your students' engagement.
               </p>
             </div>
@@ -636,39 +671,39 @@ export default function Dashboard() {
             <div className="space-y-4 sm:space-y-6">
               {/* Content Summary */}
               <div>
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
                   Your Content
                 </h2>
                 <div className="grid gap-3 sm:gap-4 grid-cols-2">
                   <Card
-                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                     onClick={() => navigate('/dashboard/my-notes')}
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-amber-100 rounded-lg">
-                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                        <div className="p-2 bg-rv-navy-50 rounded-rec">
+                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">My Notes</p>
-                          <p className="text-xs text-muted-foreground">{notesCount} uploaded</p>
+                          <p className="text-xs text-rv-ink-400">{notesCount} uploaded</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
                   <Card
-                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                     onClick={() => navigate('/dashboard/flashcards')}
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-amber-100 rounded-lg">
-                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                        <div className="p-2 bg-rv-navy-50 rounded-rec">
+                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">My Flashcards</p>
-                          <p className="text-xs text-muted-foreground">{flashcardsCount} created</p>
+                          <p className="text-xs text-rv-ink-400">{flashcardsCount} created</p>
                         </div>
                       </div>
                     </CardContent>
@@ -678,73 +713,73 @@ export default function Dashboard() {
 
               {/* Quick Actions */}
               <div>
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
                   ⚡ Quick Actions
                 </h2>
                 <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
                   <Card
-                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                     onClick={() => navigate('/dashboard/notes/new')}
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-amber-100 rounded-lg">
-                          <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                        <div className="p-2 bg-rv-navy-50 rounded-rec">
+                          <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Upload Note</p>
-                          <p className="text-xs text-muted-foreground">Photos or PDFs</p>
+                          <p className="text-xs text-rv-ink-400">Photos or PDFs</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
                   <Card
-                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                     onClick={() => navigate('/dashboard/flashcards/new')}
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-amber-100 rounded-lg">
-                          <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                        <div className="p-2 bg-rv-navy-50 rounded-rec">
+                          <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Create Flashcard</p>
-                          <p className="text-xs text-muted-foreground">Add your own</p>
+                          <p className="text-xs text-rv-ink-400">Add your own</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
                   <Card
-                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                     onClick={() => navigate('/dashboard/bulk-upload')}
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-green-100 rounded-lg">
+                        <div className="p-2 bg-rv-green-50 rounded-rec">
                           <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Bulk Upload</p>
-                          <p className="text-xs text-muted-foreground">CSV import</p>
+                          <p className="text-xs text-rv-ink-400">CSV import</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
                   <Card
-                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                     onClick={() => navigate('/dashboard/professor-analytics')}
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-amber-100 rounded-lg">
-                          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                        <div className="p-2 bg-rv-navy-50 rounded-rec">
+                          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Analytics</p>
-                          <p className="text-xs text-muted-foreground">Student activity</p>
+                          <p className="text-xs text-rv-ink-400">Student activity</p>
                         </div>
                       </div>
                     </CardContent>
@@ -753,28 +788,28 @@ export default function Dashboard() {
               </div>
 
               {/* Needs Attention — flagged content errors on professor's own content */}
-              <Card className={`cursor-pointer transition hover:border-primary ${needsAttentionItems.length > 0 ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}>
+              <Card className={`cursor-pointer transition hover:border-rv-navy-400 ${needsAttentionItems.length > 0 ? 'border-amber-300 bg-amber-50' : 'border-rv-border'}`}>
                 <CardHeader className="pb-2">
-                  <CardTitle className={`flex items-center gap-2 text-base ${needsAttentionItems.length > 0 ? 'text-amber-800' : 'text-gray-800'}`}>
-                    <AlertTriangle className={`h-4 w-4 ${needsAttentionItems.length > 0 ? 'text-amber-600' : 'text-gray-500'}`} />
+                  <CardTitle className={`flex items-center gap-2 text-base ${needsAttentionItems.length > 0 ? 'text-amber-800' : 'text-rv-ink-900'}`}>
+                    <AlertTriangle className={`h-4 w-4 ${needsAttentionItems.length > 0 ? 'text-rv-navy' : 'text-rv-ink-400'}`} />
                     Needs Attention{needsAttentionItems.length > 0 ? ` (${needsAttentionItems.length})` : ''}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {needsAttentionItems.length === 0 ? (
-                    <p className="text-sm text-gray-500">No flags on your content. All clear!</p>
+                    <p className="text-sm text-rv-ink-400">No flags on your content. All clear!</p>
                   ) : (
                     <div className="space-y-3">
                       {needsAttentionItems.slice(0, 5).map((item) => (
                         <div
                           key={item.flag_id}
-                          className="flex items-start justify-between gap-3 p-3 bg-white rounded-lg border border-amber-200"
+                          className="flex items-start justify-between gap-3 p-3 bg-rv-bg-1 rounded-rec border border-rv-amber-edge"
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-sm font-medium text-rv-ink-900 truncate">
                               {item.content_title || 'Untitled'}
                             </p>
-                            <p className="text-xs text-gray-500 mt-0.5">
+                            <p className="text-xs text-rv-ink-400 mt-0.5">
                               {item.flag_count} {item.flag_count === 1 ? 'student' : 'students'} flagged
                               {item.details ? ` · "${item.details.slice(0, 60)}${item.details.length > 60 ? '…' : ''}"` : ''}
                             </p>
@@ -825,6 +860,55 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
+              {/* Accuracy by question type — this educator's cohort (Sprint 6.3) */}
+              {educatorAccuracy && educatorAccuracy.length > 0 && (
+                <div>
+                  <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">Accuracy by question type</h2>
+                  <Card>
+                    <CardContent className="pt-5 pb-4 space-y-3">
+                      {educatorAccuracy.map((row) => {
+                        const pct = row.accuracy_pct == null ? 0 : Number(row.accuracy_pct);
+                        return (
+                          <div key={row.question_type} className="space-y-1">
+                            <div className="flex items-baseline justify-between gap-3">
+                              <span className="text-sm text-rv-ink-900">
+                                {formatQuestionType(row.question_type)}
+                              </span>
+                              <span className="shrink-0 text-xs text-rv-ink-400">
+                                <Num className="text-rv-ink-900">{pct.toFixed(0)}%</Num>
+                                {' · '}
+                                <Num>{row.total_graded}</Num> graded
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full overflow-hidden rounded-rec bg-rv-slate-50">
+                              <div
+                                className="h-full rounded-rec bg-rv-navy"
+                                style={{ width: `${Math.max(2, Math.min(100, pct))}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <p className="pt-1 text-[11px] text-rv-ink-400">
+                        Hit = graded Medium or Easy; Hard = miss. Concept cards excluded.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Cohort forward load — scheduled reviews across this educator's students */}
+              {cohortForecastSeries && cohortForecastSeries.some(v => v > 0) && (
+                <div>
+                  <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">Cohort forward load</h2>
+                  <Card>
+                    <CardContent className="pt-5 pb-4">
+                      <ForwardLedgerMacro data={cohortForecastSeries} unit="reviews" />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
               {/* Activity Feed */}
               <ActivityFeed limit={5} />
             </div>
@@ -836,7 +920,7 @@ export default function Dashboard() {
               <h1 className="text-2xl sm:text-3xl font-bold">
                 Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}!
               </h1>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-rv-ink-400 mt-2">
                 Manage the RevisOp platform — content, users, and topics.
               </p>
             </div>
@@ -844,56 +928,56 @@ export default function Dashboard() {
             <div className="space-y-4 sm:space-y-6">
               {/* Admin Tools */}
               <div>
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
                   Admin Tools
                 </h2>
                 <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
                   <Card
-                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                     onClick={() => navigate('/admin')}
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-amber-100 rounded-lg">
-                          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                        <div className="p-2 bg-rv-navy-50 rounded-rec">
+                          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Admin Dashboard</p>
-                          <p className="text-xs text-muted-foreground">Users & platform overview</p>
+                          <p className="text-xs text-rv-ink-400">Users & platform overview</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
                   <Card
-                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                     onClick={() => navigate('/admin/analytics')}
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-amber-100 rounded-lg">
-                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                        <div className="p-2 bg-rv-navy-50 rounded-rec">
+                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Admin Analytics</p>
-                          <p className="text-xs text-muted-foreground">Platform-wide stats</p>
+                          <p className="text-xs text-rv-ink-400">Platform-wide stats</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
                   <Card
-                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                     onClick={() => navigate('/admin/bulk-upload-topics')}
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-green-100 rounded-lg">
+                        <div className="p-2 bg-rv-green-50 rounded-rec">
                           <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Manage Topics</p>
-                          <p className="text-xs text-muted-foreground">Subjects & topic tree</p>
+                          <p className="text-xs text-rv-ink-400">Subjects & topic tree</p>
                         </div>
                       </div>
                     </CardContent>
@@ -903,17 +987,17 @@ export default function Dashboard() {
 
               {/* Needs Review — flagged content queue */}
               <Card
-                className={`cursor-pointer transition hover:border-primary ${needsReviewCount > 0 ? 'border-red-200 bg-red-50' : 'border-gray-200'}`}
+                className={`cursor-pointer transition hover:border-rv-navy-400 ${needsReviewCount > 0 ? 'border-red-200 bg-red-50' : 'border-rv-border'}`}
                 onClick={() => navigate('/admin')}
               >
                 <CardHeader className="pb-2">
-                  <CardTitle className={`flex items-center gap-2 text-base ${needsReviewCount > 0 ? 'text-red-800' : 'text-gray-800'}`}>
-                    <Flag className={`h-4 w-4 ${needsReviewCount > 0 ? 'text-red-600' : 'text-gray-500'}`} />
+                  <CardTitle className={`flex items-center gap-2 text-base ${needsReviewCount > 0 ? 'text-red-800' : 'text-rv-ink-900'}`}>
+                    <Flag className={`h-4 w-4 ${needsReviewCount > 0 ? 'text-red-600' : 'text-rv-ink-400'}`} />
                     {needsReviewCount > 0 ? `${needsReviewCount} Item${needsReviewCount === 1 ? '' : 's'} Need Review` : 'Needs Review'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className={`text-sm ${needsReviewCount > 0 ? 'text-red-700' : 'text-gray-500'}`}>
+                  <p className={`text-sm ${needsReviewCount > 0 ? 'text-red-700' : 'text-rv-ink-400'}`}>
                     {needsReviewCount > 0
                       ? `${needsReviewCount} pending flag${needsReviewCount === 1 ? '' : 's'} from students. Review in Admin Dashboard → Content tab.`
                       : 'No pending flags. All clear!'}
@@ -932,7 +1016,7 @@ export default function Dashboard() {
               <h1 className="text-2xl sm:text-3xl font-bold">
                 Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}!
               </h1>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-rv-ink-400 mt-2">
                 Full platform access — admin and super admin tools.
               </p>
             </div>
@@ -940,56 +1024,56 @@ export default function Dashboard() {
             <div className="space-y-4 sm:space-y-6">
               {/* Admin Tools */}
               <div>
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
                   Admin Tools
                 </h2>
                 <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
                   <Card
-                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                     onClick={() => navigate('/admin')}
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-amber-100 rounded-lg">
-                          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                        <div className="p-2 bg-rv-navy-50 rounded-rec">
+                          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Admin Dashboard</p>
-                          <p className="text-xs text-muted-foreground">Users & platform overview</p>
+                          <p className="text-xs text-rv-ink-400">Users & platform overview</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
                   <Card
-                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                     onClick={() => navigate('/admin/analytics')}
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-amber-100 rounded-lg">
-                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                        <div className="p-2 bg-rv-navy-50 rounded-rec">
+                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Admin Analytics</p>
-                          <p className="text-xs text-muted-foreground">Platform-wide stats</p>
+                          <p className="text-xs text-rv-ink-400">Platform-wide stats</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
                   <Card
-                    className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                     onClick={() => navigate('/admin/bulk-upload-topics')}
                   >
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-green-100 rounded-lg">
+                        <div className="p-2 bg-rv-green-50 rounded-rec">
                           <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Manage Topics</p>
-                          <p className="text-xs text-muted-foreground">Subjects & topic tree</p>
+                          <p className="text-xs text-rv-ink-400">Subjects & topic tree</p>
                         </div>
                       </div>
                     </CardContent>
@@ -999,13 +1083,13 @@ export default function Dashboard() {
 
               {/* Super Admin Tools — elevated privilege, visually distinct */}
               <div>
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
                   Super Admin Tools
                   <span className="ml-2 text-[10px] font-normal bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Elevated</span>
                 </h2>
                 <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                   <Card
-                    className="hover:bg-accent cursor-pointer transition border-red-200 hover:border-red-400"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition border-red-200 hover:border-red-400"
                     onClick={() => navigate('/super-admin')}
                   >
                     <CardContent className="pt-4 pb-4">
@@ -1015,14 +1099,14 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">Super Admin Dashboard</p>
-                          <p className="text-xs text-muted-foreground">Roles, access, system controls</p>
+                          <p className="text-xs text-rv-ink-400">Roles, access, system controls</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
                   <Card
-                    className="hover:bg-accent cursor-pointer transition border-red-200 hover:border-red-400"
+                    className="hover:bg-rv-bg-2 cursor-pointer transition border-red-200 hover:border-red-400"
                     onClick={() => navigate('/super-admin/analytics')}
                   >
                     <CardContent className="pt-4 pb-4">
@@ -1032,7 +1116,7 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">SA Analytics</p>
-                          <p className="text-xs text-muted-foreground">Cross-platform deep stats</p>
+                          <p className="text-xs text-rv-ink-400">Cross-platform deep stats</p>
                         </div>
                       </div>
                     </CardContent>
@@ -1042,17 +1126,17 @@ export default function Dashboard() {
 
               {/* Needs Review — flagged content queue */}
               <Card
-                className={`cursor-pointer transition hover:border-primary ${needsReviewCount > 0 ? 'border-red-200 bg-red-50' : 'border-gray-200'}`}
+                className={`cursor-pointer transition hover:border-rv-navy-400 ${needsReviewCount > 0 ? 'border-red-200 bg-red-50' : 'border-rv-border'}`}
                 onClick={() => navigate('/admin')}
               >
                 <CardHeader className="pb-2">
-                  <CardTitle className={`flex items-center gap-2 text-base ${needsReviewCount > 0 ? 'text-red-800' : 'text-gray-800'}`}>
-                    <Flag className={`h-4 w-4 ${needsReviewCount > 0 ? 'text-red-600' : 'text-gray-500'}`} />
+                  <CardTitle className={`flex items-center gap-2 text-base ${needsReviewCount > 0 ? 'text-red-800' : 'text-rv-ink-900'}`}>
+                    <Flag className={`h-4 w-4 ${needsReviewCount > 0 ? 'text-red-600' : 'text-rv-ink-400'}`} />
                     {needsReviewCount > 0 ? `${needsReviewCount} Item${needsReviewCount === 1 ? '' : 's'} Need Review` : 'Needs Review'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className={`text-sm ${needsReviewCount > 0 ? 'text-red-700' : 'text-gray-500'}`}>
+                  <p className={`text-sm ${needsReviewCount > 0 ? 'text-red-700' : 'text-rv-ink-400'}`}>
                     {needsReviewCount > 0
                       ? `${needsReviewCount} pending flag${needsReviewCount === 1 ? '' : 's'} from students. Review in Admin Dashboard → Content tab.`
                       : 'No pending flags. All clear!'}
@@ -1076,7 +1160,7 @@ export default function Dashboard() {
                   : `Welcome back${userName ? `, ${userName.split(' ')[0]}` : ''}! 👋`
                 }
               </h1>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-rv-ink-400 mt-2">
                 {isNewUser
                   ? "Let's get you started on your journey to mastering your subjects."
                   : reviewsDue > 0
@@ -1101,10 +1185,10 @@ export default function Dashboard() {
                     <div className="space-y-4">
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                           <h3 className="font-semibold text-sm sm:text-base">Browse Content</h3>
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-700 mb-3">
+                        <p className="text-xs sm:text-sm text-rv-ink-600 mb-3">
                           Explore expert notes and flashcards created by professors
                         </p>
                         <div className="flex flex-wrap gap-3">
@@ -1157,10 +1241,10 @@ export default function Dashboard() {
                   <CardContent className="pt-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
-                        <p className="text-lg sm:text-xl font-bold text-[#1e1b4b]">
+                        <p className="text-lg sm:text-xl font-bold text-rv-navy">
                           🎉 All caught up!
                         </p>
-                        <p className="text-sm text-amber-600">
+                        <p className="text-sm text-rv-navy">
                           No scheduled reviews. Time to learn something new?
                         </p>
                       </div>
@@ -1180,7 +1264,7 @@ export default function Dashboard() {
               {/* ===== YOUR WEEK STATS ===== */}
               {!isNewUser && (
                 <div>
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
                     📊 Your Week
                   </h2>
                   <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
@@ -1190,8 +1274,8 @@ export default function Dashboard() {
                         <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-xl sm:text-2xl font-bold">{cardsReviewedThisWeek}</div>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">Last 7 days</p>
+                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">{cardsReviewedThisWeek}</div>
+                        <p className="text-[10px] sm:text-xs text-rv-ink-400">Last 7 days</p>
                       </CardContent>
                     </Card>
 
@@ -1201,8 +1285,8 @@ export default function Dashboard() {
                         <Flame className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-xl sm:text-2xl font-bold">{studyStreak}</div>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">
+                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">{studyStreak}</div>
+                        <p className="text-[10px] sm:text-xs text-rv-ink-400">
                           {studyStreak === 1 ? 'day' : 'days'} in a row
                         </p>
                       </CardContent>
@@ -1214,8 +1298,8 @@ export default function Dashboard() {
                         <Target className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-xl sm:text-2xl font-bold">{accuracy}%</div>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">Easy + Medium</p>
+                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">{accuracy}%</div>
+                        <p className="text-[10px] sm:text-xs text-rv-ink-400">Easy + Medium</p>
                       </CardContent>
                     </Card>
 
@@ -1225,18 +1309,30 @@ export default function Dashboard() {
                         <Award className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-xl sm:text-2xl font-bold">{cardsMastered}</div>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">Unique items</p>
+                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">{cardsMastered}</div>
+                        <p className="text-[10px] sm:text-xs text-rv-ink-400">Items mastered</p>
                       </CardContent>
                     </Card>
                   </div>
                 </div>
               )}
 
+              {/* ===== FORWARD LEDGER — scheduled load, today → 6 months out ===== */}
+              {!isNewUser && forecastSeries && forecastSeries.some(v => v > 0) && (
+                <div>
+                  <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">Forward load</h2>
+                  <Card>
+                    <CardContent className="pt-5 pb-4">
+                      <ForwardLedgerMacro data={forecastSeries} unit="items" />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
               {/* ===== STUDY TIME + MANUAL TIMER ===== */}
               {!isNewUser && (
                 <div>
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
                     ⏱ Study Time
                   </h2>
                   <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
@@ -1248,10 +1344,10 @@ export default function Dashboard() {
                         <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-xl sm:text-2xl font-bold">
+                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">
                           {studyTimeLoading ? '—' : formatStudyTime(studyTimeStats.today_seconds)}
                         </div>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">
+                        <p className="text-[10px] sm:text-xs text-rv-ink-400">
                           {studyTimeLoading ? '' : `${studyTimeStats.today_sessions} session${studyTimeStats.today_sessions === 1 ? '' : 's'}`}
                         </p>
                       </CardContent>
@@ -1264,10 +1360,10 @@ export default function Dashboard() {
                         <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-xl sm:text-2xl font-bold">
+                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">
                           {studyTimeLoading ? '—' : formatStudyTime(studyTimeStats.week_seconds)}
                         </div>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">
+                        <p className="text-[10px] sm:text-xs text-rv-ink-400">
                           {studyTimeLoading ? '' : `${studyTimeStats.week_sessions} session${studyTimeStats.week_sessions === 1 ? '' : 's'} this week`}
                         </p>
                       </CardContent>
@@ -1298,19 +1394,6 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* ===== ANONYMOUS CLASS STATS ===== */}
-              {!isNewUser && (
-                <AnonymousStats
-                  userReviewsThisWeek={cardsReviewedThisWeek}
-                  classAverage={classStats.avgReviewsThisWeek}
-                  studentsStudiedToday={classStats.studentsStudiedToday}
-                  studentsWithStreak={classStats.studentsWithStreak}
-                  showComparison={classStats.minUsersMet}
-                  hasUserActivity={hasUserActivity}
-                  courseLevel={userCourseLevel}
-                />
-              )}
-
               {/* ===== LEADERBOARD ===== */}
               {!isNewUser && (
                 <LeaderboardWidget courseLevel={userCourseLevel} />
@@ -1324,73 +1407,73 @@ export default function Dashboard() {
               {/* ===== QUICK ACTIONS ===== */}
               {!isNewUser && (
                 <div>
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
                     ⚡ Quick Actions
                   </h2>
                   <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
                     <Card
-                      className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                      className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                       onClick={() => navigate('/dashboard/notes')}
                     >
                       <CardContent className="pt-4 pb-4">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-amber-100 rounded-lg">
-                            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                          <div className="p-2 bg-rv-navy-50 rounded-rec">
+                            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                           </div>
                           <div>
                             <p className="font-medium text-sm sm:text-base">Browse Notes</p>
-                            <p className="text-xs text-muted-foreground">Study materials</p>
+                            <p className="text-xs text-rv-ink-400">Study materials</p>
                           </div>
                         </div>
                       </CardContent>
                     </Card>
 
                     <Card
-                      className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                      className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                       onClick={() => navigate('/dashboard/review-flashcards')}
                     >
                       <CardContent className="pt-4 pb-4">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-green-100 rounded-lg">
+                          <div className="p-2 bg-rv-green-50 rounded-rec">
                             <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                           </div>
                           <div>
                             <p className="font-medium text-sm sm:text-base">Browse Flashcards</p>
-                            <p className="text-xs text-muted-foreground">Review & learn</p>
+                            <p className="text-xs text-rv-ink-400">Review & learn</p>
                           </div>
                         </div>
                       </CardContent>
                     </Card>
 
                     <Card
-                      className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                      className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                       onClick={() => navigate('/dashboard/notes/new')}
                     >
                       <CardContent className="pt-4 pb-4">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-amber-100 rounded-lg">
-                            <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                          <div className="p-2 bg-rv-navy-50 rounded-rec">
+                            <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                           </div>
                           <div>
                             <p className="font-medium text-sm sm:text-base">Upload Note</p>
-                            <p className="text-xs text-muted-foreground">Photos or PDFs</p>
+                            <p className="text-xs text-rv-ink-400">Photos or PDFs</p>
                           </div>
                         </div>
                       </CardContent>
                     </Card>
 
                     <Card
-                      className="hover:bg-accent cursor-pointer transition hover:border-primary"
+                      className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
                       onClick={() => navigate('/dashboard/flashcards/new')}
                     >
                       <CardContent className="pt-4 pb-4">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-amber-100 rounded-lg">
-                            <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                          <div className="p-2 bg-rv-navy-50 rounded-rec">
+                            <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                           </div>
                           <div>
                             <p className="font-medium text-sm sm:text-base">Create Flashcard</p>
-                            <p className="text-xs text-muted-foreground">Add your own</p>
+                            <p className="text-xs text-rv-ink-400">Add your own</p>
                           </div>
                         </div>
                       </CardContent>
@@ -1411,35 +1494,35 @@ export default function Dashboard() {
                   <CardContent>
                     <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                       <div
-                        className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
+                        className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-rv-navy-400 hover:bg-rv-bg-2 cursor-pointer transition"
                         onClick={() => navigate('/dashboard/my-notes')}
                       >
                         <div className="flex items-center gap-2 sm:gap-3">
-                          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                           <div>
                             <p className="font-medium text-xs sm:text-sm">My Notes</p>
-                            <p className="text-[10px] sm:text-xs text-muted-foreground">
+                            <p className="text-[10px] sm:text-xs text-rv-ink-400">
                               {notesCount} uploaded
                             </p>
                           </div>
                         </div>
-                        <span className="text-primary text-xs sm:text-sm">View →</span>
+                        <span className="text-rv-navy text-xs sm:text-sm">View →</span>
                       </div>
 
                       <div
-                        className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-primary hover:bg-accent cursor-pointer transition"
+                        className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-rv-navy-400 hover:bg-rv-bg-2 cursor-pointer transition"
                         onClick={() => navigate('/dashboard/flashcards')}
                       >
                         <div className="flex items-center gap-2 sm:gap-3">
-                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                           <div>
                             <p className="font-medium text-xs sm:text-sm">My Flashcards</p>
-                            <p className="text-[10px] sm:text-xs text-muted-foreground">
+                            <p className="text-[10px] sm:text-xs text-rv-ink-400">
                               {flashcardsCount} created
                             </p>
                           </div>
                         </div>
-                        <span className="text-primary text-xs sm:text-sm">View →</span>
+                        <span className="text-rv-navy text-xs sm:text-sm">View →</span>
                       </div>
                     </div>
                   </CardContent>
@@ -1451,7 +1534,7 @@ export default function Dashboard() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                      <Flag className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
+                      <Flag className="h-4 w-4 sm:h-5 sm:w-5 text-rv-ink-400" />
                       My Reports
                     </CardTitle>
                   </CardHeader>
@@ -1477,12 +1560,12 @@ export default function Dashboard() {
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-gray-500 capitalize">{report.content_type}</span>
-                                <span className="text-gray-400">·</span>
-                                <span className="text-gray-700">{reasonLabel[report.reason] || report.reason}</span>
+                                <span className="text-rv-ink-400 capitalize">{report.content_type}</span>
+                                <span className="text-rv-ink-400">·</span>
+                                <span className="text-rv-ink-600">{reasonLabel[report.reason] || report.reason}</span>
                               </div>
                               {report.resolution_note && (
-                                <p className="text-xs text-gray-500 mt-1 italic">{report.resolution_note}</p>
+                                <p className="text-xs text-rv-ink-400 mt-1 italic">{report.resolution_note}</p>
                               )}
                             </div>
                             <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${cfg.className}`}>

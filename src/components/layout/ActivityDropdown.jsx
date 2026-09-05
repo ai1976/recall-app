@@ -36,7 +36,7 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
       case 'follow':
         return <UserPlus className="h-4 w-4 text-amber-500" />;
       default:
-        return <Bell className="h-4 w-4 text-gray-500" />;
+        return <Bell className="h-4 w-4 text-rv-ink-400" />;
     }
   };
 
@@ -159,18 +159,18 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
         key={notification.id}
         className={`
           flex items-start gap-3 px-3 py-3
-          ${!notification.is_read ? 'bg-amber-50' : ''}
+          ${!notification.is_read ? 'bg-rv-navy-50' : ''}
         `}
       >
         <div className="flex-shrink-0 mt-0.5">
           {getNotificationIcon(notification.type)}
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`text-sm ${!notification.is_read ? 'font-medium' : ''} text-gray-900`}>
+          <p className={`text-sm ${!notification.is_read ? 'font-medium' : ''} text-rv-ink-900`}>
             {notification.title}
           </p>
           {notification.message && (
-            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+            <p className="text-xs text-rv-ink-400 mt-0.5 line-clamp-2">
               {notification.message}
             </p>
           )}
@@ -200,13 +200,13 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
             </div>
           )}
 
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-rv-ink-400 mt-1">
             {formatTime(notification.created_at)}
           </p>
         </div>
         {!notification.is_read && (
           <div className="flex-shrink-0">
-            <div className="h-2 w-2 bg-amber-500 rounded-full" />
+            <div className="h-2 w-2 bg-rv-navy rounded-full" />
           </div>
         )}
       </div>
@@ -217,7 +217,7 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
     <DropdownMenu onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative h-10 w-10">
-          <Bell className="h-5 w-5 text-gray-600" />
+          <Bell className="h-5 w-5 text-rv-ink-600" />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full">
               {unreadCount > 9 ? '9+' : unreadCount}
@@ -228,12 +228,12 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
       <DropdownMenuContent align="end" className="w-80">
         {/* Header */}
         <div className="px-3 py-2 border-b flex items-center justify-between">
-          <p className="text-sm font-semibold text-gray-900">Notifications</p>
+          <p className="text-sm font-semibold text-rv-ink-900">Notifications</p>
           {unreadCount > 0 && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-xs text-amber-600 hover:text-amber-700"
+              className="h-7 text-xs text-rv-navy hover:text-rv-navy-400"
               onClick={markAllRead}
             >
               <CheckCheck className="h-3 w-3 mr-1" />
@@ -264,28 +264,28 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
                     to={getNotificationLink(notification)}
                     className={`
                       flex items-start gap-3 px-3 py-3 cursor-pointer
-                      ${!notification.is_read ? 'bg-amber-50' : ''}
+                      ${!notification.is_read ? 'bg-rv-navy-50' : ''}
                     `}
                   >
                     <div className="flex-shrink-0 mt-0.5">
                       {getNotificationIcon(notification.type)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${!notification.is_read ? 'font-medium' : ''} text-gray-900`}>
+                      <p className={`text-sm ${!notification.is_read ? 'font-medium' : ''} text-rv-ink-900`}>
                         {notification.title}
                       </p>
                       {notification.message && (
-                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                        <p className="text-xs text-rv-ink-400 mt-0.5 line-clamp-2">
                           {notification.message}
                         </p>
                       )}
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-rv-ink-400 mt-1">
                         {formatTime(notification.created_at)}
                       </p>
                     </div>
                     {!notification.is_read && (
                       <div className="flex-shrink-0">
-                        <div className="h-2 w-2 bg-amber-500 rounded-full" />
+                        <div className="h-2 w-2 bg-rv-navy rounded-full" />
                       </div>
                     )}
                   </Link>
@@ -295,8 +295,8 @@ export default function ActivityDropdown({ notifications, unreadCount, markAllRe
           </div>
         ) : (
           <div className="px-3 py-8 text-center">
-            <Bell className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No new notifications</p>
+            <Bell className="h-8 w-8 text-rv-ink-400 mx-auto mb-2" />
+            <p className="text-sm text-rv-ink-400">No new notifications</p>
           </div>
         )}
       </DropdownMenuContent>

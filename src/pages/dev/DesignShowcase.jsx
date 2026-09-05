@@ -13,6 +13,16 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label as UiLabel } from '@/components/ui/label'
+import { Card as UiCard, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Switch } from '@/components/ui/switch'
 import {
   Wordmark,
   Label,
@@ -320,6 +330,94 @@ function ReskinGallery() {
               <div className="font-plex text-xs text-rv-ink-400">{l}</div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ════════ Sprint 6.3 — Dashboard: reskinned stat tile + card + live ledger ════════ */}
+      <section className="space-y-3">
+        <Label>Dashboard — reskinned stat tiles (shadcn Card shell + mono Num numerals)</Label>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 font-plex">
+          {[['Reviews', '128', 'Last 7 days'], ['Streak', '41', 'days in a row'],
+            ['Accuracy', '78%', 'Easy + Medium'], ['Mastered', '312', 'Items mastered']].map(([t, v, s]) => (
+            <UiCard key={t}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium">{t}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">{v}</div>
+                <p className="text-[10px] sm:text-xs text-rv-ink-400">{s}</p>
+              </CardContent>
+            </UiCard>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <Label>Dashboard — Forward Ledger macro, live-shaped (get_due_forecast_buckets → number[8])</Label>
+        <UiCard className="font-plex">
+          <CardContent className="pt-5 pb-4">
+            <ForwardLedgerMacro data={TODAY_LOAD} unit="items" />
+          </CardContent>
+        </UiCard>
+      </section>
+
+      {/* ════════ Sprint 6.3 — Surfaces: overlay atom family, open state ════════ */}
+      <section className="space-y-3">
+        <Label>Surfaces — overlay atoms (open-state reproduction; exact atom classes)</Label>
+        <div className="flex flex-wrap gap-6">
+          {/* dropdown-menu / select surface */}
+          <div className="w-56 rounded-rec border border-rv-border bg-rv-bg-1 p-1 font-plex text-rv-ink-900 shadow-rv">
+            <div className="px-2 py-1.5 font-plex text-sm font-semibold text-rv-ink-900">Menu label</div>
+            <div className="-mx-1 my-1 h-px bg-rv-border" />
+            <div className="flex items-center gap-2 rounded-rec bg-rv-navy-50 px-2 py-1.5 text-sm text-rv-navy">Active / hovered item</div>
+            <div className="flex items-center gap-2 rounded-rec px-2 py-1.5 text-sm">Resting item</div>
+            <div className="flex items-center gap-2 rounded-rec px-2 py-1.5 text-sm">Another item</div>
+          </div>
+          {/* popover surface */}
+          <div className="w-64 rounded-rec border border-rv-border bg-rv-bg-1 p-4 font-plex text-rv-ink-900 shadow-rv">
+            <p className="text-sm font-medium">Popover surface</p>
+            <p className="mt-1 text-xs text-rv-ink-400">--rv-bg-1 · --rv-border · rounded-rec · shadow-rv · Plex.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <Label>Surfaces — live interactive atoms (click to open — content portals; theme follows the app)</Label>
+        <div className="flex flex-wrap items-center gap-4 font-plex">
+          <Select>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Select an option" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="a">First option</SelectItem>
+              <SelectItem value="b">Second option</SelectItem>
+              <SelectItem value="c">Third option</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button variant="outline">Open menu</Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-52">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>Edit</DropdownMenuItem>
+              <DropdownMenuItem>Duplicate</DropdownMenuItem>
+              <DropdownMenuItem>Archive</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Popover>
+            <PopoverTrigger asChild><Button variant="outline">Open popover</Button></PopoverTrigger>
+            <PopoverContent align="start">
+              <p className="text-sm font-medium text-rv-ink-900">Popover content</p>
+              <p className="mt-1 text-xs text-rv-ink-400">Portaled surface on the --rv-* tokens.</p>
+            </PopoverContent>
+          </Popover>
+
+          <label className="flex items-center gap-2 text-sm text-rv-ink-900">
+            <Switch defaultChecked /> Switch (on)
+          </label>
+          <label className="flex items-center gap-2 text-sm text-rv-ink-900">
+            <Switch /> Switch (off)
+          </label>
         </div>
       </section>
     </div>

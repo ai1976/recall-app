@@ -103,9 +103,9 @@ export default function CourseSwitcher() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-60">
-        <DropdownMenuLabel className="text-xs text-gray-500 font-normal leading-snug py-2">
+        <DropdownMenuLabel className="text-xs text-rv-ink-400 font-normal leading-snug py-2">
           Switch course context
-          <span className="block text-gray-400 font-normal mt-0.5">
+          <span className="block text-rv-ink-400 font-normal mt-0.5">
             Session only — does not change your Primary Course
           </span>
         </DropdownMenuLabel>
@@ -126,7 +126,7 @@ export default function CourseSwitcher() {
               {/* Color dot — filled with course color when active */}
               <span
                 className={`h-2 w-2 rounded-full flex-shrink-0 ${
-                  isActive ? colors.dot : 'bg-transparent border border-gray-300'
+                  isActive ? colors.dot : 'bg-transparent border border-rv-border-strong'
                 }`}
               />
 
@@ -142,7 +142,7 @@ export default function CourseSwitcher() {
                   </span>
                 )}
                 {isPrimary && !isActive && (
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-[10px] text-rv-ink-400">
                     Primary
                   </span>
                 )}
@@ -152,7 +152,7 @@ export default function CourseSwitcher() {
         })}
 
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-[10px] text-gray-400 font-normal py-1.5">
+        <DropdownMenuLabel className="text-[10px] text-rv-ink-400 font-normal py-1.5">
           Manage courses in Profile Settings → Teaching Areas
         </DropdownMenuLabel>
       </DropdownMenuContent>

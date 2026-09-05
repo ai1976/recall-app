@@ -1105,6 +1105,37 @@ SECURITY DEFINER
 
 ---
 
+## Sprint 6.3 — dashboard reskin RPCs (✅ deployed & verified 05/09/2026 — `docs/database/sprint6.3/01_FUNCTIONS`, `02_TEST` 12/12 PASS)
+
+All three: `LANGUAGE plpgsql`, `STABLE`, `SECURITY DEFINER`, `SET search_path TO public, extensions` (unquoted), established L5 IDOR guard (`p_id IS DISTINCT FROM auth.uid() AND NOT public.is_admin()` → `RAISE EXCEPTION`), `REVOKE ALL FROM PUBLIC` + `REVOKE ALL FROM anon` + `GRANT EXECUTE TO authenticated`, `NOTIFY pgrst, 'reload schema'`. Verified by `docs/database/sprint6.3/02_TEST` (BEGIN/ROLLBACK). Consumed by `src/pages/Dashboard.jsx`.
+
+```sql
+get_due_forecast_buckets(p_user_id uuid)
+RETURNS TABLE (bucket_index integer, bucket_label text, scheduled_count integer)
+```
+- Guard: **self-or-admin.** Always returns exactly **8 rows** (0-count lanes included), ordered by `bucket_index` 0..7.
+- Lanes keyed to `REVISOP_BUCKETS` / `BUCKET_DAYS` in `src/lib/revisop-tokens.js`: `Today · 1d · 3d · 6d · 2w · 1mo · 3mo · 6mo+` at centre-day `[0,1,3,6,14,30,90,180]`. Assignment is nearest-centre via a `CASE` on `(next_review_date - today)`; overdue / today fold into lane 0; anything ≥ 135 days out lands in lane 7.
+- Row-inclusion predicate is identical to `get_due_forecast` (`reviews.status='active'` · `flashcards.question_type <> 'concept_card'` · course filter `course_level IS NULL OR target_course IS NULL OR target_course = course_level` · visibility guard own/public/accepted-friend · `skip_until IS NULL OR skip_until <= today`) — only the date-threshold filter is replaced by bucketing. *today* = `(now() AT TIME ZONE COALESCE(profiles.timezone,'Asia/Kolkata'))::date`.
+- Frontend folds the 8 rows to `number[8]` for `<ForwardLedgerMacro>` (student "Forward load" section).
+
+```sql
+get_educator_accuracy_by_qtype(p_professor_id uuid, p_course_level text)
+RETURNS TABLE (question_type text, total_graded integer, hits integer, accuracy_pct numeric)
+```
+- Guard: **professor-or-admin** (same idiom as the `get_professor_*` analytics family).
+- `prof_cards` = `flashcards WHERE user_id = p_professor_id AND target_course = p_course_level AND question_type <> 'concept_card'`, joined to `reviews`.
+- **`total_graded`** = `COUNT(*) FILTER (WHERE quality > 0)` (skip/suspend rows `quality = 0` excluded). **`hits`** = `COUNT(*) FILTER (WHERE quality IN (3,5))` (SRS ladder mapping: Medium/Easy = hit, Hard = miss). **`accuracy_pct`** = `ROUND(100.0 * hits / NULLIF(total_graded,0), 1)`.
+- One row per `question_type` with `HAVING total_graded > 0`, ordered by `total_graded DESC`.
+- Powers the educator dashboard "Accuracy by question type" widget.
+
+```sql
+get_educator_cohort_forecast_buckets(p_professor_id uuid, p_course_level text)
+RETURNS TABLE (bucket_index integer, bucket_label text, scheduled_count integer)
+```
+- Guard: **professor-or-admin.** Same 8-lane shape / centre-day bucketing as `get_due_forecast_buckets`, but summed across **every student** with an active review on one of this educator's `target_course` cards (`question_type <> 'concept_card'`, `skip_until` not in the future). No per-viewer visibility guard — an educator's cohort content is their own. *today* = `CURRENT_DATE`. Powers the educator "Cohort forward load" ledger.
+
+---
+
 ## 3. RLS POLICIES
 
 **Total Policies:** 26 ⭐ (was 24 — added 2 for study_sessions)

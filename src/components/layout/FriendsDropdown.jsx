@@ -121,7 +121,7 @@ export default function FriendsDropdown({ pendingCount }) {
     <DropdownMenu onOpenChange={(open) => open && fetchPendingRequests()}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative h-10 w-10">
-          <Users className="h-5 w-5 text-gray-600" />
+          <Users className="h-5 w-5 text-rv-ink-600" />
           {pendingCount > 0 && (
             <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full">
               {pendingCount > 9 ? '9+' : pendingCount}
@@ -131,13 +131,13 @@ export default function FriendsDropdown({ pendingCount }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
         {/* Header */}
-        <div className="px-3 py-2 border-b">
-          <p className="text-sm font-semibold text-gray-900">Friends & Following</p>
+        <div className="px-3 py-2 border-b border-rv-border">
+          <p className="text-sm font-semibold text-rv-ink-900">Friends &amp; Following</p>
         </div>
 
         {/* Pending Requests */}
         {loading ? (
-          <div className="px-3 py-4 text-center text-sm text-gray-500">
+          <div className="px-3 py-4 text-center text-sm text-rv-ink-400">
             Loading...
           </div>
         ) : pendingRequests.length > 0 ? (
@@ -145,14 +145,14 @@ export default function FriendsDropdown({ pendingCount }) {
             {pendingRequests.map((request) => (
               <div
                 key={request.id}
-                className="px-3 py-2 hover:bg-gray-50"
+                className="px-3 py-2 hover:bg-rv-bg-2"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-rv-ink-900 truncate">
                       {request.profile?.full_name || 'Unknown User'}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">
+                    <p className="text-xs text-rv-ink-400 truncate">
                       {request.profile?.email}
                     </p>
                   </div>
@@ -181,7 +181,7 @@ export default function FriendsDropdown({ pendingCount }) {
             ))}
           </div>
         ) : (
-          <div className="px-3 py-4 text-center text-sm text-gray-500">
+          <div className="px-3 py-4 text-center text-sm text-rv-ink-400">
             No pending requests
           </div>
         )}
@@ -194,7 +194,7 @@ export default function FriendsDropdown({ pendingCount }) {
             <Clock className="h-4 w-4" />
             View All Requests
             {pendingCount > 3 && (
-              <span className="ml-auto text-xs text-gray-500">+{pendingCount - 3} more</span>
+              <span className="ml-auto text-xs text-rv-ink-400">+{pendingCount - 3} more</span>
             )}
           </Link>
         </DropdownMenuItem>

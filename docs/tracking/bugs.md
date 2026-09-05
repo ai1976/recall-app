@@ -1,5 +1,15 @@
 # Bug Tracking
 
+## Sprint 6.3 — 05/09/2026
+
+### [05/09/2026] "Items Mastered" dashboard stat was a misnomer — ✅ FIXED (re-pointed in Sprint 6.3)
+- **Symptom:** the student dashboard "Mastered" tile counted **distinct flashcards ever reviewed** (`new Set(activeReviews.map(r => r.flashcard_id)).size` in `Dashboard.jsx` `fetchPersonalStats`) — i.e. "cards started", not "cards mastered". Carried as a known item from the SRS Ladder Epic (Phase 3 left the tile untouched under the settled-stat rule) and earmarked for Sprint 6.4.
+- **Why fixed now:** Sprint 6.3 rebuilds that tile as part of the dashboards reskin, so re-pointing it is a trivial ride-along rather than a standalone settled-stat change. Operator approved the ride-along explicitly (asked, with before/after).
+- **Fix:** the tile now reads the real mastered count — `supabase.rpc('get_mastered_cards', { p_user_id }).length` (`reviews.status = 'mastered'`, the SRS ladder's graduation state, live since 03/09/2026). The old `uniqueCards` block in `fetchPersonalStats` is removed; the mastered count is fetched next to the `get_study_queue` call. Sublabel "Unique items" → "Items mastered".
+- **Files:** `src/pages/Dashboard.jsx`.
+- **Status:** ✅ RESOLVED in code (Sprint 6.3) — ships with the sprint's frontend push. Pending per-role live verification.
+- **Still 6.4:** the other two carried stat-correctness items — seeded test-card cleanup, and Items-Reviewed `created_at` — remain Sprint 6.4.
+
 ## Sprint 6.0 follow-ups — 03/09/2026
 
 ### [03/09/2026] Review-session queue had no in-app nav link (any role) — ✅ FIXED
