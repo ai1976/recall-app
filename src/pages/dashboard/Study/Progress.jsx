@@ -150,22 +150,30 @@ export default function MyProgress() {
     const load = async () => {
       setWindowLoading(true);
       try {
-        let query = supabase
+        const query = supabase
           .from('reviews')
-          .select('quality')
+          .select('quality, last_reviewed_at, created_at')
           .eq('user_id', user.id)
           .eq('status', 'active');
 
+        const { data: allReviews } = await query;
+
+        // "Items Reviewed" recency = last_reviewed_at (the most recent rating),
+        // falling back to created_at for legacy rows. created_at is the card's
+        // FIRST review only — submit_review UPDATEs the single row per user/card.
+        // Sprint 6.4 re-point.
+        let reviews = allReviews ?? [];
         if (window !== 'all') {
           const days = window === '7d' ? 7 : 30;
           const since = new Date();
           since.setDate(since.getDate() - days);
-          query = query.gte('created_at', since.toISOString());
+          reviews = reviews.filter(
+            (r) => new Date(r.last_reviewed_at || r.created_at) >= since
+          );
         }
 
-        const { data: reviews } = await query;
-        const total   = reviews?.length ?? 0;
-        const correct = reviews?.filter((r) => r.quality >= 3).length ?? 0;
+        const total   = reviews.length;
+        const correct = reviews.filter((r) => r.quality >= 3).length;
         setWindowStats({
           reviewed: total,
           accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,

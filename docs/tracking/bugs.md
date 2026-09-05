@@ -1,5 +1,18 @@
 # Bug Tracking
 
+## Sprint 6.4 — 05/09/2026
+
+### [05/09/2026] "Items Reviewed (last 7 days)" undercounts — reads first-review date, not last — ✅ FIXED (frontend re-point; no schema change)
+- **Symptom:** the student dashboard "Reviews / Last 7 days" tile (and the GoalProgressWidget today-count, and the Progress 7d/30d "Items Reviewed" window) show far fewer reviews than the user actually did — often 0 for an active daily reviewer whose cards were all first seen more than 7 days ago.
+- **Root cause:** those stat queries filter `reviews` by **`created_at`**. `reviews` is `UNIQUE(user_id, flashcard_id)` — one row per card — and every re-review **UPDATEs** that row (both the pre-ladder `handleRating` and, since 03/09/2026, `submit_review`). So `created_at` is frozen at the card's *first* review and never moves; a rolling-7-day filter on it misses every repeat review.
+- **Not new to the SRS ladder** — the SELECT-or-UPDATE shape predates it; the ladder just made `submit_review` the writer.
+- **Fix (no SQL):** `reviews.last_reviewed_at` already exists (`timestamptz`, `DEFAULT now()`) and has always been set on every rating by both write paths. Re-pointed the "Items Reviewed" recency filter to `last_reviewed_at ?? created_at` in `src/pages/Dashboard.jsx` (`fetchPersonalStats` — the 7d tile count + the today-count) and `src/pages/dashboard/Study/Progress.jsx` (7d/30d window). **Streak + weekly-accuracy deliberately left on `created_at`** (subtler semantics — Phase 7 analytics pass; operator decision).
+- **Backfill:** `docs/database/sprint6.4/01_DIAGNOSTIC_items_reviewed_recency.sql` (read-only) measures `last_reviewed_at IS NULL` coverage — expected **0** rows. `02_DATA_backfill_last_reviewed_at.sql` sets `last_reviewed_at = created_at` for any NULLs (idempotent). Not a deployment-order blocker — the frontend falls back to `created_at` for NULL rows.
+- **Status:** ✅ RESOLVED in code (Sprint 6.4) — ships with the frontend push. Live check: "Items Reviewed (7d)" goes non-zero after a re-review on a card first seen > 7 days ago.
+
+### [05/09/2026] Seeded test card for live verification — optional `[CLEANUP]`
+- The Sprint 6.4 brief suggested resetting `review 8e7a8b6c…` (TestOutlook) from `status='mastered'` back to `active` at its prior rung so it re-enters the queue for the live full-session run. This is a one-off convenience for verification only — no deployment-order concern, no schema dependency (§C's schema/function work was found unnecessary). Run it (or don't) as part of the operator live-verification pass.
+
 ## Sprint 6.3 — 05/09/2026
 
 ### [05/09/2026] "Items Mastered" dashboard stat was a misnomer — ✅ FIXED (re-pointed in Sprint 6.3)
@@ -8,7 +21,7 @@
 - **Fix:** the tile now reads the real mastered count — `supabase.rpc('get_mastered_cards', { p_user_id }).length` (`reviews.status = 'mastered'`, the SRS ladder's graduation state, live since 03/09/2026). The old `uniqueCards` block in `fetchPersonalStats` is removed; the mastered count is fetched next to the `get_study_queue` call. Sublabel "Unique items" → "Items mastered".
 - **Files:** `src/pages/Dashboard.jsx`.
 - **Status:** ✅ RESOLVED in code (Sprint 6.3) — ships with the sprint's frontend push. Pending per-role live verification.
-- **Still 6.4:** the other two carried stat-correctness items — seeded test-card cleanup, and Items-Reviewed `created_at` — remain Sprint 6.4.
+- **Carried items now addressed in the Sprint 6.4 section above:** Items-Reviewed `created_at` re-point (✅ FIXED, no schema change) + the seeded test-card `[CLEANUP]` (optional, folded into the operator live-verification pass).
 
 ## Sprint 6.0 follow-ups — 03/09/2026
 

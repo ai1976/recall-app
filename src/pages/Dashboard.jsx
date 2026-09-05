@@ -351,7 +351,7 @@ export default function Dashboard() {
     // Fetch user's reviews for weekly / streak / accuracy stats (exclude suspended)
     const { data: reviews } = await supabase
       .from('reviews')
-      .select('created_at, quality, flashcard_id, status')
+      .select('created_at, last_reviewed_at, quality, flashcard_id, status')
       .eq('user_id', userId);
 
     const reviewList = reviews || [];
@@ -365,14 +365,26 @@ export default function Dashboard() {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
       sevenDaysAgo.setHours(0, 0, 0, 0);
 
-      // Only count reviews with quality > 0 for weekly stats (skip/suspend create quality=0 records)
-      const weeklyReviews = activeReviews.filter(r => new Date(r.created_at) >= sevenDaysAgo && r.quality > 0);
-      setCardsReviewedThisWeek(weeklyReviews.length);
+      // "Items reviewed" recency = the most recent rating (last_reviewed_at), NOT
+      // created_at (which is the card's FIRST review — submit_review UPDATEs the
+      // one row per user/card, so created_at never moves). Sprint 6.4 re-point.
+      // Fallback to created_at for legacy rows not yet backfilled.
+      const ratedAt = (r) => new Date(r.last_reviewed_at || r.created_at);
 
-      // Today's reviews — used by GoalProgressWidget (same data, no extra fetch)
+      // Only count reviews with quality > 0 for weekly stats (skip/suspend create quality=0 records)
+      const weeklyReviewedCount = activeReviews.filter(
+        r => ratedAt(r) >= sevenDaysAgo && r.quality > 0
+      ).length;
+      setCardsReviewedThisWeek(weeklyReviewedCount);
+
+      // Accuracy this week — left on created_at pending the Phase 7 analytics pass.
+      const weeklyReviews = activeReviews.filter(r => new Date(r.created_at) >= sevenDaysAgo && r.quality > 0);
+
+      // Today's reviews — used by GoalProgressWidget. Same "Items reviewed" family
+      // as the 7d tile, so it moves to last_reviewed_at too.
       const todayStr = formatLocalDate(new Date());
       const todayRevCount = activeReviews.filter(
-        r => r.quality > 0 && formatLocalDate(r.created_at) === todayStr
+        r => r.quality > 0 && formatLocalDate(r.last_reviewed_at || r.created_at) === todayStr
       ).length;
       setTodayReviews(todayRevCount);
 

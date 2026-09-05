@@ -18,7 +18,32 @@
  * Measured cost when enabled: ~85.7 KB (woff2, Latin subset — barely
  * compresses further under gzip since woff2 is already Brotli-packed).
  */
-export const REVISOP_LITERATA_ENABLED = false;
+export const REVISOP_LITERATA_ENABLED = true;
+
+/**
+ * LITERATA_MIN_CHARS — where a "reading body" begins in the study loop.
+ *
+ * Sprint 6.4: the only reading-length content in the front/back loop is a long
+ * flashcard answer (`back_text`). A revealed answer at or above this length
+ * adopts --rv-font-read (Literata); shorter Q&A stays Plex. The first long
+ * answer that mounts is what triggers the (lazy, same-origin) /fonts/literata.woff2
+ * fetch — it is never on the session-start critical path and never on chrome.
+ */
+export const LITERATA_MIN_CHARS = 320;
+
+/**
+ * isReadingBody(text) → boolean. True when a passage is long enough to render
+ * in the reading face. Guarded by REVISOP_LITERATA_ENABLED so a single flag
+ * flip disables the behaviour everywhere.
+ * @param {string|null|undefined} text
+ */
+export function isReadingBody(text) {
+  return (
+    REVISOP_LITERATA_ENABLED &&
+    typeof text === 'string' &&
+    text.trim().length >= LITERATA_MIN_CHARS
+  );
+}
 
 /**
  * BUCKETS — the forward-ledger scale (the signature device's x-axis).

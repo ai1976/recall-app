@@ -120,10 +120,10 @@ export default function ReviewSession() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-rv-bg-0 font-plex">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b] mx-auto mb-4"></div>
-          <p className="text-gray-600">Checking your schedule...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rv-navy mx-auto mb-4"></div>
+          <p className="text-rv-ink-600">Checking your schedule...</p>
         </div>
       </div>
     );
@@ -132,7 +132,7 @@ export default function ReviewSession() {
   // ACTIVE STUDY MODE
   if (activeSessionCards) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-rv-bg-0 font-plex">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-6">
@@ -145,16 +145,16 @@ export default function ReviewSession() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to List
               </Button>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-rv-ink-600">
                 <Clock className="h-4 w-4" />
                 <span>{activeSubjectName}</span>
               </div>
             </div>
 
-            <div className="bg-amber-100 border border-amber-300 rounded-lg p-3 mb-4">
+            <div className="bg-rv-navy-50 border border-rv-navy-100 rounded-rec p-3 mb-4">
               <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-amber-600" />
-                <span className="font-medium text-[#1e1b4b]">
+                <Clock className="h-5 w-5 text-rv-navy" />
+                <span className="font-medium text-rv-navy">
                   Reviewing: {activeSessionCards.length} card{activeSessionCards.length > 1 ? 's' : ''} due
                 </span>
               </div>
@@ -174,7 +174,7 @@ export default function ReviewSession() {
   // EMPTY STATE
   if (dueCards.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-rv-bg-0 font-plex">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <Button
             variant="ghost"
@@ -190,13 +190,13 @@ export default function ReviewSession() {
             <ArrowLeft className="mr-2 h-4 w-4" /> Back
           </Button>
 
-          <Card>
+          <Card className="border-rv-border">
             <CardContent className="py-12 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                <Clock className="h-8 w-8 text-green-600" />
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-rv-navy-50 rounded-full mb-4">
+                <Clock className="h-8 w-8 text-rv-navy" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">All Caught Up! 🎉</h2>
-              <p className="text-gray-600 mb-6">No scheduled reviews due right now.</p>
+              <h2 className="text-2xl font-semibold text-rv-ink-900 mb-2">All Caught Up! 🎉</h2>
+              <p className="text-rv-ink-600 mb-6">No scheduled reviews due right now.</p>
               <div className="space-y-3">
                 <Button onClick={() => navigate('/dashboard')}>Return to Dashboard</Button>
                 <Button variant="outline" onClick={() => navigate('/dashboard/review-flashcards')}>Study New Cards</Button>
@@ -210,12 +210,12 @@ export default function ReviewSession() {
 
   // DASHBOARD VIEW (Subject List)
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-rv-bg-0 font-plex">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Today's Reviews</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-semibold text-rv-ink-900">Today's Reviews</h1>
+            <p className="text-rv-ink-600">
               You have {dueCards.length} scheduled items due
             </p>
           </div>
@@ -226,15 +226,15 @@ export default function ReviewSession() {
 
         <div className="space-y-4">
           {Object.entries(groupedCards).map(([subject, cards]) => (
-            <Card key={subject} className="hover:shadow-md transition-shadow">
+            <Card key={subject} className="border-rv-border hover:shadow-rv transition-shadow">
               <div className="p-6 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
-                    <BookOpen className="h-6 w-6 text-amber-600" />
+                  <div className="h-12 w-12 rounded-rec bg-rv-navy-50 flex items-center justify-center">
+                    <BookOpen className="h-6 w-6 text-rv-navy" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{subject}</h3>
-                    <p className="text-sm text-gray-500">
+                    <h3 className="text-lg font-semibold text-rv-ink-900">{subject}</h3>
+                    <p className="text-sm font-plex-mono text-rv-ink-400 [font-variant-numeric:tabular-nums]">
                       {cards.length} items due
                     </p>
                   </div>

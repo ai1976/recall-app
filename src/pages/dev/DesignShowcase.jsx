@@ -79,7 +79,26 @@ function Swatch({ cls }) {
 }
 
 /** The whole reskin gallery. Rendered inside a light frame and a dark frame. */
+// Sprint 6.4 — sample computed grade intervals (as StudyMode derives them from
+// get_srs_ladder_config for a card sitting at rung 2: Hard → relearn step,
+// Medium → hold at rung 2, Easy → advance to rung 3).
+const STUDY_GRADES = [
+  { label: 'Hard', iv: '1d', bucket: 1 },
+  { label: 'Medium', iv: '7d', bucket: 3 },
+  { label: 'Easy', iv: '14d', bucket: 4 },
+]
+
+const LONG_ANSWER =
+  'Under AS 10, an item of property, plant and equipment that qualifies for ' +
+  'recognition as an asset is measured at its cost. Cost comprises the purchase ' +
+  'price, import duties and non-refundable taxes, and any directly attributable ' +
+  'cost of bringing the asset to the location and condition necessary for it to ' +
+  'operate. Subsequent costs are capitalised only when it is probable that future ' +
+  'economic benefits will flow to the enterprise.'
+
 function ReskinGallery() {
+  const [replayKey, setReplayKey] = useState(0)
+  const [answered, setAnswered] = useState(false)
   return (
     <div className="space-y-8 rounded-obj border border-rv-border bg-rv-bg-0 p-6 text-rv-ink-900">
       {/* Wordmark */}
@@ -105,7 +124,8 @@ function ReskinGallery() {
         <p className="font-literata text-[15px] text-rv-ink-900">
           Literata — reading bodies only.{' '}
           <span className="text-rv-ink-400">
-            (gate {REVISOP_LITERATA_ENABLED ? 'ON' : 'OFF'} — this line is the only place it renders this sprint)
+            (gate {REVISOP_LITERATA_ENABLED ? 'ON' : 'OFF'} — Sprint 6.4 activates it for long
+            flashcard answers ≥ 320 chars via lazy load; see the Study loop section below)
           </span>
         </p>
       </section>
@@ -419,6 +439,104 @@ function ReskinGallery() {
             <Switch /> Switch (off)
           </label>
         </div>
+      </section>
+
+      {/* ════════ Sprint 6.4 — Study loop: card frame + grade row + complete ════════ */}
+      <section className="space-y-4">
+        <Label>Study loop — the review card on the unified frame (r14, Plex, --rv-*)</Label>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => { setReplayKey((k) => k + 1); setAnswered(false) }}
+            className="rounded-rec border border-rv-navy-400 px-3 py-1.5 font-plex text-sm text-rv-navy"
+          >
+            Replay post-forward animation
+          </button>
+          <button
+            type="button"
+            onClick={() => setAnswered((a) => !a)}
+            className="rounded-rec border border-rv-navy-400 px-3 py-1.5 font-plex text-sm text-rv-navy"
+          >
+            {answered ? 'Show question side' : 'Reveal answer'}
+          </button>
+        </div>
+
+        <Card
+          key={replayKey}
+          elevated
+          className="max-w-2xl font-plex flex overflow-hidden rv-forward-in"
+        >
+          <VerifiedEdge on={answered} />
+          <div className="flex-1 p-8">
+            {!answered ? (
+              <div className="text-center">
+                <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
+                  QUESTION
+                </span>
+                <p className="mt-6 text-2xl font-semibold text-rv-ink-900">
+                  How is an item of PP&amp;E initially measured under AS 10?
+                </p>
+                <div className="mt-8">
+                  <Button size="lg" className="w-full min-h-[48px] gap-2">
+                    <Brain className="h-5 w-5" /> Show Answer
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-6 pb-6 border-b border-rv-border">
+                  <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
+                    QUESTION
+                  </span>
+                  <p className="mt-3 text-lg text-rv-ink-600">
+                    How is an item of PP&amp;E initially measured under AS 10?
+                  </p>
+                </div>
+                <div className="text-center mb-8">
+                  <span className="inline-block px-3 py-1 bg-rv-navy-50 text-rv-navy text-xs font-semibold tracking-wide rounded-rec">
+                    ANSWER
+                  </span>
+                  <p className="mt-4 font-literata font-normal leading-relaxed text-[1.35rem] text-rv-ink-900">
+                    {LONG_ANSWER}
+                  </p>
+                  <p className="mt-2 font-plex text-[12px] text-rv-ink-400">
+                    Reading body ≥ 320 chars → Literata (lazy). Shorter answers stay Plex.
+                  </p>
+                </div>
+                <div className="border-t border-rv-border pt-6">
+                  <GradeButtonRow
+                    grades={STUDY_GRADES}
+                    onGrade={() => {}}
+                    prompt="How well did you remember this?"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <Label>Revealed-answer correctness — glyph + label, never colour-coded</Label>
+        <div className="max-w-2xl space-y-2">
+          <AnswerOption text="Measured at cost — purchase price + directly attributable costs." index={0} state="correct" disabled />
+          <AnswerOption text="Measured at fair value on the acquisition date." index={1} state="missed" disabled />
+          <AnswerOption text="Measured at net realisable value." index={2} state="dim" disabled />
+        </div>
+
+        <Label>Session complete — on --rv-* + Plex</Label>
+        <Card elevated className="max-w-2xl font-plex p-10 text-center">
+          <Brain className="h-16 w-16 text-rv-navy mx-auto mb-3" />
+          <h3 className="text-2xl font-semibold text-rv-ink-900 mb-1">Study Session Complete!</h3>
+          <p className="text-rv-ink-600 mb-6">You reviewed 12 flashcards</p>
+          <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
+            {[['Easy', 7], ['Medium', 3], ['Hard', 2]].map(([k, n]) => (
+              <div key={k} className="rounded-rec border border-rv-border bg-rv-bg-1 p-3">
+                <div className="font-plex-mono text-xl font-medium text-rv-ink-900 [font-variant-numeric:tabular-nums]">{n}</div>
+                <div className="text-xs text-rv-ink-400">{k}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
       </section>
     </div>
   )

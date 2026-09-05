@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Card as RvCard, GradeButtonRow, VerifiedEdge } from '@/components/revisop';
+import { bucketForDays, isReadingBody } from '@/lib/revisop-tokens';
 import ContentPreviewWall from '@/components/ui/ContentPreviewWall';
 import FlagButton from '@/components/ui/FlagButton';
 import {
@@ -24,14 +26,15 @@ import {
   Brain,
   ArrowLeft,
   RotateCcw,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
+  Check,
+  X,
+  Minus,
   SkipForward,
   MoreVertical,
   PauseCircle,
   Trash2,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useSpeech } from '@/hooks/useSpeech';
 import SpeakButton from '@/components/flashcards/SpeakButton';
@@ -55,6 +58,9 @@ export default function StudyMode({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Post-forward animation gate — true briefly between a grade submit and the
+  // next card mounting (Sprint 6.4). Respects prefers-reduced-motion.
+  const [transitioning, setTransitioning] = useState(false);
   const [sessionStats, setSessionStats] = useState({
     easy: 0,
     medium: 0,
@@ -160,8 +166,29 @@ export default function StudyMode({
     };
   }, [flashcards, currentIndex, ladderCfg]);
 
-  const fmtInterval = (n, fallback) =>
-    n == null ? fallback : `Review in ${n} day${n === 1 ? '' : 's'}`;
+  // GradeButtonRow inputs — the neutral navy-outline row (no traffic-light colour).
+  // Each button's mono label is the real computed interval for THIS card's rung,
+  // read from the session-cached ladder config; `bucket` places the micro-ledger
+  // dot. rating is passed straight through to handleRating on click.
+  const gradeButtons = useMemo(() => {
+    const gp = gradePreview || { hard: 1, medium: 3, easy: 7 };
+    const mk = (label, rating, days) => ({
+      label,
+      rating,
+      iv: days == null ? '—' : `${days}d`,
+      bucket: bucketForDays(days),
+    });
+    return [
+      mk('Hard', 'hard', gp.hard),
+      mk('Medium', 'medium', gp.medium),
+      mk('Easy', 'easy', gp.easy),
+    ];
+  }, [gradePreview]);
+
+  const prefersReducedMotion = () =>
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const handleSpeakFront = () => {
     if (isSpeaking) {
@@ -341,17 +368,25 @@ export default function StudyMode({
       return;
     }
 
-    // 4. Advance to Next Card
-    if (currentIndex < flashcards.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setShowAnswer(false);
-    } else if (previewModeParam) {
-      // Preview mode: trigger ContentPreviewWall instead of navigating away
-      setCurrentIndex(flashcards.length);
-      setShowAnswer(false);
-    } else {
-      finishSession();
-    }
+    // 4. Advance to Next Card — after the post-forward animation plays out.
+    //    The answered card "files forward" (rv-forward-out); the next card
+    //    rises in on mount (rv-forward-in via key). Reduced-motion shortens
+    //    this to a 100ms opacity-only crossfade.
+    const gradedIndex = currentIndex;
+    setTransitioning(true);
+    setTimeout(() => {
+      setTransitioning(false);
+      if (gradedIndex < flashcards.length - 1) {
+        setCurrentIndex(gradedIndex + 1);
+        setShowAnswer(false);
+      } else if (previewModeParam) {
+        // Preview mode: trigger ContentPreviewWall instead of navigating away
+        setCurrentIndex(flashcards.length);
+        setShowAnswer(false);
+      } else {
+        finishSession();
+      }
+    }, prefersReducedMotion() ? 100 : 240);
   };
 
   // ============================================================
@@ -729,19 +764,19 @@ export default function StudyMode({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]"></div>
+      <div className="min-h-screen flex items-center justify-center bg-rv-bg-0">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rv-navy"></div>
       </div>
     );
   }
 
   if (flashcards.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-rv-bg-0 font-plex flex items-center justify-center">
         <div className="text-center">
-          <Brain className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">No flashcards to study</h2>
-          <p className="text-gray-600 mb-6">No flashcards found for this selection</p>
+          <Brain className="h-16 w-16 text-rv-ink-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-semibold text-rv-ink-900 mb-2">No flashcards to study</h2>
+          <p className="text-rv-ink-600 mb-6">No flashcards found for this selection</p>
           <div className="flex flex-col gap-2">
             <Button onClick={handleExit}>
               Choose Different Subject
@@ -760,8 +795,8 @@ export default function StudyMode({
   const progress = ((currentIndex + 1) / progressDenominator) * 100;
 
   return (
-    <div className="min-h-screen bg-amber-50">
-      <header className="bg-white border-b border-gray-200">
+    <div className="min-h-screen bg-rv-bg-0 font-plex">
+      <header className="bg-rv-bg-1 border-b border-rv-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Button variant="ghost" onClick={handleExit} className="gap-2">
@@ -769,7 +804,7 @@ export default function StudyMode({
               Back to Selection
             </Button>
             <div className="flex items-center gap-2 sm:gap-4">
-              <div className="text-sm text-gray-600">
+              <div className="font-plex-mono text-sm text-rv-ink-600 [font-variant-numeric:tabular-nums]">
                 Card {currentIndex + 1} of {flashcards.length}
               </div>
               <Button variant="outline" size="sm" onClick={restartSession} className="gap-2">
@@ -781,35 +816,35 @@ export default function StudyMode({
         </div>
       </header>
 
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-rv-bg-1 border-b border-rv-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           {previewModeParam && (
             <div className="flex items-center justify-center mb-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold rounded-full">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rv-navy-50 border border-rv-navy-100 text-rv-navy text-xs font-semibold rounded-rec">
                 PREVIEW MODE — first {PREVIEW_LIMIT} of {totalCardsParam || PREVIEW_LIMIT} items
               </span>
             </div>
           )}
           <div className="relative">
-            <div className="overflow-hidden h-2 text-xs flex rounded-full bg-gray-200">
+            <div className="overflow-hidden h-2 flex rounded-full bg-rv-bg-2">
               <div
                 style={{ width: `${progress}%` }}
-                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-[#1e1b4b] transition-all duration-300"
+                className="flex flex-col justify-center bg-rv-navy transition-all duration-300"
               />
             </div>
           </div>
-          <div className="flex justify-between mt-2 text-xs text-gray-600">
+          <div className="flex justify-between mt-2 font-plex-mono text-xs text-rv-ink-400 [font-variant-numeric:tabular-nums]">
             <div className="flex items-center gap-1">
-              <CheckCircle className="h-3 w-3 text-green-600" />
-              <span>Easy: {sessionStats.easy}</span>
+              <Check className="h-3 w-3" />
+              <span>Easy {sessionStats.easy}</span>
             </div>
             <div className="flex items-center gap-1">
-              <AlertCircle className="h-3 w-3 text-yellow-600" />
-              <span>Medium: {sessionStats.medium}</span>
+              <Minus className="h-3 w-3" />
+              <span>Medium {sessionStats.medium}</span>
             </div>
             <div className="flex items-center gap-1">
-              <XCircle className="h-3 w-3 text-red-600" />
-              <span>Hard: {sessionStats.hard}</span>
+              <X className="h-3 w-3" />
+              <span>Hard {sessionStats.hard}</span>
             </div>
           </div>
         </div>
@@ -818,13 +853,13 @@ export default function StudyMode({
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {isComplete ? (
           previewModeParam ? (
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="p-8 text-center border-b border-gray-100">
-                <Brain className="h-12 w-12 text-amber-400 mx-auto mb-3" />
-                <h2 className="text-xl font-bold text-gray-900 mb-1">
+            <RvCard elevated className="font-plex overflow-hidden">
+              <div className="p-8 text-center border-b border-rv-border">
+                <Brain className="h-12 w-12 text-rv-ink-400 mx-auto mb-3" />
+                <h2 className="text-xl font-semibold text-rv-ink-900 mb-1">
                   You&apos;ve previewed {PREVIEW_LIMIT} items
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-rv-ink-400">
                   Get full access to study the complete set
                 </p>
               </div>
@@ -833,39 +868,39 @@ export default function StudyMode({
                 contentType="flashcard_deck"
                 contentName={null}
               />
-              <div className="p-6 text-center border-t border-gray-100">
+              <div className="p-6 text-center border-t border-rv-border">
                 <Button variant="outline" onClick={handleExit}>
                   Back to Study Sets
                 </Button>
               </div>
-            </div>
+            </RvCard>
           ) : (
-          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+          <RvCard elevated className="font-plex p-12 text-center">
             <div className="mb-6">
-              <Brain className="h-20 w-20 text-amber-600 mx-auto mb-4" />
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              <Brain className="h-20 w-20 text-rv-navy mx-auto mb-4" />
+              <h2 className="text-3xl font-semibold text-rv-ink-900 mb-2">
                 Study Session Complete!
               </h2>
-              <p className="text-gray-600">
+              <p className="text-rv-ink-600">
                 You reviewed {flashcards.length} flashcards
               </p>
             </div>
 
             <div className="grid grid-cols-3 gap-4 mb-8 max-w-md mx-auto">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-green-900">{sessionStats.easy}</div>
-                <div className="text-sm text-green-700">Easy</div>
+              <div className="rounded-rec border border-rv-border bg-rv-bg-1 p-4">
+                <Check className="h-8 w-8 text-rv-ink-600 mx-auto mb-2" />
+                <div className="font-plex-mono text-2xl font-medium text-rv-ink-900 [font-variant-numeric:tabular-nums]">{sessionStats.easy}</div>
+                <div className="text-sm text-rv-ink-400">Easy</div>
               </div>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <AlertCircle className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-yellow-900">{sessionStats.medium}</div>
-                <div className="text-sm text-yellow-700">Medium</div>
+              <div className="rounded-rec border border-rv-border bg-rv-bg-1 p-4">
+                <Minus className="h-8 w-8 text-rv-ink-600 mx-auto mb-2" />
+                <div className="font-plex-mono text-2xl font-medium text-rv-ink-900 [font-variant-numeric:tabular-nums]">{sessionStats.medium}</div>
+                <div className="text-sm text-rv-ink-400">Medium</div>
               </div>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-red-900">{sessionStats.hard}</div>
-                <div className="text-sm text-red-700">Hard</div>
+              <div className="rounded-rec border border-rv-slate bg-rv-slate-50 p-4">
+                <X className="h-8 w-8 text-rv-slate mx-auto mb-2" />
+                <div className="font-plex-mono text-2xl font-medium text-rv-ink-900 [font-variant-numeric:tabular-nums]">{sessionStats.hard}</div>
+                <div className="text-sm text-rv-slate">Hard</div>
               </div>
             </div>
 
@@ -878,13 +913,13 @@ export default function StudyMode({
                 {onExit ? 'Exit Review' : 'Choose Different Topic'}
               </Button>
             </div>
-          </div>
+          </RvCard>
           )
         ) : (
           <div>
             {(currentCard.subjects || currentCard.custom_subject) && (
               <div className="text-center mb-4">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-rv-ink-400">
                   {currentCard.subjects?.name || currentCard.custom_subject}
                   {(currentCard.topics?.name || currentCard.custom_topic) &&
                     ` • ${currentCard.topics?.name || currentCard.custom_topic}`
@@ -893,11 +928,20 @@ export default function StudyMode({
               </div>
             )}
 
-            <div className="bg-white rounded-xl shadow-xl p-8 md:p-12 min-h-[400px] flex flex-col justify-center items-center">
+            <RvCard
+              elevated
+              key={currentIndex}
+              className={cn(
+                'font-plex flex min-h-[400px] overflow-hidden',
+                transitioning ? 'rv-forward-out' : 'rv-forward-in',
+              )}
+            >
+              <VerifiedEdge on={showAnswer && !!currentCard.is_verified} />
+              <div className="flex-1 p-8 md:p-12 flex flex-col justify-center items-center">
               {!showAnswer ? (
                 <div className="w-full text-center">
                   <div className="mb-6 flex items-center justify-center gap-2">
-                    <span className="inline-block px-3 py-1 bg-amber-100 text-amber-700 text-sm font-semibold rounded-full">
+                    <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
                       QUESTION
                     </span>
                     {currentCard.front_text && (
@@ -921,11 +965,11 @@ export default function StudyMode({
                     <img
                       src={currentCard.front_image_url}
                       alt="Question"
-                      className="max-w-full h-auto max-h-64 mx-auto rounded-lg mb-6 shadow-md"
+                      className="max-w-full h-auto max-h-64 mx-auto rounded-rec mb-6 shadow-rv"
                     />
                   )}
 
-                  <p className="text-2xl md:text-3xl font-semibold text-gray-900 mb-8 whitespace-pre-wrap">
+                  <p className="text-2xl md:text-3xl font-semibold text-rv-ink-900 mb-8 whitespace-pre-wrap">
                     {currentCard.front_text}
                   </p>
 
@@ -933,20 +977,24 @@ export default function StudyMode({
                     <Button
                       variant="outline"
                       onClick={handleSkip}
-                      className="gap-2 text-gray-600 hover:text-orange-600 hover:border-orange-300"
+                      className="gap-2"
                     >
                       <SkipForward className="h-4 w-4" />
                       Skip 24hr
                     </Button>
 
-                    <Button onClick={() => setShowAnswer(true)} size="lg" className="gap-2 px-8">
+                    <Button
+                      onClick={() => setShowAnswer(true)}
+                      size="lg"
+                      className="gap-2 px-8 min-h-[48px]"
+                    >
                       <Brain className="h-5 w-5" />
                       Show Answer
                     </Button>
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon" className="text-gray-500">
+                        <Button variant="outline" size="icon" className="text-rv-ink-400">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -994,9 +1042,9 @@ export default function StudyMode({
                 </div>
               ) : (
                 <div className="w-full">
-                  <div className="mb-6 pb-6 border-b border-gray-200">
+                  <div className="mb-6 pb-6 border-b border-rv-border">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-full">
+                      <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
                         QUESTION
                       </span>
                       {currentCard.front_text && (
@@ -1007,14 +1055,14 @@ export default function StudyMode({
                         />
                       )}
                     </div>
-                    <p className="text-lg text-gray-700 whitespace-pre-wrap">
+                    <p className="text-lg text-rv-ink-600 whitespace-pre-wrap">
                       {currentCard.front_text}
                     </p>
                   </div>
 
                   <div className="text-center mb-8">
                     <div className="flex items-center justify-center gap-2 mb-4">
-                      <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-sm font-semibold rounded-full">
+                      <span className="inline-block px-3 py-1 bg-rv-navy-50 text-rv-navy text-xs font-semibold tracking-wide rounded-rec">
                         ANSWER
                       </span>
                       {currentCard.back_text && (
@@ -1030,60 +1078,34 @@ export default function StudyMode({
                       <img
                         src={currentCard.back_image_url}
                         alt="Answer"
-                        className="max-w-full h-auto max-h-64 mx-auto rounded-lg mb-4 shadow-md"
+                        className="max-w-full h-auto max-h-64 mx-auto rounded-rec mb-4 shadow-rv"
                       />
                     )}
 
                     {currentCard.back_text ? (
-                      <p className="text-xl md:text-2xl font-semibold text-gray-900 whitespace-pre-wrap">
+                      <p
+                        className={cn(
+                          'text-xl md:text-2xl font-semibold text-rv-ink-900 whitespace-pre-wrap',
+                          isReadingBody(currentCard.back_text) &&
+                            'font-literata font-normal leading-relaxed text-[1.35rem]',
+                        )}
+                      >
                         {currentCard.back_text}
                       </p>
                     ) : (
-                      <p className="text-lg text-gray-500 italic">
+                      <p className="text-lg text-rv-ink-400 italic">
                         No written answer - refer to image
                       </p>
                     )}
                   </div>
 
-                  <div className="border-t border-gray-200 pt-6">
-                    <p className="text-center text-sm text-gray-600 mb-4">
-                      How well did you remember this?
-                    </p>
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                      <Button
-                        onClick={() => handleRating('hard')}
-                        variant="outline"
-                        className="flex flex-col gap-2 h-auto py-4 border-red-300 hover:bg-red-50 hover:border-red-400"
-                      >
-                        <XCircle className="h-6 w-6 text-red-600" />
-                        <span className="font-semibold">Hard</span>
-                        <span className="text-xs text-gray-500">
-                          {fmtInterval(gradePreview?.hard, 'Review in 1 day')}
-                        </span>
-                      </Button>
-                      <Button
-                        onClick={() => handleRating('medium')}
-                        variant="outline"
-                        className="flex flex-col gap-2 h-auto py-4 border-yellow-300 hover:bg-yellow-50 hover:border-yellow-400"
-                      >
-                        <AlertCircle className="h-6 w-6 text-yellow-600" />
-                        <span className="font-semibold">Medium</span>
-                        <span className="text-xs text-gray-500">
-                          {fmtInterval(gradePreview?.medium, 'Review in 3 days')}
-                        </span>
-                      </Button>
-                      <Button
-                        onClick={() => handleRating('easy')}
-                        variant="outline"
-                        className="flex flex-col gap-2 h-auto py-4 border-green-300 hover:bg-green-50 hover:border-green-400"
-                      >
-                        <CheckCircle className="h-6 w-6 text-green-600" />
-                        <span className="font-semibold">Easy</span>
-                        <span className="text-xs text-gray-500">
-                          {fmtInterval(gradePreview?.easy, 'Review in 7 days')}
-                        </span>
-                      </Button>
-                    </div>
+                  <div className="border-t border-rv-border pt-6">
+                    <GradeButtonRow
+                      grades={gradeButtons}
+                      onGrade={(g) => handleRating(g.rating)}
+                      prompt="How well did you remember this?"
+                      className="mb-4"
+                    />
 
                     {/* Skip/More actions also available on answer side */}
                     <div className="flex items-center justify-center gap-3 pt-2">
@@ -1091,7 +1113,7 @@ export default function StudyMode({
                         variant="ghost"
                         size="sm"
                         onClick={handleSkip}
-                        className="gap-1 text-xs text-gray-500 hover:text-orange-600"
+                        className="gap-1 text-xs text-rv-ink-400"
                       >
                         <SkipForward className="h-3 w-3" />
                         Skip 24hr
@@ -1148,10 +1170,11 @@ export default function StudyMode({
                   </div>
                 </div>
               )}
-            </div>
+              </div>
+            </RvCard>
 
             <div className="text-center mt-6">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-rv-ink-400">
                 {showAnswer
                   ? "Rate how well you remembered to continue"
                   : "Try to recall the answer before revealing it"}

@@ -5,9 +5,10 @@ import { cn } from '@/lib/utils'
  * AnswerOption — a single choice row and its answered/verified treatment.
  *
  * Correctness is shown WITHOUT traffic-light colour: a check or cross glyph plus
- * a "Correct answer" / "You chose this" label. A miss renders in slate, never
- * red (red #b91c1c is reserved for delete-confirmations). Record radius (r4),
- * ≥56px target. Presentational only (Sprint 6.1).
+ * a "Correct answer" / "You chose this" label. The correct row reads in neutral
+ * navy ink (never green); a miss renders in slate (never red — red #b91c1c is
+ * reserved for delete-confirmations). Record radius (r4), ≥56px target.
+ * Presentational only (Sprint 6.1; green removed from `correct` in 6.4).
  *
  * Props:
  *  - text       (node)     the option body
@@ -22,14 +23,14 @@ const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 const SHELL = {
   idle: 'border-rv-border bg-rv-bg-1 text-rv-ink-900',
   selected: 'border-rv-navy-400 bg-rv-navy-50 text-rv-ink-900',
-  correct: 'border-rv-green bg-rv-green-50 text-rv-ink-900',
+  correct: 'border-rv-navy bg-rv-navy-50 text-rv-ink-900',
   missed: 'border-rv-slate bg-rv-slate-50 text-rv-ink-900',
   dim: 'border-rv-border bg-rv-bg-1 text-rv-ink-400',
 }
 const BADGE = {
   idle: 'bg-rv-bg-2 text-rv-ink-600',
   selected: 'bg-rv-navy text-rv-bg-1',
-  correct: 'bg-rv-green text-white',
+  correct: 'bg-rv-navy text-rv-bg-1',
   missed: 'bg-rv-slate text-white',
   dim: 'bg-rv-bg-2 text-rv-ink-400',
 }
@@ -74,7 +75,7 @@ export default function AnswerOption({
       </span>
       <span className="flex-1">{text}</span>
       {state === 'correct' ? (
-        <span className="whitespace-nowrap font-plex text-[11.5px] font-medium text-rv-green">
+        <span className="whitespace-nowrap font-plex text-[11.5px] font-medium text-rv-navy">
           Correct answer
         </span>
       ) : null}

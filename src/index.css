@@ -243,4 +243,27 @@
       transition: none;
     }
   }
+
+  /* ── Study-loop post-forward animation (Sprint 6.4) ──────────────────────────
+     On grade submit the answered card "files forward" up-and-back; the next card
+     rises in. Reduced-motion collapses both to a fast opacity-only crossfade. */
+  @keyframes rv-forward-out {
+    to { opacity: 0; transform: translateY(-10px) scale(0.97); }
+  }
+  @keyframes rv-forward-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .rv-forward-out {
+    animation: rv-forward-out 240ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  .rv-forward-in {
+    animation: rv-forward-in 180ms cubic-bezier(0.4, 0, 0.2, 1) 120ms both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    @keyframes rv-forward-out { to { opacity: 0; } }
+    @keyframes rv-forward-in  { from { opacity: 0; } to { opacity: 1; } }
+    .rv-forward-out { animation-duration: 100ms; animation-timing-function: linear; }
+    .rv-forward-in  { animation-duration: 100ms; animation-delay: 0ms; animation-timing-function: linear; }
+  }
 }
