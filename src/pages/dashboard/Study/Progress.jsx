@@ -29,9 +29,21 @@ import { useCourseContext } from '@/contexts/CourseContext';
 import PageContainer from '@/components/layout/PageContainer';
 import StudyHeatmap from '@/components/progress/StudyHeatmap';
 import SubjectMasteryTable from '@/components/progress/SubjectMasteryTable';
+import { Num, Label } from '@/components/revisop';
+
+// The Num atom's type treatment without its fixed ink-900 colour — for numerals
+// that must take a semantic tone (Tailwind orders `.text-rv-ink-900` after the
+// tone utilities, so an appended tone class on <Num> would lose).
+const NUM_TYPE = 'font-plex-mono font-medium [font-variant-numeric:tabular-nums]';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const formatLocalDate = (date) => new Date(date).toLocaleDateString('en-CA');
+
+// "Due Today" only becomes a red-alarm surface above a genuine backlog. A normal
+// daily review pile for an active student sits well under this; past it the pile
+// needs triage, which is when the danger treatment earns its place. Sprint 6.5
+// (the Sprint 6.0 note referenced ~24).
+const DUE_TODAY_ALARM_THRESHOLD = 24;
 
 const WINDOW_OPTIONS = [
   { key: '7d',  label: 'Last 7 Days' },
@@ -130,13 +142,12 @@ export default function MyProgress() {
       setLifetimeLoading(true);
       try {
         const streak = await calculateStudyStreak(user.id);
-        const { data: allReviews } = await supabase
-          .from('reviews')
-          .select('flashcard_id')
-          .eq('user_id', user.id)
-          .eq('status', 'active');
-        const mastered = new Set(allReviews?.map((r) => r.flashcard_id)).size;
-        setLifetimeStats({ streak, mastered });
+        // "Items Mastered" = the SSOT count (reviews.status='mastered' via the SRS
+        // ladder) — the exact source the dashboard "Mastered" tile and this page's
+        // own "Mastered Items (N)" list use. Sprint 6.5 re-point (was the old
+        // "distinct cards ever reviewed" proxy).
+        const { data: masteredRows } = await supabase.rpc('get_mastered_cards', { p_user_id: user.id });
+        setLifetimeStats({ streak, mastered: (masteredRows || []).length });
       } finally {
         setLifetimeLoading(false);
       }
@@ -307,21 +318,21 @@ export default function MyProgress() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <PageContainer width="full">
+    <PageContainer width="full" className="font-plex">
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">My Progress</h1>
+        <h1 className="text-2xl font-bold text-rv-ink-900">My Progress</h1>
 
         {/* Time-window selector */}
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-rv-bg-2 rounded-lg p-1">
           {WINDOW_OPTIONS.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setWindow(key)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 window === key
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-rv-bg-1 text-rv-ink-900 shadow-rv'
+                  : 'text-rv-ink-400 hover:text-rv-ink-600'
               }`}
             >
               {label}
@@ -333,7 +344,7 @@ export default function MyProgress() {
       {/* Content partition tabs */}
       <div>
         {/* Tab buttons */}
-        <div className="inline-flex h-10 items-center justify-center rounded-md bg-gray-100 p-1 mb-6">
+        <div className="inline-flex h-10 items-center justify-center rounded-md bg-rv-bg-2 p-1 mb-6">
           {[
             { value: 'all', label: 'All My Content' },
             { value: 'course', label: `Course: ${courseLabel}` },
@@ -343,8 +354,8 @@ export default function MyProgress() {
               onClick={() => setTab(value)}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all ${
                 tab === value
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-rv-bg-1 text-rv-ink-900 shadow-rv'
+                  : 'text-rv-ink-400 hover:text-rv-ink-600'
               }`}
             >
               {label}
@@ -385,14 +396,14 @@ export default function MyProgress() {
         {tab === 'course' && (
           <div className="space-y-6">
             {courseOptions.length === 0 ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
-                <BookOpen className="h-8 w-8 text-amber-400 mx-auto mb-3" />
-                <p className="text-sm font-medium text-[#1e1b4b] mb-1">No course set</p>
-                <p className="text-sm text-amber-700 mb-4">
+              <div className="bg-rv-navy-50 border border-rv-border rounded-lg p-6 text-center">
+                <BookOpen className="h-8 w-8 text-rv-ink-400 mx-auto mb-3" />
+                <p className="text-sm font-medium text-rv-ink-900 mb-1">No course set</p>
+                <p className="text-sm text-rv-ink-400 mb-4">
                   Select your course in Settings to see course-specific progress.
                 </p>
                 <Link to="/dashboard/settings">
-                  <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100">
+                  <Button size="sm" variant="outline" className="border-rv-navy-400 text-rv-navy hover:bg-rv-bg-2">
                     Go to Settings
                   </Button>
                 </Link>
@@ -402,7 +413,7 @@ export default function MyProgress() {
                 {/* Course selector — shown only when user has 2+ courses */}
                 {courseOptions.length > 1 && (
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-500 shrink-0">Viewing course:</span>
+                    <span className="text-sm text-rv-ink-400 shrink-0">Viewing course:</span>
                     <div className="flex flex-wrap gap-2">
                       {courseOptions.map((name) => (
                         <button
@@ -410,8 +421,8 @@ export default function MyProgress() {
                           onClick={() => setSelectedCourse(name)}
                           className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
                             selectedCourse === name
-                              ? 'bg-[#1e1b4b] text-white border-[#1e1b4b]'
-                              : 'bg-white text-gray-600 border-gray-300 hover:border-amber-400 hover:text-amber-600'
+                              ? 'bg-rv-navy text-white border-rv-navy'
+                              : 'bg-rv-bg-1 text-rv-ink-600 border-rv-border hover:border-rv-navy-400 hover:text-rv-navy'
                           }`}
                         >
                           {name}
@@ -461,7 +472,7 @@ export default function MyProgress() {
             <DialogDescription>
               This card will be reactivated and scheduled for review today.
               {unsuspendDialog.card && (
-                <span className="block mt-2 font-medium text-gray-700">
+                <span className="block mt-2 font-medium text-rv-ink-600">
                   &ldquo;{unsuspendDialog.card.front_text?.substring(0, 100)}
                   {unsuspendDialog.card.front_text?.length > 100 ? '...' : ''}&rdquo;
                 </span>
@@ -498,6 +509,7 @@ function ProgressBody({
   masteredCards, masteredLoading, masteredExpanded, setMasteredExpanded, groupedMastered,
 }) {
   const windowLabel = window === '7d' ? 'Last 7 days' : window === '30d' ? 'Last 30 days' : 'All time';
+  const dueToday = forecast?.due_today ?? 0;
 
   return (
     <>
@@ -535,28 +547,28 @@ function ProgressBody({
 
       {/* ── Due Items Forecast ─────────────────────────────────────────────── */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          Due Items Forecast
-        </h2>
+        <Label className="mb-3">Due Items Forecast</Label>
         <div className="grid grid-cols-3 gap-4">
           <ForecastCard
             label="Due Today"
-            value={forecastLoading ? null : (forecast?.due_today ?? 0)}
-            accent={
-              (forecast?.due_today ?? 0) > 0
-                ? 'text-red-600 bg-red-50 border-red-200'
-                : 'text-green-700 bg-green-50 border-green-200'
+            value={forecastLoading ? null : dueToday}
+            tone={
+              dueToday === 0
+                ? 'calm'
+                : dueToday > DUE_TODAY_ALARM_THRESHOLD
+                ? 'danger'
+                : 'neutral'
             }
           />
           <ForecastCard
             label="Next 7 Days"
             value={forecastLoading ? null : (forecast?.due_next_7 ?? 0)}
-            accent="text-amber-600 bg-amber-50 border-amber-200"
+            tone="amber"
           />
           <ForecastCard
             label="Next 30 Days"
             value={forecastLoading ? null : (forecast?.due_next_30 ?? 0)}
-            accent="text-amber-600 bg-amber-50 border-amber-200"
+            tone="amber"
           />
         </div>
       </div>
@@ -573,26 +585,24 @@ function ProgressBody({
 
       {/* ── Question Type Performance ──────────────────────────────────────── */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          Performance by Question Type
-        </h2>
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <Label className="mb-3">Performance by Question Type</Label>
+        <div className="bg-rv-bg-1 rounded-lg border border-rv-border overflow-hidden">
           {qtLoading ? (
             <div className="p-4 space-y-3 animate-pulse">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <div className="h-4 w-28 bg-gray-100 rounded" />
-                  <div className="flex-1 h-2 bg-gray-100 rounded" />
-                  <div className="h-4 w-10 bg-gray-100 rounded" />
+                  <div className="h-4 w-28 bg-rv-bg-2 rounded" />
+                  <div className="flex-1 h-2 bg-rv-bg-2 rounded" />
+                  <div className="h-4 w-10 bg-rv-bg-2 rounded" />
                 </div>
               ))}
             </div>
           ) : qtPerf.length === 0 ? (
-            <div className="p-6 text-center text-sm text-gray-400">
+            <div className="p-6 text-center text-sm text-rv-ink-400">
               No review data yet.
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-rv-border">
               {qtPerf.map((row) => (
                 <QuestionTypeRow key={row.question_type} row={row} />
               ))}
@@ -606,37 +616,37 @@ function ProgressBody({
         <div>
           <button
             onClick={() => setSuspendedExpanded(!suspendedExpanded)}
-            className="w-full flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg p-4 hover:bg-amber-100 transition-colors"
+            className="w-full flex items-center justify-between bg-rv-navy-50 border border-rv-border rounded-lg p-4 hover:bg-rv-bg-2 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <PauseCircle className="h-5 w-5 text-amber-600" />
+              <PauseCircle className="h-5 w-5 text-rv-navy" />
               <div className="text-left">
-                <h3 className="font-semibold text-amber-900">
+                <h3 className="font-semibold text-rv-ink-900">
                   Suspended Items ({suspendedCards.length})
                 </h3>
-                <p className="text-xs text-amber-700">These items are hidden from your review queue</p>
+                <p className="text-xs text-rv-ink-400">These items are hidden from your review queue</p>
               </div>
             </div>
             {suspendedExpanded
-              ? <ChevronDown className="h-5 w-5 text-amber-600" />
-              : <ChevronRight className="h-5 w-5 text-amber-600" />
+              ? <ChevronDown className="h-5 w-5 text-rv-navy" />
+              : <ChevronRight className="h-5 w-5 text-rv-navy" />
             }
           </button>
 
           {suspendedExpanded && (
             <div className="mt-2 space-y-4">
               {Object.entries(groupedSuspended).map(([subject, cards]) => (
-                <div key={subject} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                    <h4 className="text-sm font-semibold text-gray-700">{subject} ({cards.length})</h4>
+                <div key={subject} className="bg-rv-bg-1 border border-rv-border rounded-lg overflow-hidden">
+                  <div className="bg-rv-bg-2 px-4 py-2 border-b border-rv-border">
+                    <h4 className="text-sm font-semibold text-rv-ink-600">{subject} ({cards.length})</h4>
                   </div>
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-rv-border">
                     {cards.map((card) => (
                       <div key={card.flashcard_id} className="px-4 py-3 flex items-center justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{card.front_text}</p>
+                          <p className="text-sm font-medium text-rv-ink-900 truncate">{card.front_text}</p>
                           {card.topic_name && (
-                            <p className="text-xs text-gray-500 mt-0.5">{card.topic_name}</p>
+                            <p className="text-xs text-rv-ink-400 mt-0.5">{card.topic_name}</p>
                           )}
                         </div>
                         <Button
@@ -663,42 +673,42 @@ function ProgressBody({
         <div>
           <button
             onClick={() => setMasteredExpanded(!masteredExpanded)}
-            className="w-full flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-4 hover:bg-green-100 transition-colors"
+            className="w-full flex items-center justify-between bg-rv-green-50 border border-rv-border rounded-lg p-4 hover:bg-rv-bg-2 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <Award className="h-5 w-5 text-green-600" />
+              <Award className="h-5 w-5 text-rv-green" />
               <div className="text-left">
-                <h3 className="font-semibold text-green-900">
+                <h3 className="font-semibold text-rv-green">
                   Mastered Items ({masteredCards.length})
                 </h3>
-                <p className="text-xs text-green-700">
+                <p className="text-xs text-rv-ink-400">
                   You&apos;ve nailed these — they&apos;ve left your daily reviews. Grade one again anytime to bring it back.
                 </p>
               </div>
             </div>
             {masteredExpanded
-              ? <ChevronDown className="h-5 w-5 text-green-600" />
-              : <ChevronRight className="h-5 w-5 text-green-600" />
+              ? <ChevronDown className="h-5 w-5 text-rv-green" />
+              : <ChevronRight className="h-5 w-5 text-rv-green" />
             }
           </button>
 
           {masteredExpanded && (
             <div className="mt-2 space-y-4">
               {Object.entries(groupedMastered).map(([subject, cards]) => (
-                <div key={subject} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                    <h4 className="text-sm font-semibold text-gray-700">{subject} ({cards.length})</h4>
+                <div key={subject} className="bg-rv-bg-1 border border-rv-border rounded-lg overflow-hidden">
+                  <div className="bg-rv-bg-2 px-4 py-2 border-b border-rv-border">
+                    <h4 className="text-sm font-semibold text-rv-ink-600">{subject} ({cards.length})</h4>
                   </div>
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-rv-border">
                     {cards.map((card) => (
                       <div key={card.flashcard_id} className="px-4 py-3 flex items-center justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{card.front_text}</p>
+                          <p className="text-sm font-medium text-rv-ink-900 truncate">{card.front_text}</p>
                           {card.topic_name && (
-                            <p className="text-xs text-gray-500 mt-0.5">{card.topic_name}</p>
+                            <p className="text-xs text-rv-ink-400 mt-0.5">{card.topic_name}</p>
                           )}
                         </div>
-                        <span className="inline-flex items-center gap-1 shrink-0 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">
+                        <span className="inline-flex items-center gap-1 shrink-0 text-xs font-medium text-rv-green bg-rv-green-50 border border-rv-border rounded-full px-2.5 py-1">
                           <Award className="h-3.5 w-3.5" />
                           Mastered
                         </span>
@@ -714,9 +724,9 @@ function ProgressBody({
 
       {/* Empty state */}
       {!statsLoading && windowStats.reviewed === 0 && suspendedCards.length === 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
-          <p className="text-[#1e1b4b] mb-1 font-medium">No reviews yet!</p>
-          <p className="text-sm text-amber-700">Start reviewing items to see your progress statistics.</p>
+        <div className="bg-rv-navy-50 border border-rv-border rounded-lg p-6 text-center">
+          <p className="text-rv-ink-900 mb-1 font-medium">No reviews yet!</p>
+          <p className="text-sm text-rv-ink-400">Start reviewing items to see your progress statistics.</p>
         </div>
       )}
     </>
@@ -726,28 +736,41 @@ function ProgressBody({
 // ─── Small reusable sub-components ───────────────────────────────────────────
 function StatCard({ icon, value, label, sub, loading }) {
   return (
-    <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+    <div className="bg-rv-bg-1 p-5 rounded-lg shadow-rv border border-rv-border">
       <div className="flex items-center justify-between mb-3">
         {icon}
-        <span className="text-2xl font-bold text-gray-900">
-          {loading ? <span className="text-gray-300 animate-pulse">—</span> : value}
-        </span>
+        <Num className="text-2xl text-rv-ink-900">
+          {loading ? <span className="text-rv-ink-400 animate-pulse">—</span> : value}
+        </Num>
       </div>
-      <h3 className="text-sm font-medium text-gray-600">{label}</h3>
-      <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+      <h3 className="text-sm font-medium text-rv-ink-600">{label}</h3>
+      <p className="text-xs text-rv-ink-400 mt-0.5">{sub}</p>
     </div>
   );
 }
 
-function ForecastCard({ label, value, accent }) {
+// Due Items Forecast tile. `tone` drives colour:
+//   calm    → nothing due today (positive, muted green)
+//   neutral → a normal daily pile (no alarm)
+//   amber   → forward-looking 7 / 30-day counts
+//   danger  → Due Today past DUE_TODAY_ALARM_THRESHOLD (genuine backlog)
+const FORECAST_TONES = {
+  calm:    { box: 'bg-rv-green-50 border-rv-border',     text: 'text-rv-green' },
+  neutral: { box: 'bg-rv-bg-1 border-rv-border',         text: 'text-rv-ink-900' },
+  amber:   { box: 'bg-rv-amber-50 border-rv-amber-edge', text: 'text-rv-amber-ink' },
+  danger:  { box: 'bg-rv-bg-1 border-rv-danger',         text: 'text-rv-danger' },
+};
+
+function ForecastCard({ label, value, tone }) {
+  const t = FORECAST_TONES[tone] ?? FORECAST_TONES.neutral;
   return (
-    <div className={`rounded-lg border p-4 text-center ${accent}`}>
+    <div className={`rounded-lg border p-4 text-center ${t.box} ${t.text}`}>
       <div className="flex items-center justify-center gap-1 mb-1">
         <Clock className="h-4 w-4 opacity-70" />
       </div>
-      <p className="text-2xl font-bold leading-none mb-1">
+      <span className={`block ${NUM_TYPE} text-2xl leading-none mb-1 ${t.text}`}>
         {value === null ? <span className="animate-pulse">—</span> : value}
-      </p>
+      </span>
       <p className="text-xs font-medium opacity-80">{label}</p>
     </div>
   );
@@ -758,16 +781,18 @@ function QuestionTypeRow({ row }) {
   return (
     <div className="px-4 py-3 flex items-center gap-3">
       <div className="w-32 shrink-0">
-        <p className="text-sm font-medium text-gray-800 truncate">{qtLabel(row.question_type)}</p>
-        <p className="text-xs text-gray-400">{row.reviewed_count} / {row.total_cards_available} reviewed</p>
+        <p className="text-sm font-medium text-rv-ink-900 truncate">{qtLabel(row.question_type)}</p>
+        <p className="text-xs text-rv-ink-400">
+          <span className={NUM_TYPE}>{row.reviewed_count}</span> / <span className={NUM_TYPE}>{row.total_cards_available}</span> reviewed
+        </p>
       </div>
-      <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+      <div className="flex-1 bg-rv-slate-50 rounded-full h-2 overflow-hidden">
         <div
-          className="h-2 rounded-full bg-amber-500 transition-all"
+          className="h-2 rounded-full bg-rv-navy transition-all"
           style={{ width: `${Math.min(pct, 100)}%` }}
         />
       </div>
-      <span className="text-sm font-semibold text-gray-700 w-12 text-right shrink-0">{pct}%</span>
+      <Num className="text-sm font-semibold w-12 text-right shrink-0">{pct}%</Num>
     </div>
   );
 }

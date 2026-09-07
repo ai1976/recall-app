@@ -1,5 +1,36 @@
 # Bug Tracking
 
+## Sprint 6.5 — 07/09/2026 (Phase 6 live-verification close-out)
+
+### [07/09/2026] Finding 1 — `Progress.jsx` un-migrated + stale "Items Mastered" + over-eager "Due Today" — ✅ FIXED (frontend)
+- **Symptom (live, `/dashboard/progress`, all roles):**
+  1. "Items Mastered" stat tile = **28** (professor) / **29** (student), while the SSOT (`reviews.status='mastered'`) = **1** for that student, and the same page's own "Mastered Items (1)" list section is correct. The tile still read the old "distinct cards ever reviewed" proxy — it was never re-pointed when the dashboard "Mastered" tile was in Sprint 6.3.
+  2. "Due Items Forecast" tiles on legacy Tailwind (`red-50/red-600/red-200`, `amber-50/600/200`) — not `--rv-*`.
+  3. "Due Today" rendered the red alarm for **any** count `> 0` (professor's `7` → red). Per the Sprint 6.0 note the red alarm should engage only at a genuine backlog, not a normal daily pile.
+  4. Stat numerals in sans, not the mono `Num` atom.
+- **Root cause:** Phase 6 never migrated this page; the Mastered tile computed `new Set(activeReviews.map(r => r.flashcard_id)).size` in the lifetime-stats effect.
+- **Fix (Sprint 6.5, frontend-only):** `Progress.jsx` + `StudyHeatmap.jsx` + `SubjectMasteryTable.jsx` migrated onto `--rv-*` + Plex + `Num`/`Label` (class-reference swaps only, no DOM change). The "Items Mastered" effect now reads `supabase.rpc('get_mastered_cards', { p_user_id }).length` — the exact SSOT the dashboard tile and the "Mastered Items (N)" list use. `ForecastCard` → a `tone` prop on `--rv-*`; "Due Today" = `0` calm-green / `1..24` neutral (no alarm) / `> 24` (`DUE_TODAY_ALARM_THRESHOLD`) `--rv-danger`.
+- **Files:** `src/pages/dashboard/Study/Progress.jsx`, `src/components/progress/StudyHeatmap.jsx`, `src/components/progress/SubjectMasteryTable.jsx`.
+- **Status:** ✅ RESOLVED — **live-verified per-role 07/09/2026** (dev server → live Supabase): student three-way Mastered equality `1 == 1 == 1` (was 29); professor "Items Mastered" `0` (was 28); professor **"Due Today: 7" renders NEUTRAL, not the red alarm**; student "Due Today: 0" calm-green; all sections on `--rv-*` / Plex / mono `Num` (computed-style confirmed); heatmap green ramp → navy; console zero errors all roles. The `>24` danger branch is a one-line ternary + confirmed CSS (`border-rv-danger` → `#b91c1c`), unexercised live only for want of a >24-backlog account. Ships with the 6.5 push.
+
+### [07/09/2026] Finding 2 — Leaderboard "Following" tab 400s (`get_following_leaderboard` ambiguous "rank") — ✅ FIXED & LIVE-VERIFIED
+- **Symptom (live):** `POST …/rpc/get_following_leaderboard` → `400`; Postgres `42702`: `column reference "rank" is ambiguous — could refer to either a PL/pgSQL variable or a table column`. The "Friends" tab (`get_friends_leaderboard`) works.
+- **Root cause:** the `RETURNS TABLE (rank integer, …)` OUT column is an implicit plpgsql variable; the body also produces a `rank` (a `DENSE_RANK() … AS rank` alias / CTE column) → a bare `rank` in `ORDER BY` / `WHERE` / `SELECT` is ambiguous. **Pre-existing** — no Phase 6 sprint touched any leaderboard RPC (Sprint 3.5 function).
+- **Fix (Sprint 6.5, `docs/database/sprint6.5/`):** `01_DIAGNOSTIC` pulls the live body; `02_FUNCTIONS` fixes **in place, no OUT-column rename** — `#variable_conflict use_column` pragma + the window-function result aliased `rnk` (never `rank`) + every reference table-qualified. RETURNS TABLE shape, `SECURITY DEFINER`, `STABLE`, unquoted `search_path`, the `auth.uid()` gate and the `authenticated`-only grant preserved → `LeaderboardWidget.jsx` (`row.rank`) needs **no change**, SQL ships alone. `03_TEST` = shape parity + security preservation + no-`42702` behavioural run + `DENSE_RANK` order + students-only + null-session reject.
+- **Deploy:** run `01` → diff `02` against the live body → apply `02` → run `03` → live-verify both tabs on `revisop.com`.
+- **Progress log (07/09/2026):** `01` run (grants confirmed: `authenticated` + `postgres` + `service_role`). **`02_FUNCTIONS` DEPLOYED — ran clean** (`CREATE OR REPLACE` "Success. No rows returned"); the reconstructed body compiled against the live schema so all referenced columns (`follows.follower_id`/`followee_id`, `reviews.created_at`, `study_sessions.duration_seconds`, `profiles.role`/`full_name`) resolve. `03_TEST` first run hit `42725 operator is not unique: text || "char"` (`p.provolatile`) → re-issued with `::text` casts, the repo `request.jwt.claims` JSON impersonation idiom, and a semantic-parity check → **9/9 PASS**: shape identical to `get_friends_leaderboard`, `SECURITY DEFINER`/`STABLE`/unquoted `search_path` preserved, grant = `authenticated`, no `42702` (returns 2 rows), rank non-decreasing, exactly one `is_self`, students-only, null-session rejected, **weekly stats == `get_friends_leaderboard` for shared users (0 mismatches)** → the reconstructed body is behaviourally faithful.
+- **Status:** ✅ RESOLVED — `02_FUNCTIONS` deployed 07/09/2026, `03_TEST` 9/9 PASS, and **live-verified**: the student Leaderboard → Following tab renders a data row with no `400` and no `console.error` (`LeaderboardWidget` logs an error + shows a Retry state on failure — neither occurred). Frontend unchanged (`row.rank` preserved).
+
+### [07/09/2026] Finding 4 (partial) — `⏰ Timezone already set` logged 77×/page — ✅ FIXED
+- **Fix:** module-scoped `tzAlreadySetLogged` guard in `src/contexts/AuthContext.jsx` — the "already set" branch logs at most once per session. Other timezone-sync branches untouched.
+- **Status:** ✅ RESOLVED — **live-verified 07/09/2026**: `⏰ Timezone already set` fires exactly 1× per page load across all 3 role sessions / ~6 loads (console tail shows one `⏰` per `[vite] connecting` block). Was 77+/load.
+
+### [07/09/2026] Findings 3, 5, 6 — OPEN, → Phase 7 infra/perf ticket
+- **Finding 3 (Low/watch):** web-vitals `Uncaught TypeError: Cannot read properties of undefined (reading 'startTime')` (`reportAllChanges` / `n.timeout` in the stack — web-vitals signature, likely Vercel Speed Insights). Seen once on a soft navigation, did not recur. Instrumentation-level, not app code.
+- **Finding 5 (Low):** nav/notification over-fetch — one `/dashboard/notes` load queries `profiles` **46×**; `get_recent_notifications` / `friendships` / `role_permissions` / `get_unread_notification_count` each **12×**. Pre-existing; wasteful on the Supabase Free plan.
+- **Finding 6 (Low):** 2× `Failed to load resource: 400` on essentially every authed page (nav/notification RPC family — the "4× 401" from the Sprint 6.3 report, now presenting as 400).
+- **Status:** OPEN — deferred to the Phase 7 infra/perf ticket.
+
 ## Sprint 6.4 — 05/09/2026
 
 ### [05/09/2026] "Items Reviewed (last 7 days)" undercounts — reads first-review date, not last — ✅ FIXED (frontend re-point; no schema change)

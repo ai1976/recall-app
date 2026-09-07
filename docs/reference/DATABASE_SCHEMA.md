@@ -958,6 +958,8 @@ RETURNS TABLE (
 **Ranking:** Aggregates full followee set before applying top-20 limit — caller's rank is exact, not an approximation. Same DENSE_RANK logic as friends leaderboard.
 **Caller:** `LeaderboardWidget.jsx` (Following tab). Fetches lazily on first tab click.
 
+**⚠️ Sprint 6.5 [FIX] — ambiguous `rank` (Postgres `42702`). `02_FUNCTIONS` deployed 07/09/2026; `03_TEST` 9/9 PASS; live "Following" tab check pending.** The live body threw `column reference "rank" is ambiguous — could refer to either a PL/pgSQL variable or a table column` → the Following tab 400'd. The `RETURNS TABLE (rank …)` OUT column shadows a `rank` produced in the body (`DENSE_RANK() … AS rank` / CTE column). Fixed **in place, no signature change**: `#variable_conflict use_column` pragma + the window-function result aliased `rnk` (never `rank`) + every reference table-qualified. Return column stays `rank`; `LeaderboardWidget.jsx` (`row.rank`) unchanged. `SECURITY DEFINER` + `STABLE` + unquoted `search_path TO public, extensions` + the `auth.uid()` gate + `GRANT EXECUTE … TO authenticated` all preserved. **NB:** `02`'s body is a reconstruction (WITH/JOIN logic rebuilt from this doc + the live `get_friends_leaderboard`) that compiled clean against the live schema; `03_TEST` asserts weekly-stat parity with `get_friends_leaderboard` to guard against semantic drift. SQL: `docs/database/sprint6.5/01_DIAGNOSTIC` · `02_FUNCTIONS` · `03_TEST`. `get_friends_leaderboard` **not** affected (its body never collides on `rank`).
+
 ---
 
 ## update_daily_goal (Sprint 3.5)

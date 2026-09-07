@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 // ─── Color scale ────────────────────────────────────────────────────────────
+// Single-hue navy ramp — magnitude encoding, not a status colour (green now
+// carries the "mastered" semantic elsewhere on this page). Sprint 6.5.
 const getColor = (count) => {
   if (count < 0)  return 'bg-transparent';             // future date
-  if (count === 0) return 'bg-gray-100';
-  if (count <= 3)  return 'bg-green-200';
-  if (count <= 7)  return 'bg-green-400';
-  if (count <= 14) return 'bg-green-600';
-  return 'bg-green-800';
+  if (count === 0) return 'bg-rv-bg-2';
+  if (count <= 3)  return 'bg-rv-navy/20';
+  if (count <= 7)  return 'bg-rv-navy/40';
+  if (count <= 14) return 'bg-rv-navy/70';
+  return 'bg-rv-navy';
 };
 
 // ─── Build 13-week grid (Sun→Sat columns, today in last column) ─────────────
@@ -79,16 +81,16 @@ export default function StudyHeatmap({ userId }) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
-        <div className="h-4 w-32 bg-gray-200 rounded mb-3" />
-        <div className="h-20 bg-gray-100 rounded" />
+      <div className="bg-rv-bg-1 rounded-lg border border-rv-border p-4 animate-pulse">
+        <div className="h-4 w-32 bg-rv-bg-2 rounded mb-3" />
+        <div className="h-20 bg-rv-bg-2 rounded" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-4 text-sm text-red-500">
+      <div className="bg-rv-bg-1 rounded-lg border border-rv-border p-4 text-sm text-red-500">
         Could not load heatmap.
       </div>
     );
@@ -117,10 +119,10 @@ export default function StudyHeatmap({ userId }) {
   })();
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5">
+    <div className="bg-rv-bg-1 rounded-lg border border-rv-border p-4 sm:p-5">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-700">Study Activity — Last 90 Days</h3>
-        <span className="text-xs text-gray-400">
+        <h3 className="text-sm font-semibold text-rv-ink-600">Study Activity — Last 90 Days</h3>
+        <span className="text-xs text-rv-ink-400">
           {totalDays} active {totalDays === 1 ? 'day' : 'days'}
           {longestStreak > 1 && ` · ${longestStreak}-day best streak`}
         </span>
@@ -135,7 +137,7 @@ export default function StudyHeatmap({ userId }) {
           {DOW_LABELS.map((label, i) => (
             <div
               key={i}
-              className="h-3 w-3 flex items-center justify-center text-[9px] text-gray-400 leading-none"
+              className="h-3 w-3 flex items-center justify-center text-[9px] text-rv-ink-400 leading-none"
             >
               {i % 2 === 1 ? label : ''}
             </div>
@@ -148,7 +150,7 @@ export default function StudyHeatmap({ userId }) {
             {/* Month label */}
             <div className="h-4 flex items-end">
               {monthLabels[wi] && (
-                <span className="text-[9px] text-gray-400 leading-none">{monthLabels[wi]}</span>
+                <span className="text-[9px] text-rv-ink-400 leading-none">{monthLabels[wi]}</span>
               )}
             </div>
             {/* Day cells */}
@@ -165,11 +167,11 @@ export default function StudyHeatmap({ userId }) {
 
       {/* Legend */}
       <div className="flex items-center gap-1.5 mt-3 justify-end">
-        <span className="text-[10px] text-gray-400">Less</span>
+        <span className="text-[10px] text-rv-ink-400">Less</span>
         {[0, 2, 5, 10, 15].map((n) => (
           <div key={n} className={`h-3 w-3 rounded-[2px] ${getColor(n)}`} />
         ))}
-        <span className="text-[10px] text-gray-400">More</span>
+        <span className="text-[10px] text-rv-ink-400">More</span>
       </div>
     </div>
   );

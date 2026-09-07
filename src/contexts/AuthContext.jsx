@@ -3,6 +3,11 @@ import { supabase } from '@/lib/supabase';
 
 const AuthContext = createContext({})
 
+// Session-scoped guard: the timezone sync runs on every getSession resolve and
+// SIGNED_IN event, so the "already set" branch was logging dozens of times per
+// page. Log it at most once per session. Sprint 6.5.
+let tzAlreadySetLogged = false
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext)
 
@@ -48,7 +53,8 @@ export const AuthProvider = ({ children }) => {
         } else {
           console.log(`⏰ Timezone updated: ${profile?.timezone || 'null'} → ${browserTimezone}`);
         }
-      } else {
+      } else if (!tzAlreadySetLogged) {
+        tzAlreadySetLogged = true;
         console.log(`⏰ Timezone already set: ${browserTimezone}`);
       }
     } catch (error) {
