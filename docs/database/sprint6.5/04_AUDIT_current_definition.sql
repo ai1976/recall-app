@@ -52,16 +52,82 @@ WHERE  n.nspname = 'public'
 ORDER  BY p.proname;
 
 -- ─────────────────────────────────────────────────────────────────────────────────────────
--- CURRENT LIVE BODY (pg_get_functiondef output — PASTE HERE, then commit)
+-- CURRENT LIVE BODY — captured 07/09/2026 via `pg_get_functiondef('public.
+-- get_following_leaderboard()'::regprocedure)`. BYTE-IDENTICAL to 02_FUNCTIONS (the
+-- deployed reconstruction). Signature row from query 3: SECURITY DEFINER = t, volatility
+-- = s (STABLE), proconfig = {search_path=public, extensions}.
 -- ─────────────────────────────────────────────────────────────────────────────────────────
 /*
-<paste `current_live_src` here>
-*/
+CREATE OR REPLACE FUNCTION public.get_following_leaderboard()
+ RETURNS TABLE(rank integer, user_id uuid, full_name text, is_self boolean, reviews_this_week bigint, study_time_this_week_seconds bigint)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'extensions'
+AS $function$
+#variable_conflict use_column
+DECLARE
+  v_uid uuid := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
 
--- Expected content (the deployed 02_FUNCTIONS body — DATABASE_SCHEMA.md + changelog both
--- record `CREATE OR REPLACE ... "Success. No rows returned"` on 07/09/2026, so absent an
--- out-of-band hand-edit this IS what is live). The audit diffs the pasted body against
--- these three focus areas:
+  RETURN QUERY
+  WITH wk AS (
+    SELECT date_trunc('week', CURRENT_DATE)::date AS start_date
+  ),
+  -- caller + everyone the caller follows, students only
+  cohort AS (
+    SELECT v_uid AS uid
+    UNION
+    SELECT f.followee_id
+    FROM public.follows f
+    WHERE f.follower_id = v_uid
+  ),
+  stats AS (
+    SELECT
+      p.id         AS uid,
+      p.full_name  AS full_name,
+      COALESCE((
+        SELECT COUNT(*) FROM public.reviews rv, wk
+        WHERE rv.user_id = p.id AND rv.created_at >= wk.start_date
+      ), 0)::bigint AS reviews_this_week,
+      COALESCE((
+        SELECT SUM(ss.duration_seconds) FROM public.study_sessions ss, wk
+        WHERE ss.user_id = p.id AND ss.created_at >= wk.start_date
+      ), 0)::bigint AS study_time_this_week_seconds
+    FROM cohort c
+    JOIN public.profiles p ON p.id = c.uid AND p.role = 'student'
+  ),
+  ranked AS (
+    SELECT s.uid, s.full_name, s.reviews_this_week, s.study_time_this_week_seconds,
+      DENSE_RANK() OVER (
+        ORDER BY s.reviews_this_week DESC, s.study_time_this_week_seconds DESC
+      )::integer AS rnk
+    FROM stats s
+  )
+  SELECT
+    r.rnk, r.uid, r.full_name, (r.uid = v_uid),
+    r.reviews_this_week, r.study_time_this_week_seconds
+  FROM ranked r
+  WHERE r.rnk <= 20 OR r.uid = v_uid
+  ORDER BY r.rnk ASC, r.full_name ASC;
+END;
+$function$
+*/
+-- NB: `SET search_path TO 'public', 'extensions'` in the echo above is pg_get_functiondef's
+-- canonical rendering of TWO separately-quoted identifiers — equivalent to unquoted
+-- `public, extensions`; proconfig confirms the stored GUC is `public, extensions` (two
+-- schemas). It is NOT the single-string `'public, extensions'` form from the
+-- infra-supabase-sql-gotchas outage. Safe.
+--
+-- Sibling get_friends_leaderboard signature row (query 3): SECURITY DEFINER = t,
+-- volatility = v (VOLATILE), proconfig = {search_path=public, extensions}. The
+-- reconstruction is STABLE, not VOLATILE like its sibling — a minor inconsistency, and
+-- STABLE is the stricter/more-correct choice for a pure-read function. Not a membership
+-- concern; noted only so a future reader doesn't mistake it for drift.
+--
+-- The audit diffs the body above against these three focus areas:
 --
 --   ┌─ FOCUS 1 — follow-graph join (the primary risk vector) ────────────────────────────┐
 --   │ Deployed body:                                                                     │
