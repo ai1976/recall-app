@@ -1,6 +1,30 @@
 # Changelog
 
 ---
+## [2026-09-07] audit(db): Task 6.5-D — `get_following_leaderboard` reconstruction audit — FAITHFUL (no fix)
+
+Bounded follow-up to the Sprint 6.5 `[FIX]`. The 6.5 thread replaced the *whole* body of `get_following_leaderboard` with a reconstruction templated off `get_friends_leaderboard` (01_DIAGNOSTIC's capture of the live pre-fix body was lost before 02_FUNCTIONS overwrote the function), and `03_TEST`'s parity check validates the weekly-stat math, not the membership set — so the follow-scope was unverified.
+
+**Outcome: faithful. No `[FIX]` shipped — no divergence found.**
+
+### Added
+- `docs/database/sprint6.5/04_AUDIT_current_definition.sql` — `[DIAGNOSTIC]`. Re-captures the current (reconstructed) live definition (`pg_get_functiondef`) so it is committed, plus a focused three-point diff (follow-join / population filter / result window) against the Sprint 3.5 behavioural contract. Documents that the original body is **unrecoverable from git**.
+- `docs/database/sprint6.5/04_AUDIT_membership_test.sql` — `[TEST]`. The decisive membership check `03_TEST` lacked: builds the expected set independently (caller ∪ followed-students), impersonates the account, and asserts `get_following_leaderboard()`'s `user_id` set is **exactly** equal (no extras → scope not too wide; nothing missing → scope not too narrow / not collapsed to just the caller), one `is_self`, rank ordered by `reviews_this_week DESC`. `BEGIN/ROLLBACK`, no persisted writes. **Operator-run pending** (no DB access in the audit session).
+
+### Findings
+- **Original definition — unrecoverable from git.** `git log -S 'get_following_leaderboard' --all` → 3 commits (`071395d` create, `4c5c884` doc, `72693fe` fix); Sprint 3.5 ran the `CREATE` directly in Supabase, no `.sql` ever committed; `git log --all --diff-filter=A/D` over `*leaderboard*` confirms `sprint6.5/01–03` are the only leaderboard SQL files that ever existed. Supabase backup restore not exercised. **Reference used:** the original behavioural contract documented in `DATABASE_SCHEMA.md` @ `071395d`.
+- **Follow-graph join — MATCH.** `cohort` CTE = `SELECT auth.uid() UNION SELECT f.followee_id FROM public.follows f WHERE f.follower_id = auth.uid()`. Table `public.follows`, predicate `follower_id = auth.uid()`, projects `followee_id` → **directional** ("users the caller follows"), correct for a "Following" leaderboard. No `friendships` join; no reciprocal `AND EXISTS (reverse follow)` clause (that mutual semantic is `get_friends_leaderboard`'s, and was the primary risk vector — it did not materialise).
+- **Population filter — MATCH.** `JOIN public.profiles p ON p.id = c.uid AND p.role = 'student'` — students-only, applied to the caller row too; no course / `account_type` filter. Matches the `071395d` contract ("Students only.") and both siblings.
+- **Result window — MATCH.** `DENSE_RANK() OVER (ORDER BY reviews_this_week DESC, study_time_this_week_seconds DESC)` computed over the **full** cohort, then `WHERE rnk <= 20 OR uid = auth.uid()` → N = 20, caller always included regardless of rank, caller's rank exact; `is_self = (uid = auth.uid())` true on exactly one row. Matches the contract verbatim ("top 20 followees + the caller's own row regardless of rank", "Aggregates full followee set before applying top-20 limit — caller's rank is exact").
+- Incidental checks also match: RETURNS TABLE shape (`rank, user_id, full_name, is_self, reviews_this_week, study_time_this_week_seconds`); week boundary `date_trunc('week', CURRENT_DATE)::date`; both weekly stats `COALESCE(…, 0)`; `SECURITY DEFINER` + `STABLE` + unquoted `SET search_path TO public, extensions` + `auth.uid()` gate + `REVOKE FROM PUBLIC, anon` / `GRANT EXECUTE TO authenticated`.
+
+### Verdict
+- Finding 2 (`docs/tracking/bugs.md`) — **fully closed as FIXED + AUDITED FAITHFUL on documentary evidence**. One belt-and-braces operator step remains (run `04_AUDIT_membership_test.sql` on a multi-follow account, or diff a backup-recovered `pg_get_functiondef`) to upgrade "faithful by contract-diff" → "faithful by live set equality". No frontend change (`row.rank` mapping unchanged).
+
+### Docs updated
+- `docs/tracking/bugs.md` (Finding 2 audit outcome), `docs/reference/DATABASE_SCHEMA.md` (`get_following_leaderboard` — audited follow-join predicate / filter / window now documented), `docs/active/blueprint.md` (SSOT — Task D flipped to RESOLVED/faithful), `docs/active/now.md`.
+
+---
 ## [2026-09-07] fix(reskin): Sprint 6.5 — Verification Fixes (Phase 6 close-out) — LIVE-VERIFIED
 
 Clears the two actionable findings from the 07/09/2026 Phase 6 live-verification report. **All of A/B/C/E + D live-verified per-role (student + professor + super-admin) on the dev server against live Supabase, 07/09/2026** — see "Verified" below. **Phase 6 reskin is fully closed once this is committed.**
