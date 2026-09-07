@@ -26,7 +26,7 @@
 --        reviews_this_week bigint, study_time_this_week_seconds bigint).
 --   * Supabase daily backup — the 6.5 deploy was 07/09/2026; a 06/09 or earlier backup still
 --     holds the pre-fix function. If the plan allows a PITR / branch restore, run
---     `SELECT pg_get_functiondef('public.get_following_leaderboard'::regprocedure);` there and
+--     `SELECT pg_get_functiondef('public.get_following_leaderboard()'::regprocedure);` there and
 --     paste it under "ORIGINAL BODY (from backup)" below. If not restorable, the diff relies
 --     on the documented contract above (sufficient for the three focus areas).
 
@@ -34,9 +34,10 @@
 -- 1) CURRENT (reconstructed) live definition — paste the result under the marker below and
 --    commit this file with it filled in.
 -- ─────────────────────────────────────────────────────────────────────────────────────────
-SELECT pg_get_functiondef('public.get_following_leaderboard'::regprocedure) AS current_live_src;
+-- NB: regprocedure needs the arg list in parens, even when there are none → '...()' .
+SELECT pg_get_functiondef('public.get_following_leaderboard()'::regprocedure) AS current_live_src;
 
-SELECT pg_get_functiondef('public.get_friends_leaderboard'::regprocedure)   AS sibling_live_src;
+SELECT pg_get_functiondef('public.get_friends_leaderboard()'::regprocedure)   AS sibling_live_src;
 
 -- signature / security / search_path / volatility (expect: both identical except name)
 SELECT p.proname,
