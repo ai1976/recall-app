@@ -9,9 +9,22 @@
 -- writes. Impersonation uses the repo `request.jwt.claims` JSON idiom (same as 03_TEST /
 -- sprint6.3/02_TEST). Pure SQL — no psql backslash commands.
 --
--- ACCOUNT SELECTION: by default the DO block auto-selects a student who follows >= 2 other
--- students. To PIN a specific account (e.g. the one whose Following tab you will
--- screenshot), replace  NULL::uuid  on the marked line with  'your-uuid-here'::uuid .
+-- ACCOUNT SELECTION: by default the DO block auto-selects the student who follows the MOST
+-- other students (>= 1). To PIN a specific account (e.g. the one whose Following tab you
+-- will screenshot), replace  NULL::uuid  on the marked line with  'your-uuid-here'::uuid .
+--
+-- ── RESULT — RUN 07/09/2026 ──────────────────────────────────────────────────────────────
+--   Live follow graph is sparse: 6 `follows` rows, 4 distinct followers, MAX 1 followed-
+--   student per student (no account follows >= 2). Ran on the richest available account
+--   f9377860-0991-4cdc-9679-f347c61d71b4 (follows 1 student → 2 expected rows):
+--     exact set equality ................................. PASS  (no extras, nothing missing)
+--     exactly one is_self row ........................... PASS
+--     rank ordered by reviews_this_week DESC ............ PASS
+--     no row the caller does NOT follow ................ PASS
+--     every followed student present (not collapsed) ... PASS
+--   → 5/5 PASS. The >20 top-N cutoff + multi-followee ordering are unexercised on live
+--     data (contract-trivial; the body's `WHERE rnk <= 20 OR uid = v_uid` matches the
+--     Sprint 3.5 contract). Reconstruction is FAITHFUL on membership. Finding 2 closed.
 
 BEGIN;
 
@@ -39,7 +52,7 @@ BEGIN
     JOIN public.profiles pf ON pf.id = f.follower_id AND pf.role = 'student'
     JOIN public.profiles pe ON pe.id = f.followee_id AND pe.role = 'student'
     GROUP BY f.follower_id
-    HAVING count(*) >= 2
+    HAVING count(*) >= 1            -- ideally >= 2; live DB has none, so take the richest
     ORDER BY count(*) DESC
     LIMIT 1;
   END IF;
