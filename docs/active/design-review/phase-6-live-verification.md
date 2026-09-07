@@ -93,9 +93,18 @@ Observed on `/dashboard/progress` (all roles):
 
 The *data* on this page is correct — Dashboard ↔ Progress "Items Reviewed" agree, and "Due Items Forecast" already shares the `get_due_forecast` predicate (Sprint 6.0 deviation 4). It is the *presentation* + the *Mastered stat source* that are stale.
 
-### Finding 2 — Leaderboard "Following" tab 400s (Medium) → Sprint 6.5 `[FIX]`
+### Finding 2 — Leaderboard "Following" tab 400s (Medium) → Sprint 6.5 `[FIX]` → ✅ FIXED, LIVE-VERIFIED & AUDITED FAITHFUL (Task 6.5-D)
 
 `POST …/rpc/get_following_leaderboard` → `400`, Postgres `42702`: `column reference "rank" is ambiguous — could refer to either a PL/pgSQL variable or a table column`. The "Friends" tab works. Pre-existing; no Phase 6 sprint touched any leaderboard RPC. Needs the `rank` reference qualified (or the `RETURNS TABLE` column renamed).
+
+**Sprint 6.5 `[FIX]` (deployed 07/09/2026):** `02_FUNCTIONS` fixes in place — `#variable_conflict use_column` + `DENSE_RANK() … AS rnk` (never `rank`) + every ref table-qualified; RETURNS-TABLE shape / `SECURITY DEFINER` / `STABLE` / `search_path` / `auth.uid()` gate / `authenticated`-only grant all preserved → `LeaderboardWidget.jsx` (`row.rank`) unchanged. `03_TEST` 9/9 PASS. Following tab renders a data row live, no `400`, no `console.error`.
+
+**Task 6.5-D reconstruction audit (07/09/2026 — `docs/database/sprint6.5/04_AUDIT_*`):** the 6.5 thread replaced the *whole* body (01_DIAGNOSTIC's live-body capture was lost before 02 overwrote it) with a reconstruction templated off `get_friends_leaderboard`, so the follow-scope was unverified — `03_TEST` checks the stat math, not the membership set. Audit outcome:
+- **Original body unrecoverable from git** (Sprint 3.5 ran the `CREATE` directly in Supabase; no `.sql` ever committed). **Current live body captured via `pg_get_functiondef` → byte-identical to `02_FUNCTIONS`.**
+- Diffed against the Sprint 3.5 behavioural contract in `DATABASE_SCHEMA.md` @ `071395d` — **three focus areas all MATCH**: (1) **follow-graph join** `cohort` = `SELECT auth.uid() UNION SELECT f.followee_id FROM public.follows f WHERE f.follower_id = auth.uid()` — directional, no `friendships`, no reciprocal clause (the friends-style mutual join, the primary risk vector, did *not* materialize); (2) **population filter** students-only, no course filter; (3) **result window** `DENSE_RANK` over the full cohort → `WHERE rnk <= 20 OR uid = auth.uid()`, N=20, self always in, exact rank.
+- **Live membership set-equality — `04_AUDIT_membership_test.sql` run, 5/5 PASS** on account `f9377860…` (the richest available; live follow graph is sparse — 6 rows, 4 followers, **max 1 followed-student per student**, which also explains this report's original ambiguous "TestOutlook (you)"-only row): RPC `user_id` set == caller ∪ followed-students exactly (no extras, nothing missing), one `is_self`, rank by `reviews_this_week DESC`. The >20 top-N cutoff is unexercised on live data (contract-trivial).
+
+**Verdict: reconstruction is faithful. No `[FIX]` beyond the ambiguity resolution. Finding 2 fully closed.**
 
 ### Finding 3 — web-vitals `startTime` TypeError (Low / watch) → Phase 7
 
@@ -124,3 +133,5 @@ Confirmed live: the additive `--rv-*` token layer, self-hosted IBM Plex (Sans + 
 No regression attributable to any Phase 6 sprint. Settled always-visible cards ("Needs Attention", "Needs Review") render unconditionally on the reskin.
 
 **Recommended before full close:** Sprint 6.5 — verification fixes (Findings 1 & 2). Findings 3–6 → Phase 7 infra/perf ticket.
+
+**Update (07/09/2026):** Sprint 6.5 shipped — Findings 1 & 2 cleared and live-verified per-role. **Finding 2 additionally passed the Task 6.5-D reconstruction audit** (see above): the `02_FUNCTIONS` body that replaced the lost original is confirmed faithful — live body byte-identical to the reviewed reconstruction, three focus areas match the Sprint 3.5 contract, live membership set-equality 5/5 PASS. No further fix. Findings 3–6 remain open → Phase 7.
