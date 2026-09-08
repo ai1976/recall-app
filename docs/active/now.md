@@ -1,7 +1,7 @@
 # NOW - Current Development Status
 
 **Last Updated:** 07/09/2026
-**Current Phase:** **Phase 6 Reskin — 6.0 → 6.5 ALL LIVE-VERIFIED (07/09/2026).** 6.0–6.4 verified on revisop.com; Sprint 6.5 (close-out fixes A/B/C/E + the `get_following_leaderboard` SQL) verified per-role (student + professor + super-admin) on the dev server against live Supabase. **Phase 6 reskin is complete — pending only the 6.5 `git commit` + push.**
+**Current Phase:** **Phase 6 Reskin — 6.0 → 6.5 ALL LIVE-VERIFIED (07/09/2026).** 6.0–6.4 verified on revisop.com; Sprint 6.5 (close-out fixes A/B/C/E + the `get_following_leaderboard` SQL) verified per-role (student + professor + super-admin) on the dev server against live Supabase. **Phase 6 reskin is COMPLETE — 6.0→6.5 all shipped + pushed to `main` (6.4 `7edc31f`, 6.5 `72693fe`, Task 6.5-D audit `3e392b8`). Phase 7 (question-type epic) has kicked off — Sprint 7.0 (perf & correctness) is next.**
 
 **Phase 6 live-verification (07/09/2026):** `docs/active/design-review/phase-6-live-verification.md` — 6.0 / SRS Ladder Epic / 6.1–6.4 PASS across student + professor + super-admin on `revisop.com`. 6 findings, none Phase 6 regressions → Sprint 6.5 takes Findings 1 (`Progress.jsx` un-migrated + stale Mastered stat + over-eager Due Today) & 2 (`get_following_leaderboard` 42702); Findings 3/5/6 (+ the rest of 4) → Phase 7 infra/perf ticket.
 
@@ -19,7 +19,7 @@
   - **Professor (CA Anand More):** Suspended Items collapsible migrated (`bg-rv-navy-50` / navy icon / inner cards on `--rv-*`; Unsuspend green kept). **B — "Items Mastered" `0`** (was 28). **C — "Due Today: 7" → `bg-rv-bg-1 border-rv-border text-rv-ink-900`, NEUTRAL, not the red alarm** (the exact regression the report flagged).
   - **Super-admin (Anand):** `--rv-*` / Plex / mono confirmed; "Due Today: 0" calm. **`danger` branch proof:** a cloned tile with `border-rv-danger text-rv-danger` computes `#b91c1c` — `dueToday > 24` renders red; unexercised live only because no test account has a >24 backlog.
   - **E:** `⏰ Timezone already set` = exactly **1× per page load** across all 3 sessions / ~6 loads (was 77+). **Console: zero errors/warnings** on Progress + Dashboard + Leaderboard, all roles.
-- **⏳ Only follow-up:** operator to `git commit` + push the Sprint 6.5 frontend (bash `printf`) — **Phase 6 reskin fully closed** once 6.5 is committed. (Task 6.5-D audit is done + committed: `get_following_leaderboard` reconstruction confirmed faithful — live body byte-identical to `02_FUNCTIONS`, 3 focus areas match the Sprint 3.5 contract, live membership set-equality 5/5 PASS. No fix needed.)
+- **✅ DONE — Phase 6 reskin fully closed.** Sprint 6.5 committed + pushed to `main` (`72693fe`); Task 6.5-D audit committed (`21be83c`…`3e392b8`) — `get_following_leaderboard` reconstruction confirmed faithful (live body byte-identical to `02_FUNCTIONS`, 3 focus areas match the Sprint 3.5 contract, live membership set-equality 5/5 PASS; no fix needed).
 
 ---
 
