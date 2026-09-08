@@ -191,7 +191,7 @@ export default function SuperAdminAnalytics() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-8">
 
       {/* Page header */}
       <div className="flex items-center justify-between">

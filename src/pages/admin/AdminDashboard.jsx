@@ -519,7 +519,7 @@ export default function AdminDashboard() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-8">
 
       {/* Header */}
       <div className="mb-8">

@@ -620,7 +620,7 @@ Search "${targetUser.email}" and delete the auth record.
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Super Admin Dashboard

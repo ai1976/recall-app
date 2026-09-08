@@ -18,6 +18,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  isExact,
+  isCreateActive as isCreateActivePath,
+  isStudyActive as isStudyActivePath,
+  isManageActive as isManageActivePath,
+  isGroupsActive as isGroupsActivePath,
+} from '@/lib/navActive';
 import { Wordmark } from '@/components/revisop';
 import FriendsDropdown from './FriendsDropdown';
 import ActivityDropdown from './ActivityDropdown';
@@ -41,39 +48,13 @@ export default function NavDesktop({
 }) {
   const location = useLocation();
 
-  // Exact match — only for the top-level Dashboard link (every route lives under /dashboard).
-  const isActive = (path) => location.pathname === path;
-
-  // Prefix match — a route is "under" `path` when it equals it or is nested beneath it.
-  // Keeps the parent nav item highlighted on nested routes (e.g. /dashboard/notes/:id).
-  const underAny = (paths) =>
-    paths.some((p) => location.pathname === p || location.pathname.startsWith(p + '/'));
-
-  // Create routes are nested under /dashboard/notes and /dashboard/flashcards, so Create must
-  // win the tie against Study's broader prefixes.
-  const isCreateActive = () =>
-    underAny([
-      '/dashboard/notes/new',
-      '/dashboard/flashcards/new',
-      '/dashboard/bulk-upload',
-    ]);
-
-  const isStudyActive = () =>
-    !isCreateActive() &&
-    underAny([
-      '/dashboard/review-flashcards',
-      '/dashboard/review-session',
-      '/dashboard/review-by-subject',
-      '/dashboard/study',
-      '/dashboard/notes',       // Browse Notes + note detail/edit
-      '/dashboard/flashcards',  // My Flashcards + card detail/edit
-      '/dashboard/progress',
-    ]);
-
-  const isManageActive = () => {
-    return location.pathname.startsWith('/admin') ||
-           location.pathname.startsWith('/super-admin');
-  };
+  // Active-route predicates now live in @/lib/navActive (Sprint 7.1) so NavDesktop
+  // and NavBottomTabs share ONE implementation. Behaviour is byte-identical to the
+  // previous inline helpers — the Sprint 6.0/6.2 nested-route tie-break is locked.
+  const isActive = (path) => isExact(location.pathname, path);
+  const isCreateActive = () => isCreateActivePath(location.pathname);
+  const isStudyActive = () => isStudyActivePath(location.pathname);
+  const isManageActive = () => isManageActivePath(location.pathname);
 
   return (
     <>
@@ -187,7 +168,7 @@ export default function NavDesktop({
               to="/dashboard/groups"
               className={`
                 px-3 py-2 rounded-rec text-sm font-medium flex items-center gap-2
-                ${isActive('/dashboard/groups') || location.pathname.startsWith('/dashboard/groups/')
+                ${isGroupsActivePath(location.pathname)
                   ? 'bg-rv-navy-50 text-rv-navy'
                   : 'text-rv-ink-600 hover:bg-rv-bg-2 hover:text-rv-ink-900'
                 }

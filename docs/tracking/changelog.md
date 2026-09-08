@@ -1,6 +1,39 @@
 # Changelog
 
 ---
+## [2026-09-08] feat(sprint-7.1): Mobile bottom navigation — bottom-tab bar, shared active-route module, safe-area (NO SQL)
+
+Phase 7, sprint 2 (kickoff item G). Ships the mobile bottom-tab bar on top of the 7.0 nav refactor. **Frontend only — NO SQL, no new data fetching. Desktop (`md:` and up) visually unchanged.** `npm run build` clean (7.0s); `npx eslint` clean on every file authored or structurally changed. **Layout A** decided with Anand (bottom bar = Dashboard · Review · ＋ · Progress · Menu; top mobile bar slims to Wordmark · Friends · Bell; the hamburger drawer moves to the "Menu" tab). **Live-verified across all three roles** (student / professor / super-admin, dev server → live Supabase) — two issues found & fixed during that pass (see *Fixed after verification* below). Committed + pushed to `main` → Vercel auto-deploy.
+
+### Added
+- **`src/components/layout/NavBottomTabs.jsx`** (new) — mobile bottom-tab bar. `md:hidden`, `fixed inset-x-0 bottom-0 z-50`, full-width (rendered by `Navigation.jsx` as a sibling of the top `<nav>`, outside `max-w-7xl`). `bg-rv-bg-1 border-t border-rv-border shadow-rv-bar font-plex`; row `h-14`; targets `min-h-[48px]`. Data-driven `TABS` array (a later top-level destination is a one-line add). Consumes the `navProps` bundle from `Navigation.jsx` only — **no `useRole`/`useNotifications`/`useFriendRequestCount` call, no fetch of its own** (no 7.0 over-fetch regression). ＋ opens a `<Sheet side="bottom">` action-sheet (Upload Note / Create Flashcard / Bulk Upload — Bulk Upload hidden unless professor+). Self-gates on `!user` and on `useStudySession().inStudySession`.
+- **`src/components/layout/NavMenuSheet.jsx`** (new) — the former `NavMobile` hamburger `<Sheet side="right">` and all its content, moved verbatim (Study/Create/Groups/Following/Progress/Contributions/Achievements/Help/Settings + course-context switcher + professor/admin/super-admin sections + Sign Out). Trigger relocated to the bottom bar's "Menu" tab.
+- **`src/lib/navActive.js`** (new) — pure `(pathname) => boolean` active-route predicates shared by `NavDesktop` + `NavBottomTabs`: `isExact`, `underAny`, `isCreateActive`, `isStudyActive`, `isManageActive`, `isGroupsActive` (behaviour locked to the Sprint 6.0/6.2 output), plus `isReviewTabActive` (bottom "Review" tab — study-session cluster only). No Supabase, no React.
+- **`src/contexts/StudySessionContext.jsx`** (new) — `<StudySessionProvider>` (in `App.jsx`, above the router) + `useStudySession()` → `{ inStudySession, setInStudySession }` (no-op outside the provider). `StudyMode` flips `inStudySession` on mount/unmount so `NavBottomTabs` hides during the full-screen card loop regardless of entry route.
+- **`/__design`** — new "Mobile bottom nav" block in `ReskinGallery` (the bar with active/inactive tabs + the ＋ action-sheet, light + dark).
+
+### Changed
+- **`src/App.jsx`** — `<StudySessionProvider>` added to the provider tree (above `<BrowserRouter>`).
+- **`src/components/layout/Navigation.jsx`** — returns a fragment: the top `<nav>` (unchanged) + `<NavBottomTabs {...navProps} />` as a sibling.
+- **`src/components/layout/NavMobile.jsx`** — slimmed to Wordmark (left) + `<FriendsDropdown>` + `<ActivityDropdown>` (right). The hamburger `<Sheet>`, `useCourseContext`, `useState`, and helper fns moved to `NavMenuSheet.jsx`. Friends + Bell (and their unread/pending badges) stay in the top bar.
+- **`src/components/layout/NavDesktop.jsx`** — active-route helpers now import from `@/lib/navActive` via thin wrappers. **Behaviour byte-identical** — re-verified against a re-implementation of the old inline logic: 20 routes × 5 predicates, 0 mismatches (incl. the 7/7 nested-route tie-break).
+- **`src/components/layout/PageContainer.jsx`** — outer wrapper gains `pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0` (mobile bottom-bar clearance; computed 56px on a non-notched emulator, real inset added on a notched device via `viewport-fit=cover`). Ride-along: `bg-gray-50` → `bg-rv-bg-0` (`#f9fafb` → `#f9f9fb`, no visible regression).
+- **`index.html`** — viewport meta gains `viewport-fit=cover`.
+- **Content-clearance class appended to the root div** of pages not using `PageContainer` (additive class only, `bg-gray-50` left as-is): `src/pages/dashboard/Content/{BrowseNotes,MyFlashcards,MyNotes,MyContributions,NoteDetail,NoteUpload,NoteEdit,FlashcardCreate}.jsx`, `src/pages/dashboard/Study/{ReviewFlashcards,ReviewBySubject}.jsx`, `src/pages/admin/{AdminDashboard,SuperAdminDashboard,SuperAdminAnalytics}.jsx`.
+
+### Fixed after verification (same 3-role live pass)
+- **Review-session picker lost the bottom bar (7.1 regression).** `/dashboard/review-session` is a subject-picker LIST until the user taps Start; the first cut hid the bar on any `/dashboard/review-session` path → the user was stranded with no nav. Replaced the route match with a mounted-component signal: `StudySessionContext` + `StudyMode` sets `inStudySession` true on mount / false on unmount (covers both the `/dashboard/study` route and ReviewSession's embedded view). The picker keeps the bar; tapping Start (mounts `StudyMode`) removes it; "Back to Selection" restores it. `isFullScreenStudyRoute` helper removed from `navActive.js`.
+- **`StudyMode` card clipped on the right at 390px (pre-existing, not a 7.1 regression — `StudyMode` was otherwise untouched).** Cause: `overflow-hidden` card + a no-wrap `Skip 24hr · Show Answer · ⋮` action row + `p-8` padding. Presentation-only fix in `src/pages/dashboard/Study/StudyMode.jsx`: card inner padding `p-8` → `p-5 sm:p-8 md:p-12` + `min-w-0` on the flex child; both action rows → `flex-wrap`; `Show Answer` button `px-8` → `px-6 sm:px-8`. No SRS / behaviour change.
+
+### Notes
+- **No SQL.** `DATABASE_SCHEMA.md` unchanged. No SRS / question-type / renderer work; the only `StudyMode` edit is the responsive fix above + the `inStudySession` mount flag.
+- **Badge deviation:** the kickoff's "unread/pending badge on the bar" line assumed the bar might carry Friends/Bell. Under Layout A those stay in the top bar with their badges; no bottom tab maps to a counted entity without a new fetch. Noted in the /__design block.
+- **Desktop:** the bar is `md:hidden` and the top nav is untouched at `md`+ — desktop pixel-identical by construction; confirmed in the per-role live sweep.
+
+### Docs updated
+- `docs/active/blueprint.md` (SSOT — Sprint 7.1 entry in Sprint History; §1.7 `NavBottomTabs`/`NavMenuSheet`; §1.8 `navActive.js`; Contexts table `StudySessionContext.jsx`), `docs/active/now.md` (Just Completed + live-verification result), `docs/reference/FILE_STRUCTURE.md` (4 new files). No `DATABASE_SCHEMA.md` change (no SQL).
+
+---
 ## [2026-09-08] perf(sprint-7.0): Global Perf & Correctness — nav over-fetch, 400 race, cn() merge, forecast tone hierarchy (NO SQL)
 
 Phase 7, sprint 1. Clears the isolated perf/correctness debt the Phase 6 live-verification report surfaced (Findings 3, 5, 6), before any question-type feature work. **Frontend only — no SQL, `docs/reference/DATABASE_SCHEMA.md` §1.4 unchanged. No study-loop behaviour change.** `npm run build` clean (7.2s); `npx eslint` clean on every changed file. **Verified per-role (student + professor + super-admin) on the dev server → live Supabase, 08/09/2026:** `/dashboard/notes` `profiles` 17→3 all roles, four nav RPCs 6→1 each; nav sweeps 0 fetch-4xx / 0 `console.error` / 0 `window.error`; role gating identical; 7.0-E inversion live (professor Progress "Due Today: 7" → amber, was neutral). SHIPPED `6c78f73` → `main` → Vercel. Operator follow-ups: disable Speed Insights in Vercel (7.0-C); optional cold-load spot-check on `revisop.com` (7.0-B, production-only path).

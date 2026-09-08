@@ -6,7 +6,10 @@
 //   Phase 6 Sprint 6.1 — RevisOp reskin token layer + design-language primitives
 //                        (the "RevisOp reskin" section; own light/dark toggle)
 import { useState } from 'react'
-import { BookOpen, Layers, Brain } from 'lucide-react'
+import {
+  BookOpen, Layers, Brain,
+  LayoutDashboard, Play, Plus, BarChart3, Menu, FileText, CreditCard, Upload,
+} from 'lucide-react'
 import { StudyItemCard } from '@/components/ui/StudyItemCard'
 import { FlipCard } from '@/components/ui/FlipCard'
 import { Button } from '@/components/ui/button'
@@ -336,6 +339,70 @@ function ReskinGallery() {
           <div className="space-y-1.5">
             <UiLabel htmlFor="dq-ta">Textarea</UiLabel>
             <Textarea id="dq-ta" placeholder="Multi-line field on the same input shell" />
+          </div>
+        </div>
+      </section>
+
+      {/* ════════ Sprint 7.1 — Mobile bottom navigation ════════ */}
+      <section className="space-y-3">
+        <Label>Mobile bottom nav — the fixed bar (md:hidden in the real app; representative here)</Label>
+        <div className="max-w-[390px]">
+          <div className="flex h-14 items-stretch overflow-hidden rounded-rec border border-rv-border bg-rv-bg-1 font-plex shadow-rv-bar">
+            {/* Dashboard — inactive */}
+            <span className="flex flex-1 flex-col items-center justify-center gap-0.5 border-t-2 border-transparent px-1 text-[11px] font-medium text-rv-ink-400">
+              <LayoutDashboard className="h-5 w-5" />
+              Dashboard
+            </span>
+            {/* Review — ACTIVE */}
+            <span className="flex flex-1 flex-col items-center justify-center gap-0.5 border-t-2 border-rv-navy px-1 text-[11px] font-medium text-rv-navy">
+              <Play className="h-5 w-5" />
+              Review
+            </span>
+            {/* Create — centre action */}
+            <span className="flex flex-1 flex-col items-center justify-center gap-0.5 border-t-2 border-transparent px-1 text-[11px] font-medium text-rv-ink-400">
+              <span className="flex h-7 w-7 items-center justify-center rounded-rec bg-rv-navy text-white">
+                <Plus className="h-5 w-5" />
+              </span>
+              Create
+            </span>
+            {/* Progress — inactive */}
+            <span className="flex flex-1 flex-col items-center justify-center gap-0.5 border-t-2 border-transparent px-1 text-[11px] font-medium text-rv-ink-400">
+              <BarChart3 className="h-5 w-5" />
+              Progress
+            </span>
+            {/* Menu — inactive */}
+            <span className="flex flex-1 flex-col items-center justify-center gap-0.5 border-t-2 border-transparent px-1 text-[11px] font-medium text-rv-ink-400">
+              <Menu className="h-5 w-5" />
+              Menu
+            </span>
+          </div>
+        </div>
+        <p className="font-plex text-[12px] text-rv-ink-400">
+          Active tab = navy top-border + navy ink (<code>border-rv-navy</code> / <code>text-rv-navy</code>);
+          inactive = <code>text-rv-ink-400</code>. Bar is <code>bg-rv-bg-1</code> / <code>border-t border-rv-border</code> /
+          <code> shadow-rv-bar</code>, padded with <code>env(safe-area-inset-bottom)</code>. Friends + Bell (and their
+          unread/pending badges) stay in the slim mobile TOP bar — no counted entity maps to a bottom tab without a new fetch.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <Label>Mobile bottom nav — the centre ＋ action-sheet (Bulk Upload professor+ only)</Label>
+        <div className="max-w-[390px] overflow-hidden rounded-t-obj border border-rv-border bg-rv-bg-1 font-plex text-rv-ink-900">
+          <div className="px-5 pt-5 pb-2 text-sm font-semibold text-rv-ink-900">Create</div>
+          <div className="pb-3">
+            {[
+              { label: 'Upload Note', Icon: FileText },
+              { label: 'Create Flashcard', Icon: CreditCard },
+              { label: 'Bulk Upload', Icon: Upload },
+            ].map((row) => {
+              const RowIcon = row.Icon;
+              return (
+                <div key={row.label} className="flex w-full items-center gap-3 px-5 py-3 text-left">
+                  <RowIcon className="h-5 w-5 text-rv-ink-400" />
+                  <span className="text-sm font-medium text-rv-ink-900">{row.label}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

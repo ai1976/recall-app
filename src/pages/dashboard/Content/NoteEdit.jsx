@@ -410,7 +410,7 @@ export default function NoteEdit() {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
+    <div className="container mx-auto p-4 max-w-4xl pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-4">
       <div className="mb-6">
         <Button
           variant="ghost"

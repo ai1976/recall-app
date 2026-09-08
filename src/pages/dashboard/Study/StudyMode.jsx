@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStudySession } from '@/contexts/StudySessionContext';
 import { Button } from '@/components/ui/button';
 import { Card as RvCard, GradeButtonRow, VerifiedEdge } from '@/components/revisop';
 import { bucketForDays, isReadingBody } from '@/lib/revisop-tokens';
@@ -50,7 +51,16 @@ export default function StudyMode({
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { setInStudySession } = useStudySession();
   const [searchParams] = useSearchParams();
+
+  // Tell the app shell the full-screen card loop is mounted (Sprint 7.1) so
+  // NavBottomTabs hides itself — whether we got here via /dashboard/study or as
+  // ReviewSession's embedded active view. Cleared on unmount / "Back to Selection".
+  useEffect(() => {
+    setInStudySession(true);
+    return () => setInStudySession(false);
+  }, [setInStudySession]);
   const previewModeParam = searchParams.get('previewMode') === 'true';
   const totalCardsParam = previewModeParam ? (parseInt(searchParams.get('totalCards')) || 0) : 0;
 
@@ -937,7 +947,7 @@ export default function StudyMode({
               )}
             >
               <VerifiedEdge on={showAnswer && !!currentCard.is_verified} />
-              <div className="flex-1 p-8 md:p-12 flex flex-col justify-center items-center">
+              <div className="flex-1 min-w-0 p-5 sm:p-8 md:p-12 flex flex-col justify-center items-center">
               {!showAnswer ? (
                 <div className="w-full text-center">
                   <div className="mb-6 flex items-center justify-center gap-2">
@@ -973,7 +983,7 @@ export default function StudyMode({
                     {currentCard.front_text}
                   </p>
 
-                  <div className="flex items-center justify-center gap-3">
+                  <div className="flex flex-wrap items-center justify-center gap-3">
                     <Button
                       variant="outline"
                       onClick={handleSkip}
@@ -986,7 +996,7 @@ export default function StudyMode({
                     <Button
                       onClick={() => setShowAnswer(true)}
                       size="lg"
-                      className="gap-2 px-8 min-h-[48px]"
+                      className="gap-2 px-6 sm:px-8 min-h-[48px]"
                     >
                       <Brain className="h-5 w-5" />
                       Show Answer
@@ -1108,7 +1118,7 @@ export default function StudyMode({
                     />
 
                     {/* Skip/More actions also available on answer side */}
-                    <div className="flex items-center justify-center gap-3 pt-2">
+                    <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                       <Button
                         variant="ghost"
                         size="sm"

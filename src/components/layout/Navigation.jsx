@@ -2,6 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavData } from '@/contexts/NavDataContext';
 import NavDesktop from './NavDesktop';
 import NavMobile from './NavMobile';
+import NavBottomTabs from './NavBottomTabs';
 
 export default function Navigation() {
   const { user, signOut } = useAuth();
@@ -44,16 +45,23 @@ export default function Navigation() {
   };
 
   return (
-    <nav className="bg-rv-bg-1 border-b border-rv-border sticky top-0 z-50 font-plex">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          {/* Desktop Navigation - hidden on mobile */}
-          <NavDesktop {...navProps} />
-          
-          {/* Mobile Navigation - hidden on desktop */}
-          <NavMobile {...navProps} />
+    <>
+      <nav className="bg-rv-bg-1 border-b border-rv-border sticky top-0 z-50 font-plex">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            {/* Desktop Navigation - hidden on mobile */}
+            <NavDesktop {...navProps} />
+
+            {/* Mobile top bar - hidden on desktop */}
+            <NavMobile {...navProps} />
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Mobile bottom-tab bar (Sprint 7.1) — sibling of <nav> so it renders
+          full-width outside the max-w-7xl container. md:hidden; self-gates on
+          !user and on the full-screen study routes. */}
+      <NavBottomTabs {...navProps} />
+    </>
   );
 }

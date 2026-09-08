@@ -73,7 +73,8 @@ recall-app
 │   ├── contexts
 │   │   ├── AuthContext.jsx                      ← auth state (identity-stable user), timezone sync (1×/session), updateUserTimezone
 │   │   ├── CourseContext.jsx                    ← multi-course teaching context for professors/admins; activeCourse session state; exposes role/courseLevel
-│   │   └── NavDataContext.jsx                   ← Sprint 7.0: one instance of useRole/useNotifications/useFriendRequestCount for the whole app; useNavData() + useRole shim
+│   │   ├── NavDataContext.jsx                   ← Sprint 7.0: one instance of useRole/useNotifications/useFriendRequestCount for the whole app; useNavData() + useRole shim
+│   │   └── StudySessionContext.jsx              ← Sprint 7.1: boolean inStudySession (StudyMode sets it) so NavBottomTabs hides during the card loop
 │   ├── lib
 │   │   ├── supabase.js                          ← Supabase client
 │   │   ├── utils.js                             ← shadcn cn() utility
@@ -111,10 +112,12 @@ recall-app
 │   │   │   ├── ActivityDropdown.jsx             ← bell icon + notifications dropdown (group_invite inline Accept/Decline)
 │   │   │   ├── CourseSwitcher.jsx               ← indigo pill dropdown for multi-course professors (session-only, no DB write)
 │   │   │   ├── FriendsDropdown.jsx              ← friends icon + friend requests + following links
-│   │   │   ├── NavDesktop.jsx                   ← desktop nav with dropdowns (Study▾, Create▾, Manage▾)
-│   │   │   ├── Navigation.jsx                   ← orchestrator (55 lines); renders NavDesktop + NavMobile
-│   │   │   ├── NavMobile.jsx                    ← hamburger sheet nav
-│   │   │   ├── PageContainer.jsx                ← wrapper with width prop (full/medium/narrow)
+│   │   │   ├── NavBottomTabs.jsx                ← mobile bottom-tab bar (Sprint 7.1): md:hidden, fixed; Dashboard·Review·＋·Progress·Menu; data-driven, no own fetch
+│   │   │   ├── NavDesktop.jsx                   ← desktop nav with dropdowns (Study▾, Create▾, Manage▾); active-route helpers from @/lib/navActive
+│   │   │   ├── Navigation.jsx                   ← orchestrator; renders NavDesktop + NavMobile (top) + NavBottomTabs (bottom sibling)
+│   │   │   ├── NavMenuSheet.jsx                 ← mobile "Menu" drawer (Sprint 7.1): the former NavMobile hamburger Sheet, content verbatim
+│   │   │   ├── NavMobile.jsx                    ← mobile TOP bar (Sprint 7.1: slimmed to Wordmark + Friends + Bell)
+│   │   │   ├── PageContainer.jsx                ← wrapper with width prop (full/medium/narrow); bottom-bar safe-area clearance
 │   │   │   └── ProfileDropdown.jsx              ← avatar dropdown (Settings, Help, Sign Out)
 │   │   ├── notifications
 │   │   │   └── PushPermissionBanner.jsx         ← one-time dismissible push prompt (Android: enable button; iOS: install guide)
@@ -151,7 +154,7 @@ recall-app
 │   │       ├── progress.jsx
 │   │       ├── SearchableSelect.jsx
 │   │       ├── select.jsx
-│   │       ├── sheet.jsx                        ← Radix Dialog-based slide-in Sheet (used by NavMobile)
+│   │       ├── sheet.jsx                        ← Radix Dialog-based slide-in Sheet (NavMenuSheet drawer + NavBottomTabs ＋ action-sheet)
 │   │       ├── StudyItemCard.jsx                ← presentational deck/study-set list card (prop-driven, brand tokens) — Phase 5 S1
 │   │       ├── switch.jsx
 │   │       ├── tabs.jsx
@@ -239,8 +242,12 @@ recall-app
 ### Navigation
 - `src/components/layout/Navigation.jsx` — orchestrator (thin); reads `useNavData()` (Sprint 7.0) — one shared fetch, not 3 per mount
 - `src/contexts/NavDataContext.jsx` — `<NavDataProvider>` owns role + notifications + friend-request count app-wide; `useNavData()` + a `useRole` shim
+- `src/contexts/StudySessionContext.jsx` — Sprint 7.1: `inStudySession` flag set by `StudyMode`; `NavBottomTabs` hides while true
 - `src/components/layout/NavDesktop.jsx` — desktop layout with dropdowns
-- `src/components/layout/NavMobile.jsx` — hamburger + Sheet
+- `src/components/layout/NavMobile.jsx` — mobile top bar (Wordmark + Friends + Bell; Sprint 7.1)
+- `src/components/layout/NavBottomTabs.jsx` — mobile bottom-tab bar (Sprint 7.1); consumes `navProps`, no own fetch
+- `src/components/layout/NavMenuSheet.jsx` — mobile "Menu" drawer (Sprint 7.1); the former NavMobile hamburger Sheet
+- `src/lib/navActive.js` — shared active-route predicates for NavDesktop + NavBottomTabs (Sprint 7.1)
 
 ### Dashboard
 - `src/pages/Dashboard.jsx` — 4-way role conditional (student / professor / admin / super_admin)
@@ -275,6 +282,7 @@ recall-app
 
 ### Supabase / Backend
 - `src/lib/supabase.js` — Supabase client
+- `src/lib/navActive.js` — pure `(pathname) => boolean` active-route predicates shared by NavDesktop + NavBottomTabs (Sprint 7.1); no Supabase, no React
 - `src/lib/notifyEdge.js` — fire-and-forget helpers for Edge Function calls
 - `src/lib/revisop-tokens.js` — RevisOp reskin shared JS (Phase 6 S6.1): `REVISOP_LITERATA_ENABLED` gate (off), `REVISOP_BUCKETS`, `bucketForDays()` / `ledgerFromForecast()`. No Supabase.
 - `src/hooks/usePushNotifications.js` — Web Push permission + VAPID subscribe/unsubscribe

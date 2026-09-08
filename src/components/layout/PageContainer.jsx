@@ -33,12 +33,17 @@ export default function PageContainer({
   noBackground = false,
 }) {
   const widthClass = WIDTH_CLASSES[width] || WIDTH_CLASSES.full;
-  
+
+  // Mobile bottom-tab clearance (Sprint 7.1) — the fixed NavBottomTabs bar is
+  // 3.5rem + iOS safe-area; pad the outer container so no page's last row / a
+  // sticky CTA hides behind it. Removed at md (the bar is md:hidden).
+  const bottomBarClearance = 'pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0';
+
   // Base classes for outer container
-  const outerClasses = noBackground 
-    ? 'min-h-screen' 
-    : 'min-h-screen bg-gray-50';
-  
+  const outerClasses = noBackground
+    ? `min-h-screen ${bottomBarClearance}`
+    : `min-h-screen bg-rv-bg-0 ${bottomBarClearance}`;
+
   // Base classes for inner container
   const innerClasses = noPadding
     ? `${widthClass} mx-auto`
