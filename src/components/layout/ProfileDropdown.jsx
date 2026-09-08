@@ -21,25 +21,26 @@ import {
 import { supabase } from '@/lib/supabase';
 
 export default function ProfileDropdown({ user, role, isLoading, handleSignOut }) {
-  const [userName, setUserName] = useState('');
+  // Prefer the name already on the auth user (set at signup via options.data) —
+  // same source NavMobile uses — so the common case needs no query. Fall back to
+  // a one-off profiles read only for accounts without it. Sprint 7.0 (Finding 5).
+  const metadataName = user?.user_metadata?.full_name || '';
+  const [fetchedName, setFetchedName] = useState('');
+  const userName = metadataName || fetchedName;
 
-  // Fetch user's full name from profiles table
   useEffect(() => {
-    const fetchUserName = async () => {
-      if (user?.id) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', user.id)
-          .single();
-
-        if (data?.full_name) {
-          setUserName(data.full_name);
-        }
-      }
-    };
-    fetchUserName();
-  }, [user?.id]);
+    if (!user?.id || metadataName) return; // name already known — no query
+    let cancelled = false;
+    supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (!cancelled && data?.full_name) setFetchedName(data.full_name);
+      });
+    return () => { cancelled = true; };
+  }, [user?.id, metadataName]);
 
   // Get user initials for avatar
   const getInitials = () => {

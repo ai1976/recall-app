@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText, File, Calendar, Tag, Plus, Brain, Trash2, Edit, Users, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRole } from '@/hooks/useRole';
+import { useRole } from '@/contexts/NavDataContext'; // Sprint 7.0: shared nav-data context, not a per-mount fetch
 import UpvoteButton from '@/components/ui/UpvoteButton';
 import ContentPreviewWall from '@/components/ui/ContentPreviewWall';
 import FlagButton from '@/components/ui/FlagButton';

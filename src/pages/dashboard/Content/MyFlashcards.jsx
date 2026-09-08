@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Brain, Plus, Search, Trash2, Filter, Edit2, Calendar, Package, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRole } from '@/hooks/useRole';
+import { useRole } from '@/contexts/NavDataContext'; // Sprint 7.0: shared nav-data context, not a per-mount fetch
 import FlashcardCard from '@/components/flashcards/FlashcardCard';
 import FeatureNominationButton from '@/components/content/FeatureNominationButton';
 

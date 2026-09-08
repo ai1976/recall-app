@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from '
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { CourseContextProvider } from '@/contexts/CourseContext'
+import { NavDataProvider } from '@/contexts/NavDataContext'
 
 // Layout Components (not lazy — part of the app shell, needed immediately)
 import Navigation from '@/components/layout/Navigation'
@@ -369,9 +370,14 @@ function App() {
   return (
     <AuthProvider>
       <CourseContextProvider>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
+        {/* NavDataProvider owns useRole / useNotifications / useFriendRequestCount
+            as ONE instance for the whole app (Sprint 7.0 — Finding 5). Above the
+            router so every route (nav shell + pages) reads the same context. */}
+        <NavDataProvider>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </NavDataProvider>
       </CourseContextProvider>
     </AuthProvider>
   )

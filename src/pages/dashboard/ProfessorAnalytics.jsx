@@ -9,7 +9,7 @@ import {
   Upload, Copy, ChevronUp, ChevronDown, Minus,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRole } from '@/hooks/useRole';
+import { useRole } from '@/contexts/NavDataContext'; // Sprint 7.0: shared nav-data context, not a per-mount fetch
 import { useCourseContext } from '@/contexts/CourseContext';
 import { supabase } from '@/lib/supabase';
 import PageContainer from '@/components/layout/PageContainer';

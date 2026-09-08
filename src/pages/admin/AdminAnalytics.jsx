@@ -8,7 +8,7 @@ import {
   ChevronUp, ChevronDown, Minus,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useRole } from '@/hooks/useRole';
+import { useRole } from '@/contexts/NavDataContext'; // Sprint 7.0: shared nav-data context, not a per-mount fetch
 import { supabase } from '@/lib/supabase';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';

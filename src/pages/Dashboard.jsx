@@ -1217,27 +1217,29 @@ export default function Dashboard() {
                 </Card>
               )}
 
-              {/* ===== PRIMARY CTA: START REVIEW ===== */}
+              {/* ===== PRIMARY CTA: START REVIEW =====
+                   Today's pile is the loudest surface (Sprint 7.0 7.0-E). Amber
+                   on --rv-* = "here's today's work, do it now"; the button stays
+                   navy (the primary-action colour everywhere in the reskin). */}
               {!isNewUser && reviewsDue > 0 && (
-                <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                <Card className="bg-rv-amber-50 border-rv-amber-edge">
                   <CardContent className="pt-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-3 bg-green-100 rounded-full">
-                          <Play className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+                        <div className="p-3 bg-rv-amber-50 border border-rv-amber-edge rounded-full">
+                          <Play className="h-5 w-5 sm:h-6 sm:w-6 text-rv-amber-ink" />
                         </div>
                         <div>
-                          <p className="text-lg sm:text-xl font-bold text-green-800">
+                          <p className="text-lg sm:text-xl font-bold text-rv-ink-900">
                             {reviewsDue} item{reviewsDue > 1 ? 's' : ''} ready
                           </p>
-                          <p className="text-sm text-green-600">
+                          <p className="text-sm text-rv-ink-600">
                             Keep your streak alive!
                           </p>
                         </div>
                       </div>
                       <Button
                         size="lg"
-                        className="bg-green-600 hover:bg-green-700"
                         onClick={() => navigate('/dashboard/review-session')}
                       >
                         <Play className="mr-2 h-4 w-4" /> Start Review Session
@@ -1247,16 +1249,18 @@ export default function Dashboard() {
                 </Card>
               )}
 
-              {/* ===== ALL CAUGHT UP STATE ===== */}
+              {/* ===== ALL CAUGHT UP STATE =====
+                   The calm "all clear" state — muted green on --rv-*, matching
+                   Progress.jsx's "Due Today: 0" tile (Sprint 7.0 7.0-E). */}
               {!isNewUser && reviewsDue === 0 && (
-                <Card className="bg-amber-50 border-amber-200">
+                <Card className="bg-rv-green-50 border-rv-border">
                   <CardContent className="pt-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
-                        <p className="text-lg sm:text-xl font-bold text-rv-navy">
+                        <p className="text-lg sm:text-xl font-bold text-rv-green">
                           🎉 All caught up!
                         </p>
-                        <p className="text-sm text-rv-navy">
+                        <p className="text-sm text-rv-ink-600">
                           No scheduled reviews. Time to learn something new?
                         </p>
                       </div>

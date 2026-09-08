@@ -1,15 +1,18 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { useRole } from '@/hooks/useRole';
-import { useNotifications } from '@/hooks/useNotifications';
-import { useFriendRequestCount } from '@/hooks/useFriendRequestCount';
+import { useNavData } from '@/contexts/NavDataContext';
 import NavDesktop from './NavDesktop';
 import NavMobile from './NavMobile';
 
 export default function Navigation() {
   const { user, signOut } = useAuth();
-  const { role, isSuperAdmin, isAdmin, isProfessor, isLoading: roleLoading } = useRole();
-  const { notifications, unreadCount, markAllRead, deleteNotification, refetch: refetchNotifications, loading: notifLoading } = useNotifications(5);
-  const { pendingCount, loading: friendLoading } = useFriendRequestCount();
+  // Sprint 7.0 (Finding 5): role / notifications / friend-request count now come
+  // from the single NavDataProvider instance instead of three per-mount fetches.
+  const {
+    role, isSuperAdmin, isAdmin, isProfessor, isLoading: roleLoading,
+    notifications, unreadCount, markAllRead, deleteNotification,
+    refetchNotifications, notifLoading,
+    pendingCount, friendLoading,
+  } = useNavData();
 
   if (!user) return null;
 

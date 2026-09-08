@@ -1,6 +1,40 @@
 # Changelog
 
 ---
+## [2026-09-08] perf(sprint-7.0): Global Perf & Correctness — nav over-fetch, 400 race, cn() merge, forecast tone hierarchy (NO SQL)
+
+Phase 7, sprint 1. Clears the isolated perf/correctness debt the Phase 6 live-verification report surfaced (Findings 3, 5, 6), before any question-type feature work. **Frontend only — no SQL, `docs/reference/DATABASE_SCHEMA.md` §1.4 unchanged. No study-loop behaviour change.** `npm run build` clean (7.2s); `npx eslint` clean on every changed file. Super-admin verified on the dev server (→ live Supabase); student + professor + cold-load verification pending an operator session.
+
+### Added
+- **`src/contexts/NavDataContext.jsx`** (new) — `<NavDataProvider>` owns `useRole()` / `useNotifications(5)` / `useFriendRequestCount()` as ONE app-wide instance (mounted in `App.jsx`, above `<BrowserRouter>`, inside `CourseContextProvider`). Exports `useNavData()` (full bundle) and a drop-in `useRole` shim with the same return shape as `@/hooks/useRole`.
+
+### Fixed
+- **Finding 5 — nav / notification over-fetch.** Root cause: `AuthContext` called `setUser(session?.user ?? null)` on every supabase-js auth event with a fresh object reference, so every `[user]`-keyed effect app-wide re-fired ~12×/load. Fixes: (1) `AuthContext` `applySession()` sets `user` via a functional updater that returns the previous reference when `prev?.id === next?.id` (React bails — `user` identity stable across token refreshes / repeat SIGNED_IN); (2) the three nav hooks hoisted into `NavDataProvider`; `Navigation.jsx` + 9 former `useRole()` consumers read the context shim; (3) `updateUserTimezone` gated by a module-scoped `tzSyncedThisSession` → ≤1 `profiles` read/session; (4) `ProfileDropdown` reads the name from `user.user_metadata.full_name` first; (5) `CourseContext` exposes `role` + `courseLevel`, `BrowseNotes` consumes them instead of its own `profiles` read. **`/dashboard/notes` (super-admin, dev): `profiles` 17 → 3; `get_recent_notifications` / `get_unread_notification_count` / `friendships` / `role_permissions` 6 → 1 each.** (Prod Phase-6 baseline: `profiles` ×46, those four ×12.) Realtime subscriptions unaffected. → `docs/tracking/bugs.md` Finding 5 RESOLVED.
+- **Finding 6 — 2× `400` on every authed page.** Root cause: `get_recent_notifications` / `get_unread_notification_count` `RAISE EXCEPTION 'Not authenticated'` (→ HTTP 400 `P0001`) when fired in the auth-init window with `auth.uid()` still NULL server-side — a frontend timing race, **not** an RPC defect (direct calls with a valid session all return 200; no grant / overload / signature issue). Fixed at the frontend layer by the Finding-5 `user`-identity stabilisation (removes the ×12 churn that kept the race landing). **No SQL.** Post-fix: zero 4xx across a 9-route soft-nav sweep (super-admin). → `docs/tracking/bugs.md` Finding 6 RESOLVED.
+- **Finding 3 — web-vitals `startTime` TypeError.** Not in the repo (no `web-vitals` / `@vercel/speed-insights` / `@vercel/analytics` dep, no import, nothing in `index.html` / `vercel.json`). Injected by **Vercel Speed Insights** at the edge — not version-pinnable by us. Known upstream web-vitals soft-nav / bfcache issue; benign, 0/6 Phase-6 reproductions. **Resolution:** operator to disable Speed Insights in the Vercel project dashboard (RUM unused). → `docs/tracking/bugs.md` Finding 3 CLOSED (documented benign-upstream).
+- **`<Num>` / `rv-*` class override (7.0-D).** `src/lib/utils.js` `cn()` now uses `extendTailwindMerge` registering `rounded → rec|obj`, `shadow → rv|rv-bar`, and the `text/bg/border-rv-*` colour scale. `rounded-rec`/`rounded-obj` and `shadow-rv`/`shadow-rv-bar` were genuinely un-merged (twMerge kept both — latent, no live collision); the `text-rv-*` half of the old `reference_rv_num_atom_tailwind_ordering` memo was already stale (tailwind-merge@3.4.0 resolved those via its permissive fallback). Regression-checked on `/__design` light + dark — computed radii/shadows/colours identical before/after. Sprint 6.5 `NUM_TYPE` workaround reverted in `Progress.jsx` `ForecastCard` → `<Num className={t.text}>`.
+
+### Changed — Due / forecast tone hierarchy (7.0-E; Anand's product call: invert — "Due Today" is the loudest)
+- **`src/pages/dashboard/Study/Progress.jsx`** `ForecastCard` `FORECAST_TONES`: `calm` (Due Today 0) / `amber` (1..`DUE_TODAY_ALARM_THRESHOLD` — "do these now") / `danger` (> threshold) / **new `quiet`** (`bg-rv-bg-1` / `border-rv-border` / `text-rv-ink-600`). "Next 7 / 30 Days" moved from `amber` → `quiet` (the softest — context, not a to-do). `DUE_TODAY_ALARM_THRESHOLD` unchanged (24). The pre-7.0 `neutral` tone removed.
+- **`src/pages/Dashboard.jsx`** student "N items ready" CTA: legacy `bg-gradient-to-r from-green-50 to-emerald-50 border-green-200` + `text-green-*` + `bg-green-600` button → `bg-rv-amber-50 border-rv-amber-edge`, icon on amber, text on `--rv-ink-*`, button drops the override (default navy). "All caught up" card: legacy `bg-amber-50 border-amber-200` + `text-rv-navy` → `bg-rv-green-50 border-rv-border` + `text-rv-green` / `text-rv-ink-600` (calm, matches Progress "Due Today: 0"). No `red-50` / `amber-50` / `green-50` legacy Tailwind left on these surfaces. `ForwardLedgerMacro` already a navy magnitude ramp — unchanged.
+
+### Changed — Finding 5 plumbing
+- **`src/contexts/AuthContext.jsx`** — `applySession()` helper; identity-stable `setUser`; `tzSyncedThisSession` module guard (folds in the Sprint 6.5 `tzAlreadySetLogged` log-gate — the whole function now runs ≤1×/session).
+- **`src/contexts/CourseContext.jsx`** — exposes `role` + `courseLevel` (already-fetched state, additive to the context value).
+- **`src/App.jsx`** — `<NavDataProvider>` in the provider tree.
+- **`src/components/layout/Navigation.jsx`** — one `useNavData()` call replaces the three hook calls.
+- **`src/components/layout/ProfileDropdown.jsx`** — `user_metadata.full_name` first, `profiles` read only as fallback (also fixes a `react-hooks/set-state-in-effect` lint the naive version tripped).
+- **`src/pages/dashboard/Content/BrowseNotes.jsx`** — role + enrolled course from `useCourseContext()` instead of a duplicate `profiles.select('role, course_level')`.
+- **Import-path swap** (`@/hooks/useRole` → `@/contexts/NavDataContext`), no logic change: `AdminAnalytics`, `AdminDashboard`, `BulkUploadTopics`, `SuperAdminAnalytics`, `SuperAdminDashboard`, `BulkUploadFlashcards`, `ProfessorAnalytics`, `MyFlashcards`, `NoteDetail`. `Help.jsx` left on `@/hooks/useRole` (swap surfaced a pre-existing unrelated lint error at `Help.jsx:192`); `professor/ProfessorTools.jsx` dead/unrouted, left as-is.
+
+### Notes
+- **No SQL shipped.** `get_recent_notifications` / `get_unread_notification_count` / `role_permissions` / `friendships` / `profiles` unchanged. §1.4 / DATABASE_SCHEMA.md untouched.
+- **Sentry:** 7.0 is a reasonable home for an init (error visibility before the epic sprints) — flagged, **not added** (needs Anand + a DSN).
+
+### Docs updated
+- `docs/active/blueprint.md` (SSOT — Sprint 7.0 entry in Sprint History; "Last Updated" → Sep 8, 2026), `docs/active/now.md` (Just Completed + session notes), `docs/tracking/bugs.md` (Findings 3/5/6 → resolved with evidence), `docs/reference/FILE_STRUCTURE.md` (`NavDataContext.jsx`), memory `reference_rv_num_atom_tailwind_ordering`.
+
+---
 ## [2026-09-07] audit(db): Task 6.5-D — `get_following_leaderboard` reconstruction audit — FAITHFUL, Finding 2 fully closed (no fix)
 
 Bounded follow-up to the Sprint 6.5 `[FIX]`. The 6.5 thread replaced the *whole* body of `get_following_leaderboard` with a reconstruction templated off `get_friends_leaderboard` (01_DIAGNOSTIC's capture of the live pre-fix body was lost before 02_FUNCTIONS overwrote the function), and `03_TEST`'s parity check validates the weekly-stat math, not the membership set — so the follow-scope was unverified.

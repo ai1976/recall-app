@@ -69,10 +69,11 @@ recall-app
 │   ├── sw.js                                    ← Service Worker: push event handler + notificationclick + install/activate
 │   └── vite.svg
 ├── src
-│   ├── App.jsx                                  ← all routes (lazy-loaded), CourseContextProvider, AppContent postAuthRedirect
+│   ├── App.jsx                                  ← all routes (lazy-loaded), Auth/Course/NavData providers, AppContent postAuthRedirect
 │   ├── contexts
-│   │   ├── AuthContext.jsx                      ← auth state, timezone sync, updateUserTimezone
-│   │   └── CourseContext.jsx                    ← multi-course teaching context for professors/admins; activeCourse session state
+│   │   ├── AuthContext.jsx                      ← auth state (identity-stable user), timezone sync (1×/session), updateUserTimezone
+│   │   ├── CourseContext.jsx                    ← multi-course teaching context for professors/admins; activeCourse session state; exposes role/courseLevel
+│   │   └── NavDataContext.jsx                   ← Sprint 7.0: one instance of useRole/useNotifications/useFriendRequestCount for the whole app; useNavData() + useRole shim
 │   ├── lib
 │   │   ├── supabase.js                          ← Supabase client
 │   │   ├── utils.js                             ← shadcn cn() utility
@@ -236,7 +237,8 @@ recall-app
 - `src/pages/auth/Signup.jsx` — profile created by DB trigger, NOT client-side insert
 
 ### Navigation
-- `src/components/layout/Navigation.jsx` — orchestrator (thin, ~55 lines)
+- `src/components/layout/Navigation.jsx` — orchestrator (thin); reads `useNavData()` (Sprint 7.0) — one shared fetch, not 3 per mount
+- `src/contexts/NavDataContext.jsx` — `<NavDataProvider>` owns role + notifications + friend-request count app-wide; `useNavData()` + a `useRole` shim
 - `src/components/layout/NavDesktop.jsx` — desktop layout with dropdowns
 - `src/components/layout/NavMobile.jsx` — hamburger + Sheet
 

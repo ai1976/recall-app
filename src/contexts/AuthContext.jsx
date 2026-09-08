@@ -3,10 +3,13 @@ import { supabase } from '@/lib/supabase';
 
 const AuthContext = createContext({})
 
-// Session-scoped guard: the timezone sync runs on every getSession resolve and
-// SIGNED_IN event, so the "already set" branch was logging dozens of times per
-// page. Log it at most once per session. Sprint 6.5.
-let tzAlreadySetLogged = false
+// Session-scoped guard: the timezone sync fired on every getSession resolve AND
+// every SIGNED_IN event (supabase-js re-emits SIGNED_IN on each tab focus), so it
+// ran — and its "already set" branch logged — dozens of times per page. It only
+// needs to run once per page load: the browser timezone doesn't change mid-session.
+// Sprint 6.5 gated the log; Sprint 7.0 (7.0-A) gates the whole function → at most
+// one profiles read per session. Reset on a hard reload (module re-eval).
+let tzSyncedThisSession = false
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext)
@@ -20,12 +23,18 @@ export const AuthProvider = ({ children }) => {
   // Detects browser timezone and syncs to database if different
   // ============================================================
   const updateUserTimezone = async (userId) => {
+    // Run at most once per page load — see tzSyncedThisSession note above. Set the
+    // flag synchronously (before the first await) so a getSession resolve and a
+    // SIGNED_IN event firing in the same tick can't both start a read.
+    if (tzSyncedThisSession) return;
+    tzSyncedThisSession = true;
     try {
       // Get browser's IANA timezone (e.g., 'Asia/Kolkata', 'America/New_York')
       const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      
+
       if (!browserTimezone) {
         console.log('⏰ Could not detect browser timezone');
+        tzSyncedThisSession = false; // nothing synced — allow a later retry
         return;
       }
 
@@ -38,6 +47,7 @@ export const AuthProvider = ({ children }) => {
 
       if (fetchError) {
         console.warn('⏰ Could not fetch profile timezone:', fetchError);
+        tzSyncedThisSession = false; // read failed — allow a later retry
         return;
       }
 
@@ -53,41 +63,47 @@ export const AuthProvider = ({ children }) => {
         } else {
           console.log(`⏰ Timezone updated: ${profile?.timezone || 'null'} → ${browserTimezone}`);
         }
-      } else if (!tzAlreadySetLogged) {
-        tzAlreadySetLogged = true;
+      } else {
         console.log(`⏰ Timezone already set: ${browserTimezone}`);
       }
     } catch (error) {
       // Non-critical error - don't block auth flow
+      tzSyncedThisSession = false;
       console.warn('⏰ Timezone sync error:', error);
     }
   };
 
   useEffect(() => {
+    // Stabilise the user object reference. supabase-js calls back on every auth
+    // event — INITIAL_SESSION, SIGNED_IN (re-emitted on each tab focus),
+    // TOKEN_REFRESHED — and `session.user` is a fresh object every time. Setting
+    // it unconditionally changed `user`'s identity on every event, so every
+    // downstream `[user]` effect (useRole, useNotifications, useFriendRequestCount,
+    // CourseContext, useActivityFeed, …) re-fired — the ~12× nav/RPC over-fetch in
+    // Finding 5, and the churn that let the auth-init race in Finding 6 keep
+    // landing. Only replace `user` when the id actually changes; a functional
+    // updater returning the previous reference makes React bail the re-render.
+    // Sprint 7.0 (7.0-A / 7.0-B).
+    const applySession = (session) => {
+      const nextUser = session?.user ?? null
+      setUser((prev) => (prev?.id === nextUser?.id ? prev : nextUser))
+      setLoading(false)
+      if (nextUser) updateUserTimezone(nextUser.id)
+    }
+
     // Check active sessions — .catch() ensures loading resolves even if Supabase is unreachable
     supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        setUser(session?.user ?? null)
-        setLoading(false)
-        if (session?.user) {
-          updateUserTimezone(session.user.id);
-        }
-      })
+      .then(({ data: { session } }) => applySession(session))
       .catch(() => {
         // Network error — treat as logged out so the app doesn't spin forever
-        setUser(null)
+        setUser((prev) => (prev === null ? prev : null))
         setLoading(false)
       })
 
-    // Listen for auth changes
+    // Listen for auth changes. applySession no-ops the state update when the user
+    // id is unchanged, so TOKEN_REFRESHED / repeat SIGNED_IN events cost nothing.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-
-      // ✅ NEW: Sync timezone on auth state change (login)
-      if (session?.user && _event === 'SIGNED_IN') {
-        updateUserTimezone(session.user.id);
-      }
+      applySession(session)
     })
 
     return () => subscription.unsubscribe()

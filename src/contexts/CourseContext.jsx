@@ -20,6 +20,8 @@ import { useAuth } from '@/contexts/AuthContext';
 const CourseContext = createContext({
   teachingCourses:         [],    // [{ id, discipline_id, is_primary, disciplines: { id, name } }]
   activeCourse:            null,  // string — current active course name for UI context
+  role:                    null,  // string — cached profiles.role (avoids duplicate profile reads elsewhere)
+  courseLevel:             null,  // string — cached profiles.course_level (student's enrolled course)
   setActiveCourse:         () => {},
   addCourse:               async () => ({ error: null }),
   removeCourse:            async () => ({ error: null }),
@@ -40,6 +42,7 @@ export const CourseContextProvider = ({ children }) => {
   const [activeCourse, setActiveCourse]       = useState(null);
   const [loading, setLoading]                 = useState(true);
   const [role, setRole]                       = useState(null);
+  const [courseLevel, setCourseLevel]         = useState(null);
 
   const isContentCreator = ['professor', 'admin', 'super_admin'].includes(role);
 
@@ -61,6 +64,7 @@ export const CourseContextProvider = ({ children }) => {
 
       const userRole = profileData?.role || 'student';
       setRole(userRole);
+      setCourseLevel(profileData?.course_level ?? null);
 
       const isCreator = ['professor', 'admin', 'super_admin'].includes(userRole);
 
@@ -186,6 +190,8 @@ export const CourseContextProvider = ({ children }) => {
       value={{
         teachingCourses,
         activeCourse,
+        role,
+        courseLevel,
         setActiveCourse,
         addCourse,
         removeCourse,

@@ -30,11 +30,28 @@
 - **Fix:** module-scoped `tzAlreadySetLogged` guard in `src/contexts/AuthContext.jsx` — the "already set" branch logs at most once per session. Other timezone-sync branches untouched.
 - **Status:** ✅ RESOLVED — **live-verified 07/09/2026**: `⏰ Timezone already set` fires exactly 1× per page load across all 3 role sessions / ~6 loads (console tail shows one `⏰` per `[vite] connecting` block). Was 77+/load.
 
-### [07/09/2026] Findings 3, 5, 6 — OPEN, → Phase 7 infra/perf ticket
-- **Finding 3 (Low/watch):** web-vitals `Uncaught TypeError: Cannot read properties of undefined (reading 'startTime')` (`reportAllChanges` / `n.timeout` in the stack — web-vitals signature, likely Vercel Speed Insights). Seen once on a soft navigation, did not recur. Instrumentation-level, not app code.
-- **Finding 5 (Low):** nav/notification over-fetch — one `/dashboard/notes` load queries `profiles` **46×**; `get_recent_notifications` / `friendships` / `role_permissions` / `get_unread_notification_count` each **12×**. Pre-existing; wasteful on the Supabase Free plan.
-- **Finding 6 (Low):** 2× `Failed to load resource: 400` on essentially every authed page (nav/notification RPC family — the "4× 401" from the Sprint 6.3 report, now presenting as 400).
-- **Status:** OPEN — deferred to the Phase 7 infra/perf ticket.
+### [07/09/2026] Findings 3, 5, 6 — ✅ RESOLVED in Sprint 7.0 (08/09/2026)
+
+#### Finding 5 — nav/notification over-fetch — ✅ FIXED (frontend, no SQL)
+- **Symptom:** one `/dashboard/notes` load queried `profiles` **46×**; `get_recent_notifications` / `friendships` / `role_permissions` / `get_unread_notification_count` each **12×** (production Phase-6 measurement).
+- **Root cause:** `src/contexts/AuthContext.jsx` called `setUser(session?.user ?? null)` on every supabase-js auth event (`INITIAL_SESSION`, `SIGNED_IN` — re-emitted on each tab focus — `TOKEN_REFRESHED`), each with a **fresh object reference**. `user` identity changed on every event → every `[user]`-keyed effect app-wide (`useRole`, `useNotifications`, `useFriendRequestCount`, `CourseContext.fetchTeachingCourses`, `updateUserTimezone`, `useActivityFeed`) re-fired. The ×12 ≈ the number of auth events during load/settle. Each `useRole()` consumer (nav + ~9 pages) also fetched independently, and `CourseContext` + `BrowseNotes` + `ProfileDropdown` + the timezone sync each read `profiles` again.
+- **Fix (Sprint 7.0 7.0-A):** (1) `applySession()` sets `user` via a functional updater returning the previous reference when `prev?.id === next?.id` → React bails, `user` is identity-stable across token refreshes. (2) new `src/contexts/NavDataContext.jsx` — `<NavDataProvider>` (mounted once above the router) owns the three nav hooks; `Navigation.jsx` + 9 `useRole()` consumers read the shared context. (3) `updateUserTimezone` gated by a module-scoped `tzSyncedThisSession` → ≤1 `profiles` read/session. (4) `ProfileDropdown` reads the name from `user_metadata.full_name` first. (5) `CourseContext` exposes `role`/`courseLevel`; `BrowseNotes` consumes them instead of its own `profiles` read.
+- **After (super-admin, dev server, one `/dashboard/notes` load):** `profiles` **17 → 3**; `get_recent_notifications` / `get_unread_notification_count` / `friendships` / `role_permissions` **6 → 1 each**. Targets (`profiles ≤ 3`, nav RPCs ≤ 2) met. Realtime notification + friend-request channels unaffected (one each). Role gating renders identically (super-admin confirmed; student + professor pending an operator session).
+- **Files:** `src/contexts/{AuthContext,NavDataContext,CourseContext}.jsx`, `src/App.jsx`, `src/components/layout/{Navigation,ProfileDropdown}.jsx`, `src/pages/dashboard/Content/BrowseNotes.jsx`, + import-path swap on 9 `useRole` consumers.
+- **Status:** ✅ RESOLVED in code (Sprint 7.0) — ships with the frontend push; operator to confirm the per-role + cold-load numbers on `revisop.com`.
+
+#### Finding 6 — 2× `400` on every authed page — ✅ FIXED (frontend timing, no SQL)
+- **Symptom:** 2× `Failed to load resource: 400` on essentially every authed page (nav/notification RPC family; reported as "4× 401" in the Sprint 6.3 report, later presenting as 400).
+- **Root cause (named, evidence):** `get_recent_notifications` and `get_unread_notification_count` `RAISE EXCEPTION 'Not authenticated'` when `auth.uid() IS NULL` (and `'Access denied'` when `auth.uid() != p_user_id`). A plpgsql `RAISE` surfaces as **HTTP 400** (`P0001`) — this is the *only* way these RPCs 400. Direct calls with a valid session (captured via the app's `supabase` client, token 3519s to expiry) **all return 200** — no grant / overload / signature / L5-revoke defect. The 400 is the hook firing during the auth-init window where the access token is stale / not-yet-attached, so `auth.uid()` is NULL server-side. Could not be reproduced on a warm dev session (consistent with the report's "intermittent on production cold start / bfcache").
+- **Fix layer = frontend, no SQL:** the 7.0-A `user`-identity stabilisation removes the ~12× churn that kept the race landing; the only remaining fire is the single post-`getSession` one, when the token is already valid.
+- **After:** zero 4xx across a 9-route soft-nav sweep (super-admin, dev server). Cold-load 3-role sweep on `revisop.com` pending an operator session — the acceptance test.
+- **Status:** ✅ RESOLVED in code (Sprint 7.0). No SQL. If the operator's cold-load sweep still shows a 400, a targeted retry-on-`P0001` in the three hooks is the next step.
+
+#### Finding 3 — web-vitals `startTime` TypeError — ✅ CLOSED (documented benign-upstream)
+- **Symptom:** `Uncaught TypeError: Cannot read properties of undefined (reading 'startTime')` with `reportAllChanges` / `n.timeout` in the stack. Seen once on a soft navigation; did not recur across the Phase-6 6-session sweep.
+- **Root cause:** **not in the repo** — no `web-vitals` / `@vercel/speed-insights` / `@vercel/analytics` in `package.json`, no import in `src/`, nothing in `index.html` or `vercel.json`. The `web-vitals` code is injected by **Vercel Speed Insights** at the edge (`/_vercel/speed-insights/script.js`), toggled on in the Vercel *project dashboard*. Not in our bundle, not version-pinnable by us. The error is a known upstream web-vitals issue on soft-nav / bfcache restore (an entry list is momentarily empty); it fires inside the RUM reporter and does not affect app behaviour.
+- **Resolution:** operator to disable Speed Insights in the Vercel project settings (RUM data unused) → removes the script at source. Otherwise: benign, upstream, non-reproducing.
+- **Status:** ✅ CLOSED (Sprint 7.0). No in-repo fix exists; disposition is an operator/Vercel-dashboard action.
 
 ## Sprint 6.4 — 05/09/2026
 

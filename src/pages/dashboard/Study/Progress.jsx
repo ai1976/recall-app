@@ -31,18 +31,22 @@ import StudyHeatmap from '@/components/progress/StudyHeatmap';
 import SubjectMasteryTable from '@/components/progress/SubjectMasteryTable';
 import { Num, Label } from '@/components/revisop';
 
-// The Num atom's type treatment without its fixed ink-900 colour — for numerals
-// that must take a semantic tone (Tailwind orders `.text-rv-ink-900` after the
-// tone utilities, so an appended tone class on <Num> would lose).
+// The Num atom's type treatment without its ink-900 colour — for numerals that
+// should INHERIT a muted parent colour rather than carry their own. (An explicit
+// tone on <Num> now wins via the extended cn() — Sprint 7.0 7.0-D — so this is
+// only for the inherit case, not a workaround.)
 const NUM_TYPE = 'font-plex-mono font-medium [font-variant-numeric:tabular-nums]';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const formatLocalDate = (date) => new Date(date).toLocaleDateString('en-CA');
 
-// "Due Today" only becomes a red-alarm surface above a genuine backlog. A normal
-// daily review pile for an active student sits well under this; past it the pile
-// needs triage, which is when the danger treatment earns its place. Sprint 6.5
-// (the Sprint 6.0 note referenced ~24).
+// Tone hierarchy for the Due Items Forecast (Sprint 7.0 7.0-E, Anand's call):
+// "Due Today" is the loudest surface — it's the only one that's a call to action.
+//   0            → calm  (muted green, "all clear")
+//   1..THRESHOLD → amber  ("here's today's pile, do it now")
+//   > THRESHOLD  → danger (a genuine backlog that needs triage)
+// "Next 7 / 30 Days" step DOWN to quiet ink — they're context, not a to-do, and
+// must not shout louder than today's work (the pre-7.0 inversion).
 const DUE_TODAY_ALARM_THRESHOLD = 24;
 
 const WINDOW_OPTIONS = [
@@ -557,18 +561,18 @@ function ProgressBody({
                 ? 'calm'
                 : dueToday > DUE_TODAY_ALARM_THRESHOLD
                 ? 'danger'
-                : 'neutral'
+                : 'amber'
             }
           />
           <ForecastCard
             label="Next 7 Days"
             value={forecastLoading ? null : (forecast?.due_next_7 ?? 0)}
-            tone="amber"
+            tone="quiet"
           />
           <ForecastCard
             label="Next 30 Days"
             value={forecastLoading ? null : (forecast?.due_next_30 ?? 0)}
-            tone="amber"
+            tone="quiet"
           />
         </div>
       </div>
@@ -749,28 +753,28 @@ function StatCard({ icon, value, label, sub, loading }) {
   );
 }
 
-// Due Items Forecast tile. `tone` drives colour:
-//   calm    → nothing due today (positive, muted green)
-//   neutral → a normal daily pile (no alarm)
-//   amber   → forward-looking 7 / 30-day counts
-//   danger  → Due Today past DUE_TODAY_ALARM_THRESHOLD (genuine backlog)
+// Due Items Forecast tile. `tone` drives colour (see the hierarchy note above):
+//   calm   → nothing due today (positive, muted green)
+//   amber  → today's pile — the loudest surface, it's the only call to action
+//   danger → Due Today past DUE_TODAY_ALARM_THRESHOLD (genuine backlog)
+//   quiet  → the 7 / 30-day forecast — context, deliberately the softest
 const FORECAST_TONES = {
-  calm:    { box: 'bg-rv-green-50 border-rv-border',     text: 'text-rv-green' },
-  neutral: { box: 'bg-rv-bg-1 border-rv-border',         text: 'text-rv-ink-900' },
-  amber:   { box: 'bg-rv-amber-50 border-rv-amber-edge', text: 'text-rv-amber-ink' },
-  danger:  { box: 'bg-rv-bg-1 border-rv-danger',         text: 'text-rv-danger' },
+  calm:   { box: 'bg-rv-green-50 border-rv-border',     text: 'text-rv-green' },
+  amber:  { box: 'bg-rv-amber-50 border-rv-amber-edge', text: 'text-rv-amber-ink' },
+  danger: { box: 'bg-rv-bg-1 border-rv-danger',         text: 'text-rv-danger' },
+  quiet:  { box: 'bg-rv-bg-1 border-rv-border',         text: 'text-rv-ink-600' },
 };
 
 function ForecastCard({ label, value, tone }) {
-  const t = FORECAST_TONES[tone] ?? FORECAST_TONES.neutral;
+  const t = FORECAST_TONES[tone] ?? FORECAST_TONES.quiet;
   return (
     <div className={`rounded-lg border p-4 text-center ${t.box} ${t.text}`}>
       <div className="flex items-center justify-center gap-1 mb-1">
         <Clock className="h-4 w-4 opacity-70" />
       </div>
-      <span className={`block ${NUM_TYPE} text-2xl leading-none mb-1 ${t.text}`}>
+      <Num className={`block text-2xl leading-none mb-1 ${t.text}`}>
         {value === null ? <span className="animate-pulse">—</span> : value}
-      </span>
+      </Num>
       <p className="text-xs font-medium opacity-80">{label}</p>
     </div>
   );

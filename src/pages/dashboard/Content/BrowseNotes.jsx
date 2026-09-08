@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCourseContext } from '@/contexts/CourseContext';
 import { FileText, Search, Filter, Users, ChevronDown, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,9 @@ export default function BrowseNotes() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  // Role + enrolled course come from CourseContext (already fetched once, app-wide)
+  // instead of a duplicate profiles read here. Sprint 7.0 (Finding 5).
+  const { role: ctxRole, courseLevel: ctxCourseLevel } = useCourseContext();
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
   const [groupedNotes, setGroupedNotes] = useState([]);
@@ -53,16 +57,11 @@ export default function BrowseNotes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch user profile to determine role and enrolled course
+  // Mirror role + enrolled course from CourseContext into the local shape the
+  // rest of this component already expects ({ role, course_level }).
   useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('profiles')
-      .select('role, course_level')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => { if (data) setUserProfile(data); });
-  }, [user]);
+    if (ctxRole) setUserProfile({ role: ctxRole, course_level: ctxCourseLevel });
+  }, [ctxRole, ctxCourseLevel]);
 
   // Lock course filter to student's enrolled course once profile loads
   useEffect(() => {
