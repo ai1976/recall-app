@@ -31,3 +31,6 @@ repomix-output.xml
 
 # Claude Code temporary worktrees
 .claude/worktrees/
+
+# Playwright session cookies (design review screenshot capture)
+docs/active/design-review/_storage-state*.json
