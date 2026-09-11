@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useCourseContext } from '@/contexts/CourseContext';
+import { useNavData } from '@/contexts/NavDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -37,7 +38,6 @@ import {
   Upload,
   PlusCircle,
   FileText,
-  Play,
   Loader2,
   Shield,
   BarChart3,
@@ -119,6 +119,10 @@ export default function Dashboard() {
 
   // activeCourse from CourseContext — lets professors switch class stats by course
   const { activeCourse } = useCourseContext();
+  // Sprint 7.2-A: professor's own due count, for contrast against the cohort
+  // forward-load chart below — reads the NavDataContext singleton (7.2-F), no
+  // separate get_due_forecast call.
+  const { dueToday: myDueToday } = useNavData();
   // Track initial mount so the activeCourse effect doesn't double-fetch on first load
   const isInitialMount = useRef(true);
   
@@ -143,6 +147,11 @@ export default function Dashboard() {
   // Educator dashboard — accuracy by question type + cohort forward load (Sprint 6.3)
   const [educatorAccuracy, setEducatorAccuracy] = useState(null);
   const [cohortForecastSeries, setCohortForecastSeries] = useState(null);
+  // Curated Professor Analytics summary embedded on the dashboard (Sprint 7.2-C) —
+  // the two most actionable sections from ProfessorAnalytics.jsx (overview row +
+  // weak cards); the other 3 sections stay behind "View full analytics →".
+  const [professorOverview, setProfessorOverview] = useState(null);
+  const [professorWeakCards, setProfessorWeakCards] = useState([]);
 
   // User state flags
   const [isNewUser, setIsNewUser] = useState(false);
@@ -434,15 +443,25 @@ export default function Dashboard() {
     }
   };
 
-  // Educator dashboard widgets — accuracy by question type + cohort forward load.
+  // Educator dashboard widgets — accuracy by question type + cohort forward load +
+  // (Sprint 7.2-C) the curated Professor Analytics summary (overview + weak cards).
+  // All 4 RPCs fire once per mount / once per course switch, in parallel — same
+  // pattern ProfessorAnalytics.jsx already uses, network-traced to confirm no
+  // regression on the Sprint 7.0 over-fetch fix.
   const fetchEducatorWidgets = async (professorId, courseLevel) => {
     if (!courseLevel) return;
     try {
-      const [acc, cohort] = await Promise.all([
+      const [acc, cohort, overview, weak] = await Promise.all([
         supabase.rpc('get_educator_accuracy_by_qtype', {
           p_professor_id: professorId, p_course_level: courseLevel,
         }),
         supabase.rpc('get_educator_cohort_forecast_buckets', {
+          p_professor_id: professorId, p_course_level: courseLevel,
+        }),
+        supabase.rpc('get_professor_overview', {
+          p_professor_id: professorId, p_course_level: courseLevel,
+        }),
+        supabase.rpc('get_professor_weak_cards', {
           p_professor_id: professorId, p_course_level: courseLevel,
         }),
       ]);
@@ -454,6 +473,8 @@ export default function Dashboard() {
         });
         setCohortForecastSeries(series);
       }
+      if (!overview.error) setProfessorOverview(overview.data?.[0] ?? null);
+      if (!weak.error) setProfessorWeakCards((weak.data || []).slice(0, 5));
     } catch (err) {
       console.error('🔴 Educator widgets RPC error:', err);
     }
@@ -681,125 +702,9 @@ export default function Dashboard() {
             </div>
 
             <div className="space-y-4 sm:space-y-6">
-              {/* Content Summary */}
-              <div>
-                <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
-                  Your Content
-                </h2>
-                <div className="grid gap-3 sm:gap-4 grid-cols-2">
-                  <Card
-                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
-                    onClick={() => navigate('/dashboard/my-notes')}
-                  >
-                    <CardContent className="pt-4 pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-rv-navy-50 rounded-rec">
-                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm sm:text-base">My Notes</p>
-                          <p className="text-xs text-rv-ink-400">{notesCount} uploaded</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card
-                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
-                    onClick={() => navigate('/dashboard/flashcards')}
-                  >
-                    <CardContent className="pt-4 pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-rv-navy-50 rounded-rec">
-                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm sm:text-base">My Flashcards</p>
-                          <p className="text-xs text-rv-ink-400">{flashcardsCount} created</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-
-              {/* Quick Actions */}
-              <div>
-                <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
-                  ⚡ Quick Actions
-                </h2>
-                <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                  <Card
-                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
-                    onClick={() => navigate('/dashboard/notes/new')}
-                  >
-                    <CardContent className="pt-4 pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-rv-navy-50 rounded-rec">
-                          <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm sm:text-base">Upload Note</p>
-                          <p className="text-xs text-rv-ink-400">Photos or PDFs</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card
-                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
-                    onClick={() => navigate('/dashboard/flashcards/new')}
-                  >
-                    <CardContent className="pt-4 pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-rv-navy-50 rounded-rec">
-                          <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm sm:text-base">Create Flashcard</p>
-                          <p className="text-xs text-rv-ink-400">Add your own</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card
-                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
-                    onClick={() => navigate('/dashboard/bulk-upload')}
-                  >
-                    <CardContent className="pt-4 pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-rv-green-50 rounded-rec">
-                          <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm sm:text-base">Bulk Upload</p>
-                          <p className="text-xs text-rv-ink-400">CSV import</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card
-                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
-                    onClick={() => navigate('/dashboard/professor-analytics')}
-                  >
-                    <CardContent className="pt-4 pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-rv-navy-50 rounded-rec">
-                          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm sm:text-base">Analytics</p>
-                          <p className="text-xs text-rv-ink-400">Student activity</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-
-              {/* Needs Attention — flagged content errors on professor's own content */}
+              {/* Needs Attention — flagged content errors on professor's own content.
+                  Sprint 7.2-C: moved to the top of the page — unconditional render
+                  is unchanged, only its position moved (settled-design rule). */}
               <Card className={`cursor-pointer transition hover:border-rv-navy-400 ${needsAttentionItems.length > 0 ? 'border-amber-300 bg-amber-50' : 'border-rv-border'}`}>
                 <CardHeader className="pb-2">
                   <CardTitle className={`flex items-center gap-2 text-base ${needsAttentionItems.length > 0 ? 'text-amber-800' : 'text-rv-ink-900'}`}>
@@ -872,6 +777,131 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
+              {/* Analytics snapshot — curated Professor Analytics summary (Sprint 7.2-C).
+                  Overview row + Challenging Cards are the two most actionable
+                  ProfessorAnalytics.jsx sections; Subjects/Top Cards/Weekly Reach
+                  stay behind "View full analytics →". */}
+              {professorOverview && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400">
+                      Analytics Snapshot
+                    </h2>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-rv-navy hover:text-rv-navy-400"
+                      onClick={() => navigate('/dashboard/professor-analytics')}
+                    >
+                      View full analytics →
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4 mb-4">
+                    <Card>
+                      <CardContent className="pt-4 pb-4">
+                        <p className="text-xs text-rv-ink-400 mb-1">Cards Published</p>
+                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">
+                          {professorOverview.total_cards_published ?? 0}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4 pb-4">
+                        <p className="text-xs text-rv-ink-400 mb-1">Students Reached</p>
+                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">
+                          {professorOverview.total_students_reached ?? 0}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4 pb-4">
+                        <p className="text-xs text-rv-ink-400 mb-1">Total Reviews</p>
+                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">
+                          {professorOverview.total_reviews ?? 0}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4 pb-4">
+                        <p className="text-xs text-rv-ink-400 mb-1">Avg Quality</p>
+                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">
+                          {professorOverview.avg_quality == null ? '—' : Number(professorOverview.avg_quality).toFixed(1)}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {professorWeakCards.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-rv-ink-900">Challenging Cards</CardTitle>
+                        <p className="text-xs text-rv-ink-400">Students are finding these harder to recall (min 3 reviews)</p>
+                      </CardHeader>
+                      <CardContent className="space-y-0">
+                        {professorWeakCards.map((card) => (
+                          <div
+                            key={card.card_id}
+                            className="flex items-center justify-between gap-3 py-2 border-b border-rv-border last:border-0"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm text-rv-ink-900 truncate">{card.front_text}</p>
+                              <p className="text-xs text-rv-ink-400">{card.subject_name} · {card.review_count} reviews</p>
+                            </div>
+                            <span className="shrink-0 text-xs font-medium text-rv-ink-900">
+                              {Number(card.avg_quality ?? 0).toFixed(1)}/5
+                            </span>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* Your Content — Sprint 7.2-C: pushed down (Create actions already
+                  live in the desktop Create dropdown + mobile ＋ sheet since 7.1). */}
+              <div>
+                <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
+                  Your Content
+                </h2>
+                <div className="grid gap-3 sm:gap-4 grid-cols-2">
+                  <Card
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
+                    onClick={() => navigate('/dashboard/my-notes')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-rv-navy-50 rounded-rec">
+                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">My Notes</p>
+                          <p className="text-xs text-rv-ink-400">{notesCount} uploaded</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
+                    onClick={() => navigate('/dashboard/flashcards')}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-rv-navy-50 rounded-rec">
+                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">My Flashcards</p>
+                          <p className="text-xs text-rv-ink-400">{flashcardsCount} created</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
               {/* Accuracy by question type — this educator's cohort (Sprint 6.3) */}
               {educatorAccuracy && educatorAccuracy.length > 0 && (
                 <div>
@@ -909,10 +939,20 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Cohort forward load — scheduled reviews across this educator's students */}
+              {/* Cohort forward load — scheduled reviews across ALL students in this
+                  course (Sprint 7.2-A: relabelled for clarity — this is not the
+                  professor's own load; their own due count sits alongside it for
+                  contrast, since the two numbers measure different things). */}
               {cohortForecastSeries && cohortForecastSeries.some(v => v > 0) && (
                 <div>
-                  <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">Cohort forward load</h2>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400">
+                      Cohort forward load — all students in your course
+                    </h2>
+                    <span className="text-xs text-rv-ink-400">
+                      Your own due today: <span className="font-plex-mono font-medium text-rv-ink-900">{myDueToday}</span>
+                    </span>
+                  </div>
                   <Card>
                     <CardContent className="pt-5 pb-4">
                       <ForwardLedgerMacro data={cohortForecastSeries} unit="reviews" />
@@ -1217,67 +1257,10 @@ export default function Dashboard() {
                 </Card>
               )}
 
-              {/* ===== PRIMARY CTA: START REVIEW =====
-                   Today's pile is the loudest surface (Sprint 7.0 7.0-E). Amber
-                   on --rv-* = "here's today's work, do it now"; the button stays
-                   navy (the primary-action colour everywhere in the reskin). */}
-              {!isNewUser && reviewsDue > 0 && (
-                <Card className="bg-rv-amber-50 border-rv-amber-edge">
-                  <CardContent className="pt-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 bg-rv-amber-50 border border-rv-amber-edge rounded-full">
-                          <Play className="h-5 w-5 sm:h-6 sm:w-6 text-rv-amber-ink" />
-                        </div>
-                        <div>
-                          <p className="text-lg sm:text-xl font-bold text-rv-ink-900">
-                            {reviewsDue} item{reviewsDue > 1 ? 's' : ''} ready
-                          </p>
-                          <p className="text-sm text-rv-ink-600">
-                            Keep your streak alive!
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        size="lg"
-                        onClick={() => navigate('/dashboard/review-session')}
-                      >
-                        <Play className="mr-2 h-4 w-4" /> Start Review Session
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* ===== ALL CAUGHT UP STATE =====
-                   The calm "all clear" state — muted green on --rv-*, matching
-                   Progress.jsx's "Due Today: 0" tile (Sprint 7.0 7.0-E). */}
-              {!isNewUser && reviewsDue === 0 && (
-                <Card className="bg-rv-green-50 border-rv-border">
-                  <CardContent className="pt-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div>
-                        <p className="text-lg sm:text-xl font-bold text-rv-green">
-                          🎉 All caught up!
-                        </p>
-                        <p className="text-sm text-rv-ink-600">
-                          No scheduled reviews. Time to learn something new?
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" onClick={() => navigate('/dashboard/review-flashcards')}>
-                          Browse Study Sets
-                        </Button>
-                        <Button onClick={() => navigate('/dashboard/notes')}>
-                          Browse Notes
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* ===== YOUR WEEK STATS ===== */}
+              {/* ===== YOUR WEEK STATS =====
+                   Sprint 7.2-D: promoted ABOVE the review CTA — the stat tiles are
+                   the stable "how am I doing" surface; the CTA below is now a slim
+                   action strip, not the visual headline. No data change. */}
               {!isNewUser && (
                 <div>
                   <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
@@ -1330,6 +1313,22 @@ export default function Dashboard() {
                       </CardContent>
                     </Card>
                   </div>
+                </div>
+              )}
+
+              {/* Sprint 7.2-D follow-up: the standalone "N items ready" / "All caught
+                   up" CTA card is REMOVED — it duplicated the header subtitle above
+                   (which already says the same thing) and the new Review-tab due
+                   badge (7.2-F). Browse links for the caught-up state moved into
+                   the header actions below so that path isn't lost. */}
+              {!isNewUser && reviewsDue === 0 && (
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/review-flashcards')}>
+                    Browse Study Sets
+                  </Button>
+                  <Button size="sm" onClick={() => navigate('/dashboard/notes')}>
+                    Browse Notes
+                  </Button>
                 </div>
               )}
 

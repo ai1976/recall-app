@@ -1,6 +1,34 @@
 # Changelog
 
 ---
+## [2026-09-11] feat(sprint-7.2): Pre-onboarding dashboard & nav polish — student/professor dashboard restructure, unified notification center, due badge (NO SQL)
+
+Phase 7, sprint 3 — inserted ahead of the `review_events`/`apply_review` engine sprint (renumbered **7.3**) because ~100+ students onboard this week. **Frontend only — NO SQL.** `npm run build` clean; `npx eslint` clean on every changed file. Both dashboard restructures (7.2-D, 7.2-C) were checkpointed live with Anand mid-sprint (student + professor sessions, desktop + 390px mobile) before further polish, per the kickoff instructions.
+
+### Added
+- **`src/hooks/useDueForecast.js`** (new) — wraps the existing `get_due_forecast` RPC (the same lightweight 3-int call `Progress.jsx` already used; deliberately not `get_study_queue`). Returns `{ dueToday, dueNext7, dueNext30, loading, refetch }`.
+- **`src/components/layout/NotificationCenter.jsx`** (new) — unified bell icon/dropdown merging the former `FriendsDropdown` + `ActivityDropdown`. Pending friend requests (inline Accept/Decline, unchanged logic) render above content notifications when present; Find People / My Friends / Following / View All Requests kept as a footer. Badge = `unreadCount + pendingCount`, capped `"9+"`. Shared by `NavDesktop.jsx` and `NavMobile.jsx`.
+- **`NavDataContext.jsx`** — `useDueForecast()` wired in as a fourth singleton (`dueToday`/`dueNext7`/`dueNext30`/`refetchDueForecast`) alongside role/notifications/friend-count.
+- **`NavBottomTabs.jsx`** — Review tab gets a small amber due-count pill (`bg-rv-amber-50 text-rv-amber-ink`), hidden at 0, capped `"9+"`. ＋ action-sheet gains a "Create Group" entry (`Network` icon → `/dashboard/groups/new`).
+- **`Dashboard.jsx` professor branch** — new "Analytics Snapshot" section: the `get_professor_overview` row (Cards Published / Students Reached / Total Reviews / Avg Quality) + top-5 "Challenging Cards" from `get_professor_weak_cards`, plus a "View full analytics →" link. Own `--rv-*` markup (light duplicate of the relevant `ProfessorAnalytics.jsx` sections, not a shared component — that page is still on pre-reskin gray tokens). `fetchEducatorWidgets()` now fires these 2 RPCs alongside the existing Sprint 6.3 pair, all 4 in one `Promise.all`, once per mount / once per course switch.
+
+### Changed
+- **`Dashboard.jsx` student branch (7.2-D)** — "Your Week" stat tiles (Streak/Accuracy/Mastered/Reviews) moved above the review CTA. The CTA/"All caught up" card is REMOVED (not just shrunk — a post-checkpoint correction) since the header subtitle and the 7.2-F nav badge already carry the same "N items ready"/"all caught up" message; the all-caught-up state's "Browse Study Sets"/"Browse Notes" links kept as a small link row.
+- **Due badge (7.2-F)** — solid `bg-red-500 text-white rounded-full` (post-checkpoint correction; first cut used a pale amber tint that didn't read as a badge), matching the existing notification/friend-request badge styling. Extended from `NavBottomTabs.jsx`'s Review tab to `NavDesktop.jsx`'s "Study" dropdown trigger + "Today's Reviews" item, for cross-device consistency (Anand's follow-up ask) — same `dueToday` context value, no new fetch.
+- **`Dashboard.jsx` professor branch (7.2-A, 7.2-C)** — "Quick Actions" grid removed entirely (redundant since 7.1's Create dropdown/sheet). "Cohort forward load" heading relabelled "— all students in your course"; the professor's own due count (from the `NavDataContext` singleton, no extra RPC) now sits beside it for contrast. "Needs Attention" moved to the top of the page (still fully unconditional — no new render gate). "Your Content" pushed down to just above "Accuracy by question type."
+- **`NavMobile.jsx` / `NavDesktop.jsx` (7.2-B)** — both now render `<NotificationCenter>` in place of `<FriendsDropdown>` + `<ActivityDropdown>`. Mobile top bar is now Wordmark (left) · Bell (right); desktop nav's right-side icon row lost one icon.
+
+### Removed
+- **`src/components/layout/FriendsDropdown.jsx`, `src/components/layout/ActivityDropdown.jsx`** — deleted. Merged into `NotificationCenter.jsx`; no other importers.
+
+### Notes
+- **No SQL.** Every RPC used already existed and was already user-scoped (`get_due_forecast`, `get_professor_overview`, `get_professor_weak_cards`, `get_recent_notifications`, `get_unread_notification_count`).
+- **Verification gap:** the in-session network-request tool did not capture the underlying Supabase REST/RPC calls this session (tool-side limitation, no app error reproduced) — the "4 RPCs once per mount" claim for 7.2-C rests on code review + the visual confirmation of a single clean load, not a captured trace. Click-testing of the ＋ sheet's "Create Group" entry and the merged bell's friend-request accept/decline was cut short by a transient Browser-pane click-tool hiccup late in the session — worth a quick manual pass before pushing.
+
+### Docs updated
+- `docs/active/blueprint.md` (SSOT — Sprint 7.2 entry; §1.7 component table; Contexts/Hooks tables), `docs/active/now.md` (Just Completed + follow-ups), `docs/reference/FILE_STRUCTURE.md` (new/deleted files). No `DATABASE_SCHEMA.md` change (no SQL).
+
+---
 ## [2026-09-08] feat(sprint-7.1): Mobile bottom navigation — bottom-tab bar, shared active-route module, safe-area (NO SQL)
 
 Phase 7, sprint 2 (kickoff item G). Ships the mobile bottom-tab bar on top of the 7.0 nav refactor. **Frontend only — NO SQL, no new data fetching. Desktop (`md:` and up) visually unchanged.** `npm run build` clean (7.0s); `npx eslint` clean on every file authored or structurally changed. **Layout A** decided with Anand (bottom bar = Dashboard · Review · ＋ · Progress · Menu; top mobile bar slims to Wordmark · Friends · Bell; the hamburger drawer moves to the "Menu" tab). **Live-verified across all three roles** (student / professor / super-admin, dev server → live Supabase) — two issues found & fixed during that pass (see *Fixed after verification* below). Committed + pushed to `main` → Vercel auto-deploy.

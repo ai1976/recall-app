@@ -73,7 +73,7 @@ recall-app
 │   ├── contexts
 │   │   ├── AuthContext.jsx                      ← auth state (identity-stable user), timezone sync (1×/session), updateUserTimezone
 │   │   ├── CourseContext.jsx                    ← multi-course teaching context for professors/admins; activeCourse session state; exposes role/courseLevel
-│   │   ├── NavDataContext.jsx                   ← Sprint 7.0: one instance of useRole/useNotifications/useFriendRequestCount for the whole app; useNavData() + useRole shim
+│   │   ├── NavDataContext.jsx                   ← Sprint 7.0, extended 7.2-F: one instance of useRole/useNotifications/useFriendRequestCount/useDueForecast for the whole app; useNavData() + useRole shim
 │   │   └── StudySessionContext.jsx              ← Sprint 7.1: boolean inStudySession (StudyMode sets it) so NavBottomTabs hides during the card loop
 │   ├── lib
 │   │   ├── supabase.js                          ← Supabase client
@@ -84,6 +84,7 @@ recall-app
 │   │   ├── use-toast.js                         ← shadcn toast hook
 │   │   ├── useActivityFeed.js                   ← recent content feed for dashboard activity section
 │   │   ├── useBadges.js                         ← badge data fetching (get_unnotified_badges RPC)
+│   │   ├── useDueForecast.js                    ← Sprint 7.2-F: get_due_forecast wrapper (dueToday/dueNext7/dueNext30), consumed via NavDataContext
 │   │   ├── useFriendRequestCount.js             ← realtime pending friend request count
 │   │   ├── useNotifications.js                  ← realtime notifications (INSERT + UPDATE subscriptions)
 │   │   ├── usePushNotifications.js              ← Web Push: permission, VAPID subscribe/unsubscribe, iOS detect
@@ -109,14 +110,13 @@ recall-app
 │   │   │   ├── SpeakButton.jsx                  ← TTS volume icon with pulse animation
 │   │   │   └── SpeechSettings.jsx               ← voice selector + speed slider popover
 │   │   ├── layout
-│   │   │   ├── ActivityDropdown.jsx             ← bell icon + notifications dropdown (group_invite inline Accept/Decline)
 │   │   │   ├── CourseSwitcher.jsx               ← indigo pill dropdown for multi-course professors (session-only, no DB write)
-│   │   │   ├── FriendsDropdown.jsx              ← friends icon + friend requests + following links
-│   │   │   ├── NavBottomTabs.jsx                ← mobile bottom-tab bar (Sprint 7.1): md:hidden, fixed; Dashboard·Review·＋·Progress·Menu; data-driven, no own fetch
+│   │   │   ├── NavBottomTabs.jsx                ← mobile bottom-tab bar (Sprint 7.1, due-badge 7.2-F): md:hidden, fixed; Dashboard·Review(badge)·＋(Note/Flashcard/Group/Bulk)·Progress·Menu; data-driven, no own fetch
 │   │   │   ├── NavDesktop.jsx                   ← desktop nav with dropdowns (Study▾, Create▾, Manage▾); active-route helpers from @/lib/navActive
 │   │   │   ├── Navigation.jsx                   ← orchestrator; renders NavDesktop + NavMobile (top) + NavBottomTabs (bottom sibling)
 │   │   │   ├── NavMenuSheet.jsx                 ← mobile "Menu" drawer (Sprint 7.1): the former NavMobile hamburger Sheet, content verbatim
-│   │   │   ├── NavMobile.jsx                    ← mobile TOP bar (Sprint 7.1: slimmed to Wordmark + Friends + Bell)
+│   │   │   ├── NavMobile.jsx                    ← mobile TOP bar (Sprint 7.2-B: Wordmark + single NotificationCenter bell)
+│   │   │   ├── NotificationCenter.jsx           ← Sprint 7.2-B: unified bell dropdown (merges former ActivityDropdown + FriendsDropdown) — friend requests (inline accept/decline) + notifications, one badge; shared by NavDesktop + NavMobile
 │   │   │   ├── PageContainer.jsx                ← wrapper with width prop (full/medium/narrow); bottom-bar safe-area clearance
 │   │   │   └── ProfileDropdown.jsx              ← avatar dropdown (Settings, Help, Sign Out)
 │   │   ├── notifications
@@ -241,12 +241,13 @@ recall-app
 
 ### Navigation
 - `src/components/layout/Navigation.jsx` — orchestrator (thin); reads `useNavData()` (Sprint 7.0) — one shared fetch, not 3 per mount
-- `src/contexts/NavDataContext.jsx` — `<NavDataProvider>` owns role + notifications + friend-request count app-wide; `useNavData()` + a `useRole` shim
+- `src/contexts/NavDataContext.jsx` — `<NavDataProvider>` owns role + notifications + friend-request count + due-forecast (7.2-F) app-wide; `useNavData()` + a `useRole` shim
 - `src/contexts/StudySessionContext.jsx` — Sprint 7.1: `inStudySession` flag set by `StudyMode`; `NavBottomTabs` hides while true
 - `src/components/layout/NavDesktop.jsx` — desktop layout with dropdowns
-- `src/components/layout/NavMobile.jsx` — mobile top bar (Wordmark + Friends + Bell; Sprint 7.1)
-- `src/components/layout/NavBottomTabs.jsx` — mobile bottom-tab bar (Sprint 7.1); consumes `navProps`, no own fetch
+- `src/components/layout/NavMobile.jsx` — mobile top bar (Wordmark + single `NotificationCenter` bell; Sprint 7.2-B, was Wordmark + Friends + Bell since 7.1)
+- `src/components/layout/NavBottomTabs.jsx` — mobile bottom-tab bar (Sprint 7.1, due-badge 7.2-F); consumes `navProps`, no own fetch
 - `src/components/layout/NavMenuSheet.jsx` — mobile "Menu" drawer (Sprint 7.1); the former NavMobile hamburger Sheet
+- `src/components/layout/NotificationCenter.jsx` — Sprint 7.2-B: unified bell dropdown (merged `ActivityDropdown` + `FriendsDropdown`, both deleted); shared by `NavDesktop` + `NavMobile`
 - `src/lib/navActive.js` — shared active-route predicates for NavDesktop + NavBottomTabs (Sprint 7.1)
 
 ### Dashboard

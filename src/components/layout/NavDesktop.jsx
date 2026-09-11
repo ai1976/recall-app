@@ -26,8 +26,7 @@ import {
   isGroupsActive as isGroupsActivePath,
 } from '@/lib/navActive';
 import { Wordmark } from '@/components/revisop';
-import FriendsDropdown from './FriendsDropdown';
-import ActivityDropdown from './ActivityDropdown';
+import NotificationCenter from './NotificationCenter';
 import ProfileDropdown from './ProfileDropdown';
 import CourseSwitcher from './CourseSwitcher';
 
@@ -44,6 +43,7 @@ export default function NavDesktop({
   deleteNotification,
   refetchNotifications,
   pendingCount,
+  dueToday,
   handleSignOut,
 }) {
   const location = useLocation();
@@ -90,7 +90,7 @@ export default function NavDesktop({
               <DropdownMenuTrigger asChild>
                 <button
                   className={`
-                    px-3 py-2 rounded-rec text-sm font-medium flex items-center gap-2
+                    relative px-3 py-2 rounded-rec text-sm font-medium flex items-center gap-2
                     ${isStudyActive()
                       ? 'bg-rv-navy-50 text-rv-navy'
                       : 'text-rv-ink-600 hover:bg-rv-bg-2 hover:text-rv-ink-900'
@@ -100,13 +100,28 @@ export default function NavDesktop({
                   <BookOpen className="h-4 w-4" />
                   Study
                   <ChevronDown className="h-3 w-3" />
+                  {/* Due-count badge — desktop counterpart to the mobile Review-tab
+                      pill (7.2-F), added for consistency: same solid red/white as
+                      the notification/friend badges, hidden at 0, capped "9+". */}
+                  {dueToday > 0 && (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                      {dueToday > 9 ? '9+' : dueToday}
+                    </span>
+                  )}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="center" className="w-48">
                 <DropdownMenuItem asChild>
-                  <Link to="/dashboard/review-session" className="flex items-center gap-2 cursor-pointer">
-                    <Play className="h-4 w-4" />
-                    Today's Reviews
+                  <Link to="/dashboard/review-session" className="flex items-center justify-between gap-2 cursor-pointer">
+                    <span className="flex items-center gap-2">
+                      <Play className="h-4 w-4" />
+                      Today's Reviews
+                    </span>
+                    {dueToday > 0 && (
+                      <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                        {dueToday > 9 ? '9+' : dueToday}
+                      </span>
+                    )}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -260,16 +275,15 @@ export default function NavDesktop({
         {/* Course Context Switcher — professors/admins with 2+ courses only */}
         <CourseSwitcher />
 
-        {/* Friends Icon with Dropdown */}
-        <FriendsDropdown pendingCount={pendingCount} />
-
-        {/* Bell Icon with Dropdown */}
-        <ActivityDropdown
+        {/* Unified notification center (Sprint 7.2-B) — friend requests +
+            content notifications, one bell, one badge. */}
+        <NotificationCenter
           notifications={notifications}
           unreadCount={unreadCount}
           markAllRead={markAllRead}
           deleteNotification={deleteNotification}
           refetch={refetchNotifications}
+          pendingCount={pendingCount}
         />
 
         {/* Profile Dropdown */}

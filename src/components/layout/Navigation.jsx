@@ -13,6 +13,7 @@ export default function Navigation() {
     notifications, unreadCount, markAllRead, deleteNotification,
     refetchNotifications, notifLoading,
     pendingCount, friendLoading,
+    dueToday,
   } = useNavData();
 
   if (!user) return null;
@@ -41,6 +42,7 @@ export default function Navigation() {
     notifLoading,
     pendingCount,
     friendLoading,
+    dueToday,
     handleSignOut,
   };
 

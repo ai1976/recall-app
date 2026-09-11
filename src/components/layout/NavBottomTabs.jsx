@@ -8,6 +8,7 @@ import {
   FileText,
   CreditCard,
   Upload,
+  Network,
 } from 'lucide-react';
 import {
   Sheet,
@@ -89,6 +90,7 @@ function CreateAction({ canBulkUpload }) {
   const items = [
     { label: 'Upload Note', Icon: FileText, to: '/dashboard/notes/new' },
     { label: 'Create Flashcard', Icon: CreditCard, to: '/dashboard/flashcards/new' },
+    { label: 'Create Group', Icon: Network, to: '/dashboard/groups/new' },
     ...(canBulkUpload
       ? [{ label: 'Bulk Upload', Icon: Upload, to: '/dashboard/bulk-upload' }]
       : []),
@@ -148,6 +150,7 @@ export default function NavBottomTabs({
   isAdmin,
   isProfessor,
   isLoading,
+  dueToday,
   handleSignOut,
 }) {
   const { pathname } = useLocation();
@@ -200,7 +203,19 @@ export default function NavBottomTabs({
                   : 'border-transparent text-rv-ink-400 hover:text-rv-ink-900'
               }`}
             >
-              <Icon className="h-5 w-5" />
+              <span className="relative">
+                <Icon className="h-5 w-5" />
+                {/* 7.2-F: due-count pill, Review tab only, hidden at 0. Solid red,
+                    matching the existing notification/friend-request badge
+                    convention (bg-red-500/text-white) rather than the pale
+                    amber-tint surfaces used elsewhere — a nav badge needs to
+                    read as a badge, not a tinted surface. */}
+                {key === 'review' && dueToday > 0 && (
+                  <span className="absolute -right-2.5 -top-1.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold leading-none text-white">
+                    {dueToday > 9 ? '9+' : dueToday}
+                  </span>
+                )}
+              </span>
               <span>{label}</span>
             </Link>
           );

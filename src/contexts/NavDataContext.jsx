@@ -26,6 +26,7 @@ import { createContext, useContext, useMemo } from 'react'
 import { useRole as useRoleHook } from '@/hooks/useRole'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useFriendRequestCount } from '@/hooks/useFriendRequestCount'
+import { useDueForecast } from '@/hooks/useDueForecast'
 
 const NavDataContext = createContext(null)
 
@@ -33,6 +34,9 @@ export const NavDataProvider = ({ children }) => {
   const role = useRoleHook()
   const notif = useNotifications(5)
   const friends = useFriendRequestCount()
+  // Sprint 7.2-F: the Review-tab due badge (+ 7.2-A's professor own-due-count)
+  // read this ONE singleton call instead of each firing get_due_forecast itself.
+  const due = useDueForecast()
 
   const value = useMemo(
     () => ({
@@ -59,8 +63,14 @@ export const NavDataProvider = ({ children }) => {
       pendingCount: friends.pendingCount,
       friendLoading: friends.loading,
       refetchFriendCount: friends.refetch,
+      // ── due forecast (get_due_forecast, one call/session) ──
+      dueToday: due.dueToday,
+      dueNext7: due.dueNext7,
+      dueNext30: due.dueNext30,
+      dueLoading: due.loading,
+      refetchDueForecast: due.refetch,
     }),
-    [role, notif, friends],
+    [role, notif, friends, due],
   )
 
   return <NavDataContext.Provider value={value}>{children}</NavDataContext.Provider>
