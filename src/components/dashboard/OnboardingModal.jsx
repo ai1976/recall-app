@@ -8,7 +8,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Users, Share2, BookOpen, ChevronRight, ChevronLeft, X } from 'lucide-react';
+import { Users, Share2, BookOpen, ChevronRight, ChevronLeft, X, Target } from 'lucide-react';
 
 const STEPS = [
   {
@@ -39,6 +39,16 @@ const STEPS = [
     action: {
       label: 'Browse Study Sets',
       path: '/dashboard/review-flashcards',
+    },
+  },
+  {
+    icon: <Target className="h-12 w-12 text-amber-500" />,
+    title: 'Set your daily goal',
+    description:
+      'Set a daily reviews or study-time target and track your progress right from the dashboard. Skip this and set one anytime in Settings.',
+    action: {
+      label: 'Set My Goal',
+      path: '/dashboard/settings',
     },
   },
 ];

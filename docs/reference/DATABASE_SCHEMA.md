@@ -102,6 +102,7 @@
 | timezone | text | YES | 'Asia/Kolkata' | IANA timezone identifier (e.g., 'Asia/Kolkata', 'America/New_York'). Auto-detected from browser. |
 | daily_review_goal | integer | YES | NULL | Student's daily review target. CHECK >0 AND <=200. NULL = no goal set. Sprint 3.5. |
 | daily_study_goal_minutes | integer | YES | NULL | Student's daily study time target in minutes. CHECK >0 AND <=480. NULL = no goal set. Sprint 3.5. |
+| has_dismissed_goal_prompt | boolean | NO | false | One-time dismissal of the dashboard "no goal set" prompt line. Sprint 7.3-B. Same self-service update pattern as has_seen_onboarding. |
 
 **Key distinction — role vs account_type:**
 - `role` = permission level (student/professor/admin/super_admin)
@@ -1095,11 +1096,15 @@ SECURITY DEFINER
 
 ---
 
-## get_study_time_stats (Sprint 3.1)
+## get_study_time_stats (Sprint 3.1, split by source Sprint 7.3-C)
 
 ```sql
 get_study_time_stats(p_user_id uuid, p_local_date date)
-RETURNS TABLE (today_seconds bigint, week_seconds bigint, today_sessions bigint, week_sessions bigint)
+RETURNS TABLE (
+  today_seconds bigint, week_seconds bigint, today_sessions bigint, week_sessions bigint,
+  today_seconds_in_app bigint, today_seconds_offline bigint,
+  week_seconds_in_app bigint, week_seconds_offline bigint
+)
 SECURITY DEFINER
 ```
 
@@ -1107,6 +1112,7 @@ SECURITY DEFINER
 - Week bounds: Monday–Sunday of the ISO week containing `p_local_date` (Postgres `date_trunc('week', ...)`)
 - Filters strictly by `p_user_id` — no cross-user access
 - Called by authenticated users for their own stats only
+- Sprint 7.3-C: the 4 new columns split the existing combined totals by `study_sessions.source` — `_in_app` = `source = 'study_mode'` (StudyMode.jsx), `_offline` = `source = 'manual'` (StudyTimerWidget/StudyTimerContext). The 4 original columns/values are unchanged; the in_app+offline pair always sums back to the combined column for the same window. Deployed via DROP+CREATE (adding output columns to a `RETURNS TABLE` function isn't possible with a plain `CREATE OR REPLACE`) — see `docs/database/sprint7.3/02_FUNCTIONS_split_study_time_stats_by_source.sql`; grants re-applied (`authenticated` only, same as before)
 
 ---
 

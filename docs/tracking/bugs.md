@@ -1,5 +1,14 @@
 # Bug Tracking
 
+## Sprint 7.3 — 12/09/2026 (Dashboard Reporting Surface & Study-Time Split)
+
+### [12/09/2026] Manual timer / in-app study session localStorage collision — ✅ FIXED
+- **Symptom (latent, never reported live — caught during the 7.3-C rebuild):** `StudyTimerWidget.jsx` (manual "offline study" timer) and `StudyMode.jsx` (in-app review-session auto tracker) both read/wrote the exact same localStorage keys — `revisop_session_started_at` / `revisop_session_source`. Starting a manual timer while an in-app study session was also in flight (or vice versa) meant whichever wrote last silently clobbered the other's timestamp/source, corrupting whichever session tried to log second (wrong duration, or a `source` mismatch that made the reader bail entirely).
+- **Root cause:** both features were built independently against the same two key names, with no ownership boundary — neither writer checked whether the other's session was active before overwriting.
+- **Fix (Sprint 7.3-C):** the manual timer moved into a new **`src/contexts/StudyTimerContext.jsx`**, which uses its own key — **`revisop_manual_timer_started_at`** — never touching `revisop_session_started_at`/`revisop_session_source`. `StudyMode.jsx`/`ReviewSession.jsx` keep their original keys/values exactly as-is. No shared keys between the two features going forward.
+- **Files:** `src/contexts/StudyTimerContext.jsx` (new), `src/components/dashboard/StudyTimerWidget.jsx` (rewritten to consume the context).
+- **Status:** ✅ RESOLVED — live-verified 12/09/2026 that the manual timer's key is distinct from `StudyMode`'s (code review + live start/stop test); a true concurrent-session regression test (start the manual timer, then complete a real review session at the same time) was not run live this session — worth a quick manual pass.
+
 ## Sprint 6.5 — 07/09/2026 (Phase 6 live-verification close-out)
 
 ### [07/09/2026] Finding 1 — `Progress.jsx` un-migrated + stale "Items Mastered" + over-eager "Due Today" — ✅ FIXED (frontend)

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
-import { Save, Loader2, Plus, X, Star, GraduationCap, Bell, BellOff, Smartphone } from 'lucide-react';
+import { Save, Loader2, Plus, X, Star, GraduationCap, Bell, BellOff, Smartphone, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -55,8 +55,6 @@ export default function ProfileSettings() {
     permission: pushPermission,
     isLoading: pushLoading,
     needsIOSInstall,
-    isIOS,
-    isStandalone,
     subscribe: pushSubscribe,
     unsubscribe: pushUnsubscribe,
   } = usePushNotifications(user);
@@ -68,7 +66,6 @@ export default function ProfileSettings() {
     addCourse,
     removeCourse,
     setPrimaryCourse,
-    refetchTeachingCourses,
     loading: courseLoading,
   } = useCourseContext();
 
@@ -79,6 +76,14 @@ export default function ProfileSettings() {
   const [institutionSelect, setInstitutionSelect] = useState('');
   const [customInstitution, setCustomInstitution] = useState('');
   const [email, setEmail] = useState('');
+
+  // Daily Goal state (students only) — Sprint 7.3-B: editable here, independent
+  // of onboarding. Same update_daily_goal() RPC as GoalProgressWidget.
+  const [dailyReviewGoal, setDailyReviewGoal] = useState(null);
+  const [dailyStudyGoalMinutes, setDailyStudyGoalMinutes] = useState(null);
+  const [goalType, setGoalType] = useState('review'); // 'review' | 'study'
+  const [goalValue, setGoalValue] = useState('');
+  const [goalSaving, setGoalSaving] = useState(false);
 
   // Teaching Areas state
   const [allDisciplines, setAllDisciplines] = useState([]);         // all active disciplines from DB
@@ -110,7 +115,7 @@ export default function ProfileSettings() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, email, course_level, institution')
+        .select('full_name, email, course_level, institution, daily_review_goal, daily_study_goal_minutes')
         .eq('id', user.id)
         .single();
 
@@ -119,6 +124,16 @@ export default function ProfileSettings() {
       setFullName(data.full_name || '');
       setEmail(data.email || '');
       setCourseLevel(data.course_level || '');
+
+      setDailyReviewGoal(data.daily_review_goal ?? null);
+      setDailyStudyGoalMinutes(data.daily_study_goal_minutes ?? null);
+      if (data.daily_review_goal != null) {
+        setGoalType('review');
+        setGoalValue(String(data.daily_review_goal));
+      } else if (data.daily_study_goal_minutes != null) {
+        setGoalType('study');
+        setGoalValue(String(data.daily_study_goal_minutes));
+      }
 
       // Determine if saved institution matches a preset or is custom
       if (data.institution) {
@@ -186,6 +201,58 @@ export default function ProfileSettings() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ── Daily Goal handlers ──────────────────────────────────────────────────
+
+  const handleSaveGoal = async () => {
+    const raw = goalValue.trim();
+    const val = parseInt(raw, 10);
+    const max = goalType === 'review' ? 200 : 480;
+    if (!raw || isNaN(val) || val <= 0 || String(val) !== raw || val > max) {
+      toast({
+        title: 'Invalid goal',
+        description: `Enter a whole number between 1 and ${max}.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    setGoalSaving(true);
+    try {
+      const newReviewGoal = goalType === 'review' ? val : null;
+      const newStudyGoal  = goalType === 'study'  ? val : null;
+      const { error } = await supabase.rpc('update_daily_goal', {
+        p_review_goal:        newReviewGoal,
+        p_study_goal_minutes: newStudyGoal,
+      });
+      if (error) throw error;
+      setDailyReviewGoal(newReviewGoal);
+      setDailyStudyGoalMinutes(newStudyGoal);
+      toast({ title: 'Daily goal updated' });
+    } catch (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setGoalSaving(false);
+    }
+  };
+
+  const handleClearGoal = async () => {
+    setGoalSaving(true);
+    try {
+      const { error } = await supabase.rpc('update_daily_goal', {
+        p_review_goal:        null,
+        p_study_goal_minutes: null,
+      });
+      if (error) throw error;
+      setDailyReviewGoal(null);
+      setDailyStudyGoalMinutes(null);
+      setGoalValue('');
+      toast({ title: 'Daily goal cleared' });
+    } catch (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setGoalSaving(false);
     }
   };
 
@@ -346,6 +413,71 @@ export default function ProfileSettings() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* ── Daily Goal (students only) — Sprint 7.3-B: editable anytime here,
+           independent of the onboarding step that also offers to set one. ── */}
+      {!isContentCreator && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-amber-500" />
+              Daily Goal
+            </CardTitle>
+            <CardDescription>
+              Set a daily reviews or study-time target — shown as "Goal Progress" on your dashboard.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={goalType === 'review' ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  setGoalType('review');
+                  setGoalValue(dailyReviewGoal != null ? String(dailyReviewGoal) : '');
+                }}
+              >
+                Reviews per day
+              </Button>
+              <Button
+                type="button"
+                variant={goalType === 'study' ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  setGoalType('study');
+                  setGoalValue(dailyStudyGoalMinutes != null ? String(dailyStudyGoalMinutes) : '');
+                }}
+              >
+                Study minutes per day
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2 items-center">
+              <Input
+                type="number"
+                min="1"
+                max={goalType === 'review' ? 200 : 480}
+                value={goalValue}
+                onChange={(e) => setGoalValue(e.target.value)}
+                placeholder={goalType === 'review' ? '1–200' : '1–480'}
+                className="w-32"
+                disabled={goalSaving}
+              />
+              <Button onClick={handleSaveGoal} disabled={goalSaving}>
+                {goalSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Save Goal
+              </Button>
+              {(dailyReviewGoal != null || dailyStudyGoalMinutes != null) && (
+                <Button variant="ghost" onClick={handleClearGoal} disabled={goalSaving}>
+                  Clear goal
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Teaching Areas (professors, admins, super_admins only) ── */}
       {isContentCreator && (

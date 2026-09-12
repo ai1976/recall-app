@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Wordmark } from '@/components/revisop';
 import NotificationCenter from './NotificationCenter';
+import StudyTimerChip from './StudyTimerChip';
 
 /**
  * NavMobile — the mobile TOP bar.
@@ -27,15 +28,20 @@ export default function NavMobile({
         <Wordmark />
       </Link>
 
-      {/* Unified notification center (Sprint 7.2-B) */}
-      <NotificationCenter
-        notifications={notifications}
-        unreadCount={unreadCount}
-        markAllRead={markAllRead}
-        deleteNotification={deleteNotification}
-        refetch={refetchNotifications}
-        pendingCount={pendingCount}
-      />
+      <div className="flex items-center gap-2">
+        {/* Manual study-timer indicator (Sprint 7.3-C) — hidden when not running */}
+        <StudyTimerChip compact />
+
+        {/* Unified notification center (Sprint 7.2-B) */}
+        <NotificationCenter
+          notifications={notifications}
+          unreadCount={unreadCount}
+          markAllRead={markAllRead}
+          deleteNotification={deleteNotification}
+          refetch={refetchNotifications}
+          pendingCount={pendingCount}
+        />
+      </div>
     </div>
   );
 }

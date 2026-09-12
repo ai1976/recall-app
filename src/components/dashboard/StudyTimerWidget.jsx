@@ -1,45 +1,25 @@
 // StudyTimerWidget.jsx
-// Isolated manual study timer for students doing offline study (reading notes, etc.)
+// Manual study timer UI for students doing offline study (reading notes, etc.)
 //
-// Performance: clock display is updated via clockRef.current.textContent (DOM mutation),
-// not React state, so the parent Dashboard never re-renders every second.
+// Sprint 7.3-C: this is now a THIN CONSUMER of StudyTimerContext — all state
+// (running/idle, elapsed, recovery prompt) and the three-tier stale-session
+// policy live in the context, classified once app-wide on mount. This
+// component's own mount/unmount lifetime is irrelevant to correctness; it
+// only renders whatever the context currently reports. Rendered on the
+// dedicated /dashboard/study-time route.
 //
-// Three-tier stale session policy (evaluated on mount):
-//
-//   < 4 hours  → AUTO-RESUME silently.
-//               Student just switched apps or the browser reloaded the page.
-//               Timer picks up from the original start time with no interruption.
-//
-//   4–16 hours → HONEST-SESSION PROMPT.
-//               Timer has been running long enough that the student may have
-//               forgotten it. Pause and ask:
-//               "Your timer ran for Xh Ym. Were you studying the whole time?"
-//               Options: [Yes, log Xh Ym] | [Log less…] | [Discard session]
-//               "Log less…" reveals a number input (1 h to max elapsed hours)
-//               so the student can self-report accurately.
-//
-//   > 16 hours → DISCARD silently.
-//               Physically impossible as continuous study. Logging this would
-//               corrupt leaderboard stats. No data is saved.
+// The clock display is still driven via a DOM ref (clockRef.current.textContent)
+// ticked every second, purely local to this mounted instance — true per-second
+// precision belongs here, not in the app-wide context (which refreshes its own
+// `elapsedMs` on a coarse ~30s cadence for the nav chip).
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Timer, Square } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-const SHORT_BREAK_MS   = 4  * 60 * 60 * 1000; // < 4h  → auto-resume
-const PROMPT_CUTOFF_MS = 16 * 60 * 60 * 1000; // 4–16h → prompt, > 16h → discard
-
-const LS_STARTED = 'revisop_session_started_at';
-const LS_SOURCE  = 'revisop_session_source';
-
-// Old recall_* keys — read once on mount to migrate any in-flight session forward.
-const OLD_LS_STARTED = 'recall_session_started_at';
-const OLD_LS_SOURCE  = 'recall_session_source';
+import { useStudyTimer } from '@/contexts/StudyTimerContext';
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
 
@@ -69,242 +49,94 @@ function formatMs(ms) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function StudyTimerWidget({ onSessionLogged }) {
-  const { user } = useAuth();
+export default function StudyTimerWidget() {
   const { toast } = useToast();
+  const { isRunning, startedAt, recoveryPrompt, start, stop, stopAndLog, discard } = useStudyTimer();
 
-  // timerState: 'idle' | 'running' | 'saving'
-  const [timerState, setTimerState] = useState('idle');
-  // Set when a 4–16h stale session is found on mount
-  const [recoveryPrompt, setRecoveryPrompt] = useState(null); // null | { startedAt, elapsedMs }
-  // Whether the "Log less…" custom-hours input is visible within the recovery prompt
+  const [busy, setBusy] = useState(false);
+  const [confirmation, setConfirmation] = useState('');
+  const [postRecovery, setPostRecovery] = useState(false);
   const [customInputMode, setCustomInputMode] = useState(false);
   const [customHours, setCustomHours] = useState('');
-  // Brief confirmation message shown after a successful log
-  const [confirmation, setConfirmation] = useState('');
-  // True after a recovery-prompt log — prompts the student to press Start again
-  const [postRecovery, setPostRecovery] = useState(false);
 
-  // Interval handle — in ref so ticks never trigger re-renders
-  const intervalRef = useRef(null);
-  // Clock display DOM node — textContent updated directly
-  const clockRef    = useRef(null);
-  // Epoch ms when the current running session started
-  const startMsRef  = useRef(null);
+  const clockRef = useRef(null);
 
-  // ── Start ticking from a given epoch ms ──────────────────────────────────
-  const startTick = useCallback((startMs) => {
-    startMsRef.current = startMs;
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => {
-      if (clockRef.current) {
-        clockRef.current.textContent = formatElapsed(Date.now() - startMs);
-      }
-    }, 1000);
-  }, []);
-
-  // ── Initialize clock display right after the 'running' UI mounts ─────────
-  // clockRef.current is null until timerState === 'running' renders the element.
-  // This fires after that render and shows the correct elapsed time immediately
-  // (critical for auto-resume, where the clock should show "15:34" not "00:00").
+  // Local per-second clock, driven off context's `startedAt` timestamp.
   useEffect(() => {
-    if (timerState === 'running' && startMsRef.current && clockRef.current) {
-      clockRef.current.textContent = formatElapsed(Date.now() - startMsRef.current);
-    }
-  }, [timerState]);
-
-  // ── Mount: classify any stale manual session ──────────────────────────────
-  useEffect(() => {
-    // migrate-on-mount: recall_* → revisop_*
-    if (!localStorage.getItem(LS_STARTED)) {
-      const oldStarted = localStorage.getItem(OLD_LS_STARTED);
-      if (oldStarted) {
-        localStorage.setItem(LS_STARTED, oldStarted);
-        localStorage.removeItem(OLD_LS_STARTED);
-      }
-    }
-    if (!localStorage.getItem(LS_SOURCE)) {
-      const oldSource = localStorage.getItem(OLD_LS_SOURCE);
-      if (oldSource) {
-        localStorage.setItem(LS_SOURCE, oldSource);
-        localStorage.removeItem(OLD_LS_SOURCE);
-      }
-    }
-
-    const startedAtStr = localStorage.getItem(LS_STARTED);
-    const source       = localStorage.getItem(LS_SOURCE);
-
-    if (!startedAtStr || source !== 'manual') return;
-
-    const startMs   = new Date(startedAtStr).getTime();
-    const elapsedMs = Date.now() - startMs;
-
-    if (elapsedMs < SHORT_BREAK_MS) {
-      // < 4h — auto-resume, no interruption
-      startTick(startMs);
-      setTimerState('running');
-    } else if (elapsedMs < PROMPT_CUTOFF_MS) {
-      // 4–16h — honest-session prompt
-      setRecoveryPrompt({ startedAt: startedAtStr, elapsedMs, source: 'stale' });
-    } else {
-      // > 16h — discard silently, leaderboard protection
-      localStorage.removeItem(LS_STARTED);
-      localStorage.removeItem(LS_SOURCE);
-    }
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    if (!isRunning || startedAt == null) return undefined;
+    const tick = () => {
+      if (clockRef.current) clockRef.current.textContent = formatElapsed(Date.now() - startedAt);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Core insert helper ────────────────────────────────────────────────────
-  // Accepts explicit durationSeconds so recovery can pass a custom value.
-  // Clears localStorage before the DB call to prevent double-logging on remount.
-  const insertSession = async (startedAtStr, durationSeconds) => {
-    localStorage.removeItem(LS_STARTED);
-    localStorage.removeItem(LS_SOURCE);
-
-    if (durationSeconds < 10 || !user) return 0;
-
-    const sessionDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
-
-    const { error } = await supabase.from('study_sessions').insert({
-      user_id:          user.id,
-      started_at:       new Date(startedAtStr).toISOString(),
-      ended_at:         new Date().toISOString(),
-      duration_seconds: durationSeconds,
-      session_date:     sessionDate,
-      source:           'manual',
-    });
-
-    if (error) throw error;
-    return durationSeconds;
-  };
-
-  // ── Normal start / stop ───────────────────────────────────────────────────
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [isRunning, startedAt]);
 
   const handleStart = () => {
-    const isoStr = new Date().toISOString();
-    localStorage.setItem(LS_STARTED, isoStr);
-    localStorage.setItem(LS_SOURCE, 'manual');
-    startTick(new Date(isoStr).getTime());
     setConfirmation('');
     setPostRecovery(false);
-    setTimerState('running');
+    start();
   };
 
   const handleStop = async () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    startMsRef.current = null;
-
-    const startedAtStr = localStorage.getItem(LS_STARTED);
-    const elapsedMs    = Date.now() - new Date(startedAtStr).getTime();
-
-    // ── Three-tier policy on Stop (mirrors mount-time stale session logic) ──
-    //
-    //   < 4h   → log normally
-    //   4–16h  → honest-session prompt (same UI as stale session on mount)
-    //   > 16h  → discard + toast (leaderboard protection; toast because the
-    //            student deliberately pressed Stop and deserves an explanation,
-    //            unlike the silent discard on mount)
-
-    if (elapsedMs >= PROMPT_CUTOFF_MS) {
-      // > 16h — physically impossible continuous study. Discard and notify.
-      localStorage.removeItem(LS_STARTED);
-      localStorage.removeItem(LS_SOURCE);
-      if (clockRef.current) clockRef.current.textContent = '00:00';
-      setTimerState('idle');
-      toast({
-        title: 'Session discarded',
-        description:
-          'Timers over 16 hours cannot be logged to protect leaderboard integrity.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (elapsedMs >= SHORT_BREAK_MS) {
-      // 4–16h — route to honest-session prompt.
-      // localStorage keys are intentionally NOT cleared here: if the student
-      // navigates away without responding, the next mount will catch the
-      // session again via the standard stale-session flow.
-      if (clockRef.current) clockRef.current.textContent = '00:00';
-      setRecoveryPrompt({ startedAt: startedAtStr, elapsedMs, source: 'stop' });
-      setTimerState('idle');
-      return;
-    }
-
-    // < 4h — log normally.
-    setTimerState('saving');
+    setBusy(true);
     try {
-      const durationSeconds = Math.round(elapsedMs / 1000);
-      const duration        = await insertSession(startedAtStr, durationSeconds);
-
-      if (duration > 0) {
-        setConfirmation(`Session logged: ${formatDuration(duration)}`);
-        onSessionLogged?.();
+      const result = await stop();
+      if (result.outcome === 'logged' && result.durationSeconds > 0) {
+        setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
+      } else if (result.outcome === 'discarded') {
+        toast({
+          title: 'Session discarded',
+          description:
+            'Timers over 16 hours cannot be logged to protect leaderboard integrity.',
+          variant: 'destructive',
+        });
       }
-    } catch (err) {
-      console.error('Failed to log manual session:', err);
+      // 'needs_recovery' → context's recoveryPrompt is now set; the block
+      // below reacts automatically on the next render.
+    } finally {
+      setBusy(false);
     }
-
-    if (clockRef.current) clockRef.current.textContent = '00:00';
-    setTimerState('idle');
   };
 
-  // ── Recovery handlers ─────────────────────────────────────────────────────
-
-  // Log the full elapsed duration as reported
   const handleRecoveryFull = async () => {
-    setTimerState('saving');
+    setBusy(true);
     try {
-      const durationSeconds = Math.round(recoveryPrompt.elapsedMs / 1000);
-      const duration = await insertSession(recoveryPrompt.startedAt, durationSeconds);
-      if (duration > 0) {
-        setConfirmation(`Session logged: ${formatDuration(duration)}`);
+      const result = await stopAndLog(Math.round(recoveryPrompt.elapsedMs / 1000));
+      if (result.outcome === 'logged' && result.durationSeconds > 0) {
+        setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
         setPostRecovery(true);
-        onSessionLogged?.();
       }
-    } catch (err) {
-      console.error('Failed to log recovery session (full):', err);
+    } finally {
+      setBusy(false);
     }
-    setRecoveryPrompt(null);
-    setTimerState('idle');
   };
 
-  // Log a custom number of whole hours
+  const maxHrs = recoveryPrompt ? Math.floor(recoveryPrompt.elapsedMs / 3600000) : 0;
+
   const handleRecoveryCustom = async () => {
-    const hrs    = parseInt(customHours, 10);
-    const maxHrs = Math.floor(recoveryPrompt.elapsedMs / 3600000);
+    const hrs = parseInt(customHours, 10);
     if (!hrs || hrs < 1 || hrs > maxHrs) return;
 
-    setTimerState('saving');
+    setBusy(true);
     try {
-      const duration = await insertSession(recoveryPrompt.startedAt, hrs * 3600);
-      if (duration > 0) {
-        setConfirmation(`Session logged: ${formatDuration(duration)}`);
+      const result = await stopAndLog(hrs * 3600);
+      if (result.outcome === 'logged' && result.durationSeconds > 0) {
+        setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
         setPostRecovery(true);
-        onSessionLogged?.();
       }
-    } catch (err) {
-      console.error('Failed to log recovery session (custom):', err);
+    } finally {
+      setCustomHours('');
+      setCustomInputMode(false);
+      setBusy(false);
     }
-    setCustomHours('');
-    setCustomInputMode(false);
-    setRecoveryPrompt(null);
-    setTimerState('idle');
   };
 
   const handleRecoveryDiscard = () => {
-    localStorage.removeItem(LS_STARTED);
-    localStorage.removeItem(LS_SOURCE);
-    setRecoveryPrompt(null);
+    discard();
     setCustomInputMode(false);
     setCustomHours('');
   };
-
-  // Max whole hours the student can claim (can't claim more than elapsed)
-  const maxHrs = recoveryPrompt ? Math.floor(recoveryPrompt.elapsedMs / 3600000) : 0;
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -317,7 +149,7 @@ export default function StudyTimerWidget({ onSessionLogged }) {
       <CardContent>
 
         {/* ── Recovery prompt (4–16h) ── */}
-        {recoveryPrompt && timerState !== 'saving' && (
+        {recoveryPrompt && !busy && (
           <div className="space-y-3">
             <p className="text-xs sm:text-sm font-medium text-amber-800 leading-snug">
               {recoveryPrompt.source === 'stop'
@@ -393,12 +225,12 @@ export default function StudyTimerWidget({ onSessionLogged }) {
         )}
 
         {/* ── Saving ── */}
-        {timerState === 'saving' && (
+        {busy && !recoveryPrompt && (
           <p className="text-xs sm:text-sm text-muted-foreground">Saving...</p>
         )}
 
         {/* ── Idle ── */}
-        {timerState === 'idle' && !recoveryPrompt && (
+        {!isRunning && !recoveryPrompt && !busy && (
           <div className="flex items-center justify-between">
             <div>
               {confirmation ? (
@@ -420,8 +252,8 @@ export default function StudyTimerWidget({ onSessionLogged }) {
           </div>
         )}
 
-        {/* ── Running — clock via DOM ref, zero parent re-renders ── */}
-        {timerState === 'running' && (
+        {/* ── Running — clock via DOM ref, zero context-wide re-renders ── */}
+        {isRunning && !recoveryPrompt && (
           <div className="flex items-center justify-between">
             <div>
               <div
@@ -437,6 +269,7 @@ export default function StudyTimerWidget({ onSessionLogged }) {
               variant="destructive"
               className="h-8"
               onClick={handleStop}
+              disabled={busy}
             >
               <Square className="h-3 w-3 mr-1" />
               Stop

@@ -19,6 +19,7 @@ import {
   GraduationCap,
   Rss,
   Play,
+  Flag,
 } from 'lucide-react';
 import { useCourseContext } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
@@ -285,6 +286,13 @@ export default function NavMenuSheet({
                 >
                   <Trophy className="h-5 w-5 text-rv-ink-400" />
                   <span className="text-sm font-medium text-rv-ink-900">My Achievements</span>
+                </button>
+                <button
+                  onClick={() => handleNavClick('/dashboard/my-reports')}
+                  className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-rv-bg-2"
+                >
+                  <Flag className="h-5 w-5 text-rv-ink-400" />
+                  <span className="text-sm font-medium text-rv-ink-900">Report History</span>
                 </button>
                 <button
                   onClick={() => handleNavClick('/dashboard/help')}

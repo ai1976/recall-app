@@ -9,6 +9,7 @@ import {
   ChevronDown,
   HelpCircle,
   Settings,
+  Flag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -103,6 +104,12 @@ export default function ProfileDropdown({ user, role, isLoading, handleSignOut }
           <Link to="/dashboard/achievements" className="flex items-center gap-2 cursor-pointer">
             <Trophy className="h-4 w-4" />
             My Achievements
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/dashboard/my-reports" className="flex items-center gap-2 cursor-pointer">
+            <Flag className="h-4 w-4" />
+            Report History
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

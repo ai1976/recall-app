@@ -17,7 +17,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import OnboardingModal from '@/components/dashboard/OnboardingModal';
-import StudyTimerWidget from '@/components/dashboard/StudyTimerWidget';
 import LeaderboardWidget from '@/components/dashboard/LeaderboardWidget';
 import GoalProgressWidget from '@/components/dashboard/GoalProgressWidget';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
@@ -29,14 +28,12 @@ import { useToast } from '@/hooks/use-toast';
 import BadgeToast from '@/components/badges/BadgeToast';
 import PageContainer from '@/components/layout/PageContainer';
 import {
-  BookOpen,
   CreditCard,
   CheckCircle,
   Flame,
   Target,
   Award,
   Upload,
-  PlusCircle,
   FileText,
   Loader2,
   Shield,
@@ -131,10 +128,6 @@ export default function Dashboard() {
   
   // Personal stats
   const [reviewsDue, setReviewsDue] = useState(0);
-  const [cardsReviewedThisWeek, setCardsReviewedThisWeek] = useState(0);
-  const [studyStreak, setStudyStreak] = useState(0);
-  const [accuracy, setAccuracy] = useState(0);
-  const [cardsMastered, setCardsMastered] = useState(0);
   
   // Content counts
   const [notesCount, setNotesCount] = useState(0);
@@ -159,11 +152,13 @@ export default function Dashboard() {
   const [userCourseLevel, setUserCourseLevel] = useState('');
   const [needsAttentionItems, setNeedsAttentionItems] = useState([]);
   const [needsReviewCount, setNeedsReviewCount] = useState(0);
-  const [myReports, setMyReports] = useState([]);
 
-  // Study time stats (student only)
+  // Study time stats (student only) — Sprint 7.3-C: split by session source
+  // (in-app vs offline/manual) via get_study_time_stats' new additive columns.
   const [studyTimeStats, setStudyTimeStats] = useState({
-    today_seconds: 0, week_seconds: 0, today_sessions: 0, week_sessions: 0
+    today_seconds: 0, week_seconds: 0, today_sessions: 0, week_sessions: 0,
+    today_seconds_in_app: 0, today_seconds_offline: 0,
+    week_seconds_in_app: 0, week_seconds_offline: 0,
   });
   const [studyTimeLoading, setStudyTimeLoading] = useState(true);
   // Stored so the onSessionLogged callback can re-fetch without re-reading auth
@@ -174,6 +169,8 @@ export default function Dashboard() {
   const [studyGoalMinutes, setStudyGoalMinutes] = useState(null);
   // Today's review count — computed in fetchPersonalStats, used by GoalProgressWidget
   const [todayReviews, setTodayReviews]       = useState(0);
+  // Sprint 7.3-B: one-time dismissal of the "no goal set" prompt line
+  const [goalPromptDismissed, setGoalPromptDismissed] = useState(false);
 
   // Onboarding modal state
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -232,7 +229,7 @@ export default function Dashboard() {
       // Fetch profile for name, course level, institution, onboarding flag, role, and goal columns
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, course_level, institution, has_seen_onboarding, role, daily_review_goal, daily_study_goal_minutes')
+        .select('full_name, course_level, institution, has_seen_onboarding, role, daily_review_goal, daily_study_goal_minutes, has_dismissed_goal_prompt')
         .eq('id', authUser.id)
         .single();
 
@@ -242,6 +239,7 @@ export default function Dashboard() {
         setUserCourseLevel(profile.course_level || '');
         setReviewGoal(profile.daily_review_goal ?? null);
         setStudyGoalMinutes(profile.daily_study_goal_minutes ?? null);
+        setGoalPromptDismissed(!!profile.has_dismissed_goal_prompt);
 
         const isAdminRole = ['admin', 'super_admin'].includes(profile.role);
 
@@ -328,17 +326,6 @@ export default function Dashboard() {
         fetchStudyTimeStats(authUser.id);
       }
 
-      // Fetch student's own submitted flags (RLS allows flagged_by = auth.uid())
-      if (!['professor', 'admin', 'super_admin'].includes(profile?.role)) {
-        const { data: reportsData } = await supabase
-          .from('content_flags')
-          .select('id, content_type, reason, status, resolution_note, created_at')
-          .eq('flagged_by', authUser.id)
-          .order('created_at', { ascending: false })
-          .limit(10);
-        setMyReports(reportsData || []);
-      }
-
     } catch (error) {
       console.error('🔴 Dashboard Error:', error);
     } finally {
@@ -352,12 +339,9 @@ export default function Dashboard() {
     const { data: dueQueue } = await supabase.rpc('get_study_queue', { p_user_id: userId });
     setReviewsDue((dueQueue || []).length);
 
-    // Items Mastered — the real count (reviews.status='mastered' via the SRS ladder),
-    // re-pointed in Sprint 6.3 from the old "distinct cards ever reviewed" proxy.
-    const { data: masteredRows } = await supabase.rpc('get_mastered_cards', { p_user_id: userId });
-    setCardsMastered((masteredRows || []).length);
-
-    // Fetch user's reviews for weekly / streak / accuracy stats (exclude suspended)
+    // Fetch user's reviews for today's count (exclude suspended). Weekly/streak/
+    // accuracy/mastered stats live on the Progress tab (Sprint 7.3-A) — this
+    // dashboard only needs today's count, for GoalProgressWidget.
     const { data: reviews } = await supabase
       .from('reviews')
       .select('created_at, last_reviewed_at, quality, flashcard_id, status')
@@ -369,47 +353,15 @@ export default function Dashboard() {
     const activeReviews = reviewList.filter(r => r.status === 'active' || !r.status);
 
     if (activeReviews.length > 0) {
-      // Rolling 7 days calculation
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-      sevenDaysAgo.setHours(0, 0, 0, 0);
-
-      // "Items reviewed" recency = the most recent rating (last_reviewed_at), NOT
-      // created_at (which is the card's FIRST review — submit_review UPDATEs the
-      // one row per user/card, so created_at never moves). Sprint 6.4 re-point.
-      // Fallback to created_at for legacy rows not yet backfilled.
-      const ratedAt = (r) => new Date(r.last_reviewed_at || r.created_at);
-
-      // Only count reviews with quality > 0 for weekly stats (skip/suspend create quality=0 records)
-      const weeklyReviewedCount = activeReviews.filter(
-        r => ratedAt(r) >= sevenDaysAgo && r.quality > 0
-      ).length;
-      setCardsReviewedThisWeek(weeklyReviewedCount);
-
-      // Accuracy this week — left on created_at pending the Phase 7 analytics pass.
-      const weeklyReviews = activeReviews.filter(r => new Date(r.created_at) >= sevenDaysAgo && r.quality > 0);
-
-      // Today's reviews — used by GoalProgressWidget. Same "Items reviewed" family
-      // as the 7d tile, so it moves to last_reviewed_at too.
+      // Today's reviews — used by GoalProgressWidget. "Items reviewed" recency =
+      // the most recent rating (last_reviewed_at), NOT created_at (which is the
+      // card's FIRST review — submit_review UPDATEs the one row per user/card, so
+      // created_at never moves). Fallback to created_at for legacy rows.
       const todayStr = formatLocalDate(new Date());
       const todayRevCount = activeReviews.filter(
         r => r.quality > 0 && formatLocalDate(r.last_reviewed_at || r.created_at) === todayStr
       ).length;
       setTodayReviews(todayRevCount);
-
-      // Calculate streak (only count actual reviews, not skip/suspend actions)
-      const actualReviews = activeReviews.filter(r => r.quality > 0);
-      const sortedReviews = [...actualReviews].sort((a, b) =>
-        new Date(b.created_at) - new Date(a.created_at)
-      );
-      setStudyStreak(calculateStreak(sortedReviews));
-
-      // Calculate accuracy (Easy + Medium / Total) for this week
-      if (weeklyReviews.length > 0) {
-        const easyMedium = weeklyReviews.filter(r => r.quality === 5 || r.quality === 3).length;
-        setAccuracy(Math.round((easyMedium / weeklyReviews.length) * 100));
-      }
-
     }
   };
 
@@ -493,6 +445,10 @@ export default function Dashboard() {
           week_seconds:   Number(data[0].week_seconds)   || 0,
           today_sessions: Number(data[0].today_sessions) || 0,
           week_sessions:  Number(data[0].week_sessions)  || 0,
+          today_seconds_in_app:  Number(data[0].today_seconds_in_app)  || 0,
+          today_seconds_offline: Number(data[0].today_seconds_offline) || 0,
+          week_seconds_in_app:   Number(data[0].week_seconds_in_app)   || 0,
+          week_seconds_offline:  Number(data[0].week_seconds_offline)  || 0,
         });
       }
     } catch (err) {
@@ -500,48 +456,6 @@ export default function Dashboard() {
     } finally {
       setStudyTimeLoading(false);
     }
-  };
-
-  // ============================================================
-  // Calculate study streak using user's LOCAL timezone
-  // ============================================================
-  const calculateStreak = (reviews) => {
-    if (!reviews || reviews.length === 0) return 0;
-    
-    // Get unique study dates in user's LOCAL timezone
-    const studyDates = [...new Set(
-      reviews.map(r => formatLocalDate(r.created_at))
-    )].sort().reverse();
-
-    // Get today and yesterday in user's LOCAL timezone
-    const today = formatLocalDate(new Date());
-    
-    const yesterdayDate = new Date();
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterday = formatLocalDate(yesterdayDate);
-
-    // Streak must start from today or yesterday
-    if (studyDates[0] !== today && studyDates[0] !== yesterday) return 0;
-
-    let streak = 0;
-    let checkDate = new Date();
-    
-    // If most recent study was yesterday, start checking from yesterday
-    if (studyDates[0] === yesterday) {
-      checkDate.setDate(checkDate.getDate() - 1);
-    }
-
-    for (let i = 0; i < 365; i++) { // Max 1 year streak
-      const dateStr = formatLocalDate(checkDate);
-      if (studyDates.includes(dateStr)) {
-        streak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else {
-        break;
-      }
-    }
-
-    return streak;
   };
 
   // Profile completion modal save handler
@@ -605,6 +519,23 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error('Error dismissing onboarding:', err);
+    }
+  };
+
+  // Sprint 7.3-B: one-time "no goal set" prompt dismissal — persists so the
+  // line never reappears for this student, plus a one-time confirmation toast.
+  const handleDismissGoalPrompt = async () => {
+    setGoalPromptDismissed(true);
+    toast({ title: 'Got it', description: 'You can set a daily goal anytime in Settings.' });
+    try {
+      if (authUserId) {
+        await supabase
+          .from('profiles')
+          .update({ has_dismissed_goal_prompt: true })
+          .eq('id', authUserId);
+      }
+    } catch (err) {
+      console.error('Error dismissing goal prompt:', err);
     }
   };
 
@@ -1257,70 +1188,10 @@ export default function Dashboard() {
                 </Card>
               )}
 
-              {/* ===== YOUR WEEK STATS =====
-                   Sprint 7.2-D: promoted ABOVE the review CTA — the stat tiles are
-                   the stable "how am I doing" surface; the CTA below is now a slim
-                   action strip, not the visual headline. No data change. */}
-              {!isNewUser && (
-                <div>
-                  <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
-                    📊 Your Week
-                  </h2>
-                  <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs sm:text-sm font-medium">Reviews</CardTitle>
-                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">{cardsReviewedThisWeek}</div>
-                        <p className="text-[10px] sm:text-xs text-rv-ink-400">Last 7 days</p>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs sm:text-sm font-medium">Streak</CardTitle>
-                        <Flame className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">{studyStreak}</div>
-                        <p className="text-[10px] sm:text-xs text-rv-ink-400">
-                          {studyStreak === 1 ? 'day' : 'days'} in a row
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs sm:text-sm font-medium">Accuracy</CardTitle>
-                        <Target className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">{accuracy}%</div>
-                        <p className="text-[10px] sm:text-xs text-rv-ink-400">Easy + Medium</p>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs sm:text-sm font-medium">Mastered</CardTitle>
-                        <Award className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">{cardsMastered}</div>
-                        <p className="text-[10px] sm:text-xs text-rv-ink-400">Items mastered</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              )}
-
-              {/* Sprint 7.2-D follow-up: the standalone "N items ready" / "All caught
-                   up" CTA card is REMOVED — it duplicated the header subtitle above
-                   (which already says the same thing) and the new Review-tab due
-                   badge (7.2-F). Browse links for the caught-up state moved into
-                   the header actions below so that path isn't lost. */}
+              {/* Sprint 7.2-D: the standalone "N items ready" / "All caught up" CTA
+                   card is REMOVED — it duplicated the header subtitle above (which
+                   already says the same thing) and the Review-tab due badge (7.2-F).
+                   Browse links for the caught-up state moved into a slim strip. */}
               {!isNewUser && reviewsDue === 0 && (
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/review-flashcards')}>
@@ -1330,6 +1201,30 @@ export default function Dashboard() {
                     Browse Notes
                   </Button>
                 </div>
+              )}
+
+              {/* ===== GOAL PROGRESS =====
+                   Sprint 7.3-A: reordered to the top of the reporting stack — this is
+                   the "am I on track today" signal, so it leads. Two-state behavior
+                   (goal set / not set) lives inside GoalProgressWidget (7.3-B). */}
+              {!isNewUser && (
+                <GoalProgressWidget
+                  reviewGoal={reviewGoal}
+                  studyGoalMinutes={studyGoalMinutes}
+                  todayReviews={todayReviews}
+                  todaySeconds={studyTimeStats.today_seconds_in_app + studyTimeStats.today_seconds_offline}
+                  goalPromptDismissed={goalPromptDismissed}
+                  onDismissGoalPrompt={handleDismissGoalPrompt}
+                  onGoalUpdated={(rg, sg) => {
+                    setReviewGoal(rg);
+                    setStudyGoalMinutes(sg);
+                  }}
+                />
+              )}
+
+              {/* ===== LEADERBOARD ===== */}
+              {!isNewUser && (
+                <LeaderboardWidget courseLevel={userCourseLevel} />
               )}
 
               {/* ===== FORWARD LEDGER — scheduled load, today → 6 months out ===== */}
@@ -1344,15 +1239,16 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* ===== STUDY TIME + MANUAL TIMER ===== */}
+              {/* ===== STUDY TIME REPORT =====
+                   Sprint 7.3-C: pure end-of-day report now — in-app vs offline split,
+                   no interactive control here (that moved to the nav timer chip + the
+                   dedicated /dashboard/study-time route). */}
               {!isNewUser && (
                 <div>
                   <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
                     ⏱ Study Time
                   </h2>
-                  <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
-
-                    {/* Today */}
+                  <div className="grid gap-3 sm:gap-4 grid-cols-2">
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-xs sm:text-sm font-medium">Today</CardTitle>
@@ -1360,15 +1256,14 @@ export default function Dashboard() {
                       </CardHeader>
                       <CardContent>
                         <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">
-                          {studyTimeLoading ? '—' : formatStudyTime(studyTimeStats.today_seconds)}
+                          {studyTimeLoading ? '—' : formatStudyTime(studyTimeStats.today_seconds_in_app + studyTimeStats.today_seconds_offline)}
                         </div>
                         <p className="text-[10px] sm:text-xs text-rv-ink-400">
-                          {studyTimeLoading ? '' : `${studyTimeStats.today_sessions} session${studyTimeStats.today_sessions === 1 ? '' : 's'}`}
+                          {studyTimeLoading ? '' : `${formatStudyTime(studyTimeStats.today_seconds_in_app)} in-app · ${formatStudyTime(studyTimeStats.today_seconds_offline)} offline`}
                         </p>
                       </CardContent>
                     </Card>
 
-                    {/* This Week */}
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-xs sm:text-sm font-medium">This Week</CardTitle>
@@ -1376,222 +1271,25 @@ export default function Dashboard() {
                       </CardHeader>
                       <CardContent>
                         <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">
-                          {studyTimeLoading ? '—' : formatStudyTime(studyTimeStats.week_seconds)}
+                          {studyTimeLoading ? '—' : formatStudyTime(studyTimeStats.week_seconds_in_app + studyTimeStats.week_seconds_offline)}
                         </div>
                         <p className="text-[10px] sm:text-xs text-rv-ink-400">
-                          {studyTimeLoading ? '' : `${studyTimeStats.week_sessions} session${studyTimeStats.week_sessions === 1 ? '' : 's'} this week`}
+                          {studyTimeLoading ? '' : `${formatStudyTime(studyTimeStats.week_seconds_in_app)} in-app · ${formatStudyTime(studyTimeStats.week_seconds_offline)} offline`}
                         </p>
                       </CardContent>
                     </Card>
-
-                    {/* Manual timer widget — spans both cols on mobile, 1 col on lg */}
-                    <div className="col-span-2 lg:col-span-1">
-                      <StudyTimerWidget
-                        onSessionLogged={() => authUserId && fetchStudyTimeStats(authUserId)}
-                      />
-                    </div>
-
                   </div>
                 </div>
               )}
 
-              {/* ===== DAILY GOAL ===== */}
-              {!isNewUser && (
-                <GoalProgressWidget
-                  reviewGoal={reviewGoal}
-                  studyGoalMinutes={studyGoalMinutes}
-                  todayReviews={todayReviews}
-                  todaySeconds={studyTimeStats.today_seconds}
-                  onGoalUpdated={(rg, sg) => {
-                    setReviewGoal(rg);
-                    setStudyGoalMinutes(sg);
-                  }}
-                />
-              )}
-
-              {/* ===== LEADERBOARD ===== */}
-              {!isNewUser && (
-                <LeaderboardWidget courseLevel={userCourseLevel} />
-              )}
-
-              {/* ===== RECENT ACTIVITY FEED ===== */}
+              {/* ===== RECENT ACTIVITY FEED =====
+                   Last card on the student dashboard (Sprint 7.3 follow-up) —
+                   Quick Actions / My Contributions removed (redundant with the
+                   Create dropdown/sheet and the ProfileDropdown "My
+                   Contributions" link); My Reports moved to a dedicated
+                   "Report History" page linked from the profile dropdown. */}
               {!isNewUser && (
                 <ActivityFeed limit={5} />
-              )}
-
-              {/* ===== QUICK ACTIONS ===== */}
-              {!isNewUser && (
-                <div>
-                  <h2 className="font-plex text-[11px] font-medium uppercase tracking-[0.07em] text-rv-ink-400 mb-3">
-                    ⚡ Quick Actions
-                  </h2>
-                  <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                    <Card
-                      className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
-                      onClick={() => navigate('/dashboard/notes')}
-                    >
-                      <CardContent className="pt-4 pb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-rv-navy-50 rounded-rec">
-                            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm sm:text-base">Browse Notes</p>
-                            <p className="text-xs text-rv-ink-400">Study materials</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card
-                      className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
-                      onClick={() => navigate('/dashboard/review-flashcards')}
-                    >
-                      <CardContent className="pt-4 pb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-rv-green-50 rounded-rec">
-                            <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm sm:text-base">Browse Flashcards</p>
-                            <p className="text-xs text-rv-ink-400">Review & learn</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card
-                      className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
-                      onClick={() => navigate('/dashboard/notes/new')}
-                    >
-                      <CardContent className="pt-4 pb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-rv-navy-50 rounded-rec">
-                            <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm sm:text-base">Upload Note</p>
-                            <p className="text-xs text-rv-ink-400">Photos or PDFs</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card
-                      className="hover:bg-rv-bg-2 cursor-pointer transition hover:border-rv-navy-400"
-                      onClick={() => navigate('/dashboard/flashcards/new')}
-                    >
-                      <CardContent className="pt-4 pb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-rv-navy-50 rounded-rec">
-                            <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm sm:text-base">Create Flashcard</p>
-                            <p className="text-xs text-rv-ink-400">Add your own</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              )}
-
-              {/* ===== MY CONTRIBUTIONS ===== */}
-              {!isNewUser && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                      <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-                      My Contributions
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
-                      <div
-                        className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-rv-navy-400 hover:bg-rv-bg-2 cursor-pointer transition"
-                        onClick={() => navigate('/dashboard/my-notes')}
-                      >
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
-                          <div>
-                            <p className="font-medium text-xs sm:text-sm">My Notes</p>
-                            <p className="text-[10px] sm:text-xs text-rv-ink-400">
-                              {notesCount} uploaded
-                            </p>
-                          </div>
-                        </div>
-                        <span className="text-rv-navy text-xs sm:text-sm">View →</span>
-                      </div>
-
-                      <div
-                        className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:border-rv-navy-400 hover:bg-rv-bg-2 cursor-pointer transition"
-                        onClick={() => navigate('/dashboard/flashcards')}
-                      >
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
-                          <div>
-                            <p className="font-medium text-xs sm:text-sm">My Flashcards</p>
-                            <p className="text-[10px] sm:text-xs text-rv-ink-400">
-                              {flashcardsCount} created
-                            </p>
-                          </div>
-                        </div>
-                        <span className="text-rv-navy text-xs sm:text-sm">View →</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* ===== MY REPORTS ===== */}
-              {myReports.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                      <Flag className="h-4 w-4 sm:h-5 sm:w-5 text-rv-ink-400" />
-                      My Reports
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {myReports.map((report) => {
-                        const statusConfig = {
-                          pending:  { label: 'Under review',     className: 'bg-amber-100 text-amber-800' },
-                          resolved: { label: 'Resolved',         className: 'bg-green-100 text-green-800' },
-                          rejected: { label: 'Dismissed',        className: 'bg-gray-100 text-gray-700'  },
-                          removed:  { label: 'Content removed',  className: 'bg-red-100 text-red-800'    },
-                        };
-                        const reasonLabel = {
-                          content_error:  'Content Error',
-                          inappropriate: 'Inappropriate',
-                          other:          'Other',
-                        };
-                        const cfg = statusConfig[report.status] || statusConfig.pending;
-                        return (
-                          <div
-                            key={report.id}
-                            className="flex items-start justify-between gap-3 p-3 border rounded-lg text-sm"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-rv-ink-400 capitalize">{report.content_type}</span>
-                                <span className="text-rv-ink-400">·</span>
-                                <span className="text-rv-ink-600">{reasonLabel[report.reason] || report.reason}</span>
-                              </div>
-                              {report.resolution_note && (
-                                <p className="text-xs text-rv-ink-400 mt-1 italic">{report.resolution_note}</p>
-                              )}
-                            </div>
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${cfg.className}`}>
-                              {cfg.label}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
               )}
 
             </div>

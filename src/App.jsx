@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { CourseContextProvider } from '@/contexts/CourseContext'
 import { NavDataProvider } from '@/contexts/NavDataContext'
 import { StudySessionProvider } from '@/contexts/StudySessionContext'
+import { StudyTimerProvider } from '@/contexts/StudyTimerContext'
 
 // Layout Components (not lazy — part of the app shell, needed immediately)
 import Navigation from '@/components/layout/Navigation'
@@ -48,11 +49,13 @@ const ReviewSession = lazy(() => import('@/pages/dashboard/Study/ReviewSession')
 const MyProgress = lazy(() => import('@/pages/dashboard/Study/Progress'))
 const ReviewBySubject = lazy(() => import('@/pages/dashboard/Study/ReviewBySubject'))
 const StudyMode = lazy(() => import('@/pages/dashboard/Study/StudyMode'))
+const StudyTimePage = lazy(() => import('@/pages/dashboard/Study/StudyTimePage'))
 
 // Dashboard - Profile Pages
 const MyAchievements = lazy(() => import('@/pages/dashboard/Profile/MyAchievements'))
 const AuthorProfile = lazy(() => import('@/pages/dashboard/Profile/AuthorProfile'))
 const ProfileSettings = lazy(() => import('@/pages/dashboard/Profile/ProfileSettings'))
+const MyReports = lazy(() => import('@/pages/dashboard/Profile/MyReports'))
 
 // Dashboard - Other
 const Help = lazy(() => import('@/pages/dashboard/Help'))
@@ -136,8 +139,10 @@ if (!user || loading) return
             /dashboard/review-session      → pages/dashboard/Study/ReviewSession.jsx
             /dashboard/review-by-subject   → pages/dashboard/Study/ReviewBySubject.jsx
             /dashboard/study               → pages/dashboard/Study/StudyMode.jsx
+            /dashboard/study-time          → pages/dashboard/Study/StudyTimePage.jsx
             /dashboard/progress            → pages/dashboard/Study/Progress.jsx
             /dashboard/achievements        → pages/dashboard/Profile/MyAchievements.jsx
+            /dashboard/my-reports          → pages/dashboard/Profile/MyReports.jsx
             /dashboard/profile/:userId     → pages/dashboard/Profile/AuthorProfile.jsx
             /dashboard/settings            → pages/dashboard/Profile/ProfileSettings.jsx
             /dashboard/help                → pages/dashboard/Help.jsx
@@ -247,6 +252,10 @@ if (!user || loading) return
             element={user ? <StudyMode /> : <Navigate to="/login" replace />}
           />
           <Route
+            path="/dashboard/study-time"
+            element={user ? <StudyTimePage /> : <Navigate to="/login" replace />}
+          />
+          <Route
             path="/dashboard/review-by-subject"
             element={<ReviewBySubject />}
           />
@@ -263,6 +272,10 @@ if (!user || loading) return
           <Route
             path="/dashboard/achievements"
             element={<MyAchievements />}
+          />
+          <Route
+            path="/dashboard/my-reports"
+            element={user ? <MyReports /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/profile/:userId"
@@ -376,9 +389,14 @@ function App() {
             router so every route (nav shell + pages) reads the same context. */}
         <NavDataProvider>
           <StudySessionProvider>
-            <BrowserRouter>
-              <AppContent />
-            </BrowserRouter>
+            {/* StudyTimerProvider — Sprint 7.3-C. App-wide so the manual-timer
+                stale-session classification runs once on load, not gated
+                behind visiting whichever page happens to host the timer UI. */}
+            <StudyTimerProvider>
+              <BrowserRouter>
+                <AppContent />
+              </BrowserRouter>
+            </StudyTimerProvider>
           </StudySessionProvider>
         </NavDataProvider>
       </CourseContextProvider>

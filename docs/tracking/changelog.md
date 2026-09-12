@@ -1,6 +1,33 @@
 # Changelog
 
 ---
+## [2026-09-12] feat(sprint-7.3): Dashboard reporting surface & study-time split — goal progress two-state, app-wide study timer, in-app/offline split (SQL deployed)
+
+Phase 7, sprint 4 — inserted ahead of the `review_events`/`apply_review` engine sprint (now **7.4**), final dashboard/nav polish before 100+ new students land. `npm run build` clean; `npx eslint` clean on every changed file. **2 SQL migrations deployed + confirmed live** (`docs/database/sprint7.3/`): `profiles.has_dismissed_goal_prompt` (additive column) and `get_study_time_stats` DROP+CREATE (4 additive in-app/offline split columns, existing 4 columns/IDOR guard/search_path unchanged, grants re-applied to `authenticated`). Live-verified dev server → live Supabase, student (TestOutlook), desktop + 375px mobile.
+
+### Added
+- **`src/contexts/StudyTimerContext.jsx`** (new) — app-wide home for the manual study timer. Owns the 3-tier stale-session policy (<4h auto-resume / 4-16h honest-session prompt / >16h silent discard), classified once on provider mount via lazy `useState` initializers (not an effect) instead of being gated behind whichever page hosts the timer widget. Own localStorage key `revisop_manual_timer_started_at` — no longer shares `revisop_session_started_at`/`revisop_session_source` with `StudyMode.jsx` (fixes a real collision: a concurrent manual timer + in-app review session used to clobber whichever wrote last). Cross-tab sync via `window.addEventListener('storage', …)`. Exposes `{ isRunning, startedAt, elapsedMs, recoveryPrompt, start(), stop(), stopAndLog(durationSeconds), discard() }`.
+- **`src/pages/dashboard/Study/StudyTimePage.jsx`** (new) — dedicated route `/dashboard/study-time` hosting `StudyTimerWidget`; reachable from the desktop Create dropdown and the mobile ＋ sheet.
+- **`src/components/layout/StudyTimerChip.jsx`** (new) — nav-bar pill beside the notification bell (both `NavDesktop`/`NavMobile`), hidden unless a timer is running. Tap: <4h logs immediately + toasts; 4-16h navigates to the dedicated route (recovery prompt already showing via context state); >16h defensively discards + toasts.
+- **`ProfileSettings.jsx`** — new "Daily Goal" Card (students only) — review/study-minute goal type toggle + Save/Clear, via the existing `update_daily_goal` RPC (no new RPC).
+- **`OnboardingModal.jsx`** — 4th step, "Set your daily goal" → `/dashboard/settings`, same shape/skip semantics as the existing 3 steps.
+- **`get_study_time_stats`** — 4 additive columns (`today_seconds_in_app`, `today_seconds_offline`, `week_seconds_in_app`, `week_seconds_offline`) splitting the existing combined totals by `study_sessions.source`.
+- **`profiles.has_dismissed_goal_prompt`** — one-time dismissal flag for the dashboard "no goal set" prompt line.
+- **`src/pages/dashboard/Profile/MyReports.jsx`** (new, same-session follow-up) — "Report History" page at `/dashboard/my-reports`: status list of content the student has personally flagged (`content_flags`, `flagged_by = you`) — unrelated to My Progress/study stats. Linked from `ProfileDropdown.jsx` + `NavMenuSheet.jsx`.
+
+### Changed
+- **`Dashboard.jsx` (student branch)** — removed the Streak/Accuracy/Mastered/Reviews "Your Week" stat-tile grid (duplicated the Progress tab); `fetchPersonalStats` trimmed accordingly (dead `calculateStreak` helper deleted). **Same-session follow-up:** also removed Quick Actions (redundant with the Create dropdown/sheet) and My Contributions (duplicated the dedicated `/dashboard/my-contributions` page) so Recent Activity is always the last card; the conditional "My Reports" card moved to the new `/dashboard/my-reports` page (its `myReports` state + `content_flags` fetch removed from `Dashboard.jsx`). Final section order: Goal Progress → Leaderboard → Forward Load → Study Time (report only, no interactive control) → Recent Activity. `StudyTimerWidget` no longer mounted here (moved to the dedicated route).
+- **`GoalProgressWidget.jsx`** — renamed "Goal Progress". Goal set → progress bar + de-emphasized "Revise target" link below the numbers (was a prominent top-right "Edit"). No goal set → no card/header, single dismissible line ("Set a daily goal →" / "Not now"); dismissing persists `has_dismissed_goal_prompt` + shows a one-time toast.
+- **`StudyTimerWidget.jsx`** — rewritten as a thin consumer of `StudyTimerContext` (no more owned state); still renders Start/Stop/recovery-prompt/Log-less UI, with its own local per-second DOM-ref clock.
+- **`NavBottomTabs.jsx`** — Bulk Upload removed from the ＋ action-sheet for ALL roles (`canBulkUpload` gate deleted, not narrowed); "Log Study Time" added below a divider.
+- **`NavDesktop.jsx`** — Create dropdown gains a "Log Study Time" entry (divider-separated); Bulk Upload stays unconditional for all roles, unchanged.
+- **`App.jsx`** — new `StudyTimerProvider` mounted beside `StudySessionProvider`; new route `/dashboard/study-time`.
+
+### Files Changed
+- New: `src/contexts/StudyTimerContext.jsx`, `src/pages/dashboard/Study/StudyTimePage.jsx`, `src/components/layout/StudyTimerChip.jsx`, `src/pages/dashboard/Profile/MyReports.jsx`, `docs/database/sprint7.3/{01_SCHEMA,02_FUNCTIONS,03_TEST}*.sql`
+- Changed: `src/pages/Dashboard.jsx`, `src/components/dashboard/{GoalProgressWidget,StudyTimerWidget,OnboardingModal}.jsx`, `src/pages/dashboard/Profile/ProfileSettings.jsx`, `src/components/layout/{NavDesktop,NavMobile,NavBottomTabs,ProfileDropdown,NavMenuSheet}.jsx`, `src/App.jsx`
+
+---
 ## [2026-09-11] feat(sprint-7.2): Pre-onboarding dashboard & nav polish — student/professor dashboard restructure, unified notification center, due badge (NO SQL)
 
 Phase 7, sprint 3 — inserted ahead of the `review_events`/`apply_review` engine sprint (renumbered **7.3**) because ~100+ students onboard this week. **Frontend only — NO SQL.** `npm run build` clean; `npx eslint` clean on every changed file. Both dashboard restructures (7.2-D, 7.2-C) were checkpointed live with Anand mid-sprint (student + professor sessions, desktop + 390px mobile) before further polish, per the kickoff instructions.

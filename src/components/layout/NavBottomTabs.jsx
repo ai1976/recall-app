@@ -7,8 +7,8 @@ import {
   Plus,
   FileText,
   CreditCard,
-  Upload,
   Network,
+  Timer,
 } from 'lucide-react';
 import {
   Sheet,
@@ -77,8 +77,15 @@ const TABS = [
   { type: 'menu', key: 'menu' },
 ];
 
-/** Centre ＋ — opens a small bottom action-sheet (Upload Note / Create Flashcard / Bulk Upload). */
-function CreateAction({ canBulkUpload }) {
+/**
+ * Centre ＋ — opens a small bottom action-sheet: content-creation actions
+ * (Upload Note / Create Flashcard / Create Group), then a divider, then
+ * "Log Study Time" — which isn't content creation, so it's visually separated
+ * (Sprint 7.3-C). Bulk Upload is deliberately absent here for ALL roles
+ * (Sprint 7.3-D) — CSV import isn't a phone workflow; it stays on the desktop
+ * Create dropdown only.
+ */
+function CreateAction() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -87,13 +94,10 @@ function CreateAction({ canBulkUpload }) {
     navigate(path);
   };
 
-  const items = [
+  const createItems = [
     { label: 'Upload Note', Icon: FileText, to: '/dashboard/notes/new' },
     { label: 'Create Flashcard', Icon: CreditCard, to: '/dashboard/flashcards/new' },
     { label: 'Create Group', Icon: Network, to: '/dashboard/groups/new' },
-    ...(canBulkUpload
-      ? [{ label: 'Bulk Upload', Icon: Upload, to: '/dashboard/bulk-upload' }]
-      : []),
   ];
 
   return (
@@ -124,7 +128,7 @@ function CreateAction({ canBulkUpload }) {
           Choose what to create: a note, a flashcard, or a bulk upload.
         </SheetDescription>
         <div className="pb-3">
-          {items.map((item) => {
+          {createItems.map((item) => {
             const ItemIcon = item.Icon;
             return (
               <button
@@ -137,6 +141,14 @@ function CreateAction({ canBulkUpload }) {
               </button>
             );
           })}
+          <div className="my-1 border-t border-rv-border" />
+          <button
+            onClick={() => go('/dashboard/study-time')}
+            className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-rv-bg-2"
+          >
+            <Timer className="h-5 w-5 text-rv-ink-400" />
+            <span className="text-sm font-medium text-rv-ink-900">Log Study Time</span>
+          </button>
         </div>
       </SheetContent>
     </Sheet>
@@ -164,8 +176,6 @@ export default function NavBottomTabs({
   // PICKER keeps the bar, but tapping "Start" (which mounts StudyMode) removes it.
   if (inStudySession) return null;
 
-  const canBulkUpload = isProfessor || isAdmin || isSuperAdmin;
-
   return (
     <nav
       aria-label="Primary"
@@ -174,7 +184,7 @@ export default function NavBottomTabs({
       <div className="flex h-14 items-stretch">
         {TABS.map((tab) => {
           if (tab.type === 'create') {
-            return <CreateAction key={tab.key} canBulkUpload={canBulkUpload} />;
+            return <CreateAction key={tab.key} />;
           }
           if (tab.type === 'menu') {
             return (

@@ -11,11 +11,13 @@ import {
   Network,
   BarChart3,
   Play,
+  Timer,
 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -29,6 +31,7 @@ import { Wordmark } from '@/components/revisop';
 import NotificationCenter from './NotificationCenter';
 import ProfileDropdown from './ProfileDropdown';
 import CourseSwitcher from './CourseSwitcher';
+import StudyTimerChip from './StudyTimerChip';
 
 export default function NavDesktop({
   user,
@@ -175,6 +178,13 @@ export default function NavDesktop({
                     Bulk Upload
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard/study-time" className="flex items-center gap-2 cursor-pointer">
+                    <Timer className="h-4 w-4" />
+                    Log Study Time
+                  </Link>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -274,6 +284,9 @@ export default function NavDesktop({
       <div className="hidden md:flex md:items-center md:space-x-2">
         {/* Course Context Switcher — professors/admins with 2+ courses only */}
         <CourseSwitcher />
+
+        {/* Manual study-timer indicator (Sprint 7.3-C) — hidden when not running */}
+        <StudyTimerChip />
 
         {/* Unified notification center (Sprint 7.2-B) — friend requests +
             content notifications, one bell, one badge. */}

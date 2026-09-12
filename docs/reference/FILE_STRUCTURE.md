@@ -74,7 +74,8 @@ recall-app
 │   │   ├── AuthContext.jsx                      ← auth state (identity-stable user), timezone sync (1×/session), updateUserTimezone
 │   │   ├── CourseContext.jsx                    ← multi-course teaching context for professors/admins; activeCourse session state; exposes role/courseLevel
 │   │   ├── NavDataContext.jsx                   ← Sprint 7.0, extended 7.2-F: one instance of useRole/useNotifications/useFriendRequestCount/useDueForecast for the whole app; useNavData() + useRole shim
-│   │   └── StudySessionContext.jsx              ← Sprint 7.1: boolean inStudySession (StudyMode sets it) so NavBottomTabs hides during the card loop
+│   │   ├── StudySessionContext.jsx              ← Sprint 7.1: boolean inStudySession (StudyMode sets it) so NavBottomTabs hides during the card loop
+│   │   └── StudyTimerContext.jsx                ← Sprint 7.3-C: app-wide manual-timer state + 3-tier stale-session policy; own localStorage key; cross-tab storage-event sync
 │   ├── lib
 │   │   ├── supabase.js                          ← Supabase client
 │   │   ├── utils.js                             ← shadcn cn() utility
@@ -111,14 +112,15 @@ recall-app
 │   │   │   └── SpeechSettings.jsx               ← voice selector + speed slider popover
 │   │   ├── layout
 │   │   │   ├── CourseSwitcher.jsx               ← indigo pill dropdown for multi-course professors (session-only, no DB write)
-│   │   │   ├── NavBottomTabs.jsx                ← mobile bottom-tab bar (Sprint 7.1, due-badge 7.2-F): md:hidden, fixed; Dashboard·Review(badge)·＋(Note/Flashcard/Group/Bulk)·Progress·Menu; data-driven, no own fetch
-│   │   │   ├── NavDesktop.jsx                   ← desktop nav with dropdowns (Study▾, Create▾, Manage▾); active-route helpers from @/lib/navActive
+│   │   │   ├── NavBottomTabs.jsx                ← mobile bottom-tab bar (Sprint 7.1, due-badge 7.2-F, Bulk Upload removed/Log Study Time added 7.3-C/D): md:hidden, fixed; Dashboard·Review(badge)·＋(Note/Flashcard/Group, divider, Log Study Time)·Progress·Menu; data-driven, no own fetch
+│   │   │   ├── NavDesktop.jsx                   ← desktop nav with dropdowns (Study▾, Create▾ incl. Log Study Time 7.3-C, Manage▾); active-route helpers from @/lib/navActive
 │   │   │   ├── Navigation.jsx                   ← orchestrator; renders NavDesktop + NavMobile (top) + NavBottomTabs (bottom sibling)
 │   │   │   ├── NavMenuSheet.jsx                 ← mobile "Menu" drawer (Sprint 7.1): the former NavMobile hamburger Sheet, content verbatim
-│   │   │   ├── NavMobile.jsx                    ← mobile TOP bar (Sprint 7.2-B: Wordmark + single NotificationCenter bell)
+│   │   │   ├── NavMobile.jsx                    ← mobile TOP bar (Sprint 7.2-B: Wordmark + single NotificationCenter bell + 7.3-C StudyTimerChip)
 │   │   │   ├── NotificationCenter.jsx           ← Sprint 7.2-B: unified bell dropdown (merges former ActivityDropdown + FriendsDropdown) — friend requests (inline accept/decline) + notifications, one badge; shared by NavDesktop + NavMobile
 │   │   │   ├── PageContainer.jsx                ← wrapper with width prop (full/medium/narrow); bottom-bar safe-area clearance
-│   │   │   └── ProfileDropdown.jsx              ← avatar dropdown (Settings, Help, Sign Out)
+│   │   │   ├── ProfileDropdown.jsx              ← avatar dropdown (My Progress, My Contributions, My Achievements, Report History [7.3 follow-up], Help, Settings, Sign Out)
+│   │   │   └── StudyTimerChip.jsx               ← Sprint 7.3-C: nav-bar pill beside the bell, hidden unless a manual timer is running; tap-to-stop/navigate
 │   │   ├── notifications
 │   │   │   └── PushPermissionBanner.jsx         ← one-time dismissible push prompt (Android: enable button; iOS: install guide)
 │   │   ├── progress
@@ -215,7 +217,8 @@ recall-app
 │   │       ├── Profile
 │   │       │   ├── AuthorProfile.jsx            ← /dashboard/profile/:userId (follow button, teaching courses, public badges)
 │   │       │   ├── MyAchievements.jsx           ← /dashboard/achievements (per-badge privacy toggle)
-│   │       │   └── ProfileSettings.jsx          ← /dashboard/settings (name, course, institution, push notifications, teaching areas)
+│   │       │   ├── MyReports.jsx                ← Sprint 7.3 follow-up: /dashboard/my-reports ("Report History") — status list of content_flags the student themselves filed; moved off the Dashboard
+│   │       │   └── ProfileSettings.jsx          ← /dashboard/settings (name, course, institution, push notifications, teaching areas, Daily Goal)
 │   │       └── Study
 │   │           ├── Progress.jsx                 ← /dashboard/progress (heatmap, subject mastery, due forecast, question type perf)
 │   │           ├── ReviewBySubject.jsx          ← /dashboard/review-by-subject
