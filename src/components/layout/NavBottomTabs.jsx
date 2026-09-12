@@ -125,7 +125,7 @@ function CreateAction() {
           Create
         </SheetTitle>
         <SheetDescription className="sr-only">
-          Choose what to create: a note, a flashcard, or a bulk upload.
+          Choose what to create: a note, a flashcard, a study group, or log study time.
         </SheetDescription>
         <div className="pb-3">
           {createItems.map((item) => {

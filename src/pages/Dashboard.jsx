@@ -1143,14 +1143,6 @@ export default function Dashboard() {
                   : `Welcome back${userName ? `, ${userName.split(' ')[0]}` : ''}! 👋`
                 }
               </h1>
-              <p className="text-rv-ink-400 mt-2">
-                {isNewUser
-                  ? "Let's get you started on your journey to mastering your subjects."
-                  : reviewsDue > 0
-                    ? `You have ${reviewsDue} item${reviewsDue > 1 ? 's' : ''} ready for review`
-                    : "All caught up! Time to learn something new? 🎉"
-                }
-              </p>
             </div>
 
             {/* Push notification permission prompt — shown once, dismissed to localStorage */}
