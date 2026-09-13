@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { formatQuestionType } from '@/lib/questionTypes';
 import { useCourseContext } from '@/contexts/CourseContext';
 import { useNavData } from '@/contexts/NavDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -81,24 +82,6 @@ function toTitleCase(str) {
 // ============================================================
 const formatLocalDate = (date) => {
   return new Date(date).toLocaleDateString('en-CA');
-};
-
-// question_type slug → readable label for the educator accuracy widget
-const formatQuestionType = (qt) => {
-  if (!qt) return 'Other';
-  const map = {
-    flashcard: 'Flashcard',
-    mcq: 'MCQ',
-    true_false: 'True / False',
-    correct_incorrect: 'Correct / Incorrect',
-    theory: 'Theory',
-    test_your_understanding: 'Test your understanding',
-    case_study_mcq: 'Case study MCQ',
-    integrated_case: 'Integrated case',
-    match_the_following: 'Match the following',
-    fitb: 'Fill in the blanks',
-  };
-  return map[qt] || qt.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
 // Format seconds → "1h 23m" / "45m" / "< 1m"
@@ -824,7 +807,7 @@ export default function Dashboard() {
                           <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-rv-navy" />
                         </div>
                         <div>
-                          <p className="font-medium text-sm sm:text-base">My Flashcards</p>
+                          <p className="font-medium text-sm sm:text-base">My Study Sets</p>
                           <p className="text-xs text-rv-ink-400">{flashcardsCount} created</p>
                         </div>
                       </div>

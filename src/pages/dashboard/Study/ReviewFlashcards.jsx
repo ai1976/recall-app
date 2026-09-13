@@ -8,12 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Brain, Play, ChevronRight, ChevronDown, User, Users, Filter, Search, Share2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import UpvoteButton from '@/components/ui/UpvoteButton';
+import { formatQuestionType, BROWSABLE_QUESTION_TYPES } from '@/lib/questionTypes';
 
 export default function ReviewFlashcards() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [loadingDecks, setLoadingDecks] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [flashcardSets, setFlashcardSets] = useState([]);
   const [allSets, setAllSets] = useState([]);
@@ -26,6 +28,7 @@ export default function ReviewFlashcards() {
   const [filterTopic, setFilterTopic] = useState('all');
   const [filterRole, setFilterRole] = useState('all');
   const [filterAuthor, setFilterAuthor] = useState(searchParams.get('author') || 'all');
+  const [filterQuestionType, setFilterQuestionType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   
   const [availableCourses, setAvailableCourses] = useState([]);
@@ -52,7 +55,7 @@ export default function ReviewFlashcards() {
   useEffect(() => {
     fetchFlashcardSets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [filterQuestionType]);
 
   // Fetch user profile to determine role and enrolled course
   useEffect(() => {
@@ -169,10 +172,14 @@ export default function ReviewFlashcards() {
   const fetchFlashcardSets = async () => {
     try {
       if (!user) return;
+      setLoadingDecks(true);
 
       // Single server-side RPC handles all visibility logic
-      // (own + public + friends + group-shared) in one query
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_browsable_decks');
+      // (own + public + friends + group-shared) in one query.
+      // p_question_type narrows which decks come back (Sprint 7.6) — NULL for "All".
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_browsable_decks', {
+        p_question_type: filterQuestionType === 'all' ? null : filterQuestionType
+      });
 
       if (rpcError) throw rpcError;
 
@@ -225,6 +232,7 @@ export default function ReviewFlashcards() {
       console.error('Error fetching flashcard decks:', error);
     } finally {
       setLoading(false);
+      setLoadingDecks(false);
     }
   };
 
@@ -343,6 +351,7 @@ export default function ReviewFlashcards() {
     setFilterTopic('all');
     setFilterRole('all');
     setFilterAuthor('all');
+    setFilterQuestionType('all');
   };
 
   const handleSubjectChange = (value) => {
@@ -388,17 +397,17 @@ export default function ReviewFlashcards() {
   const isTierB = userProfile?.account_type === 'self_registered';
   const totalCards = flashcardSets.reduce((sum, subject) => sum + subject.totalCards, 0);
   // Course filter is locked for students, so don't count it as an "active" user filter
-  const hasActiveFilters = searchQuery || (!isStudent && filterCourse !== 'all') || filterSubject !== 'all' || filterTopic !== 'all' || filterRole !== 'all' || filterAuthor !== 'all';
+  const hasActiveFilters = searchQuery || (!isStudent && filterCourse !== 'all') || filterSubject !== 'all' || filterTopic !== 'all' || filterRole !== 'all' || filterAuthor !== 'all' || filterQuestionType !== 'all';
 
   return (
     <div className="min-h-screen bg-gray-50 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Review Flashcards
+            Browse Study Sets
           </h1>
           <p className="text-gray-600">
-            Choose a subject or topic to start your study session
+            Choose a subject or topic to start studying
           </p>
         </div>
 
@@ -421,7 +430,7 @@ export default function ReviewFlashcards() {
                 <span className="text-sm font-medium text-gray-700">Filters</span>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                 <div>
                   <label className="text-sm text-gray-600 mb-2 block">
                     Course
@@ -507,6 +516,23 @@ export default function ReviewFlashcards() {
                       {availableAuthors.map(author => (
                         <SelectItem key={author.id} value={author.id}>
                           {author.full_name} {author.role === 'professor' ? '(Prof)' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-600 mb-2 block">Question Type</label>
+                  <Select value={filterQuestionType} onValueChange={setFilterQuestionType} disabled={loadingDecks}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {BROWSABLE_QUESTION_TYPES.map(qt => (
+                        <SelectItem key={qt} value={qt}>
+                          {formatQuestionType(qt)}
                         </SelectItem>
                       ))}
                     </SelectContent>

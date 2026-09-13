@@ -76,8 +76,8 @@ export const SITUATIONS = [
       {
         label: 'Do your first review',
         detail:
-          'Once you have at least one flashcard — your own or from a group — head to Review Flashcards and work through the queue. Even one card today starts your streak.',
-        linkLabel: 'Review Flashcards',
+          'Once you have at least one flashcard — your own or from a group — head to Browse Study Sets and work through the queue. Even one card today starts your streak.',
+        linkLabel: 'Browse Study Sets',
         linkTo: '/dashboard/review-flashcards',
         isSignup: false,
       },
@@ -93,8 +93,8 @@ export const SITUATIONS = [
         label: 'Open your Review queue',
         detail:
           'Your queue shows every card that is due today based on spaced repetition. Work through this first before adding new cards.',
-        linkLabel: 'Review Flashcards',
-        linkTo: '/dashboard/review-flashcards',
+        linkLabel: "Today's Reviews",
+        linkTo: '/dashboard/review-session',
         isSignup: false,
       },
       {
@@ -133,8 +133,8 @@ export const SITUATIONS = [
         label: "Don't panic — start small",
         detail:
           "RevisOp queues cards so you don't forget them, but you don't have to clear everything in one day. Focus on reviewing just 20 cards today to protect your streak. That is enough to get moving again.",
-        linkLabel: 'Review Flashcards',
-        linkTo: '/dashboard/review-flashcards',
+        linkLabel: "Today's Reviews",
+        linkTo: '/dashboard/review-session',
         isSignup: false,
       },
       {
@@ -157,8 +157,8 @@ export const SITUATIONS = [
         label: 'One topic too heavy? Skip it for today.',
         detail:
           'During a review session, tap the \u22ef menu on any card and choose Skip Topic (24hr). Every card from that topic disappears until tomorrow — your schedule is preserved and nothing is deleted. Use it to clear the overwhelming topic from today\'s queue and come back to it fresh.',
-        linkLabel: 'Review Flashcards',
-        linkTo: '/dashboard/review-flashcards',
+        linkLabel: "Today's Reviews",
+        linkTo: '/dashboard/review-session',
         isSignup: false,
       },
       {

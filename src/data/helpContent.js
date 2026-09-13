@@ -428,7 +428,7 @@ export const HELP_TABS = [
             type: 'list',
             items: [
               'Dashboard Quick Action \u2014 Click "Study Session" on the Dashboard to review all due cards.',
-              'Review by Subject \u2014 Go to "Study" \u2192 "Review Flashcards" and select a specific subject to focus your review.',
+              'Review by Subject \u2014 Go to "Study" \u2192 "Browse Study Sets" and select a specific subject to focus your review.',
               'Browse & Study \u2014 Find a specific flashcard deck and click "Study" to review just that deck.',
             ],
           },

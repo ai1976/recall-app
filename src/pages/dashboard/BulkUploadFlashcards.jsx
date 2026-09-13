@@ -751,7 +751,7 @@ IMPORTANT:
               </Button>
               <Button variant="outline" onClick={() => navigate('/dashboard/flashcards')}>
                 <FileText className="h-4 w-4 mr-2" />
-                View My Flashcards
+                View My Study Sets
               </Button>
             </div>
           </CardContent>

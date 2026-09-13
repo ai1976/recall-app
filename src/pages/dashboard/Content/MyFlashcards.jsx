@@ -673,7 +673,7 @@ export default function MyFlashcards() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
               <Brain className="h-8 w-8 text-amber-600" />
-              My Flashcards
+              My Study Sets
             </h1>
             <p className="mt-2 text-gray-600">
               {flashcards.length} total flashcard{flashcards.length !== 1 ? 's' : ''} created

@@ -290,6 +290,7 @@ recall-app
 - `src/lib/notifyEdge.js` — fire-and-forget helpers for Edge Function calls
 - `src/lib/revisop-tokens.js` — RevisOp reskin shared JS (Phase 6 S6.1): `REVISOP_LITERATA_ENABLED` gate (off), `REVISOP_BUCKETS`, `bucketForDays()` / `ledgerFromForecast()`. No Supabase.
 - `src/lib/mcq.js` — Sprint 7.5 MCQ authoring helpers shared by `FlashcardCreate.jsx` + `BulkUploadFlashcards.jsx`: `compactMcqOptions()` (drops blank option rows, remaps correct index by original position), `deriveMcqBackText()`, `toPointsToRemember()`, `validateMcqOptions()`. Pure functions, no Supabase, no React.
+- `src/lib/questionTypes.js` — Sprint 7.6: `formatQuestionType()` (question_type slug → label; moved out of a `Dashboard.jsx`-local const so `ReviewFlashcards.jsx`'s Question Type filter uses identical labels) + `BROWSABLE_QUESTION_TYPES` (`['flashcard', 'mcq']` — types with a real authoring path; extend this array, not JSX, for future types). Pure functions, no Supabase, no React.
 - `src/hooks/usePushNotifications.js` — Web Push permission + VAPID subscribe/unsubscribe
 - `src/components/notifications/PushPermissionBanner.jsx` — one-time push opt-in prompt on Dashboard
 

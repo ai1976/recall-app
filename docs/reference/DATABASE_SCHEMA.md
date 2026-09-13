@@ -1235,6 +1235,23 @@ RETURNS TABLE (
 
 ---
 
+## Sprint 7.6 — get_browsable_decks question type filter (✅ deployed & verified live 13/09/2026 — `docs/database/sprint7.6/`, `02_TEST` verified via impersonated real profile)
+
+```sql
+get_browsable_decks(p_question_type text DEFAULT NULL)
+RETURNS TABLE (
+  id uuid, user_id uuid, subject_id uuid, custom_subject text, topic_id uuid, custom_topic text,
+  target_course text, visibility text, card_count integer, upvote_count integer, created_at timestamptz,
+  author_name text, author_role text, subject_name text, topic_name text
+)
+```
+- **v5.** Adds one additive, nullable parameter to the existing v4 (`docs/database/bugfixes/05_FUNCTIONS_get_browsable_decks_v4_per_viewer_cards.sql`). `NULL` (default) reproduces v4 exactly — every pre-7.6 caller is unaffected. When set, a deck is included only if it has ≥1 card of that `question_type` visible to the viewer (same visibility predicate as the existing per-viewer `card_count` lateral: owner sees own private cards, public visible to all, friends-visibility to accepted friends, admin override, group-shared decks to group members). Narrows which **decks** are returned — does NOT narrow the returned `card_count` (stays whole-deck) and does not affect what a study session serves once a student clicks into a deck.
+- **Deployment gotcha (hit live, 13/09/2026):** a plain `CREATE OR REPLACE FUNCTION get_browsable_decks(p_question_type TEXT DEFAULT NULL)` does **not** replace the old zero-arg `get_browsable_decks()` — Postgres treats a changed parameter list (even one added with a `DEFAULT`) as a distinct overload, not a replacement of the old signature. This left both the zero-arg and one-arg versions live simultaneously, and every unparameterized call became ambiguous: `ERROR 42725: function get_browsable_decks() is not unique`. Fixed with an explicit `DROP FUNCTION IF EXISTS get_browsable_decks();` immediately before the `CREATE OR REPLACE` for the new signature. **Applies to any future RPC that adds a parameter to an existing function — `CREATE OR REPLACE` alone is only safe when the parameter list is unchanged.**
+- `SECURITY DEFINER` retained, same `auth.uid()` requirement as v4 (raises `Not authenticated` under an unauthenticated caller — including the SQL Editor's default `postgres` role, which has no `auth.uid()`; test accordingly via `SET LOCAL ROLE authenticated` + `request.jwt.claims` impersonation, same technique as `docs/database/sprint7.5/02_TEST_verify_d10_role_gate.sql`).
+- Powers `ReviewFlashcards.jsx`'s ("Browse Study Sets" since Sprint 7.6) new Question Type filter — options limited to `flashcard`/`mcq` (the types with a real authoring path), built from `BROWSABLE_QUESTION_TYPES` in `src/lib/questionTypes.js`.
+
+---
+
 ## 3. RLS POLICIES
 
 **Total Policies:** 26 ⭐ (was 24 — added 2 for study_sessions)

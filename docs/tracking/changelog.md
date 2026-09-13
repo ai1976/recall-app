@@ -1,7 +1,51 @@
 # Changelog
 
 ---
-## [2026-09-13] feat(sprint-7.5): MCQ-single vertical slice — authoring, bulk import, hybrid grading (SQL deployed + frontend live-verified end to end; NOT yet committed)
+## [2026-09-13] feat(sprint-7.6): Browse/My Study Sets rename + question-type filter (SQL deployed + frontend live-verified; NOT yet committed)
+
+Phase 7, sprint 7 — small, focused fix for the naming confusion raised at the end of 7.5: `ReviewFlashcards.jsx` browses ALL question types now (flashcard + mcq, more coming), so "Review Flashcards" no longer matched what the page does. Copy + one filter, not a redesign. `npm run build` clean; `npx eslint` clean on every changed file.
+
+### Added
+- **`src/lib/questionTypes.js`** (new) — `formatQuestionType()` (moved out of a `Dashboard.jsx`-local const so both pages share identical display strings) + `BROWSABLE_QUESTION_TYPES` (`['flashcard', 'mcq']` — the types with a real authoring path; extend this array, not JSX, as later sprints add types).
+- **Question Type filter, `ReviewFlashcards.jsx`** — 6th single-select dropdown alongside Course/Subject/Topic/Role/Author, same `filterX`/`setFilterX` + `applyFilters()`/`clearAllFilters()` pattern. Narrows which decks show (≥1 visible card of that type) — does not change `card_count` or what a study session serves once a student clicks into a deck.
+- **`docs/database/sprint7.6/01_FUNCTIONS_get_browsable_decks_v5_question_type_filter.sql`** (✅ deployed) — adds `p_question_type text DEFAULT NULL` to `get_browsable_decks`, additive, `NULL` reproduces v4 exactly.
+
+### Changed
+- **`get_browsable_decks` → v5.** Same `TABLE` return shape as v4, one new parameter and one new `EXISTS` clause narrowing by question type using the same visibility predicate as the existing per-viewer `card_count` lateral.
+- **`ReviewFlashcards.jsx`** — `<h1>` "Review Flashcards" → **"Browse Study Sets"**, subtitle no longer flashcard-specific. Fetch effect now depends on the new filter and passes `p_question_type` to the RPC (the one filter of the six that round-trips to the server rather than filtering the already-fetched dataset client-side, since deck-level type membership isn't otherwise in the payload).
+- **`MyFlashcards.jsx`** — `<h1>` "My Flashcards" → **"My Study Sets"**.
+- **`NavDesktop.jsx` / `NavMenuSheet.jsx`** — Study menu item "Review Flashcards" → **"Browse Study Sets"** (desktop dropdown + mobile Menu drawer).
+- **`Dashboard.jsx`** — student quick-link card "My Flashcards" → "My Study Sets"; `formatQuestionType` now imported from `@/lib/questionTypes` instead of a local const.
+- **`BulkUploadFlashcards.jsx`** — post-upload "View My Flashcards" button → "View My Study Sets".
+- **`helpContent.js` / `guideContent.js`** — every "Review Flashcards" reference to these two pages (help-content list item, 4 `guideContent.js` `linkLabel`s) updated to "Browse Study Sets" for consistency with the renamed nav/heading. `linkTo` values in `guideContent.js` were left untouched — see Known Issues.
+
+### Fixed (deployment gotcha, caught live)
+- **`get_browsable_decks` first deploy attempt used a plain `CREATE OR REPLACE FUNCTION get_browsable_decks(p_question_type TEXT DEFAULT NULL)`**, which did NOT replace the old zero-arg function — Postgres treats a changed parameter list (even one added with a `DEFAULT`) as a distinct overload, not a replacement. Left both the zero-arg and one-arg versions live simultaneously; every unparameterized call became ambiguous (`ERROR 42725: function get_browsable_decks() is not unique`). Fixed with an explicit `DROP FUNCTION IF EXISTS get_browsable_decks();` before the `CREATE OR REPLACE`.
+- **`02_TEST` initially ran as the SQL Editor's default `postgres` role**, which has no `auth.uid()` — hit `RAISE EXCEPTION 'Not authenticated'` (correct behavior, not a function bug). Rewritten to impersonate a real profile via `SET LOCAL ROLE authenticated` + `request.jwt.claims`, matching `docs/database/sprint7.5/02_TEST_verify_d10_role_gate.sql`'s existing pattern.
+
+### Fixed (same-day follow-up, after the sprint's own flag came back)
+- **`guideContent.js`** — 3 onboarding-guide steps ("Open your Review queue", "Don't panic — start small", "One topic too heavy? Skip it for today.") described the due-today review queue but linked to `/dashboard/review-flashcards` (Browse Study Sets) instead of `/dashboard/review-session` (Today's Reviews) — confirmed by reading `ReviewSession.jsx` (calls `get_study_queue`, embeds `StudyMode` directly). `linkTo` corrected to `/dashboard/review-session` and `linkLabel` to "Today's Reviews" on all 3; the 4th "Review Flashcards"-turned-"Browse Study Sets" occurrence (orientation section's "Do your first review") was left as-is — a never-reviewed card has no due-queue entry, so that step genuinely means "go find a deck," not "open the due queue." Live-verified on `/guide`: exactly 3 buttons read "Today's Reviews →", 1 reads "Browse Study Sets →"; clicking a "Today's Reviews" button set `localStorage.postAuthRedirect` to `/dashboard/review-session`. Full writeup in `bugs.md`.
+
+### Investigated, confirmed not a bug (real UX gap flagged, not fixed — out of scope for this sprint)
+- **"No flashcards to study" clicking directly into a deck whose cards are all already graded.** The Income Tax → Deductions from Gross Total Income deck returned this for the live-test account, with and without the question-type filter — ruling out this sprint's own changes as the cause. Root cause confirmed live via `docs/database/bugfixes/15_DIAGNOSTIC_deductions_deck_no_cards_to_study.sql`: `StudyMode.jsx`'s `fetchFlashcards` applies the same due/never-reviewed filter regardless of entry path, and this deck's 3 visible cards were all graded during Sprint 7.5's own live MCQ testing earlier the same day, so they're scheduled forward (09-14/09-16/09-20) and correctly excluded from "due" — confirmed against the real `get_study_queue` RPC returning zero of these 3 ids. Not a bug — `StudyMode.jsx` is working as designed. Real gap: the empty state doesn't distinguish "deck has 0 cards" from "you already reviewed everything here today," which would be a `StudyMode.jsx` change and stays out of scope for this sprint. Full writeup in `bugs.md`.
+
+### Live Verification (13/09/2026, dev server → `revisop.com`'s live Supabase, real student account "TestOutlook")
+- Nav shows "Browse Study Sets" (desktop Study dropdown + mobile Menu drawer); page heading/subtitle correct.
+- Question Type dropdown renders exactly "All Types" / "Flashcard" / "MCQ" via `formatQuestionType`.
+- Selecting MCQ narrowed 464→3 cards to the one deck known (from SQL testing) to mix flashcard+mcq — at this student's own per-viewer visible `card_count` (3, vs. 4 for the more-privileged SQL-test profile, confirming per-viewer visibility is respected).
+- Clicking the filtered deck's "Study All" produced `/dashboard/study?deck=...` with no question-type param — filter confirmed not to leak into the study session.
+- `clearAllFilters()` reset Question Type to "All" alongside the other five, restoring all 464 cards.
+- Console clean aside from one pre-existing, self-recovering `refresh_token_not_found` warning on hard reload (reproduces without this sprint's changes).
+
+### SQL Verification (13/09/2026, impersonated real profile via `SET LOCAL ROLE authenticated`)
+35 unfiltered decks; 35 with a flashcard; 1 with an mcq (`Income Tax → Deductions from Gross Total Income`) — that deck appeared under all three filters with unchanged `card_count=4`; `theory` (an unused type) correctly returned 0 decks without erroring.
+
+### Files Changed
+- **New:** `src/lib/questionTypes.js`, `docs/database/sprint7.6/{01_FUNCTIONS,02_TEST}*.sql`
+- **Changed:** `src/pages/dashboard/Study/ReviewFlashcards.jsx`, `src/pages/dashboard/Content/MyFlashcards.jsx`, `src/components/layout/{NavDesktop,NavMenuSheet}.jsx`, `src/pages/Dashboard.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx`, `src/data/{guideContent,helpContent}.js`, `docs/active/blueprint.md`, `docs/reference/{DATABASE_SCHEMA,FILE_STRUCTURE}.md`, `docs/active/now.md`
+
+---
+## [2026-09-13] feat(sprint-7.5): MCQ-single vertical slice — authoring, bulk import, hybrid grading (SQL deployed + frontend live-verified end to end; ✅ committed `797629d`)
 
 Phase 7, sprint 6 — the architectural proof for the whole question-type epic: representation → authoring → bulk import → rendering → verdict → hybrid scheduling, end to end, for `question_type='mcq'`. The engine underneath (`apply_review`, `review_events`, both analytics RPCs from Sprint 7.4) needed zero changes — confirmed `get_study_queue` only excludes `concept_card`, so mcq rows flow through the due queue with no special-casing. `npm run build` clean; `npx eslint` clean on every changed file.
 
