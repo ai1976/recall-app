@@ -12,8 +12,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, CheckCircle, XCircle, Download, ChevronDown, ChevronUp, FileText, ArrowRight, Info } from 'lucide-react';
 import { compactMcqOptions, deriveMcqBackText, toPointsToRemember, validateMcqOptions } from '@/lib/mcq';
+import { GRADED_QUESTION_TYPES, VERDICT_OPTION_LABELS } from '@/lib/questionTypes';
 
 const MCQ_CSV_OPTION_COLUMNS = 4;
+// question_type values this CSV recognizes as of Sprint 7.7 — anything else falls back to 'flashcard'.
+const RECOGNIZED_QUESTION_TYPES = ['mcq', 'true_false', 'correct_incorrect', 'theory', 'test_your_understanding'];
+const isTwoWayVerdictType = (qt) => qt === 'true_false' || qt === 'correct_incorrect';
 
 // ─── Stepper step component ───
 function Step({ number, title, subtitle, isOpen, isComplete, onToggle, children }) {
@@ -163,6 +167,10 @@ CA Intermediate,Taxation,Income Tax Basics,What is the basic exemption limit for
 CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium,,,,,,,
 CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium,,,,,,,
 CA Intermediate,Taxation,Income Tax Basics,Which of these is a deduction under Section 80C?,,"#ITR",medium,mcq,Life insurance premium,House rent paid,Medical insurance premium,Interest on savings account,1,Life insurance premium qualifies under 80C; the others fall under different sections.
+CA Intermediate,Taxation,Income Tax Basics,Interest on savings account is fully exempt from tax regardless of amount.,,"#ITR",medium,true_false,,,,,2,Only up to Rs 10000 is exempt under Section 80TTA -- beyond that it's taxable.
+CA Intermediate,Advanced Accounting,AS 1,AS 1 deals with the disclosure of accounting policies.,,"#AS",easy,correct_incorrect,,,,,1,
+CA Intermediate,Taxation,Income Tax Basics,Explain the difference between exemption and deduction under the Income Tax Act.,An exemption removes income from the tax base entirely; a deduction reduces taxable income after it's included.,"#ITR",medium,theory,,,,,,
+CA Foundation,Quantitative Aptitude,Percentages,Work through: a shop marks up cost by 25% then offers a 10% discount on the marked price. What's the net margin over cost?,Net price = 1.25 x 0.9 = 1.125x cost, so a 12.5% margin over cost.,,medium,test_your_understanding,,,,,,
 
 ==================================================
 HOW TO USE THIS TEMPLATE
@@ -170,29 +178,29 @@ HOW TO USE THIS TEMPLATE
 
 1. Download the "Valid Entries" CSV from the Bulk Upload page
 2. Copy EXACT course, subject & topic names from that file
-3. Fill in your flashcard front/back content
+3. Fill in your study item front/back content
 4. Save as UTF-8 CSV and upload
 
 COLUMNS:
 - target_course (REQUIRED) - Must match Valid Entries exactly
 - subject (REQUIRED) - Must match Valid Entries exactly
 - topic (optional) - Must match Valid Entries if provided
-- front (REQUIRED) - Question / front side
-- back (REQUIRED for a plain flashcard; leave blank for question_type=mcq — derived from the correct option)
+- front (REQUIRED) - Question / statement / front side
+- back (REQUIRED for flashcard/theory/test_your_understanding; leave blank for mcq/true_false/correct_incorrect — derived from the correct option)
 - tags (optional) - Comma-separated, e.g. "#ITR,#basics"
 - difficulty (optional) - easy / medium / hard (defaults to medium)
-- question_type (optional) - blank or "flashcard" for a plain card, or "mcq" for multiple choice
-- option_1..option_4 (required for question_type=mcq) - the answer choices (2-4 filled in)
-- correct_option (required for question_type=mcq) - which option number (1-4) is correct
-- explanation (optional, mcq only) - shown to the student after they answer
+- question_type (optional) - blank/"flashcard" for a plain card, "mcq" for multiple choice, "true_false", "correct_incorrect", "theory", or "test_your_understanding"
+- option_1..option_4 (required for question_type=mcq only) - the answer choices (2-4 filled in). Leave blank for true_false/correct_incorrect — their two options ("True"/"False" or "Correct"/"Incorrect") are filled in automatically, you only pick which one is correct.
+- correct_option (required for mcq/true_false/correct_incorrect) - which option number is correct: 1-4 for mcq, 1-2 for true_false ("True"=1, "False"=2) and correct_incorrect ("Correct"=1, "Incorrect"=2)
+- explanation (optional, mcq/true_false/correct_incorrect only) - shown to the student after they answer
 
 IMPORTANT:
 ✓ Use EXACT spelling from Valid Entries file
 ✓ Special characters like ₹ are supported (save as UTF-8)
 ✓ Cannot create new courses/subjects/topics via bulk upload
-✓ To add a new subject/topic, create one flashcard via "Create Flashcard" first
+✓ To add a new subject/topic, create one item via "Create Study Item" first
 ✓ Visibility is set on the upload page (private / friends / public)
-✓ question_type=mcq rows require a professor/admin account — student-authored MCQ rows are rejected at upload
+✓ question_type=mcq/true_false/correct_incorrect rows require a professor/admin account — student-authored rows of these types are rejected at upload
 `;
 
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
@@ -393,9 +401,9 @@ IMPORTANT:
                 flashcard[header] = cleanValue;
               });
 
-              // question_type: blank or "flashcard" -> plain card; only "mcq" recognized as a graded type here
+              // question_type: recognized graded/free-recall types pass through; anything else -> plain flashcard
               const cleanQuestionType = (flashcard.question_type || '').toString().trim().toLowerCase();
-              flashcard.question_type = cleanQuestionType === 'mcq' ? 'mcq' : 'flashcard';
+              flashcard.question_type = RECOGNIZED_QUESTION_TYPES.includes(cleanQuestionType) ? cleanQuestionType : 'flashcard';
 
               if (flashcard.question_type === 'mcq') {
                 if (!flashcard.target_course || !flashcard.subject || !flashcard.front) {
@@ -416,9 +424,25 @@ IMPORTANT:
                   parseErrors.push(`Row ${i + 1}: ${mcqError}`);
                   continue;
                 }
-                flashcard.mcqOptions = mcqOptions;
-                flashcard.mcqCorrectIndex = mcqCorrectIndex;
+                flashcard.gradedOptions = mcqOptions;
+                flashcard.gradedCorrectIndex = mcqCorrectIndex;
                 flashcard.back = deriveMcqBackText(mcqOptions, mcqCorrectIndex);
+                flashcard.pointsToRemember = toPointsToRemember(flashcard.explanation);
+              } else if (isTwoWayVerdictType(flashcard.question_type)) {
+                if (!flashcard.target_course || !flashcard.subject || !flashcard.front) {
+                  parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front)`);
+                  continue;
+                }
+                const correctColNum = parseInt((flashcard.correct_option || '').toString().trim(), 10);
+                if (correctColNum !== 1 && correctColNum !== 2) {
+                  parseErrors.push(`Row ${i + 1}: correct_option must be 1 or 2 for ${flashcard.question_type}`);
+                  continue;
+                }
+                const verdictOptions = VERDICT_OPTION_LABELS[flashcard.question_type];
+                const verdictCorrectIndex = correctColNum - 1;
+                flashcard.gradedOptions = verdictOptions;
+                flashcard.gradedCorrectIndex = verdictCorrectIndex;
+                flashcard.back = deriveMcqBackText(verdictOptions, verdictCorrectIndex);
                 flashcard.pointsToRemember = toPointsToRemember(flashcard.explanation);
               } else if (!flashcard.target_course || !flashcard.subject || !flashcard.front || !flashcard.back) {
                 parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front, back)`);
@@ -504,7 +528,7 @@ IMPORTANT:
             '',
             ...parseErrors,
             '',
-            'To fix: create the missing subject/topic via "Create Flashcard" first, then re-download Valid Entries and try again.'
+            'To fix: create the missing subject/topic via "Create Study Item" first, then re-download Valid Entries and try again.'
           ]);
         } else {
           setErrors(parseErrors);
@@ -514,7 +538,7 @@ IMPORTANT:
       }
 
       if (flashcards.length === 0) {
-        setErrors(['No valid flashcards found in CSV. Make sure data rows exist below the header.']);
+        setErrors(['No valid study items found in CSV. Make sure data rows exist below the header.']);
         setIsUploading(false);
         return;
       }
@@ -535,7 +559,7 @@ IMPORTANT:
           s.name.toLowerCase() === card.subject.toLowerCase()
         );
         if (!subject) {
-          validationErrors.push(`Row ${i + 1}: Subject "${card.subject}" not found. Create it via "Create Flashcard" first.`);
+          validationErrors.push(`Row ${i + 1}: Subject "${card.subject}" not found. Create it via "Create Study Item" first.`);
           continue;
         }
         if (card.topic) {
@@ -544,7 +568,7 @@ IMPORTANT:
             t.subject_id === subject.id
           );
           if (!topic) {
-            validationErrors.push(`Row ${i + 1}: Topic "${card.topic}" not found under "${card.subject}". Create it via "Create Flashcard" first.`);
+            validationErrors.push(`Row ${i + 1}: Topic "${card.topic}" not found under "${card.subject}". Create it via "Create Study Item" first.`);
           }
         }
       }
@@ -555,7 +579,7 @@ IMPORTANT:
           '',
           ...validationErrors,
           '',
-          'To fix: create the missing subject/topic via "Create Flashcard" first, then re-download Valid Entries and re-upload.'
+          'To fix: create the missing subject/topic via "Create Study Item" first, then re-download Valid Entries and re-upload.'
         ]);
         setIsUploading(false);
         return;
@@ -609,10 +633,10 @@ IMPORTANT:
           is_verified: isProfessor || isAdmin || isSuperAdmin,
           batch_id: batchId,
           batch_description: trimmedDescription,
-          question_type: card.question_type === 'mcq' ? 'mcq' : 'flashcard',
-          options: card.question_type === 'mcq' ? card.mcqOptions : null,
-          correct_answer: card.question_type === 'mcq' ? String(card.mcqCorrectIndex) : null,
-          points_to_remember: card.question_type === 'mcq' ? (card.pointsToRemember || null) : null,
+          question_type: card.question_type,
+          options: GRADED_QUESTION_TYPES.includes(card.question_type) ? card.gradedOptions : null,
+          correct_answer: GRADED_QUESTION_TYPES.includes(card.question_type) ? String(card.gradedCorrectIndex) : null,
+          points_to_remember: GRADED_QUESTION_TYPES.includes(card.question_type) ? (card.pointsToRemember || null) : null,
         };
       });
 
@@ -677,8 +701,8 @@ IMPORTANT:
       console.error('Upload error:', error);
       if (error.code === '42501') {
         setErrors([
-          'Upload failed: one or more rows use question_type=mcq, which requires a professor/admin account.',
-          'No rows were created (the whole file is uploaded as one batch) — remove the mcq rows or upload from a professor/admin account.',
+          'Upload failed: one or more rows use a question_type (mcq, true_false, correct_incorrect) that requires a professor/admin account.',
+          'No rows were created (the whole file is uploaded as one batch) — remove those rows or upload from a professor/admin account.',
         ]);
       } else {
         setErrors([`Upload failed: ${error.message}`]);
@@ -721,8 +745,8 @@ IMPORTANT:
     return (
       <PageContainer width="medium">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Bulk Upload Flashcards</h1>
-          <p className="text-sm text-gray-500 mt-1">Upload multiple flashcards via CSV</p>
+          <h1 className="text-2xl font-bold text-gray-900">Bulk Upload Study Items</h1>
+          <p className="text-sm text-gray-500 mt-1">Upload multiple study items via CSV</p>
         </div>
 
         <Card>
@@ -734,7 +758,7 @@ IMPORTANT:
               Upload Complete!
             </h2>
             <p className="text-gray-600 mb-1">
-              Successfully uploaded <strong>{uploadResults.count}</strong> flashcard{uploadResults.count !== 1 ? 's' : ''}
+              Successfully uploaded <strong>{uploadResults.count}</strong> study item{uploadResults.count !== 1 ? 's' : ''}
             </p>
             {batchDescription.trim() && (
               <p className="text-sm text-gray-500 mb-1">
@@ -765,8 +789,8 @@ IMPORTANT:
     <PageContainer width="medium">
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Bulk Upload Flashcards</h1>
-        <p className="text-sm text-gray-500 mt-1">Upload multiple flashcards via CSV in 3 simple steps</p>
+        <h1 className="text-2xl font-bold text-gray-900">Bulk Upload Study Items</h1>
+        <p className="text-sm text-gray-500 mt-1">Upload multiple study items via CSV in 3 simple steps</p>
       </div>
 
       <div className="space-y-3">
@@ -846,7 +870,7 @@ IMPORTANT:
 
               {selectedCourse && courseStats.subjects > 0 && courseStats.topics === 0 && (
                 <p className="text-xs text-amber-700 mt-2">
-                  No topics found for this course. Add some via Create Flashcard first.
+                  No topics found for this course. Add some via Create Study Item first.
                 </p>
               )}
             </div>
@@ -855,7 +879,7 @@ IMPORTANT:
             <p className="text-xs text-gray-500 border-t pt-3">
               Don't see your subject/topic? Create one via{' '}
               <button type="button" className="text-amber-600 hover:underline font-medium" onClick={() => navigate('/dashboard/flashcards/new')}>
-                Create Flashcard
+                Create Study Item
               </button>{' '}
               or{' '}
               <button type="button" className="text-amber-600 hover:underline font-medium" onClick={() => navigate('/dashboard/notes/new')}>
@@ -979,7 +1003,7 @@ IMPORTANT:
         <Step
           number={3}
           title="Upload"
-          subtitle={isUploading ? 'Uploading...' : 'Review and upload flashcards'}
+          subtitle={isUploading ? 'Uploading...' : 'Review and upload study items'}
           isOpen={openStep === 3}
           isComplete={false}
           onToggle={() => setOpenStep(openStep === 3 ? 0 : 3)}
@@ -1019,7 +1043,7 @@ IMPORTANT:
                   ) : (
                     <>
                       <Upload className="h-4 w-4 mr-2" />
-                      Upload Flashcards
+                      Upload Study Items
                     </>
                   )}
                 </Button>

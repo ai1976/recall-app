@@ -574,12 +574,12 @@ export default function ReviewFlashcards() {
                 {allSets.length === 0
                   ? isStudent
                     ? 'Check back soon — your professors are working on it!'
-                    : 'Create your first flashcard or wait for professor content'
+                    : 'Create your first study item or wait for professor content'
                   : 'Try adjusting your filters or search query'}
               </p>
               {allSets.length === 0 ? (
                 <Button onClick={() => navigate('/dashboard/flashcards/new')}>
-                  Create Flashcard
+                  Create Study Item
                 </Button>
               ) : (
                 <Button onClick={clearAllFilters}>

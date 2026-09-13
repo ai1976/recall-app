@@ -392,7 +392,7 @@ function ReskinGallery() {
           <div className="pb-3">
             {[
               { label: 'Upload Note', Icon: FileText },
-              { label: 'Create Flashcard', Icon: CreditCard },
+              { label: 'Create Study Item', Icon: CreditCard },
               { label: 'Bulk Upload', Icon: Upload },
             ].map((row) => {
               const RowIcon = row.Icon;

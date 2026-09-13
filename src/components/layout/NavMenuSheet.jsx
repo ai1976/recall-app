@@ -230,7 +230,7 @@ export default function NavMenuSheet({
                   className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
                 >
                   <CreditCard className="h-4 w-4 text-rv-ink-400" />
-                  <span className="text-sm text-rv-ink-600">Create Flashcard</span>
+                  <span className="text-sm text-rv-ink-600">Create Study Item</span>
                 </button>
                 <button
                   onClick={() => handleNavClick('/dashboard/bulk-upload')}

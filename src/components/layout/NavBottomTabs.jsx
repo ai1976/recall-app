@@ -79,7 +79,7 @@ const TABS = [
 
 /**
  * Centre ＋ — opens a small bottom action-sheet: content-creation actions
- * (Upload Note / Create Flashcard / Create Group), then a divider, then
+ * (Upload Note / Create Study Item / Create Group), then a divider, then
  * "Log Study Time" — which isn't content creation, so it's visually separated
  * (Sprint 7.3-C). Bulk Upload is deliberately absent here for ALL roles
  * (Sprint 7.3-D) — CSV import isn't a phone workflow; it stays on the desktop
@@ -96,7 +96,7 @@ function CreateAction() {
 
   const createItems = [
     { label: 'Upload Note', Icon: FileText, to: '/dashboard/notes/new' },
-    { label: 'Create Flashcard', Icon: CreditCard, to: '/dashboard/flashcards/new' },
+    { label: 'Create Study Item', Icon: CreditCard, to: '/dashboard/flashcards/new' },
     { label: 'Create Group', Icon: Network, to: '/dashboard/groups/new' },
   ];
 

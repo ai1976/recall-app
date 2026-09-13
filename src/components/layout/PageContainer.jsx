@@ -5,7 +5,7 @@
  * 
  * WIDTH CATEGORIES:
  * - full (default): max-w-7xl (~1280px) - Dashboard, Browse, Lists, Friends, Progress, Achievements
- * - medium: max-w-4xl (~896px) - Forms like Upload Note, Create Flashcard, Bulk Upload
+ * - medium: max-w-4xl (~896px) - Forms like Upload Note, Create Study Item, Bulk Upload
  * - narrow: max-w-2xl (~672px) - Legal pages like Terms, Privacy Policy
  * 
  * USAGE:

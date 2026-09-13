@@ -333,16 +333,16 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Step 3 - Create Flashcards */}
+            {/* Step 3 - Create Study Items */}
             <div className="text-center">
               <div className="bg-gradient-to-r from-green-600 to-green-500 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mb-6 mx-auto">
                 <BookOpen className="h-8 w-8" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                3. Create Flashcards
+                3. Create Study Items
               </h3>
               <p className="text-gray-600">
-                Create flashcards from your uploaded notes, or make standalone topic-specific cards.
+                Create flashcards, MCQs, and more from your uploaded notes, or make standalone topic-specific items.
                 Manual creation or bulk CSV upload.
               </p>
             </div>

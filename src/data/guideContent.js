@@ -60,8 +60,8 @@ export const SITUATIONS = [
       {
         label: 'Add your first content',
         detail:
-          'Use the Create menu to Upload a Note or Create a Flashcard. Every flashcard you create goes straight into your review queue. There is no separate "add to deck" step.',
-        linkLabel: 'Create Flashcard',
+          'Use the Create menu to Upload a Note or Create a Study Item. Every item you create goes straight into your review queue. There is no separate "add to deck" step.',
+        linkLabel: 'Create Study Item',
         linkTo: '/dashboard/flashcards/new',
         isSignup: false,
       },
@@ -186,10 +186,10 @@ export const SITUATIONS = [
         isSignup: false,
       },
       {
-        label: 'Create a Flashcard',
+        label: 'Create a Study Item',
         detail:
-          'Use the Create menu → Create Flashcard. Every card you create goes into your review queue automatically — there is no separate "add to deck" step.',
-        linkLabel: 'Create Flashcard',
+          'Use the Create menu → Create Study Item. Every item you create goes into your review queue automatically — there is no separate "add to deck" step.',
+        linkLabel: 'Create Study Item',
         linkTo: '/dashboard/flashcards/new',
         isSignup: false,
       },

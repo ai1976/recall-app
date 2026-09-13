@@ -869,7 +869,7 @@ export default function MyFlashcards() {
               {flashcards.length === 0 ? (
                 <Button onClick={() => navigate('/dashboard/flashcards/new')} className="gap-2">
                   <Plus className="h-4 w-4" />
-                  Create Flashcard
+                  Create Study Item
                 </Button>
               ) : (
                 <Button onClick={clearAllFilters}>

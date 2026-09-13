@@ -533,11 +533,11 @@ export default function MyContributions() {
                   <FileText className="h-4 w-4 mr-2" />
                   Upload Note
                 </Button>
-                <Button 
+                <Button
                   onClick={() => navigate('/dashboard/flashcards/new')}
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
-                  Create Flashcard
+                  Create Study Item
                 </Button>
               </div>
             </div>
@@ -566,7 +566,7 @@ export default function MyContributions() {
               onClick={() => navigate('/dashboard/flashcards/new')}
             >
               <CreditCard className="h-6 w-6 text-amber-600" />
-              <span>Create Flashcard</span>
+              <span>Create Study Item</span>
             </Button>
             <Button 
               variant="outline" 

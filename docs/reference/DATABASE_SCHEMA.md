@@ -227,7 +227,7 @@
 | created_at | timestamp | NO | NOW() | Creation timestamp |
 | custom_subject | text | YES | NULL | Free-text subject for custom/personal courses. Mutually exclusive with subject_id — exactly one should be set. |
 | custom_topic | text | YES | NULL | Free-text topic for custom/personal courses. Mutually exclusive with topic_id. |
-| question_type | text | NO | 'flashcard' | Type of study item. **Live values confirmed via `chk_flashcards_question_type` CHECK constraint (Sprint 7.5, 13/09/2026):** 'flashcard', 'mcq', 'true_false', 'correct_incorrect', 'theory', 'case_study_mcq', 'integrated_case', 'match_the_following', 'fitb', 'concept_card' (10 values). Previously documented 'test_your_understanding' (not a live value — cannot be inserted) and 'fill_in_the_blanks' (live value is 'fitb') — both corrected. |
+| question_type | text | NO | 'flashcard' | Type of study item. **Live values (Sprint 7.7, 13/09/2026):** 'flashcard', 'mcq', 'true_false', 'correct_incorrect', 'theory', 'case_study_mcq', 'integrated_case', 'match_the_following', 'fitb', 'concept_card', 'test_your_understanding' (11 values) — `test_your_understanding` added to `chk_flashcards_question_type` this sprint (`docs/database/sprint7.7/01_SCHEMA_add_test_your_understanding_type.sql`); the other 10 were already live as of Sprint 7.5. 'fill_in_the_blanks' is not and never was a live value (live value is 'fitb'). |
 | options | jsonb | YES | NULL | Answer options for MCQ and similar types. |
 | correct_answer | text | YES | NULL | Correct answer identifier for question types that need it. |
 | hints | jsonb | YES | NULL | Optional hints array. |
@@ -253,6 +253,17 @@
 - `points_to_remember` = jsonb array, one entry per non-blank line of the "Why" textarea; shown post-reveal.
 - `hints`/`scenario`/`subtype` stay NULL for this type.
 - Authorship gated server-side by two new RESTRICTIVE RLS policies — see "RLS Policies" section below and blueprint.md D-10 (§3.1). **Deployed and verified live 13/09/2026** (`docs/database/sprint7.5/`, `02_TEST` — 5/5 PASS against real profiles).
+
+**true_false / correct_incorrect Representation (Sprint 7.7, 13/09/2026) — identical rendering to mcq, only the option-label pair differs:**
+- Uses the exact same columns as `mcq` above — `options`, `correct_answer`, `back_text` derivation, `points_to_remember` — no schema change, no new StudyMode.jsx rendering branch (the existing mcq `AnswerOption`-list render is shared by all three types via `GRADED_QUESTION_TYPES` in `src/lib/questionTypes.js`).
+- **The one real difference:** `options` is **auto-populated, never professor-typed** — `["True","False"]` for `true_false`, `["Correct","Incorrect"]` for `correct_incorrect` (`VERDICT_OPTION_LABELS` in `src/lib/questionTypes.js`). Authoring UI shows a 2-way toggle (which side is correct) instead of MCQ's free-text options editor.
+- `correct_answer` = "0" or "1", same index convention as mcq.
+- Already covered by the existing D-10 RESTRICTIVE RLS gate before this sprint (Sprint 7.5's `01_SCHEMA_d10_role_gate.sql` IN-list already included both) — this sprint added the authoring/bulk-upload UI, zero RLS changes.
+
+**theory / test_your_understanding Representation (Sprint 7.7, 13/09/2026) — free-recall, identical to plain `flashcard`:**
+- Render through the existing front/back path — no `options`, no verdict, no hybrid grading, full self-grade via `GradeButtonRow` exactly like `flashcard` today.
+- Ungated — selectable by all users, not just professor/admin/super_admin (D-10 only gates the 7 verdict-bearing types, and neither of these is in that list).
+- `theory` was already a live `chk_flashcards_question_type` value as of Sprint 7.5. `test_your_understanding` was NOT — added to the CHECK constraint this sprint (see `question_type` row above and `docs/database/sprint7.7/01_SCHEMA_add_test_your_understanding_type.sql`). This was a genuine hard SQL prerequisite, not a documentation correction: the value could not be inserted at all before this constraint change.
 
 **Concept Card Exclusion Rule:**
 - `concept_card` items are **excluded from all review metrics** (Items Reviewed, Items Mastered, accuracy, streak). They are reference material only.
@@ -1248,7 +1259,7 @@ RETURNS TABLE (
 - **v5.** Adds one additive, nullable parameter to the existing v4 (`docs/database/bugfixes/05_FUNCTIONS_get_browsable_decks_v4_per_viewer_cards.sql`). `NULL` (default) reproduces v4 exactly — every pre-7.6 caller is unaffected. When set, a deck is included only if it has ≥1 card of that `question_type` visible to the viewer (same visibility predicate as the existing per-viewer `card_count` lateral: owner sees own private cards, public visible to all, friends-visibility to accepted friends, admin override, group-shared decks to group members). Narrows which **decks** are returned — does NOT narrow the returned `card_count` (stays whole-deck) and does not affect what a study session serves once a student clicks into a deck.
 - **Deployment gotcha (hit live, 13/09/2026):** a plain `CREATE OR REPLACE FUNCTION get_browsable_decks(p_question_type TEXT DEFAULT NULL)` does **not** replace the old zero-arg `get_browsable_decks()` — Postgres treats a changed parameter list (even one added with a `DEFAULT`) as a distinct overload, not a replacement of the old signature. This left both the zero-arg and one-arg versions live simultaneously, and every unparameterized call became ambiguous: `ERROR 42725: function get_browsable_decks() is not unique`. Fixed with an explicit `DROP FUNCTION IF EXISTS get_browsable_decks();` immediately before the `CREATE OR REPLACE` for the new signature. **Applies to any future RPC that adds a parameter to an existing function — `CREATE OR REPLACE` alone is only safe when the parameter list is unchanged.**
 - `SECURITY DEFINER` retained, same `auth.uid()` requirement as v4 (raises `Not authenticated` under an unauthenticated caller — including the SQL Editor's default `postgres` role, which has no `auth.uid()`; test accordingly via `SET LOCAL ROLE authenticated` + `request.jwt.claims` impersonation, same technique as `docs/database/sprint7.5/02_TEST_verify_d10_role_gate.sql`).
-- Powers `ReviewFlashcards.jsx`'s ("Browse Study Sets" since Sprint 7.6) new Question Type filter — options limited to `flashcard`/`mcq` (the types with a real authoring path), built from `BROWSABLE_QUESTION_TYPES` in `src/lib/questionTypes.js`.
+- Powers `ReviewFlashcards.jsx`'s ("Browse Study Sets" since Sprint 7.6) Question Type filter — options limited to the types with a real authoring path, built from `BROWSABLE_QUESTION_TYPES` in `src/lib/questionTypes.js` (`flashcard`, `mcq` as of 7.6; `true_false`/`correct_incorrect`/`theory`/`test_your_understanding` added Sprint 7.7).
 
 ---
 
@@ -1401,6 +1412,7 @@ RETURNS TABLE (
 - **Roles:** authenticated
 - **Type:** RESTRICTIVE (ANDs with `users_insert_flashcards`/`users_update_own_flashcards` above, rather than replacing them)
 - **Condition:** `question_type NOT IN ('mcq','true_false','correct_incorrect','case_study_mcq','integrated_case','match_the_following','fitb') OR is_professor_or_admin()` — `'fitb'`, not `'fill_in_the_blanks'` (00_DIAGNOSTIC caught the live `chk_flashcards_question_type` CHECK using the shorter name; the wrong string would have left that type completely ungated since a row NOT IN the list passes unconditionally).
+- **Unchanged by Sprint 7.7:** `true_false`/`correct_incorrect` were already in this IN-list from Sprint 7.5 (the policy always covered all 7 verdict-bearing types at once, even before any of them had a real authoring UI) — 7.7 built the authoring/bulk-upload surfaces for two of them, this policy needed zero changes. Regression-confirmed in `docs/database/sprint7.7/02_TEST_verify_new_question_types.sql`.
 - **Purpose:** Only professor/admin/super_admin may author or edit a row into one of the 7 verdict-bearing question types. Free-recall types (flashcard/theory/concept_card) unaffected. The UPDATE mirror prevents a student inserting as `'flashcard'` then editing `question_type` to `'mcq'` afterward.
 - **Why Needed:** D-10 (blueprint.md §3.1) — a bad `correct_answer` under the Phase 7 hybrid grading model doesn't just mislabel a review, it actively corrects a competent student's SRS state backward; a review queue for student-authored graded content doesn't scale against ~3 educators for 150+ students.
 - **New helper function:** `is_professor_or_admin()` — `SECURITY DEFINER`, mirrors `is_admin()`'s pattern, `GRANT EXECUTE TO authenticated` only.

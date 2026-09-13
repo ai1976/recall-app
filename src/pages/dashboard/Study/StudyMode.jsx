@@ -36,6 +36,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { GRADED_QUESTION_TYPES } from '@/lib/questionTypes';
 import { useToast } from '@/hooks/use-toast';
 import { useSpeech } from '@/hooks/useSpeech';
 import SpeakButton from '@/components/flashcards/SpeakButton';
@@ -997,7 +998,7 @@ export default function StudyMode({
             >
               <VerifiedEdge on={(showAnswer || mcqSelectedIndex !== null) && !!currentCard.is_verified} />
               <div className="flex-1 min-w-0 p-5 sm:p-8 md:p-12 flex flex-col justify-center items-center">
-              {currentCard.question_type === 'mcq' ? (
+              {GRADED_QUESTION_TYPES.includes(currentCard.question_type) ? (
                 <div className="w-full">
                   <div className="mb-6 flex items-center justify-center gap-2">
                     <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
@@ -1332,7 +1333,7 @@ export default function StudyMode({
 
             <div className="text-center mt-6">
               <p className="text-sm text-rv-ink-400">
-                {currentCard.question_type === 'mcq'
+                {GRADED_QUESTION_TYPES.includes(currentCard.question_type)
                   ? (mcqSelectedIndex === null
                       ? "Choose an answer"
                       : mcqIsCorrect === false

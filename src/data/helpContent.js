@@ -223,7 +223,7 @@ export const HELP_TABS = [
           {
             type: 'steps',
             items: [
-              'Go to "Create" \u2192 "Create Flashcard" from the navigation bar.',
+              'Go to "Create" \u2192 "Create Study Item" from the navigation bar.',
               'Select the course, subject, and topic.',
               'Enter the front (question) and back (answer) for each card.',
               'Set the visibility and optional difficulty tag (Easy, Medium, Hard).',

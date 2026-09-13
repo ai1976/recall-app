@@ -24,8 +24,13 @@ import {
   toPointsToRemember,
   validateMcqOptions,
 } from '@/lib/mcq';
+import { GRADED_QUESTION_TYPES, VERDICT_OPTION_LABELS, formatQuestionType } from '@/lib/questionTypes';
 
 const emptyMcqOptions = () => Array.from({ length: MCQ_DEFAULT_OPTIONS }, () => '');
+// true_false/correct_incorrect (Sprint 7.7) — verdict-bearing like mcq but with exactly 2
+// auto-populated, non-editable options. Reuses the same options/correctOptionIndex card
+// fields as mcq so compactMcqOptions/deriveMcqBackText/toPointsToRemember all still apply.
+const isTwoWayVerdictType = (qt) => qt === 'true_false' || qt === 'correct_incorrect';
 
 const DRAFT_KEY = 'flashcard_create_draft';
 
@@ -44,10 +49,11 @@ export default function FlashcardCreate() {
   const { toast } = useToast();
   const { isProfessor, isAdmin, isSuperAdmin } = useRole();
   // D-10 (Phase 7): only professor/admin/super_admin may author verdict-bearing
-  // question types (mcq et al). Students never see the selector — their cards
-  // stay implicitly 'flashcard', unchanged from before this sprint. This is a
-  // UX nicety only; the real boundary is the flashcards_gate_verdict_types RLS
-  // policy — see docs/database/sprint7.5.
+  // question types (mcq, true_false, correct_incorrect et al). The question-type
+  // selector itself is shown to everyone (Sprint 7.7 adds theory/test_your_understanding,
+  // free-recall types open to all users) — only the graded-type options within it are
+  // hidden from students. This is a UX nicety only; the real boundary is the
+  // flashcards_gate_verdict_types RLS policy — see docs/database/sprint7.5.
   const canAuthorGradedTypes = isProfessor || isAdmin || isSuperAdmin;
 
   const [targetCourse, setTargetCourse] = useState('');
@@ -314,7 +320,7 @@ export default function FlashcardCreate() {
     if (flashcards.length === 1) {
       toast({
         title: 'Cannot remove',
-        description: 'You must have at least one flashcard',
+        description: 'You must have at least one item',
         variant: 'destructive',
       });
       return;
@@ -381,7 +387,7 @@ export default function FlashcardCreate() {
       if (!user) throw new Error('Not authenticated');
 
       if (!targetCourse && !customCourse) {
-        throw new Error('Please select or enter which course these flashcards are for');
+        throw new Error('Please select or enter which course these study items are for');
       }
 
       // Derive isSystemCourse inside submit (disciplines already loaded)
@@ -408,13 +414,17 @@ export default function FlashcardCreate() {
       for (let i = 0; i < flashcards.length; i++) {
         const card = flashcards[i];
         if (!card.front.trim()) {
-          throw new Error(`Flashcard ${i + 1}: Front side cannot be empty`);
+          throw new Error(`Item ${i + 1}: Front side cannot be empty`);
         }
         if (card.questionType === 'mcq') {
           const mcqError = validateMcqOptions(card.options, card.correctOptionIndex);
-          if (mcqError) throw new Error(`Flashcard ${i + 1}: ${mcqError}`);
+          if (mcqError) throw new Error(`Item ${i + 1}: ${mcqError}`);
+        } else if (isTwoWayVerdictType(card.questionType)) {
+          if (card.correctOptionIndex !== 0 && card.correctOptionIndex !== 1) {
+            throw new Error(`Item ${i + 1}: Mark which side is correct`);
+          }
         } else if (!card.back.trim()) {
-          throw new Error(`Flashcard ${i + 1}: Back side cannot be empty`);
+          throw new Error(`Item ${i + 1}: Back side cannot be empty`);
         }
       }
 
@@ -506,9 +516,13 @@ export default function FlashcardCreate() {
       // ✅ Create flashcards WITH deck_id
       const flashcardsToInsert = flashcards.map(card => {
         const isMcq = card.questionType === 'mcq';
-        const { options: mcqOptions, correctIndex: mcqCorrectIndex } = isMcq
+        const isTwoWayVerdict = isTwoWayVerdictType(card.questionType);
+        const isGraded = isMcq || isTwoWayVerdict;
+        const { options: gradedOptions, correctIndex: gradedCorrectIndex } = isMcq
           ? compactMcqOptions(card.options, card.correctOptionIndex)
-          : { options: null, correctIndex: null };
+          : isTwoWayVerdict
+            ? { options: VERDICT_OPTION_LABELS[card.questionType], correctIndex: card.correctOptionIndex }
+            : { options: null, correctIndex: null };
         return {
           user_id: user.id,
           contributed_by: user.id,
@@ -521,19 +535,19 @@ export default function FlashcardCreate() {
           custom_subject: customSubjectValue,
           custom_topic: customTopicValue,
           front_text: card.front,
-          back_text: isMcq ? deriveMcqBackText(mcqOptions, mcqCorrectIndex) : card.back,
+          back_text: isGraded ? deriveMcqBackText(gradedOptions, gradedCorrectIndex) : card.back,
           front_image_url: card.frontImageUrl || null,
-          back_image_url: isMcq ? null : (card.backImageUrl || null),
+          back_image_url: isGraded ? null : (card.backImageUrl || null),
           tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
           visibility: cardVisibility,
           is_verified: false,
           difficulty: 'medium',
           batch_id: crypto.randomUUID(),
           batch_description: null,
-          question_type: isMcq ? 'mcq' : 'flashcard',
-          options: isMcq ? mcqOptions : null,
-          correct_answer: isMcq ? String(mcqCorrectIndex) : null,
-          points_to_remember: isMcq ? toPointsToRemember(card.why) : null,
+          question_type: card.questionType,
+          options: isGraded ? gradedOptions : null,
+          correct_answer: isGraded ? String(gradedCorrectIndex) : null,
+          points_to_remember: isGraded ? toPointsToRemember(card.why) : null,
         };
       });
 
@@ -559,8 +573,8 @@ export default function FlashcardCreate() {
       toast({
         title: 'Success!',
         description: visibility === 'study_groups'
-          ? `${flashcards.length} flashcard(s) created and shared with ${selectedGroupIds.length} group(s)`
-          : `${flashcards.length} flashcard(s) created successfully`,
+          ? `${flashcards.length} study item(s) created and shared with ${selectedGroupIds.length} group(s)`
+          : `${flashcards.length} study item(s) created successfully`,
       });
 
       // Fire-and-forget push notification — never blocks the create flow
@@ -582,7 +596,7 @@ export default function FlashcardCreate() {
       console.error('Create error:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create flashcards',
+        description: error.message || 'Failed to create study items',
         variant: 'destructive',
       });
     } finally {
@@ -598,7 +612,9 @@ export default function FlashcardCreate() {
       frontImagePreview: c.frontImageUrl || null, // use stored Supabase URL directly as preview
       backImageUrl: c.backImageUrl || null,
       backImagePreview: c.backImageUrl || null,
-      questionType: canAuthorGradedTypes ? (c.questionType || 'flashcard') : 'flashcard',
+      questionType: (GRADED_QUESTION_TYPES.includes(c.questionType) && !canAuthorGradedTypes)
+        ? 'flashcard'
+        : (c.questionType || 'flashcard'),
       options: c.options || emptyMcqOptions(),
       correctOptionIndex: c.correctOptionIndex ?? null,
       why: c.why || '',
@@ -648,9 +664,9 @@ export default function FlashcardCreate() {
 
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Create Flashcards</h1>
+          <h1 className="text-3xl font-bold">Create Study Item</h1>
           <p className="text-muted-foreground mt-2">
-            Build your own flashcard collection
+            Build your own study items — flashcards, MCQs, and more
           </p>
         </div>
 
@@ -682,7 +698,7 @@ export default function FlashcardCreate() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Who are these flashcards for?</CardTitle>
+              <CardTitle>Who are these study items for?</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -735,7 +751,7 @@ export default function FlashcardCreate() {
                   </>
                 )}
                 <p className="text-sm text-muted-foreground">
-                  Select which students should see these flashcards
+                  Select which students should see these study items
                 </p>
               </div>
             </CardContent>
@@ -884,7 +900,7 @@ export default function FlashcardCreate() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="visibility">Who can see these flashcards?</Label>
+                <Label htmlFor="visibility">Who can see these study items?</Label>
                 <Select value={visibility} onValueChange={(val) => {
                   setVisibility(val);
                   if (val !== 'study_groups') setSelectedGroupIds([]);
@@ -900,10 +916,10 @@ export default function FlashcardCreate() {
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
-                  {visibility === 'private' && 'Only you can see these flashcards'}
+                  {visibility === 'private' && 'Only you can see these study items'}
                   {visibility === 'study_groups' && 'Share with selected study groups'}
-                  {visibility === 'friends' && 'Only your friends can see these flashcards'}
-                  {visibility === 'public' && 'Everyone can see these flashcards'}
+                  {visibility === 'friends' && 'Only your friends can see these study items'}
+                  {visibility === 'public' && 'Everyone can see these study items'}
                 </p>
               </div>
 
@@ -952,7 +968,7 @@ export default function FlashcardCreate() {
             <Card key={index}>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>{card.questionType === 'mcq' ? 'Multiple Choice' : 'Flashcard'} {index + 1}</CardTitle>
+                  <CardTitle>{formatQuestionType(card.questionType)} {index + 1}</CardTitle>
                   {flashcards.length > 1 && (
                     <Button
                       type="button"
@@ -968,31 +984,50 @@ export default function FlashcardCreate() {
               </CardHeader>
               <CardContent className="space-y-4">
 
-                {canAuthorGradedTypes && (
-                  <div className="space-y-2">
-                    <Label htmlFor={`question-type-${index}`}>Question Type</Label>
-                    <Select
-                      value={card.questionType}
-                      onValueChange={(val) => updateFlashcard(index, 'questionType', val)}
-                    >
-                      <SelectTrigger id={`question-type-${index}`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="flashcard">Flashcard</SelectItem>
-                        <SelectItem value="mcq">Multiple Choice</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor={`question-type-${index}`}>Question Type</Label>
+                  <Select
+                    value={card.questionType}
+                    onValueChange={(val) => {
+                      const updated = [...flashcards];
+                      updated[index] = {
+                        ...updated[index],
+                        questionType: val,
+                        correctOptionIndex: null,
+                        options: val === 'mcq' ? emptyMcqOptions() : updated[index].options,
+                      };
+                      setFlashcards(updated);
+                    }}
+                  >
+                    <SelectTrigger id={`question-type-${index}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="flashcard">Flashcard</SelectItem>
+                      <SelectItem value="theory">Theory</SelectItem>
+                      <SelectItem value="test_your_understanding">Test your understanding</SelectItem>
+                      {canAuthorGradedTypes && <SelectItem value="mcq">Multiple Choice</SelectItem>}
+                      {canAuthorGradedTypes && <SelectItem value="true_false">True / False</SelectItem>}
+                      {canAuthorGradedTypes && <SelectItem value="correct_incorrect">Correct / Incorrect</SelectItem>}
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`front-${index}`}>{card.questionType === 'mcq' ? 'Question' : 'Front'}</Label>
+                  <Label htmlFor={`front-${index}`}>
+                    {card.questionType === 'mcq' ? 'Question' : isTwoWayVerdictType(card.questionType) ? 'Statement' : 'Front'}
+                  </Label>
                   <Textarea
                     id={`front-${index}`}
                     value={card.front}
                     onChange={(e) => updateFlashcard(index, 'front', e.target.value)}
-                    placeholder={card.questionType === 'mcq' ? 'The question stem' : 'Question or prompt'}
+                    placeholder={
+                      card.questionType === 'mcq'
+                        ? 'The question stem'
+                        : isTwoWayVerdictType(card.questionType)
+                          ? 'The statement to mark true/false or correct/incorrect'
+                          : 'Question or prompt'
+                    }
                     rows={3}
                   />
 
@@ -1100,6 +1135,40 @@ export default function FlashcardCreate() {
                       />
                     </div>
                   </div>
+                ) : isTwoWayVerdictType(card.questionType) ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Correct Answer <span className="text-red-500">*</span></Label>
+                      <div className="flex gap-2">
+                        {VERDICT_OPTION_LABELS[card.questionType].map((label, optIndex) => (
+                          <button
+                            key={optIndex}
+                            type="button"
+                            onClick={() => updateFlashcard(index, 'correctOptionIndex', optIndex)}
+                            className={cn(
+                              'flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors',
+                              card.correctOptionIndex === optIndex
+                                ? 'border-[#1e1b4b] bg-[#1e1b4b] text-white'
+                                : 'border-input bg-background hover:bg-accent',
+                            )}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`why-${index}`}>Why (Optional)</Label>
+                      <Textarea
+                        id={`why-${index}`}
+                        value={card.why}
+                        onChange={(e) => updateFlashcard(index, 'why', e.target.value)}
+                        placeholder="Explanation shown after the student answers"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     <Label htmlFor={`back-${index}`}>Back</Label>
@@ -1165,7 +1234,7 @@ export default function FlashcardCreate() {
             className="w-full border-dashed"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Add Another Flashcard
+            Add Another Item
           </Button>
 
           <div className="flex gap-4">
@@ -1182,7 +1251,7 @@ export default function FlashcardCreate() {
               disabled={loading}
               className="flex-1"
             >
-              {loading ? 'Creating...' : `Create ${flashcards.length} Flashcard${flashcards.length > 1 ? 's' : ''}`}
+              {loading ? 'Creating...' : `Create ${flashcards.length} Item${flashcards.length > 1 ? 's' : ''}`}
             </Button>
           </div>
         </form>
@@ -1190,7 +1259,7 @@ export default function FlashcardCreate() {
         <Card className="bg-amber-50 border-amber-200">
           <CardContent className="pt-6">
             <p className="text-sm text-[#1e1b4b]">
-              💡 <strong>Pro Tip:</strong> Your items are auto-saved as you type — if you accidentally leave this page, you can restore your work when you come back. Need to create many flashcards at once?{' '}
+              💡 <strong>Pro Tip:</strong> Your items are auto-saved as you type — if you accidentally leave this page, you can restore your work when you come back. Need to create many items at once?{' '}
               <Button
                 variant="link"
                 className="h-auto p-0 text-amber-600 hover:text-amber-700"

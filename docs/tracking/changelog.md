@@ -1,7 +1,40 @@
 # Changelog
 
 ---
-## [2026-09-13] feat(sprint-7.6): Browse/My Study Sets rename + question-type filter (SQL deployed + frontend live-verified; NOT yet committed)
+## [2026-09-13] feat(sprint-7.7): True/False, Correct/Incorrect + free-recall labels + Create-page naming sweep (SQL deployed & verified live; frontend live-verified end to end; NOT yet committed)
+
+Phase 7, sprint 8 — second and third proof that the question-type architecture generalizes cheaply. `true_false`/`correct_incorrect` reuse the mcq machinery end-to-end (representation, StudyMode rendering, hybrid grading); `theory`/`test_your_understanding` reuse the plain-flashcard front/back path with zero new StudyMode code. Mid-session, a naming inconsistency was raised and folded in as a copy-only rename. `npm run build` clean; `npx eslint` clean on every changed file (pre-existing baseline errors confirmed via `git stash` to predate this sprint).
+
+### Added
+- **`docs/database/sprint7.7/00_DIAGNOSTIC_preflight.sql`** (✅ run) — confirmed exactly one live `get_browsable_decks` signature + that the live `chk_flashcards_question_type`/D-10-policy definitions matched the drafted `01_SCHEMA` exactly.
+- **`docs/database/sprint7.7/01_SCHEMA_add_test_your_understanding_type.sql`** (✅ **deployed to production**) — widens `chk_flashcards_question_type` to add `test_your_understanding`. Purely additive, no RLS change. Was a hard prerequisite — this value could not be inserted by anyone before this ran.
+- **`docs/database/sprint7.7/02_TEST_verify_new_question_types.sql`** (✅ **run against production — 6/6 rows PASS**) — confirmed test_your_understanding now insertable, theory unaffected, and (regression check) true_false/correct_incorrect still gated exactly as they were before this sprint.
+- **`GRADED_QUESTION_TYPES`** and **`VERDICT_OPTION_LABELS`** in `src/lib/questionTypes.js` — the former drives StudyMode.jsx's shared rendering branch for all 3 graded types; the latter auto-populates true_false/correct_incorrect's `options` (never professor-typed, unlike mcq).
+
+### Changed
+- **`BROWSABLE_QUESTION_TYPES`** (`src/lib/questionTypes.js`) — extended from `['flashcard','mcq']` to include `true_false`, `correct_incorrect`, `theory`, `test_your_understanding`.
+- **`StudyMode.jsx`** — the mcq-only render condition (`question_type === 'mcq'`) generalized to `GRADED_QUESTION_TYPES.includes(question_type)` in both places it appeared. No other change — the existing `AnswerOption`-list render and hybrid-grading (wrong→auto-hard+Continue, correct→reveal+GradeButtonRow) work unmodified for a 2-option array. theory/test_your_understanding fall through to the existing front/back/self-grade path unchanged (confirmed by reading the render chain, not assumed).
+- **`FlashcardCreate.jsx`** — question-type selector now shown to ALL users (previously hidden entirely unless professor/admin/super_admin); only the 3 graded options within it (Multiple Choice/True-False/Correct-Incorrect) stay role-conditional, since theory/test_your_understanding are ungated free-recall types. True/False and Correct/Incorrect authoring uses a 2-way toggle-button pair instead of mcq's free-text options editor.
+- **`BulkUploadFlashcards.jsx`** — CSV template gains one example row per new type + rewritten column docs; parser's recognized `question_type` values extended from mcq-only to all 4 new types; `42501` RLS-rejection message generalized to name all 3 gated types.
+
+### Added (naming sweep)
+- **"Create Flashcards" → "Create Study Item"** page title/subtitle (`FlashcardCreate.jsx`), matching the "Study Sets" terminology Sprint 7.6 already established for the browse/list pages — flashcard is one item type among six, not the umbrella term.
+- Every "Create Flashcard" nav-trigger label renamed sitewide: `NavDesktop.jsx`, `NavMenuSheet.jsx`, `NavBottomTabs.jsx` (+ doc-comment), `DesignShowcase.jsx`'s `/__design` mockup.
+- Every empty-state/quick-link button pointing at `/dashboard/flashcards/new` renamed: `MyFlashcards.jsx`, `MyContributions.jsx` (×2), `ReviewFlashcards.jsx`, `NoteDetail.jsx`.
+- `BulkUploadFlashcards.jsx`: page title/subtitle, upload/success toasts, CSV-instruction prose, "Create Flashcard" cross-references, "Upload Flashcards" button — all → "Study Item(s)".
+- `guideContent.js`/`helpContent.js`'s nav-instruction lines, `Home.jsx`'s public landing-page step 3, `PageContainer.jsx`'s doc-comment.
+- `FlashcardCreate.jsx`'s own toast/validation copy: "N study item(s) created successfully", "Item N: Front side cannot be empty" (was "Flashcard N: ..."), "Add Another Item", "Create N Items".
+- **Deliberately left alone:** `helpContent.js`'s "Creating Flashcards" section title/prose (a real content rewrite describing all 6 types, not a label swap — flagged, not fixed) and `ProfessorTools.jsx` (confirmed dead/unrouted per blueprint backlog).
+- Routes, file names, DB table/column names, and internal identifiers (`flashcards` state, `.from('flashcards')`, `flashcard_decks`, etc.) all untouched — copy-only, same scope discipline as Sprint 7.6's rename.
+
+### Verification status
+- **SQL: ✅ deployed & verified live (13/09/2026).** All 3 files run against production in order; `02_TEST`'s 6 assertion rows all returned PASS.
+- **✅ Live frontend verification DONE (13/09/2026, dev server → live Supabase, real professor + student accounts):** authored true_false/correct_incorrect/theory/test_your_understanding manually as professor; bulk-uploaded a 6-row CSV mixing all 6 types (`back_text` derived correctly for every row); graded a true_false wrong (auto-hard + single Continue) and a correct_incorrect right (reveal + full grade row) — professor Dashboard's "Accuracy by question type" widget confirmed showing real two-measure data for all 6 types, correctly distinguishing verdict-bearing from free-recall; student's question-type selector confirmed showing only the 3 ungated types; Browse Study Sets filter narrowed correctly for both new graded types; naming sweep confirmed live across desktop nav, mobile ＋ sheet, and mobile Menu drawer. Console clean (one non-critical, pre-existing `admin_audit_log` 403 on bulk upload, unrelated, not chased).
+- **Real finding, not assumed:** re-verified against the live D-10 RLS policy (not just the docs) that `true_false`/`correct_incorrect` were already gated correctly since Sprint 7.5 — this sprint's authoring UI needed zero RLS changes for those two types, and `02_TEST` proves it held after this sprint's changes too.
+- **⏳ Not yet committed** — SQL deployed + verified, frontend live-verified end to end; awaiting `git commit` + push.
+
+---
+## [2026-09-13] feat(sprint-7.6): Browse/My Study Sets rename + question-type filter (SQL deployed + frontend live-verified; ✅ committed `c629ed3`)
 
 Phase 7, sprint 7 — small, focused fix for the naming confusion raised at the end of 7.5: `ReviewFlashcards.jsx` browses ALL question types now (flashcard + mcq, more coming), so "Review Flashcards" no longer matched what the page does. Copy + one filter, not a redesign. `npm run build` clean; `npx eslint` clean on every changed file.
 

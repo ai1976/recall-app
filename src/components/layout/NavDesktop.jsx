@@ -169,7 +169,7 @@ export default function NavDesktop({
                 <DropdownMenuItem asChild>
                   <Link to="/dashboard/flashcards/new" className="flex items-center gap-2 cursor-pointer">
                     <CreditCard className="h-4 w-4" />
-                    Create Flashcard
+                    Create Study Item
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
