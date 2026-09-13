@@ -345,13 +345,19 @@ export default function StudyMode({
       if (!user) return;
 
       // The SRS ladder governs every transition server-side. No client-side
-      // interval math, no direct reviews write — submit_review does the
+      // interval math, no direct reviews write — apply_review does the
       // SELECT-or-INSERT, computes the rung transition, sets next_review_date
-      // (kept DATE, user-tz), and applies/reverts MASTERED at the threshold.
-      const { data, error } = await supabase.rpc('submit_review', {
+      // (kept DATE, user-tz), applies/reverts MASTERED at the threshold, and
+      // logs a review_events row alongside it. StudyMode is still pure
+      // front/back (no question-type rendering yet), so there is no
+      // deterministic verdict to pass — p_is_correct stays null here until
+      // Sprint 7.5's graded question types exist.
+      const { data, error } = await supabase.rpc('apply_review', {
         p_user_id: user.id,
         p_flashcard_id: currentCard.id,
         p_rating: quality, // 'easy' | 'medium' | 'hard'
+        p_is_correct: null,
+        p_source: previewModeParam ? null : (currentCard.rung === undefined ? 'new_card' : 'review_session'),
       });
       if (error) throw error;
 

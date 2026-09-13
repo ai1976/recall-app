@@ -606,11 +606,16 @@ function ProgressBody({
               No review data yet.
             </div>
           ) : (
-            <div className="divide-y divide-rv-border">
-              {qtPerf.map((row) => (
-                <QuestionTypeRow key={row.question_type} row={row} />
-              ))}
-            </div>
+            <>
+              <div className="divide-y divide-rv-border">
+                {qtPerf.map((row) => (
+                  <QuestionTypeRow key={row.question_type} row={row} />
+                ))}
+              </div>
+              <p className="px-4 py-2 border-t border-rv-border text-[11px] text-rv-ink-400">
+                Recall success = self-rated Medium/Easy. Answer accuracy = graded right/wrong, available once graded question types exist. Concept cards excluded.
+              </p>
+            </>
           )}
         </div>
       </div>
@@ -781,22 +786,42 @@ function ForecastCard({ label, value, tone }) {
 }
 
 function QuestionTypeRow({ row }) {
-  const pct = Number(row.accuracy_pct) || 0;
+  const recallPct = Number(row.recall_success_pct) || 0;
+  const answerPct = row.answer_accuracy_pct == null ? null : Number(row.answer_accuracy_pct);
   return (
-    <div className="px-4 py-3 flex items-center gap-3">
-      <div className="w-32 shrink-0">
+    <div className="px-4 py-3 space-y-2">
+      <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-rv-ink-900 truncate">{qtLabel(row.question_type)}</p>
-        <p className="text-xs text-rv-ink-400">
+        <p className="text-xs text-rv-ink-400 shrink-0">
           <span className={NUM_TYPE}>{row.reviewed_count}</span> / <span className={NUM_TYPE}>{row.total_cards_available}</span> reviewed
         </p>
       </div>
-      <div className="flex-1 bg-rv-slate-50 rounded-full h-2 overflow-hidden">
-        <div
-          className="h-2 rounded-full bg-rv-navy transition-all"
-          style={{ width: `${Math.min(pct, 100)}%` }}
-        />
+      <div className="flex items-center gap-3">
+        <span className="w-28 shrink-0 text-xs text-rv-ink-400">Recall success</span>
+        <div className="flex-1 bg-rv-slate-50 rounded-full h-2 overflow-hidden">
+          <div
+            className="h-2 rounded-full bg-rv-navy transition-all"
+            style={{ width: `${Math.min(recallPct, 100)}%` }}
+          />
+        </div>
+        <Num className="text-sm font-semibold w-12 text-right shrink-0">{recallPct}%</Num>
       </div>
-      <Num className="text-sm font-semibold w-12 text-right shrink-0">{pct}%</Num>
+      <div className="flex items-center gap-3">
+        <span className="w-28 shrink-0 text-xs text-rv-ink-400">Answer accuracy</span>
+        {answerPct == null ? (
+          <span className="flex-1 text-xs text-rv-ink-400 italic">No graded answers yet</span>
+        ) : (
+          <>
+            <div className="flex-1 bg-rv-slate-50 rounded-full h-2 overflow-hidden">
+              <div
+                className="h-2 rounded-full bg-rv-navy transition-all"
+                style={{ width: `${Math.min(answerPct, 100)}%` }}
+              />
+            </div>
+            <Num className="text-sm font-semibold w-12 text-right shrink-0">{answerPct}%</Num>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -840,30 +840,49 @@ export default function Dashboard() {
                   <Card>
                     <CardContent className="pt-5 pb-4 space-y-3">
                       {educatorAccuracy.map((row) => {
-                        const pct = row.accuracy_pct == null ? 0 : Number(row.accuracy_pct);
+                        const recallPct = row.recall_success_pct == null ? 0 : Number(row.recall_success_pct);
+                        const answerPct = row.answer_accuracy_pct == null ? null : Number(row.answer_accuracy_pct);
                         return (
-                          <div key={row.question_type} className="space-y-1">
+                          <div key={row.question_type} className="space-y-1.5">
                             <div className="flex items-baseline justify-between gap-3">
                               <span className="text-sm text-rv-ink-900">
                                 {formatQuestionType(row.question_type)}
                               </span>
                               <span className="shrink-0 text-xs text-rv-ink-400">
-                                <Num className="text-rv-ink-900">{pct.toFixed(0)}%</Num>
-                                {' · '}
-                                <Num>{row.total_graded}</Num> graded
+                                <Num>{row.total_graded}</Num> self-graded
                               </span>
                             </div>
-                            <div className="h-1.5 w-full overflow-hidden rounded-rec bg-rv-slate-50">
-                              <div
-                                className="h-full rounded-rec bg-rv-navy"
-                                style={{ width: `${Math.max(2, Math.min(100, pct))}%` }}
-                              />
+                            <div className="flex items-center gap-2">
+                              <span className="w-24 shrink-0 text-[11px] text-rv-ink-400">Recall success</span>
+                              <div className="h-1.5 flex-1 overflow-hidden rounded-rec bg-rv-slate-50">
+                                <div
+                                  className="h-full rounded-rec bg-rv-navy"
+                                  style={{ width: `${Math.max(2, Math.min(100, recallPct))}%` }}
+                                />
+                              </div>
+                              <Num className="w-10 shrink-0 text-right text-xs text-rv-ink-900">{recallPct.toFixed(0)}%</Num>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="w-24 shrink-0 text-[11px] text-rv-ink-400">Answer accuracy</span>
+                              {answerPct == null ? (
+                                <span className="flex-1 text-[11px] italic text-rv-ink-400">No graded answers yet</span>
+                              ) : (
+                                <>
+                                  <div className="h-1.5 flex-1 overflow-hidden rounded-rec bg-rv-slate-50">
+                                    <div
+                                      className="h-full rounded-rec bg-rv-navy"
+                                      style={{ width: `${Math.max(2, Math.min(100, answerPct))}%` }}
+                                    />
+                                  </div>
+                                  <Num className="w-10 shrink-0 text-right text-xs text-rv-ink-900">{answerPct.toFixed(0)}%</Num>
+                                </>
+                              )}
                             </div>
                           </div>
                         );
                       })}
                       <p className="pt-1 text-[11px] text-rv-ink-400">
-                        Hit = graded Medium or Easy; Hard = miss. Concept cards excluded.
+                        Recall success = self-rated Medium/Easy. Answer accuracy = graded right/wrong, available once graded question types exist. Concept cards excluded.
                       </p>
                     </CardContent>
                   </Card>

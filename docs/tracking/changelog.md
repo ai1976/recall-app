@@ -1,6 +1,31 @@
 # Changelog
 
 ---
+## [2026-09-13] feat(sprint-7.4): review_events history + apply_review write SSOT + two-measure analytics semantics (SQL deployed)
+
+Phase 7, sprint 5 — the architectural de-risk gate for the whole question-type epic (Sprint 7.5 MCQ-single onward). No question-type rendering here — StudyMode stays pure front/back; this is data/engine layer only. `npm run build` clean; `npx eslint` clean on every changed file. **4 SQL files deployed + confirmed live** (`01_SCHEMA`, `02_FUNCTIONS`, `03_FUNCTIONS`, `04_TEST` — 29/29 real assertions PASS), plus 2 read-only diagnostic scripts (`00`, `05`) for pre/post-deploy introspection (`docs/database/sprint7.4/`). Frontend live-verified against production via a real student account (both new-card and review-session grading paths, 200 OK with correct rung/interval each time); Progress.jsx's widget confirmed rendering the two-measure layout correctly. Dashboard.jsx's professor widget was code-reviewed but not click-tested live (no professor account this session).
+
+**Phase 0 introspection (`00_DIAGNOSTIC`, run first per this project's introspect-before-DDL standing practice) changed the delivered SQL from the sprint's own draft twice:** `reviews.user_id` actually references `auth.users(id)`, not `profiles(id)` as drafted — `review_events.user_id` matches the real thing, and the same stale claim in `DATABASE_SCHEMA.md`'s `reviews` row was corrected along the way; and both analytics RPCs needed DROP+CREATE (not `CREATE OR REPLACE`) since their `RETURNS TABLE` shape changed — same constraint this project already hit with `get_study_queue`.
+
+### Added
+- **`review_events` table** (new) — append-only per-review history, one row per grade ever. `reviews` stays the current-state SSOT, unchanged shape/semantics. RLS enabled, zero policies/grants — every access is through a SECURITY DEFINER RPC. Columns include `rating`, `is_correct` (NULL until Sprint 7.5's graded question types exist), `question_type`/`topic_id` (snapshots), `rung_before`/`rung_after`, `status_after`, `interval_days`, `next_review_date`, `source` (`'new_card'`/`'review_session'`/NULL), reserved `study_session_id`.
+- **`apply_review(p_user_id, p_flashcard_id, p_rating, p_is_correct DEFAULT NULL, p_source DEFAULT NULL)`** — the new write SSOT for review scheduling, superseding `submit_review`. Absorbs `submit_review`'s live body verbatim (confirmed byte-identical before extending) and adds a `review_events` INSERT in the same transaction as the `reviews` write — atomic by construction, proven with a real forced-failure trigger test (not just asserted).
+- **`graded_count` / `answer_accuracy_pct`** columns on both `get_question_type_performance` and `get_educator_accuracy_by_qtype` — objective graded-correctness measure alongside the existing self-rated one. NULL/0 until graded question types exist (Sprint 7.5).
+
+### Changed
+- **`submit_review`** — now a thin `LANGUAGE sql` compat wrapper delegating to `apply_review(..., NULL, NULL)`, so a stale cached client bundle calling the old 3-arg signature during the deploy window keeps working (and logs `is_correct=NULL`). No longer called by current frontend code.
+- **`get_question_type_performance` / `get_educator_accuracy_by_qtype`** — `accuracy_pct` renamed `recall_success_pct` (computation byte-for-byte unchanged, pure rename). Both queries pre-aggregate `review_events` into a one-row-per-key CTE before joining it in, specifically to avoid fanning out the pre-existing accuracy arithmetic (`review_events` is append-only/many-rows-per-card, unlike the existing at-most-one-row-per-card joins in those queries).
+- **`StudyMode.jsx` `handleRating`** — calls `apply_review` instead of `submit_review`, with `p_is_correct: null` (no verdict exists yet — StudyMode is still pure front/back) and `p_source` derived from the existing `rung === undefined` new-card convention already used for the grade-preview memo.
+- **`Progress.jsx` `QuestionTypeRow`** and **`Dashboard.jsx`'s professor "Accuracy by question type" widget** — both now show two labeled rows per question type: "Recall success" (always populated, same number as before the rename) and "Answer accuracy" ("No graded answers yet" until `graded_count>0`). Footnotes updated to name both measures plainly.
+
+### Storage (7.4-E, measured not guessed)
+~142 bytes/row (`pg_column_size` on real inserted rows). Current DB 53MB vs. the Supabase Free-plan 500MB limit; even a generous 10×-of-observed daily rate projects to low-single-digit MB/year. No archival/rollup/partitioning built — the projection shows no near-term problem worth solving yet.
+
+### Files Changed
+- **New:** `docs/database/sprint7.4/{00_DIAGNOSTIC,01_SCHEMA,02_FUNCTIONS,03_FUNCTIONS,04_TEST,05_DIAGNOSTIC}*.sql`
+- **Changed:** `src/pages/dashboard/Study/StudyMode.jsx`, `src/pages/dashboard/Study/Progress.jsx`, `src/pages/Dashboard.jsx`, `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/now.md`
+
+---
 ## [2026-09-12] feat(sprint-7.3): Dashboard reporting surface & study-time split — goal progress two-state, app-wide study timer, in-app/offline split (SQL deployed)
 
 Phase 7, sprint 4 — inserted ahead of the `review_events`/`apply_review` engine sprint (now **7.4**), final dashboard/nav polish before 100+ new students land. `npm run build` clean; `npx eslint` clean on every changed file. **2 SQL migrations deployed + confirmed live** (`docs/database/sprint7.3/`): `profiles.has_dismissed_goal_prompt` (additive column) and `get_study_time_stats` DROP+CREATE (4 additive in-app/offline split columns, existing 4 columns/IDOR guard/search_path unchanged, grants re-applied to `authenticated`). Live-verified dev server → live Supabase, student (TestOutlook), desktop + 375px mobile — including, in a same-session follow-up pass: the mobile ＋ sheet and desktop Create dropdown contents, and both the 4-16h recovery-prompt and >16h silent-discard stale-session paths (faked timestamps, confirmed classification happens app-wide at whichever page reloads, not re-derived per page).

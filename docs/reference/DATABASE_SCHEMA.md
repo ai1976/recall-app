@@ -290,17 +290,17 @@
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
 | id | uuid | NO | uuid_generate_v4() | Primary key |
-| user_id | uuid | NO | - | Foreign key to profiles.id |
-| flashcard_id | uuid | NO | - | Foreign key to flashcards.id |
+| user_id | uuid | NO | - | Foreign key to **auth.users.id** (`ON DELETE CASCADE`) — ⚠️ NOT `profiles.id`; corrected 13/09/2026 (Sprint 7.4 Phase 0 introspection) after this doc had it wrong |
+| flashcard_id | uuid | NO | - | Foreign key to flashcards.id, `ON DELETE CASCADE` |
 | quality | integer | NO | - | 1=Hard, 3=Medium, 5=Easy |
-| easiness | double precision | YES | 2.5 | SuperMemo-2 EF value — ⚠️ column is `easiness` NOT `easiness_factor`; type is `double precision` (float8) NOT numeric. **Legacy-cosmetic after the SRS Ladder Epic** — still written by `submit_review`, no longer drives scheduling. |
+| easiness | double precision | YES | 2.5 | SuperMemo-2 EF value — ⚠️ column is `easiness` NOT `easiness_factor`; type is `double precision` (float8) NOT numeric. **Legacy-cosmetic after the SRS Ladder Epic** — still written by `apply_review` (Sprint 7.4; was `submit_review`), no longer drives scheduling. |
 | interval | integer | YES | 0 | Days until next review. **Legacy-cosmetic after the SRS Ladder Epic** (= the resolved rung interval). Reserved word — quote as `"interval"` in raw SQL. |
 | repetition | integer | YES | 0 | Times graded (incremented every grade, incl. Hard) — ⚠️ column is `repetition` NOT `repetitions`. **Legacy-cosmetic after the SRS Ladder Epic**; also the source column for the one-time `rung` backfill. |
-| next_review_date | **date** | YES | NULL | When the card is due next. ⚠️ **DATE, not timestamp** — stored as `YYYY-MM-DD` (`StudyMode.jsx` / `submit_review` build it from local Y/M/D). Treating it as a timestamp causes "wrong day" bugs. *(Prior versions of this doc said `timestamp NOT NULL DEFAULT NOW()` — that was stale; verified `date` NULLable via Phase 0 Q6, 03/09/2026.)* |
+| next_review_date | **date** | YES | NULL | When the card is due next. ⚠️ **DATE, not timestamp** — stored as `YYYY-MM-DD` (`StudyMode.jsx` / `apply_review` build it from local Y/M/D). Treating it as a timestamp causes "wrong day" bugs. *(Prior versions of this doc said `timestamp NOT NULL DEFAULT NOW()` — that was stale; verified `date` NULLable via Phase 0 Q6, 03/09/2026.)* |
 | last_reviewed_at | timestamptz | YES | now() | Timestamp of most recent rating |
 | status | text | NO | 'active' | `active` / `suspended` / **`mastered`** (the last added by the SRS Ladder Epic — see below). CHECK: `status IN ('active','suspended','mastered')`. |
 | skip_until | date | YES | NULL | Date until which card is hidden (skip 24hr) |
-| rung | smallint | YES | NULL | **SRS Ladder Epic (✅ deployed 03/09/2026).** Ladder position (0..7 for the `_default` curve; CHECK 0..20). `NULL` = not yet on the ladder. Authoritative scheduling state — `submit_review` computes it, `get_study_queue` returns it. |
+| rung | smallint | YES | NULL | **SRS Ladder Epic (✅ deployed 03/09/2026).** Ladder position (0..7 for the `_default` curve; CHECK 0..20). `NULL` = not yet on the ladder. Authoritative scheduling state — `apply_review` (Sprint 7.4; was `submit_review`) computes it, `get_study_queue` returns it. |
 | created_at | timestamptz | YES | now() | When the review row was first created (first-ever grade of the card). Used for streak calc. NOT touched on re-grade. |
 
 **Card Suspension System (NEW - February 6, 2026):**
@@ -321,6 +321,38 @@
 **Related Tables:** profiles, flashcards
 **Key Indexes:** user_id, flashcard_id, next_review_date (for due cards), created_at (for streak calculation)
 **RLS Policies:** 4 policies (see RLS section)
+
+---
+
+### 2.4A review_events
+
+**Purpose:** Append-only per-review history — one row per grade, ever. `reviews` (2.4) stays the current-state SSOT (unchanged shape/semantics); this table exists because `reviews` is updated in place, so it cannot answer "how many times was this graded, and with what verdict, over time." Written atomically with the `reviews` write, inside `apply_review` (same transaction — a failure in either write rolls back both).
+**Created:** 13/09/2026 (Sprint 7.4)
+**Columns:** 14
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | bigint | NO | GENERATED ALWAYS AS IDENTITY | Primary key |
+| user_id | uuid | NO | - | Foreign key to **auth.users.id**, `ON DELETE CASCADE`. ⚠️ NOT `profiles.id` — confirmed against the live `reviews.user_id` FK (which also targets `auth.users`, not `profiles`) rather than assumed. |
+| flashcard_id | uuid | NO | - | Foreign key to flashcards.id, `ON DELETE CASCADE` |
+| reviewed_at | timestamptz | NO | now() | |
+| rating | text | NO | - | `hard` / `medium` / `easy`. CHECK constrained. |
+| is_correct | boolean | YES | NULL | NULL = no deterministic verdict (self-graded flashcard/theory/etc — everything before Sprint 7.5's graded question types). Populated only by graded question types going forward. |
+| question_type | text | NO | - | Snapshot at review time (not a live join to `flashcards`) |
+| topic_id | uuid | YES | NULL | Snapshot; NULL for custom_topic cards |
+| rung_before | smallint | YES | NULL | NULL = card was brand-new (no prior ladder position) at the moment of this grade |
+| rung_after | smallint | NO | - | |
+| status_after | text | NO | - | `active` / `suspended` / `mastered`. CHECK constrained. |
+| interval_days | integer | NO | - | |
+| next_review_date | date | NO | - | |
+| source | text | YES | NULL | `NULL` \| `'review_session'` \| `'new_card'` \| `'exam_final_pass'` |
+| study_session_id | uuid | YES | NULL | Reserved — stays NULL. Session-logging rework is a later sprint, not Sprint 7.4. |
+
+**Access:** RLS enabled, **zero policies, zero grants** (`REVOKE ALL FROM PUBLIC, anon, authenticated`). Every read/write goes through a SECURITY DEFINER RPC — `apply_review` writes it, analytics RPCs (`get_question_type_performance`, `get_educator_accuracy_by_qtype`) read it. No client `.from('review_events')` call should ever exist.
+**Measured cost (13/09/2026, live, real rows):** ~142 bytes/row (`pg_column_size`). Current total DB size 53MB against the Supabase Free-plan 500MB limit — no near-term storage concern at current or projected volume; re-measure after real (non-test) usage accumulates. See blueprint.md D-11 for the full projection.
+**Related Tables:** reviews (shadows it), flashcards, auth.users
+**Key Indexes:** `(user_id, reviewed_at DESC)`, `(flashcard_id, reviewed_at DESC)`
+**RLS Policies:** 0 (intentional — SECURITY DEFINER RPC access only)
 
 **CRITICAL — COLUMN NAME TRAPS (both caused production bugs):**
 - Column is `created_at`, NOT `reviewed_at` (caused runtime error on 2025-12-27)
@@ -1144,6 +1176,53 @@ get_educator_cohort_forecast_buckets(p_professor_id uuid, p_course_level text)
 RETURNS TABLE (bucket_index integer, bucket_label text, scheduled_count integer)
 ```
 - Guard: **professor-or-admin.** Same 8-lane shape / centre-day bucketing as `get_due_forecast_buckets`, but summed across **every student** with an active review on one of this educator's `target_course` cards (`question_type <> 'concept_card'`, `skip_until` not in the future). No per-viewer visibility guard — an educator's cohort content is their own. *today* = `CURRENT_DATE`. Powers the educator "Cohort forward load" ledger.
+
+---
+
+## Sprint 7.4 — review_events, apply_review, two-measure analytics semantics (✅ deployed & verified 13/09/2026 — `docs/database/sprint7.4/`, `04_TEST` 29/29 real assertions PASS)
+
+Architectural de-risk gate for the question-type epic — see `review_events` (2.4A) and blueprint.md D-11. No question-type rendering changed; StudyMode stays pure front/back.
+
+```sql
+apply_review(
+  p_user_id uuid, p_flashcard_id uuid, p_rating text,
+  p_is_correct boolean DEFAULT NULL, p_source text DEFAULT NULL
+)
+RETURNS TABLE (new_rung smallint, next_review_date date, new_status text, interval_days integer)
+```
+- **The write SSOT for review scheduling**, superseding `submit_review`. `LANGUAGE plpgsql`, `SECURITY DEFINER`, `SET search_path TO public, extensions` (unquoted), same L5 IDOR idiom as `submit_review` (`auth.uid() IS NULL` → RAISE; `p_user_id IS DISTINCT FROM auth.uid() AND NOT is_admin()` → RAISE). `GRANT EXECUTE TO authenticated` only.
+- Body is `submit_review`'s live body **verbatim** (confirmed byte-identical via introspection before extending — same rules fetch, same today-in-tz calc, same quality/easiness mapping, same new-card-vs-existing-card transition branches), plus: captures `f.topic_id` alongside `f.question_type`; computes `v_rung_before` right after the existing defensive rung clamp (`NULL` for a brand-new card, else the clamped pre-transition rung); and, in the **same transaction** as the `reviews` INSERT/UPDATE, inserts one `review_events` row using the same final `v_new_rung`/`v_new_status`/`v_next` variables the transition logic already computed (not duplicated per branch).
+- Atomic by construction (one function body, one transaction) — proven with a real forced-failure trigger test in `04_TEST`, not just asserted: a `pg_temp` BEFORE INSERT trigger on `review_events` raises mid-call, and the `reviews` write from the same call is confirmed rolled back too (PL/pgSQL's implicit EXCEPTION-block savepoint).
+- `p_is_correct` stays NULL until Sprint 7.5's graded question types exist. `p_source`: `'new_card'` | `'review_session'` | `NULL` (preview mode).
+
+```sql
+submit_review(p_user_id uuid, p_flashcard_id uuid, p_rating text)
+RETURNS TABLE (new_rung smallint, next_review_date date, new_status text, interval_days integer)
+```
+- **Sprint 7.4: now a thin `LANGUAGE sql` compat wrapper** — `SELECT * FROM apply_review(p_user_id, p_flashcard_id, p_rating, NULL, NULL)`. Kept only so a stale cached client bundle calling the old 3-arg signature during the deploy window keeps working; logs `review_events.is_correct = NULL`. Grants unchanged (`GRANT EXECUTE TO authenticated`). `StudyMode.jsx` no longer calls this — it calls `apply_review` directly.
+
+```sql
+get_question_type_performance(p_user_id uuid, p_course_level text DEFAULT NULL)
+RETURNS TABLE (
+  question_type text, total_cards_available bigint, reviewed_count bigint,
+  recall_success_pct numeric, graded_count integer, answer_accuracy_pct numeric
+)
+```
+- Deployed via **DROP + CREATE** (adding + renaming `RETURNS TABLE` columns isn't a plain `CREATE OR REPLACE`, same reasoning as `get_study_queue`/Sprint 7.3's `get_study_time_stats`) — grants re-applied (`authenticated` only).
+- `accuracy_pct` renamed **`recall_success_pct`** — computation byte-for-byte unchanged (same `available_cards`/`all_reviews` CTEs, same IDOR guard, same `concept_card` exclusion).
+- New: **`graded_count`** = count of this user's `review_events` rows (for cards in `available_cards`) with `is_correct IS NOT NULL`; **`answer_accuracy_pct`** = `NULL` when `graded_count = 0`, else `% is_correct = true`. `review_events` is pre-aggregated into a one-row-per-`flashcard_id` CTE before joining — `review_events` is append-only (many rows per card over time) and joining it directly would have fanned out the existing `recall_success_pct` COUNT()s.
+- Powers `Progress.jsx` "Performance by Question Type" (two rows per type: Recall success / Answer accuracy).
+
+```sql
+get_educator_accuracy_by_qtype(p_professor_id uuid, p_course_level text)
+RETURNS TABLE (
+  question_type text, total_graded integer, hits integer,
+  recall_success_pct numeric, graded_count integer, answer_accuracy_pct numeric
+)
+```
+- Same DROP+CREATE / rename / two-new-columns treatment as above; `total_graded`/`hits`/`HAVING total_graded > 0` logic (Sprint 6.3) unchanged.
+- Here `review_events` is pre-aggregated **by `question_type`** (not by card), since the base query already fans out one row per student-reviewer per card (`prof_cards JOIN reviews`, cohort-wide) — the per-type aggregate is computed independently, then broadcast-joined back via `MAX()` so it isn't inflated by that fan-out.
+- Powers `Dashboard.jsx`'s professor "Accuracy by question type" widget.
 
 ---
 
