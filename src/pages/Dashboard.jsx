@@ -96,7 +96,7 @@ const formatQuestionType = (qt) => {
     case_study_mcq: 'Case study MCQ',
     integrated_case: 'Integrated case',
     match_the_following: 'Match the following',
-    fill_in_the_blanks: 'Fill in the blanks',
+    fitb: 'Fill in the blanks',
   };
   return map[qt] || qt.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 };

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useRole } from '@/contexts/NavDataContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { notifyContentCreated } from '@/lib/notifyEdge';
 import imageCompression from 'browser-image-compression';
+import {
+  MCQ_MIN_OPTIONS,
+  MCQ_MAX_OPTIONS,
+  MCQ_DEFAULT_OPTIONS,
+  compactMcqOptions,
+  deriveMcqBackText,
+  toPointsToRemember,
+  validateMcqOptions,
+} from '@/lib/mcq';
+
+const emptyMcqOptions = () => Array.from({ length: MCQ_DEFAULT_OPTIONS }, () => '');
 
 const DRAFT_KEY = 'flashcard_create_draft';
 
@@ -30,6 +42,13 @@ function formatDraftTime(isoString) {
 export default function FlashcardCreate() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isProfessor, isAdmin, isSuperAdmin } = useRole();
+  // D-10 (Phase 7): only professor/admin/super_admin may author verdict-bearing
+  // question types (mcq et al). Students never see the selector — their cards
+  // stay implicitly 'flashcard', unchanged from before this sprint. This is a
+  // UX nicety only; the real boundary is the flashcards_gate_verdict_types RLS
+  // policy — see docs/database/sprint7.5.
+  const canAuthorGradedTypes = isProfessor || isAdmin || isSuperAdmin;
 
   const [targetCourse, setTargetCourse] = useState('');
   const [showCustomCourse, setShowCustomCourse] = useState(false);
@@ -50,7 +69,10 @@ export default function FlashcardCreate() {
   const [selectedGroupIds, setSelectedGroupIds] = useState([]);
 
   const [flashcards, setFlashcards] = useState([
-    { front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null }
+    {
+      front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null,
+      questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null, why: '',
+    }
   ]);
 
   const [loading, setLoading] = useState(false);
@@ -105,6 +127,10 @@ export default function FlashcardCreate() {
             back: c.back,
             frontImageUrl: c.frontImageUrl || null,
             backImageUrl: c.backImageUrl || null,
+            questionType: c.questionType || 'flashcard',
+            options: c.options || emptyMcqOptions(),
+            correctOptionIndex: c.correctOptionIndex ?? null,
+            why: c.why || '',
           })),
         }));
       } catch (err) {
@@ -249,8 +275,39 @@ export default function FlashcardCreate() {
   const addFlashcard = () => {
     setFlashcards([
       ...flashcards,
-      { front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null }
+      {
+        front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null,
+        questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null, why: '',
+      }
     ]);
+  };
+
+  const updateMcqOption = (cardIndex, optionIndex, value) => {
+    const updated = [...flashcards];
+    const options = [...updated[cardIndex].options];
+    options[optionIndex] = value;
+    updated[cardIndex] = { ...updated[cardIndex], options };
+    setFlashcards(updated);
+  };
+
+  const addMcqOption = (cardIndex) => {
+    const updated = [...flashcards];
+    const card = updated[cardIndex];
+    if (card.options.length >= MCQ_MAX_OPTIONS) return;
+    updated[cardIndex] = { ...card, options: [...card.options, ''] };
+    setFlashcards(updated);
+  };
+
+  const removeMcqOption = (cardIndex, optionIndex) => {
+    const updated = [...flashcards];
+    const card = updated[cardIndex];
+    if (card.options.length <= MCQ_MIN_OPTIONS) return;
+    const options = card.options.filter((_, i) => i !== optionIndex);
+    let correctOptionIndex = card.correctOptionIndex;
+    if (correctOptionIndex === optionIndex) correctOptionIndex = null;
+    else if (correctOptionIndex > optionIndex) correctOptionIndex -= 1;
+    updated[cardIndex] = { ...card, options, correctOptionIndex };
+    setFlashcards(updated);
   };
 
   const removeFlashcard = (index) => {
@@ -349,10 +406,14 @@ export default function FlashcardCreate() {
       }
 
       for (let i = 0; i < flashcards.length; i++) {
-        if (!flashcards[i].front.trim()) {
+        const card = flashcards[i];
+        if (!card.front.trim()) {
           throw new Error(`Flashcard ${i + 1}: Front side cannot be empty`);
         }
-        if (!flashcards[i].back.trim()) {
+        if (card.questionType === 'mcq') {
+          const mcqError = validateMcqOptions(card.options, card.correctOptionIndex);
+          if (mcqError) throw new Error(`Flashcard ${i + 1}: ${mcqError}`);
+        } else if (!card.back.trim()) {
           throw new Error(`Flashcard ${i + 1}: Back side cannot be empty`);
         }
       }
@@ -443,28 +504,38 @@ export default function FlashcardCreate() {
       const cardVisibility = visibility === 'study_groups' ? 'private' : visibility;
 
       // ✅ Create flashcards WITH deck_id
-      const flashcardsToInsert = flashcards.map(card => ({
-        user_id: user.id,
-        contributed_by: user.id,
-        creator_id: user.id,
-        content_creator_id: null,
-        deck_id: deckId,
-        target_course: finalTargetCourse,
-        subject_id: subjectId,
-        topic_id: topicId,
-        custom_subject: customSubjectValue,
-        custom_topic: customTopicValue,
-        front_text: card.front,
-        back_text: card.back,
-        front_image_url: card.frontImageUrl || null,
-        back_image_url: card.backImageUrl || null,
-        tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-        visibility: cardVisibility,
-        is_verified: false,
-        difficulty: 'medium',
-        batch_id: crypto.randomUUID(),
-        batch_description: null,
-      }));
+      const flashcardsToInsert = flashcards.map(card => {
+        const isMcq = card.questionType === 'mcq';
+        const { options: mcqOptions, correctIndex: mcqCorrectIndex } = isMcq
+          ? compactMcqOptions(card.options, card.correctOptionIndex)
+          : { options: null, correctIndex: null };
+        return {
+          user_id: user.id,
+          contributed_by: user.id,
+          creator_id: user.id,
+          content_creator_id: null,
+          deck_id: deckId,
+          target_course: finalTargetCourse,
+          subject_id: subjectId,
+          topic_id: topicId,
+          custom_subject: customSubjectValue,
+          custom_topic: customTopicValue,
+          front_text: card.front,
+          back_text: isMcq ? deriveMcqBackText(mcqOptions, mcqCorrectIndex) : card.back,
+          front_image_url: card.frontImageUrl || null,
+          back_image_url: isMcq ? null : (card.backImageUrl || null),
+          tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+          visibility: cardVisibility,
+          is_verified: false,
+          difficulty: 'medium',
+          batch_id: crypto.randomUUID(),
+          batch_description: null,
+          question_type: isMcq ? 'mcq' : 'flashcard',
+          options: isMcq ? mcqOptions : null,
+          correct_answer: isMcq ? String(mcqCorrectIndex) : null,
+          points_to_remember: isMcq ? toPointsToRemember(card.why) : null,
+        };
+      });
 
       const { error: insertError } = await supabase
         .from('flashcards')
@@ -527,6 +598,10 @@ export default function FlashcardCreate() {
       frontImagePreview: c.frontImageUrl || null, // use stored Supabase URL directly as preview
       backImageUrl: c.backImageUrl || null,
       backImagePreview: c.backImageUrl || null,
+      questionType: canAuthorGradedTypes ? (c.questionType || 'flashcard') : 'flashcard',
+      options: c.options || emptyMcqOptions(),
+      correctOptionIndex: c.correctOptionIndex ?? null,
+      why: c.why || '',
     })));
     setPendingDraft(null);
     toast({
@@ -877,7 +952,7 @@ export default function FlashcardCreate() {
             <Card key={index}>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Flashcard {index + 1}</CardTitle>
+                  <CardTitle>{card.questionType === 'mcq' ? 'Multiple Choice' : 'Flashcard'} {index + 1}</CardTitle>
                   {flashcards.length > 1 && (
                     <Button
                       type="button"
@@ -893,13 +968,31 @@ export default function FlashcardCreate() {
               </CardHeader>
               <CardContent className="space-y-4">
 
+                {canAuthorGradedTypes && (
+                  <div className="space-y-2">
+                    <Label htmlFor={`question-type-${index}`}>Question Type</Label>
+                    <Select
+                      value={card.questionType}
+                      onValueChange={(val) => updateFlashcard(index, 'questionType', val)}
+                    >
+                      <SelectTrigger id={`question-type-${index}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="flashcard">Flashcard</SelectItem>
+                        <SelectItem value="mcq">Multiple Choice</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="space-y-2">
-                  <Label htmlFor={`front-${index}`}>Front</Label>
+                  <Label htmlFor={`front-${index}`}>{card.questionType === 'mcq' ? 'Question' : 'Front'}</Label>
                   <Textarea
                     id={`front-${index}`}
                     value={card.front}
                     onChange={(e) => updateFlashcard(index, 'front', e.target.value)}
-                    placeholder="Question or prompt"
+                    placeholder={card.questionType === 'mcq' ? 'The question stem' : 'Question or prompt'}
                     rows={3}
                   />
 
@@ -946,58 +1039,121 @@ export default function FlashcardCreate() {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor={`back-${index}`}>Back</Label>
-                  <Textarea
-                    id={`back-${index}`}
-                    value={card.back}
-                    onChange={(e) => updateFlashcard(index, 'back', e.target.value)}
-                    placeholder="Answer or explanation"
-                    rows={3}
-                  />
-
-                  <div className="flex items-center gap-2">
-                    {uploadingImage?.index === index && uploadingImage?.side === 'back' ? (
-                      <div className="inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg opacity-75 cursor-wait">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
-                        <span className="text-sm">Uploading…</span>
+                {card.questionType === 'mcq' ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Options <span className="text-red-500">*</span></Label>
+                      <p className="text-xs text-muted-foreground">
+                        Mark the correct option. {MCQ_MIN_OPTIONS}-{MCQ_MAX_OPTIONS} options.
+                      </p>
+                      <div className="space-y-2">
+                        {card.options.map((opt, optIndex) => (
+                          <div key={optIndex} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name={`correct-option-${index}`}
+                              checked={card.correctOptionIndex === optIndex}
+                              onChange={() => updateFlashcard(index, 'correctOptionIndex', optIndex)}
+                              className="h-4 w-4 shrink-0 accent-[#1e1b4b]"
+                              aria-label={`Mark option ${optIndex + 1} as correct`}
+                            />
+                            <Input
+                              value={opt}
+                              onChange={(e) => updateMcqOption(index, optIndex, e.target.value)}
+                              placeholder={`Option ${optIndex + 1}`}
+                            />
+                            {card.options.length > MCQ_MIN_OPTIONS && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeMcqOption(index, optIndex)}
+                                className="text-destructive hover:text-destructive shrink-0"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    ) : (
-                      <Label
-                        htmlFor={`back-image-${index}`}
-                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent"
-                      >
-                        <ImageIcon className="h-4 w-4" />
-                        <span className="text-sm">{card.backImageUrl ? 'Change Image' : 'Add Image'}</span>
-                      </Label>
-                    )}
-                    <input
-                      id={`back-image-${index}`}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageUpload(index, 'back', e.target.files?.[0])}
-                      className="hidden"
-                    />
-                  </div>
-                  {card.backImagePreview && (
-                    <div className="relative inline-block mt-2">
-                      <img src={card.backImagePreview} alt="Back" className="max-h-32 rounded-lg" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (card.backImagePreview !== card.backImageUrl) URL.revokeObjectURL(card.backImagePreview);
-                          const updated = [...flashcards];
-                          updated[index].backImageUrl = null;
-                          updated[index].backImagePreview = null;
-                          setFlashcards(updated);
-                        }}
-                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 shadow"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                      {card.options.length < MCQ_MAX_OPTIONS && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => addMcqOption(index)}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Option
+                        </Button>
+                      )}
                     </div>
-                  )}
-                </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`why-${index}`}>Why (Optional)</Label>
+                      <Textarea
+                        id={`why-${index}`}
+                        value={card.why}
+                        onChange={(e) => updateFlashcard(index, 'why', e.target.value)}
+                        placeholder="Explanation shown after the student answers"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor={`back-${index}`}>Back</Label>
+                    <Textarea
+                      id={`back-${index}`}
+                      value={card.back}
+                      onChange={(e) => updateFlashcard(index, 'back', e.target.value)}
+                      placeholder="Answer or explanation"
+                      rows={3}
+                    />
+
+                    <div className="flex items-center gap-2">
+                      {uploadingImage?.index === index && uploadingImage?.side === 'back' ? (
+                        <div className="inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg opacity-75 cursor-wait">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                          <span className="text-sm">Uploading…</span>
+                        </div>
+                      ) : (
+                        <Label
+                          htmlFor={`back-image-${index}`}
+                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent"
+                        >
+                          <ImageIcon className="h-4 w-4" />
+                          <span className="text-sm">{card.backImageUrl ? 'Change Image' : 'Add Image'}</span>
+                        </Label>
+                      )}
+                      <input
+                        id={`back-image-${index}`}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(index, 'back', e.target.files?.[0])}
+                        className="hidden"
+                      />
+                    </div>
+                    {card.backImagePreview && (
+                      <div className="relative inline-block mt-2">
+                        <img src={card.backImagePreview} alt="Back" className="max-h-32 rounded-lg" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (card.backImagePreview !== card.backImageUrl) URL.revokeObjectURL(card.backImagePreview);
+                            const updated = [...flashcards];
+                            updated[index].backImageUrl = null;
+                            updated[index].backImagePreview = null;
+                            setFlashcards(updated);
+                          }}
+                          className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 shadow"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}

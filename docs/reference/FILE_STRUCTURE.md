@@ -289,6 +289,7 @@ recall-app
 - `src/lib/navActive.js` — pure `(pathname) => boolean` active-route predicates shared by NavDesktop + NavBottomTabs (Sprint 7.1); no Supabase, no React
 - `src/lib/notifyEdge.js` — fire-and-forget helpers for Edge Function calls
 - `src/lib/revisop-tokens.js` — RevisOp reskin shared JS (Phase 6 S6.1): `REVISOP_LITERATA_ENABLED` gate (off), `REVISOP_BUCKETS`, `bucketForDays()` / `ledgerFromForecast()`. No Supabase.
+- `src/lib/mcq.js` — Sprint 7.5 MCQ authoring helpers shared by `FlashcardCreate.jsx` + `BulkUploadFlashcards.jsx`: `compactMcqOptions()` (drops blank option rows, remaps correct index by original position), `deriveMcqBackText()`, `toPointsToRemember()`, `validateMcqOptions()`. Pure functions, no Supabase, no React.
 - `src/hooks/usePushNotifications.js` — Web Push permission + VAPID subscribe/unsubscribe
 - `src/components/notifications/PushPermissionBanner.jsx` — one-time push opt-in prompt on Dashboard
 

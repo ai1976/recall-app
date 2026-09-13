@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStudySession } from '@/contexts/StudySessionContext';
 import { Button } from '@/components/ui/button';
-import { Card as RvCard, GradeButtonRow, VerifiedEdge } from '@/components/revisop';
+import { Card as RvCard, GradeButtonRow, VerifiedEdge, AnswerOption } from '@/components/revisop';
 import { bucketForDays, isReadingBody } from '@/lib/revisop-tokens';
 import ContentPreviewWall from '@/components/ui/ContentPreviewWall';
 import FlagButton from '@/components/ui/FlagButton';
@@ -67,6 +67,15 @@ export default function StudyMode({
   const [flashcards, setFlashcards] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
+  // MCQ (Sprint 7.5): tapped option index + whether it was correct. null/null
+  // = unanswered. Reset on every card change below, regardless of which path
+  // (grade, skip, skip-topic, restart) moved currentIndex.
+  const [mcqSelectedIndex, setMcqSelectedIndex] = useState(null);
+  const [mcqIsCorrect, setMcqIsCorrect] = useState(null);
+  useEffect(() => {
+    setMcqSelectedIndex(null);
+    setMcqIsCorrect(null);
+  }, [currentIndex]);
   const [loading, setLoading] = useState(true);
   // Post-forward animation gate — true briefly between a grade submit and the
   // next card mounting (Sprint 6.4). Respects prefers-reduced-motion.
@@ -332,7 +341,15 @@ export default function StudyMode({
     }
   };
 
-  const handleRating = async (quality) => {
+  // Submits the grade to apply_review (SRS ladder + review_events write) without
+  // advancing the card. Split out from the old handleRating (Sprint 7.5) because
+  // the MCQ hybrid-grading loop needs these to happen at different moments: a
+  // wrong MCQ answer submits 'hard' immediately on reveal, but only advances
+  // when the student taps Continue — whereas the flashcard path (and a correct
+  // MCQ answer) still submit-and-advance together in one tap.
+  // p_is_correct is null for the free-recall flashcard path (no deterministic
+  // verdict), and true/false once a graded question_type supplies one.
+  const submitReview = async (quality, isCorrect = null) => {
     const currentCard = flashcards[currentIndex];
 
     setSessionStats(prev => ({
@@ -348,15 +365,12 @@ export default function StudyMode({
       // interval math, no direct reviews write — apply_review does the
       // SELECT-or-INSERT, computes the rung transition, sets next_review_date
       // (kept DATE, user-tz), applies/reverts MASTERED at the threshold, and
-      // logs a review_events row alongside it. StudyMode is still pure
-      // front/back (no question-type rendering yet), so there is no
-      // deterministic verdict to pass — p_is_correct stays null here until
-      // Sprint 7.5's graded question types exist.
+      // logs a review_events row alongside it.
       const { data, error } = await supabase.rpc('apply_review', {
         p_user_id: user.id,
         p_flashcard_id: currentCard.id,
         p_rating: quality, // 'easy' | 'medium' | 'hard'
-        p_is_correct: null,
+        p_is_correct: isCorrect,
         p_source: previewModeParam ? null : (currentCard.rung === undefined ? 'new_card' : 'review_session'),
       });
       if (error) throw error;
@@ -381,13 +395,14 @@ export default function StudyMode({
         description: "Failed to save progress.",
         variant: "destructive"
       });
-      return;
     }
+  };
 
-    // 4. Advance to Next Card — after the post-forward animation plays out.
-    //    The answered card "files forward" (rv-forward-out); the next card
-    //    rises in on mount (rv-forward-in via key). Reduced-motion shortens
-    //    this to a 100ms opacity-only crossfade.
+  // Advance to Next Card — after the post-forward animation plays out. The
+  // answered card "files forward" (rv-forward-out); the next card rises in on
+  // mount (rv-forward-in via key). Reduced-motion shortens this to a 100ms
+  // opacity-only crossfade. Also resets the MCQ per-card interaction state.
+  const advanceCard = () => {
     const gradedIndex = currentIndex;
     setTransitioning(true);
     setTimeout(() => {
@@ -403,6 +418,34 @@ export default function StudyMode({
         finishSession();
       }
     }, prefersReducedMotion() ? 100 : 240);
+  };
+
+  // Flashcard path (unchanged) + MCQ-correct path: the grade tap is both the
+  // apply_review call and the forward-advance trigger.
+  const handleRating = async (quality, isCorrect = null) => {
+    await submitReview(quality, isCorrect);
+    advanceCard();
+  };
+
+  // MCQ wrong-answer path: the verdict is already determined (no student
+  // input needed for the rating), so apply_review fires immediately on
+  // reveal — advancing waits for the student to tap Continue.
+  const handleMcqWrong = (tappedIndex) => {
+    setMcqSelectedIndex(tappedIndex);
+    setMcqIsCorrect(false);
+    submitReview('hard', false);
+  };
+
+  const handleMcqSelect = (optIndex) => {
+    const currentCard = flashcards[currentIndex];
+    const isCorrect = String(optIndex) === currentCard.correct_answer;
+    if (isCorrect) {
+      setMcqSelectedIndex(optIndex);
+      setMcqIsCorrect(true);
+      // No apply_review call yet — the student still needs to pick Hard/Medium/Easy.
+    } else {
+      handleMcqWrong(optIndex);
+    }
   };
 
   // ============================================================
@@ -952,9 +995,107 @@ export default function StudyMode({
                 transitioning ? 'rv-forward-out' : 'rv-forward-in',
               )}
             >
-              <VerifiedEdge on={showAnswer && !!currentCard.is_verified} />
+              <VerifiedEdge on={(showAnswer || mcqSelectedIndex !== null) && !!currentCard.is_verified} />
               <div className="flex-1 min-w-0 p-5 sm:p-8 md:p-12 flex flex-col justify-center items-center">
-              {!showAnswer ? (
+              {currentCard.question_type === 'mcq' ? (
+                <div className="w-full">
+                  <div className="mb-6 flex items-center justify-center gap-2">
+                    <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
+                      QUESTION
+                    </span>
+                    {currentCard.front_text && (
+                      <SpeakButton
+                        onClick={handleSpeakFront}
+                        isSpeaking={isSpeaking}
+                        isSupported={isSupported}
+                      />
+                    )}
+                  </div>
+
+                  {currentCard.front_image_url && (
+                    <img
+                      src={currentCard.front_image_url}
+                      alt="Question"
+                      className="max-w-full h-auto max-h-64 mx-auto rounded-rec mb-6 shadow-rv"
+                    />
+                  )}
+
+                  <p className="text-xl md:text-2xl font-semibold text-rv-ink-900 mb-6 whitespace-pre-wrap text-center">
+                    {currentCard.front_text}
+                  </p>
+
+                  <div className="flex flex-col gap-2.5 mb-2">
+                    {(currentCard.options || []).map((optionText, optIndex) => {
+                      const correctIndex = parseInt(currentCard.correct_answer, 10);
+                      const answered = mcqSelectedIndex !== null;
+                      let state = 'idle';
+                      if (answered) {
+                        if (optIndex === correctIndex) state = 'correct';
+                        else if (optIndex === mcqSelectedIndex) state = 'missed';
+                        else state = 'dim';
+                      }
+                      return (
+                        <AnswerOption
+                          key={optIndex}
+                          text={optionText}
+                          index={optIndex}
+                          state={state}
+                          disabled={answered}
+                          onClick={() => handleMcqSelect(optIndex)}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {mcqSelectedIndex !== null && Array.isArray(currentCard.points_to_remember) && currentCard.points_to_remember.length > 0 && (
+                    <div className="mt-3.5 rounded-rec bg-rv-bg-2 border-l-[3px] border-rv-navy px-4 py-3.5 text-left">
+                      <p className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400 mb-1.5">WHY</p>
+                      {currentCard.points_to_remember.map((point, i) => (
+                        <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900">
+                          {point}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {mcqSelectedIndex === null ? (
+                    <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+                      <Button
+                        variant="outline"
+                        onClick={handleSkip}
+                        className="gap-2"
+                      >
+                        <SkipForward className="h-4 w-4" />
+                        Skip 24hr
+                      </Button>
+                      {currentCard.user_id !== user?.id && (
+                        <FlagButton contentType="flashcard" contentId={currentCard.id} />
+                      )}
+                    </div>
+                  ) : mcqIsCorrect === false ? (
+                    <div className="mt-6 border-t border-rv-border pt-6 text-center">
+                      <Button
+                        onClick={advanceCard}
+                        size="lg"
+                        className="gap-2 px-6 sm:px-8 min-h-[48px]"
+                      >
+                        Continue
+                      </Button>
+                      <p className="text-sm text-rv-ink-400 mt-3">
+                        Marked as Hard — you'll see this again soon
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mt-6 border-t border-rv-border pt-6">
+                      <GradeButtonRow
+                        grades={gradeButtons}
+                        onGrade={(g) => handleRating(g.rating, true)}
+                        prompt="How well did you know it?"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : !showAnswer ? (
                 <div className="w-full text-center">
                   <div className="mb-6 flex items-center justify-center gap-2">
                     <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
@@ -1191,9 +1332,15 @@ export default function StudyMode({
 
             <div className="text-center mt-6">
               <p className="text-sm text-rv-ink-400">
-                {showAnswer
-                  ? "Rate how well you remembered to continue"
-                  : "Try to recall the answer before revealing it"}
+                {currentCard.question_type === 'mcq'
+                  ? (mcqSelectedIndex === null
+                      ? "Choose an answer"
+                      : mcqIsCorrect === false
+                        ? "Tap Continue to move on"
+                        : "Rate how well you knew it to continue")
+                  : showAnswer
+                    ? "Rate how well you remembered to continue"
+                    : "Try to recall the answer before revealing it"}
               </p>
             </div>
           </div>

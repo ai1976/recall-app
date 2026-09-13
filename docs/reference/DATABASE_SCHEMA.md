@@ -227,7 +227,7 @@
 | created_at | timestamp | NO | NOW() | Creation timestamp |
 | custom_subject | text | YES | NULL | Free-text subject for custom/personal courses. Mutually exclusive with subject_id — exactly one should be set. |
 | custom_topic | text | YES | NULL | Free-text topic for custom/personal courses. Mutually exclusive with topic_id. |
-| question_type | text | NO | 'flashcard' | Type of study item. Values: 'flashcard', 'mcq', 'true_false', 'correct_incorrect', 'theory', 'test_your_understanding', 'case_study_mcq', 'integrated_case', 'match_the_following', 'fill_in_the_blanks', 'concept_card'. |
+| question_type | text | NO | 'flashcard' | Type of study item. **Live values confirmed via `chk_flashcards_question_type` CHECK constraint (Sprint 7.5, 13/09/2026):** 'flashcard', 'mcq', 'true_false', 'correct_incorrect', 'theory', 'case_study_mcq', 'integrated_case', 'match_the_following', 'fitb', 'concept_card' (10 values). Previously documented 'test_your_understanding' (not a live value — cannot be inserted) and 'fill_in_the_blanks' (live value is 'fitb') — both corrected. |
 | options | jsonb | YES | NULL | Answer options for MCQ and similar types. |
 | correct_answer | text | YES | NULL | Correct answer identifier for question types that need it. |
 | hints | jsonb | YES | NULL | Optional hints array. |
@@ -244,6 +244,15 @@
   - **'public'**: Everyone can see
 - Constraint: `CHECK (visibility IN ('private', 'friends', 'public'))`
 - Index: `idx_flashcards_visibility` for fast filtering
+
+**MCQ Representation (Sprint 7.5, 13/09/2026 — ✅ SQL deployed & verified live):**
+- `question_type='mcq'` uses only existing columns above, no schema change.
+- `options` = jsonb array of option strings (2-6, default 4 in the create form).
+- `correct_answer` = text, the **0-based INDEX** of the correct option as a string (`"0".."5"`) — NOT the option text, NOT a letter. Index-based because two options can have identical text.
+- `back_text` (NOT NULL) is never typed directly for mcq — auto-derived as `options[correct_answer]` at save time.
+- `points_to_remember` = jsonb array, one entry per non-blank line of the "Why" textarea; shown post-reveal.
+- `hints`/`scenario`/`subtype` stay NULL for this type.
+- Authorship gated server-side by two new RESTRICTIVE RLS policies — see "RLS Policies" section below and blueprint.md D-10 (§3.1). **Deployed and verified live 13/09/2026** (`docs/database/sprint7.5/`, `02_TEST` — 5/5 PASS against real profiles).
 
 **Concept Card Exclusion Rule:**
 - `concept_card` items are **excluded from all review metrics** (Items Reviewed, Items Mastered, accuracy, streak). They are reference material only.
@@ -275,7 +284,7 @@
 ⏳ **`is_public`** (not in the column table above — omission in this doc; it is a real, currently load-bearing column, see blueprint.md §1.11 landmine #2): SQL to rewrite the public-read RLS policy onto `visibility` and drop `is_public` is prepared but not yet deployed — see the `users_view_public_flashcards` / `users_view_friends_flashcards` policies above and `docs/database/landmines/10_SCHEMA_rewrite_notes_flashcards_rls_to_visibility.sql` / `12_SCHEMA_drop_is_public_notes_flashcards.sql`.
 
 ✅ **Dropped 02/07/2026 (L1, `05_SCHEMA`):** the four undocumented legacy SRS columns — `next_review`, `interval`, `ease_factor`, `repetitions` — were removed from `flashcards`. Superseded by `reviews.next_review_date`/`interval`/`easiness`/`repetition` (always read SRS state from `reviews`, never `flashcards`). Sole writer was `FlashcardCreate.jsx`'s hardcoded seed payload, stripped in commit `921280b`. Required dropping the dead `vw_study_items` view first (`08_CLEANUP` — it `SELECT`ed these columns; see blueprint §1.11 audit-gap note).
-**RLS Policies:** 5 policies (see RLS section)
+**RLS Policies:** 5 policies (see RLS section) **+ 2 more (Sprint 7.5 D-10, ✅ deployed & verified live 13/09/2026)** — `flashcards_gate_verdict_types_insert`/`_update`, RESTRICTIVE, block non-professor/admin/super_admin authorship of verdict-bearing question types.
 
 **CRITICAL:** Always group by `batch_id`, NOT by timestamp or created_at
 
@@ -1370,6 +1379,16 @@ RETURNS TABLE (
 - **Purpose:** Users can delete their own flashcards
 - **Why Needed:** My Flashcards delete button
 
+#### Policy: flashcards_gate_verdict_types_insert / flashcards_gate_verdict_types_update ✅ NEW (Sprint 7.5 D-10, deployed & verified live 13/09/2026)
+- **Command:** INSERT / UPDATE (mirrored pair)
+- **Roles:** authenticated
+- **Type:** RESTRICTIVE (ANDs with `users_insert_flashcards`/`users_update_own_flashcards` above, rather than replacing them)
+- **Condition:** `question_type NOT IN ('mcq','true_false','correct_incorrect','case_study_mcq','integrated_case','match_the_following','fitb') OR is_professor_or_admin()` — `'fitb'`, not `'fill_in_the_blanks'` (00_DIAGNOSTIC caught the live `chk_flashcards_question_type` CHECK using the shorter name; the wrong string would have left that type completely ungated since a row NOT IN the list passes unconditionally).
+- **Purpose:** Only professor/admin/super_admin may author or edit a row into one of the 7 verdict-bearing question types. Free-recall types (flashcard/theory/concept_card) unaffected. The UPDATE mirror prevents a student inserting as `'flashcard'` then editing `question_type` to `'mcq'` afterward.
+- **Why Needed:** D-10 (blueprint.md §3.1) — a bad `correct_answer` under the Phase 7 hybrid grading model doesn't just mislabel a review, it actively corrects a competent student's SRS state backward; a review queue for student-authored graded content doesn't scale against ~3 educators for 150+ students.
+- **New helper function:** `is_professor_or_admin()` — `SECURITY DEFINER`, mirrors `is_admin()`'s pattern, `GRANT EXECUTE TO authenticated` only.
+- **SQL:** `docs/database/sprint7.5/01_SCHEMA_d10_role_gate.sql`. Test: `docs/database/sprint7.5/02_TEST_verify_d10_role_gate.sql` (impersonates a real student + professor via `SET LOCAL ROLE authenticated` + `request.jwt.claims`, asserts student mcq insert rejected / student flashcard insert unaffected / professor mcq insert succeeds).
+
 ---
 
 ### 3.4 reviews Table Policies
@@ -1768,6 +1787,7 @@ CREATE INDEX idx_role_change_created_at ON role_change_log(created_at);
 - **Table:** `flashcards` AFTER INSERT, UPDATE, DELETE
 - **Purpose:** Maintains `card_count` on `flashcard_decks`. On INSERT: increments or creates deck row. On DELETE: decrements; deletes deck row if count reaches 0.
 - **⚠️ CRITICAL:** Do NOT add a second trigger on `flashcards` — causes double-counting. Always check first: `SELECT trigger_name FROM information_schema.triggers WHERE trigger_schema='public' AND event_object_table='flashcards'`
+- **✅ Sprint 7.5 (13/09/2026):** the INSERT branch's UPDATE (existing-deck case) now also widens `visibility` in the same statement — private < friends < public, never narrows — when the new flashcard's visibility is more permissive than the deck's stored value. Fixes a real bug: a deck's visibility was previously frozen at whatever its first-ever card had, so a deck created `private` that later gained `public` cards stayed invisible to `get_browsable_decks`/`get_recent_activity_feed` forever, even though the individual cards were correctly public. One-time backfill widened the 4 live decks already desynced (see `bugs.md`). The auto-create (`NOT FOUND`) branch is unchanged — it already sets `visibility = NEW.visibility` correctly for a deck's first card.
 
 ### `trg_aaa_counter_notes/flashcards/reviews/upvotes/friendships`
 - **Purpose:** Maintain `user_stats` integer counters for O(1) badge eligibility checks. Named `trg_aaa_*` to fire before `trg_badge_*` alphabetically.
@@ -2723,7 +2743,8 @@ This pattern is used in `get_public_deck_preview` and must be used in any future
 
 **Trigger: `trigger_update_deck_card_count`** — fires AFTER INSERT, UPDATE, DELETE on `flashcards`
 Function: `update_deck_card_count()` (SECURITY DEFINER)
-- **INSERT:** Tries `UPDATE card_count + 1` on matching deck row. If `NOT FOUND` (no deck exists yet), inserts a new deck row with `card_count = 1`, copying `target_course` and `visibility` from the new flashcard. This means deck rows are **auto-created on first flashcard insert** — no application code or manual SQL needed for new courses or subjects.
+- **INSERT (existing deck):** `UPDATE card_count + 1`, and — **Sprint 7.5 (13/09/2026)** — widens `visibility` in the same statement if the new flashcard is more permissive (private < friends < public; never narrows). Fixes a real bug where a deck's visibility was frozen at whatever its first card had, silently hiding later public cards from Browse/Recent Activity — see `bugs.md`.
+- **INSERT (`NOT FOUND` — no deck exists yet):** inserts a new deck row with `card_count = 1`, copying `target_course` and `visibility` from the new flashcard. **Sprint 7.5 fix (13/09/2026):** `target_course` was NOT actually in this branch's INSERT column list — confirmed via live `pg_get_functiondef`, contradicting this doc's own prior claim and the `bugs.md` "[Mar 2, 2026]" entry that first documented this branch. Live impact measured: 2 decks (34 public cards total, one professor, dating to 07/04/2026) had `target_course = NULL`, making them permanently undiscoverable to every student via `get_browsable_decks`/`get_recent_activity_feed` (both filter `fd.target_course = <course>`) — professors/admins bypass that gate, which is why it went unnoticed for 5 months. Fixed and backfilled; see `bugs.md`. This means deck rows are **auto-created on first flashcard insert** — no application code or manual SQL needed for new courses or subjects.
 - **DELETE:** Decrements `card_count` (floor 0) on matching deck row.
 - **UPDATE:** No-op (card count unchanged).
 

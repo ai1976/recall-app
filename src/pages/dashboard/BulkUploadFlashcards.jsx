@@ -11,6 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, CheckCircle, XCircle, Download, ChevronDown, ChevronUp, FileText, ArrowRight, Info } from 'lucide-react';
+import { compactMcqOptions, deriveMcqBackText, toPointsToRemember, validateMcqOptions } from '@/lib/mcq';
+
+const MCQ_CSV_OPTION_COLUMNS = 4;
 
 // ─── Stepper step component ───
 function Step({ number, title, subtitle, isOpen, isComplete, onToggle, children }) {
@@ -155,10 +158,11 @@ export default function BulkUploadFlashcards() {
 
   // ─── Download: Template CSV ───
   function downloadTemplate() {
-    const template = '\uFEFF' + `target_course,subject,topic,front,back,tags,difficulty
-CA Intermediate,Taxation,Income Tax Basics,What is the basic exemption limit for individuals below 60 years?,₹2.5 lakhs,"#ITR,#basics",easy
-CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium
-CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium
+    const template = '\uFEFF' + `target_course,subject,topic,front,back,tags,difficulty,question_type,option_1,option_2,option_3,option_4,correct_option,explanation
+CA Intermediate,Taxation,Income Tax Basics,What is the basic exemption limit for individuals below 60 years?,₹2.5 lakhs,"#ITR,#basics",easy,,,,,,,
+CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium,,,,,,,
+CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium,,,,,,,
+CA Intermediate,Taxation,Income Tax Basics,Which of these is a deduction under Section 80C?,,"#ITR",medium,mcq,Life insurance premium,House rent paid,Medical insurance premium,Interest on savings account,1,Life insurance premium qualifies under 80C; the others fall under different sections.
 
 ==================================================
 HOW TO USE THIS TEMPLATE
@@ -174,9 +178,13 @@ COLUMNS:
 - subject (REQUIRED) - Must match Valid Entries exactly
 - topic (optional) - Must match Valid Entries if provided
 - front (REQUIRED) - Question / front side
-- back (REQUIRED) - Answer / back side
+- back (REQUIRED for a plain flashcard; leave blank for question_type=mcq — derived from the correct option)
 - tags (optional) - Comma-separated, e.g. "#ITR,#basics"
 - difficulty (optional) - easy / medium / hard (defaults to medium)
+- question_type (optional) - blank or "flashcard" for a plain card, or "mcq" for multiple choice
+- option_1..option_4 (required for question_type=mcq) - the answer choices (2-4 filled in)
+- correct_option (required for question_type=mcq) - which option number (1-4) is correct
+- explanation (optional, mcq only) - shown to the student after they answer
 
 IMPORTANT:
 ✓ Use EXACT spelling from Valid Entries file
@@ -184,6 +192,7 @@ IMPORTANT:
 ✓ Cannot create new courses/subjects/topics via bulk upload
 ✓ To add a new subject/topic, create one flashcard via "Create Flashcard" first
 ✓ Visibility is set on the upload page (private / friends / public)
+✓ question_type=mcq rows require a professor/admin account — student-authored MCQ rows are rejected at upload
 `;
 
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
@@ -384,7 +393,34 @@ IMPORTANT:
                 flashcard[header] = cleanValue;
               });
 
-              if (!flashcard.target_course || !flashcard.subject || !flashcard.front || !flashcard.back) {
+              // question_type: blank or "flashcard" -> plain card; only "mcq" recognized as a graded type here
+              const cleanQuestionType = (flashcard.question_type || '').toString().trim().toLowerCase();
+              flashcard.question_type = cleanQuestionType === 'mcq' ? 'mcq' : 'flashcard';
+
+              if (flashcard.question_type === 'mcq') {
+                if (!flashcard.target_course || !flashcard.subject || !flashcard.front) {
+                  parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front)`);
+                  continue;
+                }
+                const rawOptions = [];
+                for (let n = 1; n <= MCQ_CSV_OPTION_COLUMNS; n++) {
+                  rawOptions.push(flashcard[`option_${n}`] || '');
+                }
+                const correctColNum = parseInt((flashcard.correct_option || '').toString().trim(), 10);
+                const { options: mcqOptions, correctIndex: mcqCorrectIndex } = compactMcqOptions(
+                  rawOptions,
+                  Number.isNaN(correctColNum) ? null : correctColNum - 1,
+                );
+                const mcqError = validateMcqOptions(mcqOptions, mcqCorrectIndex);
+                if (mcqError) {
+                  parseErrors.push(`Row ${i + 1}: ${mcqError}`);
+                  continue;
+                }
+                flashcard.mcqOptions = mcqOptions;
+                flashcard.mcqCorrectIndex = mcqCorrectIndex;
+                flashcard.back = deriveMcqBackText(mcqOptions, mcqCorrectIndex);
+                flashcard.pointsToRemember = toPointsToRemember(flashcard.explanation);
+              } else if (!flashcard.target_course || !flashcard.subject || !flashcard.front || !flashcard.back) {
                 parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front, back)`);
                 continue;
               }
@@ -572,7 +608,11 @@ IMPORTANT:
           visibility: bulkVisibility,
           is_verified: isProfessor || isAdmin || isSuperAdmin,
           batch_id: batchId,
-          batch_description: trimmedDescription
+          batch_description: trimmedDescription,
+          question_type: card.question_type === 'mcq' ? 'mcq' : 'flashcard',
+          options: card.question_type === 'mcq' ? card.mcqOptions : null,
+          correct_answer: card.question_type === 'mcq' ? String(card.mcqCorrectIndex) : null,
+          points_to_remember: card.question_type === 'mcq' ? (card.pointsToRemember || null) : null,
         };
       });
 
@@ -635,7 +675,14 @@ IMPORTANT:
 
     } catch (error) {
       console.error('Upload error:', error);
-      setErrors([`Upload failed: ${error.message}`]);
+      if (error.code === '42501') {
+        setErrors([
+          'Upload failed: one or more rows use question_type=mcq, which requires a professor/admin account.',
+          'No rows were created (the whole file is uploaded as one batch) — remove the mcq rows or upload from a professor/admin account.',
+        ]);
+      } else {
+        setErrors([`Upload failed: ${error.message}`]);
+      }
     } finally {
       setIsUploading(false);
     }
