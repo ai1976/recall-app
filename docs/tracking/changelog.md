@@ -1,7 +1,7 @@
 # Changelog
 
 ---
-## [2026-09-13] feat(sprint-7.7): True/False, Correct/Incorrect + free-recall labels + Create-page naming sweep (SQL deployed & verified live; frontend live-verified end to end; NOT yet committed)
+## [2026-09-13] feat(sprint-7.7): True/False, Correct/Incorrect + free-recall labels + Create-page naming sweep (SQL deployed & verified live; frontend live-verified end to end; ✅ committed `1693e1a`)
 
 Phase 7, sprint 8 — second and third proof that the question-type architecture generalizes cheaply. `true_false`/`correct_incorrect` reuse the mcq machinery end-to-end (representation, StudyMode rendering, hybrid grading); `theory`/`test_your_understanding` reuse the plain-flashcard front/back path with zero new StudyMode code. Mid-session, a naming inconsistency was raised and folded in as a copy-only rename. `npm run build` clean; `npx eslint` clean on every changed file (pre-existing baseline errors confirmed via `git stash` to predate this sprint).
 
@@ -31,7 +31,7 @@ Phase 7, sprint 8 — second and third proof that the question-type architecture
 - **SQL: ✅ deployed & verified live (13/09/2026).** All 3 files run against production in order; `02_TEST`'s 6 assertion rows all returned PASS.
 - **✅ Live frontend verification DONE (13/09/2026, dev server → live Supabase, real professor + student accounts):** authored true_false/correct_incorrect/theory/test_your_understanding manually as professor; bulk-uploaded a 6-row CSV mixing all 6 types (`back_text` derived correctly for every row); graded a true_false wrong (auto-hard + single Continue) and a correct_incorrect right (reveal + full grade row) — professor Dashboard's "Accuracy by question type" widget confirmed showing real two-measure data for all 6 types, correctly distinguishing verdict-bearing from free-recall; student's question-type selector confirmed showing only the 3 ungated types; Browse Study Sets filter narrowed correctly for both new graded types; naming sweep confirmed live across desktop nav, mobile ＋ sheet, and mobile Menu drawer. Console clean (one non-critical, pre-existing `admin_audit_log` 403 on bulk upload, unrelated, not chased).
 - **Real finding, not assumed:** re-verified against the live D-10 RLS policy (not just the docs) that `true_false`/`correct_incorrect` were already gated correctly since Sprint 7.5 — this sprint's authoring UI needed zero RLS changes for those two types, and `02_TEST` proves it held after this sprint's changes too.
-- **⏳ Not yet committed** — SQL deployed + verified, frontend live-verified end to end; awaiting `git commit` + push.
+- **✅ Committed and pushed** (`1693e1a`, on `main`) — SQL deployed + verified, frontend live-verified end to end.
 
 ---
 ## [2026-09-13] feat(sprint-7.6): Browse/My Study Sets rename + question-type filter (SQL deployed + frontend live-verified; ✅ committed `c629ed3`)
