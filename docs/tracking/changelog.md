@@ -1,6 +1,32 @@
 # Changelog
 
 ---
+## [2026-09-14] feat(sprint-7.11): fitb authoring + confidence-gated grading (zero SQL needed; frontend live-verified end to end; ⏳ not yet committed)
+
+Phase 7, the last of the 5 D-10-gated types (`mcq`/`correct_incorrect`/`case_study_mcq`/`match_the_following`/`fitb`) to get a real authoring path. `fitb`'s verdict is confidence-gated, not binary (D-13) — a matching typed answer is confident-correct (`is_correct=true`), a non-matching one is NEVER treated as wrong, falling back to a full free-recall self-grade (`is_correct=NULL`). There is no "confident-wrong" state; no code path submits `is_correct=false` for this type. `npm run build` clean; `npx eslint` clean on every changed file (same 2 pre-existing `FlashcardCreate.jsx` baseline errors + 1 warning reconfirmed).
+
+### Task 0 — verified the 7.10 bulk-upload gap first
+Uploaded a real 3-row/1-`case_group` `case_study_mcq` CSV through `BulkUploadFlashcards.jsx` as a professor. Confirmed live: all 3 rows shared one `batch_id`, one byte-identical `scenario`, correct per-row `correct_answer`/`options`/`back_text`. **The 7.10 bulk-upload path was not broken.** Bonus find: the template's `descriptive_case_study` example row had a pre-existing unquoted-comma bug in its `back` field, corrupting that row's CSV column count — fixed by quoting it.
+
+### Added
+- **`src/lib/fitb.js`** (new) — `normalizeFitbAnswer()` (trim/lowercase/strip punctuation/collapse whitespace — the one function called identically on the student's typed answer and every authored acceptable answer), `isFitbMatch()`, `deriveFitbBackText()`, `validateFitbBlank()`/`validateFitbOptions()`/`compactFitbOptions()`, `splitFitbSentence()`. `FITB_BLANK_PATTERN`/`FITB_BLANK_PLACEHOLDER` (`______`, 3+ underscores), `FITB_MIN_ANSWERS`/`FITB_MAX_ANSWERS` (1/6).
+- **"Fill in the Blank" question-type option** in `FlashcardCreate.jsx`, gated professor/admin/super_admin (D-10) — sentence-with-blank textarea (blank-marker validated at submit time) + a repeatable 1-6-row acceptable-answers list editor + Why textarea.
+- **Bulk upload support** in `BulkUploadFlashcards.jsx` — built, not deferred: new `fitb_answers` CSV column, semicolon-delimited within one cell.
+- **fitb render branch** in `StudyMode.jsx`, checked before `GRADED_QUESTION_TYPES` (same reasoning as `match_the_following` in 7.8): sentence rendered with an inline `<input>` where the blank goes, a Submit action running the match check, then either grading path (match/no-match) converging on the same unmodified `GradeButtonRow`.
+
+### Changed
+- **`src/lib/questionTypes.js`** — `fitb` added to `BROWSABLE_QUESTION_TYPES` only, deliberately NOT `GRADED_QUESTION_TYPES` (its three-way confidence-gated verdict isn't the clean binary that array assumes).
+- **`FlashcardCreate.jsx`** — `isD10GatedType()` extended with `|| qt === 'fitb'` (fitb isn't in `GRADED_QUESTION_TYPES`, so a role-downgraded draft restore needed the explicit check, same gap `match_the_following` already had a fix for).
+- **`BulkUploadFlashcards.jsx`** — new `isCsvGradedType()` helper (`GRADED_QUESTION_TYPES.includes(qt) || qt === 'fitb'`) drives the `options`/`explanation` row-building; `correct_answer` deliberately stays keyed off `GRADED_QUESTION_TYPES` alone so fitb's stays NULL, not a stringified `"null"`. The `42501` RLS-rejection error message now names `fitb` too.
+
+### ✅ Live verification — done 14/09/2026 (dev server → live Supabase, professor session)
+Authored a real fitb card (Income Tax → Overview and Basic Concepts). **Match path:** typed a differently-cased/punctuated variant of an accepted answer → revealed in navy (matched), graded Easy → `reviews.rung` advanced normally (7-day interval) and `get_question_type_performance` returned `graded_count=1, answer_accuracy_pct=100`, confirming `is_correct=true` was actually written. **No-match path** (after `reset_card`): typed a non-matching answer → revealed underlined with an "ACCEPTED ANSWERS" box, same full self-grade, graded Medium → `reviews.rung` still advanced normally (3-day interval, **not forced to rung 0**). The analytics aggregate's unchanged `graded_count=1`/`answer_accuracy_pct=100` after this second review is mathematically only consistent with the second event's `is_correct` being `NULL`, not `false` — a `false` second event would have pushed accuracy to 50%, which did not happen. Console clean. All 4 QA rows (3 case_study_mcq + 1 fitb) deleted after verification.
+
+### Files Changed
+- **New:** `src/lib/fitb.js`.
+- **Changed:** `src/lib/questionTypes.js`, `src/pages/dashboard/Content/FlashcardCreate.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx` (+ one incidental template-CSV bugfix predating this sprint), `src/pages/dashboard/Study/StudyMode.jsx`, `docs/active/blueprint.md`, `docs/reference/{DATABASE_SCHEMA,FILE_STRUCTURE}.md`, `docs/active/now.md`.
+
+---
 ## [2026-09-14] feat(sprint-7.10): case_study_mcq authoring + StudyMode rendering (zero SQL needed, pre-flight confirmed live 3/3; frontend live-verified end to end; ⏳ not yet committed)
 
 Phase 7, first genuinely new feature-building sprint since 7.8 (7.9 was pure hygiene). `case_study_mcq`: a shared scenario narrative followed by 2-8 independently-gradeable mcq questions — each its own `flashcards` row (own SRS card, own rung, own schedule), scenario text duplicated across every row sharing the case's `batch_id` (D-01 pattern) so it renders on any review day without a JOIN. Renders through the **same shared `AnswerOption`/hybrid-grading branch as mcq** (`case_study_mcq` added to `GRADED_QUESTION_TYPES`), not a new mechanic — the only new UI is a collapsible "CASE SCENARIO" block above the question. `npm run build` clean; `npx eslint` clean on every changed file (same 2 pre-existing `FlashcardCreate.jsx` baseline errors + 1 warning reconfirmed via `git stash` to predate this sprint).

@@ -1,5 +1,15 @@
 # Bug Tracking
 
+## Sprint 7.11 — 14/09/2026 (fitb authoring + confidence-gated grading)
+
+### [14/09/2026] Bulk-upload template's `descriptive_case_study` example row had an unquoted comma, corrupting its column count — ✅ FIXED
+- **Found while:** Task 0's live re-verification of the Sprint 7.10 bulk-upload path — before uploading a real test CSV, ran the app's own `parseCSVLine` logic (copied into a throwaway Node script) against the shipped template to check every row's field count against the header, as a sanity check before adding an 18th column (`fitb_answers`) for this sprint.
+- **Symptom:** the `theory`/`descriptive_case_study` example row's `back` field read `Net price = 1.25 x 0.9 = 1.125x cost, so a 12.5% margin over cost.` — an unquoted comma inside an unquoted CSV field, which `parseCSVLine` (correctly) treats as a field separator, producing 19 fields instead of the expected 18 (17 pre-Sprint-7.11) and silently shifting every column after `back` in that one row.
+- **Root Cause:** pre-existing since Sprint 7.9 (when this example row was added for the `theory` subtype rollout) — never caught because no prior sprint re-parsed the shipped template programmatically to check field counts; it only ever looked correct by eye.
+- **Fix:** wrapped the field in quotes: `"Net price = 1.25 x 0.9 = 1.125x cost, so a 12.5% margin over cost."`. Re-verified via the same Node script — all 12 example rows now parse to exactly 18 fields matching the header.
+- **Files:** `src/pages/dashboard/BulkUploadFlashcards.jsx` (template string only).
+- **Status:** ✅ RESOLVED (14/09/2026, same session as the Sprint 7.11 fitb build).
+
 ## Sprint 7.6 — 13/09/2026 (Browse/My Study Sets rename + question-type filter)
 
 ### [13/09/2026] `guideContent.js` due-queue steps link to the wrong page — ✅ FIXED (follow-up to the sprint 7.6 flag, same day)

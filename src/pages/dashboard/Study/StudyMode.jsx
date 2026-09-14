@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GRADED_QUESTION_TYPES } from '@/lib/questionTypes';
+import { isFitbMatch, splitFitbSentence } from '@/lib/fitb';
 import { useToast } from '@/hooks/use-toast';
 import { useSpeech } from '@/hooks/useSpeech';
 import SpeakButton from '@/components/flashcards/SpeakButton';
@@ -85,6 +86,15 @@ export default function StudyMode({
   // state. Defaults open — the student needs to read it to answer. Resets to
   // open on every card change, same as the other per-card interaction state.
   const [scenarioExpanded, setScenarioExpanded] = useState(true);
+  // fitb (Sprint 7.11): the student's typed answer, whether they've submitted
+  // it, and whether it matched an accepted variant. matched is null until
+  // submit — after that it's true (confident-correct) or false (no match,
+  // meaning "fall back to free-recall", never "wrong" — see D-13). Both
+  // outcomes still route through the same GradeButtonRow self-grade; neither
+  // ever auto-submits a rating the way MCQ's wrong path does.
+  const [fitbAnswer, setFitbAnswer] = useState('');
+  const [fitbSubmitted, setFitbSubmitted] = useState(false);
+  const [fitbMatched, setFitbMatched] = useState(null);
   useEffect(() => {
     setMcqSelectedIndex(null);
     setMcqIsCorrect(null);
@@ -92,6 +102,9 @@ export default function StudyMode({
     setMatchRevealed(false);
     setMatchIsCorrect(null);
     setScenarioExpanded(true);
+    setFitbAnswer('');
+    setFitbSubmitted(false);
+    setFitbMatched(null);
   }, [currentIndex]);
   const [loading, setLoading] = useState(true);
   // Post-forward animation gate — true briefly between a grade submit and the
@@ -480,6 +493,20 @@ export default function StudyMode({
     if (!allCorrect) {
       submitReview('hard', false);
     }
+  };
+
+  // fitb (Sprint 7.11): confidence-gated verdict, not a binary one (D-13).
+  // A match is confident-correct; a non-match is NEVER treated as wrong —
+  // it's proof the author didn't anticipate that phrasing, not proof the
+  // student is wrong — so it falls back to the same full self-grade the
+  // free-recall flashcard/theory path uses. Neither branch calls
+  // submitReview here: both wait for the student's own GradeButtonRow tap,
+  // which then passes the right p_is_correct (true or null, never false).
+  const handleFitbSubmit = () => {
+    const currentCard = flashcards[currentIndex];
+    const matched = isFitbMatch(fitbAnswer, currentCard.options);
+    setFitbSubmitted(true);
+    setFitbMatched(matched);
   };
 
   // ============================================================
@@ -886,6 +913,9 @@ export default function StudyMode({
     ? totalCardsParam
     : flashcards.length;
   const progress = ((currentIndex + 1) / progressDenominator) * 100;
+  const { before: fitbBefore, after: fitbAfter } = currentCard?.question_type === 'fitb'
+    ? splitFitbSentence(currentCard.front_text)
+    : { before: '', after: '' };
 
   return (
     <div className="min-h-screen bg-rv-bg-0 font-plex">
@@ -1029,9 +1059,103 @@ export default function StudyMode({
                 transitioning ? 'rv-forward-out' : 'rv-forward-in',
               )}
             >
-              <VerifiedEdge on={(showAnswer || mcqSelectedIndex !== null || matchRevealed) && !!currentCard.is_verified} />
+              <VerifiedEdge on={(showAnswer || mcqSelectedIndex !== null || matchRevealed || fitbSubmitted) && !!currentCard.is_verified} />
               <div className="flex-1 min-w-0 p-5 sm:p-8 md:p-12 flex flex-col justify-center items-center">
-              {currentCard.question_type === 'match_the_following' ? (
+              {currentCard.question_type === 'fitb' ? (
+                <div className="w-full">
+                  <div className="mb-6 flex items-center justify-center gap-2">
+                    <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
+                      QUESTION
+                    </span>
+                    {currentCard.front_text && (
+                      <SpeakButton
+                        onClick={handleSpeakFront}
+                        isSpeaking={isSpeaking}
+                        isSupported={isSupported}
+                      />
+                    )}
+                  </div>
+
+                  <p className="text-xl md:text-2xl font-semibold text-rv-ink-900 mb-6 whitespace-pre-wrap text-center leading-relaxed">
+                    {fitbBefore}
+                    {!fitbSubmitted ? (
+                      <input
+                        type="text"
+                        value={fitbAnswer}
+                        onChange={(e) => setFitbAnswer(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && fitbAnswer.trim()) handleFitbSubmit();
+                        }}
+                        placeholder="your answer"
+                        autoFocus
+                        className="inline-block mx-1 min-w-[8rem] max-w-full align-middle border-b-2 border-rv-navy bg-transparent px-1 py-0.5 text-center font-plex-mono text-base sm:text-lg text-rv-ink-900 focus:outline-none"
+                      />
+                    ) : (
+                      <span
+                        className={cn(
+                          'inline-block mx-1 px-1 font-plex-mono',
+                          fitbMatched ? 'text-rv-navy' : 'text-rv-ink-900 underline decoration-rv-slate decoration-2 underline-offset-4',
+                        )}
+                      >
+                        {fitbAnswer.trim() || '—'}
+                      </span>
+                    )}
+                    {fitbAfter}
+                  </p>
+
+                  {fitbSubmitted && fitbMatched === false && (
+                    <div className="mb-3.5 rounded-rec bg-rv-bg-2 px-4 py-3.5 text-center">
+                      <p className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400 mb-1.5">ACCEPTED ANSWERS</p>
+                      <p className="font-literata text-[15px] text-rv-ink-900">
+                        {(currentCard.options || []).join(' · ')}
+                      </p>
+                    </div>
+                  )}
+
+                  {fitbSubmitted && Array.isArray(currentCard.explanation) && currentCard.explanation.length > 0 && (
+                    <div className="mt-3.5 rounded-rec bg-rv-bg-2 border-l-[3px] border-rv-navy px-4 py-3.5 text-left">
+                      <p className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400 mb-1.5">WHY</p>
+                      {currentCard.explanation.map((point, i) => (
+                        <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900">
+                          {point}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {!fitbSubmitted ? (
+                    <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+                      <Button
+                        onClick={handleFitbSubmit}
+                        disabled={!fitbAnswer.trim()}
+                        size="lg"
+                        className="gap-2 px-6 sm:px-8 min-h-[48px]"
+                      >
+                        Submit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleSkip}
+                        className="gap-2"
+                      >
+                        <SkipForward className="h-4 w-4" />
+                        Skip 24hr
+                      </Button>
+                      {currentCard.user_id !== user?.id && (
+                        <FlagButton contentType="flashcard" contentId={currentCard.id} />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-6 border-t border-rv-border pt-6">
+                      <GradeButtonRow
+                        grades={gradeButtons}
+                        onGrade={(g) => handleRating(g.rating, fitbMatched ? true : null)}
+                        prompt={fitbMatched ? 'How well did you know it?' : 'How well did you remember this?'}
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : currentCard.question_type === 'match_the_following' ? (
                 <div className="w-full">
                   <div className="mb-6 flex items-center justify-center gap-2">
                     <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
@@ -1472,7 +1596,11 @@ export default function StudyMode({
 
             <div className="text-center mt-6">
               <p className="text-sm text-rv-ink-400">
-                {currentCard.question_type === 'match_the_following'
+                {currentCard.question_type === 'fitb'
+                  ? (!fitbSubmitted
+                      ? "Type your answer, then submit"
+                      : "Rate how well you knew it to continue")
+                  : currentCard.question_type === 'match_the_following'
                   ? (!matchRevealed
                       ? "Match every item, then check your answers"
                       : matchIsCorrect === false

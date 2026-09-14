@@ -12,17 +12,25 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, CheckCircle, XCircle, Download, ChevronDown, ChevronUp, FileText, ArrowRight, Info } from 'lucide-react';
 import { compactMcqOptions, deriveMcqBackText, toPointsToRemember, validateMcqOptions } from '@/lib/mcq';
+import { compactFitbOptions, deriveFitbBackText, validateFitbBlank, validateFitbOptions } from '@/lib/fitb';
 import { GRADED_QUESTION_TYPES, VERDICT_OPTION_LABELS, THEORY_SUBTYPE_LABELS } from '@/lib/questionTypes';
 
 const MCQ_CSV_OPTION_COLUMNS = 4;
-// question_type values this CSV recognizes as of Sprint 7.10 — anything else falls back to
+// question_type values this CSV recognizes as of Sprint 7.11 — anything else falls back to
 // 'flashcard'. test_your_understanding removed (D-10 correction, collapsed into theory+subtype).
 // true_false removed (D-14, merged into correct_incorrect). case_study_mcq added (Sprint
 // 7.10) — a flat CSV row shape fits it fine (unlike match_the_following's variable-length
 // pairs, which stayed manual-authoring-only): each question is still one row, just with a
-// shared `scenario` and `case_group` value linking it to its case's other rows.
-const RECOGNIZED_QUESTION_TYPES = ['mcq', 'correct_incorrect', 'theory', 'case_study_mcq'];
+// shared `scenario` and `case_group` value linking it to its case's other rows. fitb added
+// (Sprint 7.11) — no multi-row fan-out problem like case_study_mcq, so its variable-length
+// acceptable-answers list is just a semicolon-delimited single cell (`fitb_answers`).
+const RECOGNIZED_QUESTION_TYPES = ['mcq', 'correct_incorrect', 'theory', 'case_study_mcq', 'fitb'];
 const THEORY_SUBTYPES = Object.keys(THEORY_SUBTYPE_LABELS);
+// GRADED_QUESTION_TYPES (mcq/correct_incorrect/case_study_mcq) all store a scalar
+// correct_answer index; fitb also writes options/explanation the same way but has
+// no scalar verdict (D-13 — the verdict is computed at grading time by normalizing
+// against every options entry), so it needs its own flag rather than joining that array.
+const isCsvGradedType = (qt) => GRADED_QUESTION_TYPES.includes(qt) || qt === 'fitb';
 
 // ─── Stepper step component ───
 function Step({ number, title, subtitle, isOpen, isComplete, onToggle, children }) {
@@ -167,18 +175,19 @@ export default function BulkUploadFlashcards() {
 
   // ─── Download: Template CSV ───
   function downloadTemplate() {
-    const template = '\uFEFF' + `target_course,subject,topic,front,back,tags,difficulty,question_type,option_1,option_2,option_3,option_4,correct_option,explanation,subtype,scenario,case_group
-CA Intermediate,Taxation,Income Tax Basics,What is the basic exemption limit for individuals below 60 years?,₹2.5 lakhs,"#ITR,#basics",easy,,,,,,,,,,
-CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium,,,,,,,,,,
-CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium,,,,,,,,,,
-CA Intermediate,Taxation,Income Tax Basics,Which of these is a deduction under Section 80C?,,"#ITR",medium,mcq,Life insurance premium,House rent paid,Medical insurance premium,Interest on savings account,1,Life insurance premium qualifies under 80C; the others fall under different sections.,,,
-CA Intermediate,Taxation,Income Tax Basics,Interest on savings account is fully exempt from tax regardless of amount.,,"#ITR",medium,correct_incorrect,,,,,2,Only up to Rs 10000 is exempt under Section 80TTA -- beyond that it's taxable.,,,
-CA Intermediate,Advanced Accounting,AS 1,AS 1 deals with the disclosure of accounting policies.,,"#AS",easy,correct_incorrect,,,,,1,,,,
-CA Intermediate,Taxation,Income Tax Basics,Explain the difference between exemption and deduction under the Income Tax Act.,An exemption removes income from the tax base entirely; a deduction reduces taxable income after it's included.,"#ITR",medium,theory,,,,,,,pure_theory,,
-CA Foundation,Quantitative Aptitude,Percentages,Work through: a shop marks up cost by 25% then offers a 10% discount on the marked price. What's the net margin over cost?,Net price = 1.25 x 0.9 = 1.125x cost, so a 12.5% margin over cost.,,medium,theory,,,,,,,descriptive_case_study,,
-CA Intermediate,Auditing,Audit Evidence,What type of audit opinion should be issued given the evidence described in the scenario?,,"#audit",medium,case_study_mcq,Unmodified opinion,Qualified opinion,Adverse opinion,Disclaimer of opinion,2,The misstatement is material but not pervasive -- a qualified opinion is appropriate.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case
-CA Intermediate,Auditing,Audit Evidence,Which audit procedure would have been most effective in detecting this misstatement earlier?,,"#audit",medium,case_study_mcq,Analytical review of gross margin trends,Bank confirmation,Related party disclosure review,Subsequent events review,1,A gross margin trend analysis would have flagged the anomaly before year-end.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case
-CA Intermediate,Auditing,Audit Evidence,What should the auditor do if management continues to refuse the adjustment?,,"#audit",medium,case_study_mcq,Issue an unmodified opinion anyway,Modify the opinion and describe the basis in the audit report,Withdraw from the engagement immediately,Ignore it as immaterial,2,SA 705 requires a modified opinion with a clear basis-for-qualification paragraph.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case
+    const template = '\uFEFF' + `target_course,subject,topic,front,back,tags,difficulty,question_type,option_1,option_2,option_3,option_4,correct_option,explanation,subtype,scenario,case_group,fitb_answers
+CA Intermediate,Taxation,Income Tax Basics,What is the basic exemption limit for individuals below 60 years?,₹2.5 lakhs,"#ITR,#basics",easy,,,,,,,,,,,
+CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium,,,,,,,,,,,
+CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium,,,,,,,,,,,
+CA Intermediate,Taxation,Income Tax Basics,Which of these is a deduction under Section 80C?,,"#ITR",medium,mcq,Life insurance premium,House rent paid,Medical insurance premium,Interest on savings account,1,Life insurance premium qualifies under 80C; the others fall under different sections.,,,,
+CA Intermediate,Taxation,Income Tax Basics,Interest on savings account is fully exempt from tax regardless of amount.,,"#ITR",medium,correct_incorrect,,,,,2,Only up to Rs 10000 is exempt under Section 80TTA -- beyond that it's taxable.,,,,
+CA Intermediate,Advanced Accounting,AS 1,AS 1 deals with the disclosure of accounting policies.,,"#AS",easy,correct_incorrect,,,,,1,,,,,
+CA Intermediate,Taxation,Income Tax Basics,Explain the difference between exemption and deduction under the Income Tax Act.,An exemption removes income from the tax base entirely; a deduction reduces taxable income after it's included.,"#ITR",medium,theory,,,,,,,pure_theory,,,
+CA Foundation,Quantitative Aptitude,Percentages,Work through: a shop marks up cost by 25% then offers a 10% discount on the marked price. What's the net margin over cost?,"Net price = 1.25 x 0.9 = 1.125x cost, so a 12.5% margin over cost.",,medium,theory,,,,,,,descriptive_case_study,,,
+CA Intermediate,Auditing,Audit Evidence,What type of audit opinion should be issued given the evidence described in the scenario?,,"#audit",medium,case_study_mcq,Unmodified opinion,Qualified opinion,Adverse opinion,Disclaimer of opinion,2,The misstatement is material but not pervasive -- a qualified opinion is appropriate.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case,
+CA Intermediate,Auditing,Audit Evidence,Which audit procedure would have been most effective in detecting this misstatement earlier?,,"#audit",medium,case_study_mcq,Analytical review of gross margin trends,Bank confirmation,Related party disclosure review,Subsequent events review,1,A gross margin trend analysis would have flagged the anomaly before year-end.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case,
+CA Intermediate,Auditing,Audit Evidence,What should the auditor do if management continues to refuse the adjustment?,,"#audit",medium,case_study_mcq,Issue an unmodified opinion anyway,Modify the opinion and describe the basis in the audit report,Withdraw from the engagement immediately,Ignore it as immaterial,2,SA 705 requires a modified opinion with a clear basis-for-qualification paragraph.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case,
+CA Intermediate,Taxation,Income Tax Basics,The basic exemption limit for individuals below 60 years is ______.,,"#ITR",medium,fitb,,,,,,No explanation needed -- this is a direct recall fact.,,,,"₹2.5 lakhs;2.5 lakhs;250000;2,50,000"
 
 ==================================================
 HOW TO USE THIS TEMPLATE
@@ -194,16 +203,17 @@ COLUMNS:
 - subject (REQUIRED) - Must match Valid Entries exactly
 - topic (optional) - Must match Valid Entries if provided
 - front (REQUIRED) - Question / statement / front side
-- back (REQUIRED for flashcard/theory; leave blank for mcq/correct_incorrect/case_study_mcq — derived from the correct option)
+- back (REQUIRED for flashcard/theory; leave blank for mcq/correct_incorrect/case_study_mcq/fitb — derived automatically)
 - tags (optional) - Comma-separated, e.g. "#ITR,#basics"
 - difficulty (optional) - easy / medium / hard (defaults to medium)
-- question_type (optional) - blank/"flashcard" for a plain card, "mcq" for multiple choice, "correct_incorrect", "theory", or "case_study_mcq"
+- question_type (optional) - blank/"flashcard" for a plain card, "mcq" for multiple choice, "correct_incorrect", "theory", "case_study_mcq", or "fitb" (fill in the blank)
 - option_1..option_4 (required for question_type=mcq/case_study_mcq only) - the answer choices (2-4 filled in). Leave blank for correct_incorrect — its two options ("Correct"/"Incorrect") are filled in automatically, you only pick which one is correct.
-- correct_option (required for mcq/correct_incorrect/case_study_mcq) - which option number is correct: 1-4 for mcq/case_study_mcq, 1-2 for correct_incorrect ("Correct"=1, "Incorrect"=2)
-- explanation (optional, mcq/correct_incorrect/case_study_mcq only) - shown to the student after they answer
+- correct_option (required for mcq/correct_incorrect/case_study_mcq) - which option number is correct: 1-4 for mcq/case_study_mcq, 1-2 for correct_incorrect ("Correct"=1, "Incorrect"=2). Not used for fitb — see fitb_answers below.
+- explanation (optional, mcq/correct_incorrect/case_study_mcq/fitb only) - shown to the student after they answer
 - subtype (required for question_type=theory only) - "pure_theory" or "descriptive_case_study"
 - scenario (required for question_type=case_study_mcq only) - the shared case narrative. Repeat the EXACT SAME text on every row belonging to the same case.
 - case_group (required for question_type=case_study_mcq only) - any label you choose (e.g. "xyz-inventory-case") linking this row to its case's other questions. Must be unique per case within this file, identical across every row in that case.
+- fitb_answers (required for question_type=fitb only) - every phrasing you'd accept as correct, separated by semicolons (e.g. "Rs 2.5 lakhs;2.5 lakhs;250000"). Quote the whole cell if any answer itself contains a comma. front must contain a blank marker (______, at least 3 underscores).
 
 IMPORTANT:
 ✓ Use EXACT spelling from Valid Entries file
@@ -211,7 +221,7 @@ IMPORTANT:
 ✓ Cannot create new courses/subjects/topics via bulk upload
 ✓ To add a new subject/topic, create one item via "Create Study Item" first
 ✓ Visibility is set on the upload page (private / friends / public)
-✓ question_type=mcq/correct_incorrect/case_study_mcq rows require a professor/admin account — student-authored rows of these types are rejected at upload
+✓ question_type=mcq/correct_incorrect/case_study_mcq/fitb rows require a professor/admin account — student-authored rows of these types are rejected at upload
 `;
 
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
@@ -499,6 +509,29 @@ IMPORTANT:
                 flashcard.explanation = toPointsToRemember(flashcard.explanation);
                 flashcard.scenario = flashcard.scenario.trim();
                 flashcard.case_group = flashcard.case_group.trim();
+              } else if (flashcard.question_type === 'fitb') {
+                if (!flashcard.target_course || !flashcard.subject || !flashcard.front) {
+                  parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front)`);
+                  continue;
+                }
+                const blankError = validateFitbBlank(flashcard.front);
+                if (blankError) {
+                  parseErrors.push(`Row ${i + 1}: ${blankError}`);
+                  continue;
+                }
+                // Semicolon-delimited within one cell — fitb's acceptable-answer count
+                // varies per row, but (unlike case_study_mcq) never needs to fan out
+                // across multiple CSV rows, so a flat multi-value cell is enough.
+                const fitbOptions = compactFitbOptions((flashcard.fitb_answers || '').split(';'));
+                const fitbError = validateFitbOptions(fitbOptions);
+                if (fitbError) {
+                  parseErrors.push(`Row ${i + 1}: ${fitbError}`);
+                  continue;
+                }
+                flashcard.gradedOptions = fitbOptions;
+                flashcard.gradedCorrectIndex = null;
+                flashcard.back = deriveFitbBackText(fitbOptions);
+                flashcard.explanation = toPointsToRemember(flashcard.explanation);
               } else if (!flashcard.target_course || !flashcard.subject || !flashcard.front || !flashcard.back) {
                 parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front, back)`);
                 continue;
@@ -704,10 +737,12 @@ IMPORTANT:
           batch_id: rowBatchId,
           batch_description: trimmedDescription,
           question_type: card.question_type,
-          options: GRADED_QUESTION_TYPES.includes(card.question_type) ? card.gradedOptions : null,
+          options: isCsvGradedType(card.question_type) ? card.gradedOptions : null,
+          // fitb stays NULL here (D-13 — no single scalar "the answer"), unlike
+          // mcq/correct_incorrect/case_study_mcq's stringified index.
           correct_answer: GRADED_QUESTION_TYPES.includes(card.question_type) ? String(card.gradedCorrectIndex) : null,
           points_to_remember: null,
-          explanation: GRADED_QUESTION_TYPES.includes(card.question_type) ? (card.explanation || null) : null,
+          explanation: isCsvGradedType(card.question_type) ? (card.explanation || null) : null,
           subtype: card.question_type === 'theory' ? card.subtype : null,
           scenario: rowScenario,
         };
@@ -774,7 +809,7 @@ IMPORTANT:
       console.error('Upload error:', error);
       if (error.code === '42501') {
         setErrors([
-          'Upload failed: one or more rows use a question_type (mcq, correct_incorrect, case_study_mcq) that requires a professor/admin account.',
+          'Upload failed: one or more rows use a question_type (mcq, correct_incorrect, case_study_mcq, fitb) that requires a professor/admin account.',
           'No rows were created (the whole file is uploaded as one batch) — remove those rows or upload from a professor/admin account.',
         ]);
       } else {

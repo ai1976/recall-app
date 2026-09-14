@@ -22,7 +22,7 @@ export const formatQuestionType = (qt) => {
   return map[qt] || qt.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
-// Question types with a real authoring/content path as of Sprint 7.10 — the only
+// Question types with a real authoring/content path as of Sprint 7.11 — the only
 // ones worth offering in a "narrow decks by type" filter. Add to this array (not
 // hardcoded JSX) as later sprints ship new authorable types. test_your_understanding
 // removed (D-10 correction) — collapsed into theory + subtype. true_false removed
@@ -30,7 +30,7 @@ export const formatQuestionType = (qt) => {
 // them as functionally identical, and correct_incorrect is the one with real usage).
 export const BROWSABLE_QUESTION_TYPES = [
   'flashcard', 'mcq', 'correct_incorrect', 'theory',
-  'match_the_following', 'case_study_mcq',
+  'match_the_following', 'case_study_mcq', 'fitb',
 ];
 
 // theory's required 2-option classification field (Sprint 7.9) — mirrors the CA
@@ -49,7 +49,10 @@ export const THEORY_SUBTYPE_LABELS = {
 // branch, not a different grading mechanic. match_the_following also has a real
 // authoring UI (Sprint 7.8) but renders through its OWN MatchZone branch (a
 // build-up-then-submit pairing interaction, not a single tap) — deliberately NOT
-// added here. fitb is also D-10-gated at the DB layer but has no authoring UI yet.
+// added here. fitb (Sprint 7.11) has a real authoring UI + its own StudyMode
+// branch too, same reasoning as match_the_following — its verdict is
+// confidence-gated three-way (match/no-match/self-grade, D-13), not the clean
+// binary this shared list assumes, so it deliberately stays out of this array.
 // integrated_case (D-12) and true_false (D-14) were also on this list — both
 // removed entirely, no longer live question_type values.
 export const GRADED_QUESTION_TYPES = ['mcq', 'correct_incorrect', 'case_study_mcq'];

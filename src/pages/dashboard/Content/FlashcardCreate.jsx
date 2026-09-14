@@ -40,6 +40,14 @@ import {
   emptyCaseQuestion,
   validateCaseStudy,
 } from '@/lib/caseStudyMcq';
+import {
+  FITB_MAX_ANSWERS,
+  FITB_BLANK_PLACEHOLDER,
+  compactFitbOptions,
+  deriveFitbBackText,
+  validateFitbBlank,
+  validateFitbOptions,
+} from '@/lib/fitb';
 import { GRADED_QUESTION_TYPES, VERDICT_OPTION_LABELS, THEORY_SUBTYPE_LABELS, formatQuestionType } from '@/lib/questionTypes';
 
 const emptyMcqOptions = () => Array.from({ length: MCQ_DEFAULT_OPTIONS }, () => '');
@@ -47,11 +55,12 @@ const emptyMatchLeft = () => Array.from({ length: MATCH_DEFAULT_PAIRS }, () => '
 const emptyMatchRight = () => Array.from({ length: MATCH_DEFAULT_PAIRS }, () => '');
 const emptyMatchCorrect = () => Array.from({ length: MATCH_DEFAULT_PAIRS }, () => null);
 const emptyCaseQuestions = () => Array.from({ length: CASE_DEFAULT_QUESTIONS }, () => emptyCaseQuestion(MCQ_DEFAULT_OPTIONS));
+const emptyFitbOptions = () => [''];
 // D-10-gated types that need a role check on draft restore (a role could have
 // changed since the draft was saved) — GRADED_QUESTION_TYPES alone would miss
-// match_the_following, since it renders through its own StudyMode branch, not
-// the shared AnswerOption list.
-const isD10GatedType = (qt) => GRADED_QUESTION_TYPES.includes(qt) || qt === 'match_the_following';
+// match_the_following and fitb, since both render through their own StudyMode
+// branch, not the shared AnswerOption list.
+const isD10GatedType = (qt) => GRADED_QUESTION_TYPES.includes(qt) || qt === 'match_the_following' || qt === 'fitb';
 
 const DRAFT_KEY = 'flashcard_create_draft';
 
@@ -100,7 +109,7 @@ export default function FlashcardCreate() {
       front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null,
       questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null,
       matchLeft: emptyMatchLeft(), matchRight: emptyMatchRight(), matchCorrect: emptyMatchCorrect(), why: '',
-      subtype: null, caseScenario: '', caseQuestions: emptyCaseQuestions(),
+      subtype: null, caseScenario: '', caseQuestions: emptyCaseQuestions(), fitbOptions: emptyFitbOptions(),
     }
   ]);
 
@@ -169,6 +178,7 @@ export default function FlashcardCreate() {
             subtype: c.subtype || null,
             caseScenario: c.caseScenario || '',
             caseQuestions: c.caseQuestions || emptyCaseQuestions(),
+            fitbOptions: c.fitbOptions || emptyFitbOptions(),
           })),
         }));
       } catch (err) {
@@ -317,9 +327,35 @@ export default function FlashcardCreate() {
         front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null,
         questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null,
         matchLeft: emptyMatchLeft(), matchRight: emptyMatchRight(), matchCorrect: emptyMatchCorrect(), why: '',
-        subtype: null, caseScenario: '', caseQuestions: emptyCaseQuestions(),
+        subtype: null, caseScenario: '', caseQuestions: emptyCaseQuestions(), fitbOptions: emptyFitbOptions(),
       }
     ]);
+  };
+
+  // fitb (Sprint 7.11) — acceptable-answers list editor, mirrors updateMcqOption/
+  // addMcqOption/removeMcqOption above but with no "correct index" to track.
+  const updateFitbOption = (cardIndex, optionIndex, value) => {
+    const updated = [...flashcards];
+    const fitbOptions = [...updated[cardIndex].fitbOptions];
+    fitbOptions[optionIndex] = value;
+    updated[cardIndex] = { ...updated[cardIndex], fitbOptions };
+    setFlashcards(updated);
+  };
+
+  const addFitbOption = (cardIndex) => {
+    const updated = [...flashcards];
+    const card = updated[cardIndex];
+    if (card.fitbOptions.length >= FITB_MAX_ANSWERS) return;
+    updated[cardIndex] = { ...card, fitbOptions: [...card.fitbOptions, ''] };
+    setFlashcards(updated);
+  };
+
+  const removeFitbOption = (cardIndex, optionIndex) => {
+    const updated = [...flashcards];
+    const card = updated[cardIndex];
+    if (card.fitbOptions.length <= 1) return;
+    updated[cardIndex] = { ...card, fitbOptions: card.fitbOptions.filter((_, i) => i !== optionIndex) };
+    setFlashcards(updated);
   };
 
   const updateMcqOption = (cardIndex, optionIndex, value) => {
@@ -597,6 +633,11 @@ export default function FlashcardCreate() {
         } else if (card.questionType === 'match_the_following') {
           const matchError = validateMatchPairs(card.matchLeft, card.matchRight, card.matchCorrect);
           if (matchError) throw new Error(`Item ${i + 1}: ${matchError}`);
+        } else if (card.questionType === 'fitb') {
+          const blankError = validateFitbBlank(card.front);
+          if (blankError) throw new Error(`Item ${i + 1}: ${blankError}`);
+          const fitbError = validateFitbOptions(card.fitbOptions);
+          if (fitbError) throw new Error(`Item ${i + 1}: ${fitbError}`);
         } else if (!card.back.trim()) {
           throw new Error(`Item ${i + 1}: Back side cannot be empty`);
         } else if (card.questionType === 'theory' && card.subtype !== 'pure_theory' && card.subtype !== 'descriptive_case_study') {
@@ -733,6 +774,7 @@ export default function FlashcardCreate() {
         const isMcq = card.questionType === 'mcq';
         const isCorrectIncorrect = card.questionType === 'correct_incorrect';
         const isMatch = card.questionType === 'match_the_following';
+        const isFitb = card.questionType === 'fitb';
 
         let rowOptions = null;
         let rowCorrectAnswer = null;
@@ -757,6 +799,14 @@ export default function FlashcardCreate() {
           // options.correct, not a single scalar "the answer" (see D-10 rep. note).
           rowOptions = buildMatchOptions(trimmedLeft, trimmedRight, card.matchCorrect);
           rowBackText = deriveMatchBackText(trimmedLeft, rowOptions.correct);
+          rowBackImageUrl = null;
+        } else if (isFitb) {
+          // correct_answer stays NULL for this type too (D-13) — the verdict is
+          // computed at grading time by normalizing against every options entry,
+          // not read off a single stored scalar.
+          const fitbOpts = compactFitbOptions(card.fitbOptions);
+          rowOptions = fitbOpts;
+          rowBackText = deriveFitbBackText(fitbOpts);
           rowBackImageUrl = null;
         }
 
@@ -785,7 +835,7 @@ export default function FlashcardCreate() {
           options: rowOptions,
           correct_answer: rowCorrectAnswer,
           points_to_remember: null,
-          explanation: (isMcq || isCorrectIncorrect || isMatch) ? toPointsToRemember(card.why) : null,
+          explanation: (isMcq || isCorrectIncorrect || isMatch || isFitb) ? toPointsToRemember(card.why) : null,
           subtype: card.questionType === 'theory' ? card.subtype : null,
         }];
       });
@@ -865,6 +915,7 @@ export default function FlashcardCreate() {
       subtype: c.subtype || null,
       caseScenario: c.caseScenario || '',
       caseQuestions: c.caseQuestions || emptyCaseQuestions(),
+      fitbOptions: c.fitbOptions || emptyFitbOptions(),
     })));
     setPendingDraft(null);
     toast({
@@ -1248,6 +1299,7 @@ export default function FlashcardCreate() {
                         subtype: val === 'theory' ? updated[index].subtype : null,
                         caseScenario: val === 'case_study_mcq' ? '' : updated[index].caseScenario,
                         caseQuestions: val === 'case_study_mcq' ? emptyCaseQuestions() : updated[index].caseQuestions,
+                        fitbOptions: val === 'fitb' ? emptyFitbOptions() : updated[index].fitbOptions,
                       };
                       setFlashcards(updated);
                     }}
@@ -1262,6 +1314,7 @@ export default function FlashcardCreate() {
                       {canAuthorGradedTypes && <SelectItem value="correct_incorrect">Correct / Incorrect</SelectItem>}
                       {canAuthorGradedTypes && <SelectItem value="match_the_following">Match the following</SelectItem>}
                       {canAuthorGradedTypes && <SelectItem value="case_study_mcq">Case study MCQ</SelectItem>}
+                      {canAuthorGradedTypes && <SelectItem value="fitb">Fill in the Blank</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1269,7 +1322,7 @@ export default function FlashcardCreate() {
                 {card.questionType !== 'case_study_mcq' && (
                 <div className="space-y-2">
                   <Label htmlFor={`front-${index}`}>
-                    {card.questionType === 'mcq' ? 'Question' : card.questionType === 'correct_incorrect' ? 'Statement' : card.questionType === 'match_the_following' ? 'Instructions' : 'Front'}
+                    {card.questionType === 'mcq' ? 'Question' : card.questionType === 'correct_incorrect' ? 'Statement' : card.questionType === 'match_the_following' ? 'Instructions' : card.questionType === 'fitb' ? 'Sentence with blank' : 'Front'}
                   </Label>
                   <Textarea
                     id={`front-${index}`}
@@ -1282,10 +1335,17 @@ export default function FlashcardCreate() {
                           ? 'The statement to mark correct or incorrect'
                           : card.questionType === 'match_the_following'
                             ? 'e.g., Match each cost concept with its formula'
-                            : 'Question or prompt'
+                            : card.questionType === 'fitb'
+                              ? `e.g., The basic exemption limit for individuals below 60 is ${FITB_BLANK_PLACEHOLDER}.`
+                              : 'Question or prompt'
                     }
                     rows={3}
                   />
+                  {card.questionType === 'fitb' && (
+                    <p className="text-xs text-muted-foreground">
+                      Mark the blank with {FITB_BLANK_PLACEHOLDER} (at least 3 underscores) somewhere in the sentence.
+                    </p>
+                  )}
 
                   <div className="flex items-center gap-2">
                     {uploadingImage?.index === index && uploadingImage?.side === 'front' ? (
@@ -1641,6 +1701,54 @@ export default function FlashcardCreate() {
                         Add Question
                       </Button>
                     )}
+                  </div>
+                ) : card.questionType === 'fitb' ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Acceptable Answers <span className="text-red-500">*</span></Label>
+                      <p className="text-xs text-muted-foreground">
+                        Every phrasing you'd accept as correct — a student's typed answer is checked against all of them, ignoring case/punctuation/extra spaces.
+                      </p>
+                      <div className="space-y-2">
+                        {card.fitbOptions.map((opt, optIndex) => (
+                          <div key={optIndex} className="flex items-center gap-2">
+                            <Input
+                              value={opt}
+                              onChange={(e) => updateFitbOption(index, optIndex, e.target.value)}
+                              placeholder={`Acceptable answer ${optIndex + 1}`}
+                            />
+                            {card.fitbOptions.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeFitbOption(index, optIndex)}
+                                className="text-destructive hover:text-destructive shrink-0"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {card.fitbOptions.length < FITB_MAX_ANSWERS && (
+                        <Button type="button" variant="outline" size="sm" onClick={() => addFitbOption(index)}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Acceptable Answer
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`why-${index}`}>Why (Optional)</Label>
+                      <Textarea
+                        id={`why-${index}`}
+                        value={card.why}
+                        onChange={(e) => updateFlashcard(index, 'why', e.target.value)}
+                        placeholder="Explanation shown after the student answers"
+                        rows={3}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
