@@ -24,6 +24,14 @@ const MCQ_CSV_OPTION_COLUMNS = 4;
 // shared `scenario` and `case_group` value linking it to its case's other rows. fitb added
 // (Sprint 7.11) — no multi-row fan-out problem like case_study_mcq, so its variable-length
 // acceptable-answers list is just a semicolon-delimited single cell (`fitb_answers`).
+// concept_card (Sprint 7.12) — explicitly DEFERRED, not added here, same call as
+// match_the_following in 7.8-C: keyTerms is a variable-length list of {term, definition}
+// PAIRS, not a flat list of strings like fitb's acceptable-answers. fitb's semicolon-cell
+// trick works because each entry is one short phrase with no embedded delimiter conflict;
+// forcing a second-level delimiter (e.g. "term:definition;term:definition") onto real CA
+// content is fragile — subject-matter terms and definitions routinely contain colons and
+// commas of their own (ratios like "3:1", monetary values like "₹2,50,000"), so a flat cell
+// would silently mis-split real content rather than fail loudly. Manual authoring only.
 const RECOGNIZED_QUESTION_TYPES = ['mcq', 'correct_incorrect', 'theory', 'case_study_mcq', 'fitb'];
 const THEORY_SUBTYPES = Object.keys(THEORY_SUBTYPE_LABELS);
 // GRADED_QUESTION_TYPES (mcq/correct_incorrect/case_study_mcq) all store a scalar

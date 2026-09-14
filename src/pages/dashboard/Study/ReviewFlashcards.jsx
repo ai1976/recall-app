@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Brain, Play, ChevronRight, ChevronDown, User, Users, Filter, Search, Share2 } from 'lucide-react';
+import { Brain, Play, ChevronRight, ChevronDown, User, Users, Filter, Search, Share2, BookOpen } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import UpvoteButton from '@/components/ui/UpvoteButton';
+import ConceptCardViewer from '@/components/flashcards/ConceptCardViewer';
 import { formatQuestionType, BROWSABLE_QUESTION_TYPES } from '@/lib/questionTypes';
 
 export default function ReviewFlashcards() {
@@ -44,6 +45,9 @@ export default function ReviewFlashcards() {
 
   // Collapsed groups state for collapsible sections
   const [collapsedGroups, setCollapsedGroups] = useState({});
+
+  // Sprint 7.12: deck currently open in the read-only concept-card viewer, or null
+  const [conceptViewerDeck, setConceptViewerDeck] = useState(null);
 
   const toggleGroupCollapse = (groupKey) => {
     setCollapsedGroups(prev => ({
@@ -400,6 +404,7 @@ export default function ReviewFlashcards() {
   const hasActiveFilters = searchQuery || (!isStudent && filterCourse !== 'all') || filterSubject !== 'all' || filterTopic !== 'all' || filterRole !== 'all' || filterAuthor !== 'all' || filterQuestionType !== 'all';
 
   return (
+    <>
     <div className="min-h-screen bg-gray-50 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -672,6 +677,17 @@ export default function ReviewFlashcards() {
                               </p>
                             )}
 
+                            {/* Read Concepts — deck has at least one concept_card (browse-only, never graded) */}
+                            {deck.has_concept_card && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setConceptViewerDeck(deck); }}
+                                className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 border border-amber-300 text-amber-700 text-sm rounded-lg hover:bg-amber-50 transition-colors"
+                              >
+                                <BookOpen className="h-3.5 w-3.5" />
+                                Read Concepts
+                              </button>
+                            )}
+
                             {/* Footer with badges and upvote */}
                             <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
                               <div className="flex gap-2 flex-wrap">
@@ -730,5 +746,10 @@ export default function ReviewFlashcards() {
         )}
       </div>
     </div>
+
+      {conceptViewerDeck && (
+        <ConceptCardViewer deck={conceptViewerDeck} onClose={() => setConceptViewerDeck(null)} />
+      )}
+    </>
   );
 }

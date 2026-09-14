@@ -48,6 +48,13 @@ import {
   validateFitbBlank,
   validateFitbOptions,
 } from '@/lib/fitb';
+import {
+  CONCEPT_MAX_TERMS,
+  emptyConceptTerm,
+  emptyConceptTerms,
+  buildConceptOptions,
+  validateConceptTerms,
+} from '@/lib/conceptCard';
 import { GRADED_QUESTION_TYPES, VERDICT_OPTION_LABELS, THEORY_SUBTYPE_LABELS, formatQuestionType } from '@/lib/questionTypes';
 
 const emptyMcqOptions = () => Array.from({ length: MCQ_DEFAULT_OPTIONS }, () => '');
@@ -110,6 +117,7 @@ export default function FlashcardCreate() {
       questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null,
       matchLeft: emptyMatchLeft(), matchRight: emptyMatchRight(), matchCorrect: emptyMatchCorrect(), why: '',
       subtype: null, caseScenario: '', caseQuestions: emptyCaseQuestions(), fitbOptions: emptyFitbOptions(),
+      conceptTerms: emptyConceptTerms(),
     }
   ]);
 
@@ -179,6 +187,7 @@ export default function FlashcardCreate() {
             caseScenario: c.caseScenario || '',
             caseQuestions: c.caseQuestions || emptyCaseQuestions(),
             fitbOptions: c.fitbOptions || emptyFitbOptions(),
+            conceptTerms: c.conceptTerms || emptyConceptTerms(),
           })),
         }));
       } catch (err) {
@@ -328,8 +337,35 @@ export default function FlashcardCreate() {
         questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null,
         matchLeft: emptyMatchLeft(), matchRight: emptyMatchRight(), matchCorrect: emptyMatchCorrect(), why: '',
         subtype: null, caseScenario: '', caseQuestions: emptyCaseQuestions(), fitbOptions: emptyFitbOptions(),
+        conceptTerms: emptyConceptTerms(),
       }
     ]);
+  };
+
+  // concept_card (Sprint 7.12) — key-terms list editor, mirrors updateFitbOption/
+  // addFitbOption/removeFitbOption above but each row is a {term, definition} pair.
+  const updateConceptTerm = (cardIndex, termIndex, field, value) => {
+    const updated = [...flashcards];
+    const conceptTerms = [...updated[cardIndex].conceptTerms];
+    conceptTerms[termIndex] = { ...conceptTerms[termIndex], [field]: value };
+    updated[cardIndex] = { ...updated[cardIndex], conceptTerms };
+    setFlashcards(updated);
+  };
+
+  const addConceptTerm = (cardIndex) => {
+    const updated = [...flashcards];
+    const card = updated[cardIndex];
+    if (card.conceptTerms.length >= CONCEPT_MAX_TERMS) return;
+    updated[cardIndex] = { ...card, conceptTerms: [...card.conceptTerms, emptyConceptTerm()] };
+    setFlashcards(updated);
+  };
+
+  const removeConceptTerm = (cardIndex, termIndex) => {
+    const updated = [...flashcards];
+    const card = updated[cardIndex];
+    if (card.conceptTerms.length <= 1) return;
+    updated[cardIndex] = { ...card, conceptTerms: card.conceptTerms.filter((_, i) => i !== termIndex) };
+    setFlashcards(updated);
   };
 
   // fitb (Sprint 7.11) — acceptable-answers list editor, mirrors updateMcqOption/
@@ -642,6 +678,9 @@ export default function FlashcardCreate() {
           throw new Error(`Item ${i + 1}: Back side cannot be empty`);
         } else if (card.questionType === 'theory' && card.subtype !== 'pure_theory' && card.subtype !== 'descriptive_case_study') {
           throw new Error(`Item ${i + 1}: Choose a subtype for this theory item`);
+        } else if (card.questionType === 'concept_card') {
+          const conceptError = validateConceptTerms(card.conceptTerms);
+          if (conceptError) throw new Error(`Item ${i + 1}: ${conceptError}`);
         }
       }
 
@@ -775,6 +814,7 @@ export default function FlashcardCreate() {
         const isCorrectIncorrect = card.questionType === 'correct_incorrect';
         const isMatch = card.questionType === 'match_the_following';
         const isFitb = card.questionType === 'fitb';
+        const isConceptCard = card.questionType === 'concept_card';
 
         let rowOptions = null;
         let rowCorrectAnswer = null;
@@ -808,6 +848,10 @@ export default function FlashcardCreate() {
           rowOptions = fitbOpts;
           rowBackText = deriveFitbBackText(fitbOpts);
           rowBackImageUrl = null;
+        } else if (isConceptCard) {
+          // correct_answer/explanation stay NULL (D-06) — concept cards are never
+          // graded. back_text (summary) is typed directly, same as a plain flashcard.
+          rowOptions = buildConceptOptions(card.conceptTerms);
         }
 
         return [{
@@ -916,6 +960,7 @@ export default function FlashcardCreate() {
       caseScenario: c.caseScenario || '',
       caseQuestions: c.caseQuestions || emptyCaseQuestions(),
       fitbOptions: c.fitbOptions || emptyFitbOptions(),
+      conceptTerms: c.conceptTerms || emptyConceptTerms(),
     })));
     setPendingDraft(null);
     toast({
@@ -1300,6 +1345,7 @@ export default function FlashcardCreate() {
                         caseScenario: val === 'case_study_mcq' ? '' : updated[index].caseScenario,
                         caseQuestions: val === 'case_study_mcq' ? emptyCaseQuestions() : updated[index].caseQuestions,
                         fitbOptions: val === 'fitb' ? emptyFitbOptions() : updated[index].fitbOptions,
+                        conceptTerms: val === 'concept_card' ? emptyConceptTerms() : updated[index].conceptTerms,
                       };
                       setFlashcards(updated);
                     }}
@@ -1310,6 +1356,7 @@ export default function FlashcardCreate() {
                     <SelectContent>
                       <SelectItem value="flashcard">Flashcard</SelectItem>
                       <SelectItem value="theory">Theory</SelectItem>
+                      <SelectItem value="concept_card">Concept Card</SelectItem>
                       {canAuthorGradedTypes && <SelectItem value="mcq">Multiple Choice</SelectItem>}
                       {canAuthorGradedTypes && <SelectItem value="correct_incorrect">Correct / Incorrect</SelectItem>}
                       {canAuthorGradedTypes && <SelectItem value="match_the_following">Match the following</SelectItem>}
@@ -1322,7 +1369,7 @@ export default function FlashcardCreate() {
                 {card.questionType !== 'case_study_mcq' && (
                 <div className="space-y-2">
                   <Label htmlFor={`front-${index}`}>
-                    {card.questionType === 'mcq' ? 'Question' : card.questionType === 'correct_incorrect' ? 'Statement' : card.questionType === 'match_the_following' ? 'Instructions' : card.questionType === 'fitb' ? 'Sentence with blank' : 'Front'}
+                    {card.questionType === 'mcq' ? 'Question' : card.questionType === 'correct_incorrect' ? 'Statement' : card.questionType === 'match_the_following' ? 'Instructions' : card.questionType === 'fitb' ? 'Sentence with blank' : card.questionType === 'concept_card' ? 'Concept Name' : 'Front'}
                   </Label>
                   <Textarea
                     id={`front-${index}`}
@@ -1337,7 +1384,9 @@ export default function FlashcardCreate() {
                             ? 'e.g., Match each cost concept with its formula'
                             : card.questionType === 'fitb'
                               ? `e.g., The basic exemption limit for individuals below 60 is ${FITB_BLANK_PLACEHOLDER}.`
-                              : 'Question or prompt'
+                              : card.questionType === 'concept_card'
+                                ? 'e.g., SM-2 Algorithm'
+                                : 'Question or prompt'
                     }
                     rows={3}
                   />
@@ -1752,14 +1801,57 @@ export default function FlashcardCreate() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Label htmlFor={`back-${index}`}>Back</Label>
+                    <Label htmlFor={`back-${index}`}>{card.questionType === 'concept_card' ? 'Summary' : 'Back'}</Label>
                     <Textarea
                       id={`back-${index}`}
                       value={card.back}
                       onChange={(e) => updateFlashcard(index, 'back', e.target.value)}
-                      placeholder="Answer or explanation"
+                      placeholder={card.questionType === 'concept_card' ? 'A 2-3 sentence explanation of the concept' : 'Answer or explanation'}
                       rows={3}
                     />
+
+                    {card.questionType === 'concept_card' && (
+                      <div className="space-y-2 pt-2">
+                        <Label>Key Terms <span className="text-red-500">*</span></Label>
+                        <p className="text-xs text-muted-foreground">
+                          At least one term + definition pair. Shown as an expandable list below the summary.
+                        </p>
+                        <div className="space-y-2">
+                          {card.conceptTerms.map((t, ti) => (
+                            <div key={ti} className="flex items-start gap-2">
+                              <Input
+                                value={t.term}
+                                onChange={(e) => updateConceptTerm(index, ti, 'term', e.target.value)}
+                                placeholder="Term"
+                                className="w-1/3"
+                              />
+                              <Input
+                                value={t.definition}
+                                onChange={(e) => updateConceptTerm(index, ti, 'definition', e.target.value)}
+                                placeholder="Definition"
+                              />
+                              {card.conceptTerms.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeConceptTerm(index, ti)}
+                                  className="text-destructive hover:text-destructive shrink-0"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {card.conceptTerms.length < CONCEPT_MAX_TERMS && (
+                          <Button type="button" variant="outline" size="sm" onClick={() => addConceptTerm(index)}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Key Term
+                          </Button>
+                        )}
+                      </div>
+                    )}
 
                     {card.questionType === 'theory' && (
                       <div className="space-y-2 pt-2">

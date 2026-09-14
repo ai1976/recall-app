@@ -18,19 +18,23 @@ export const formatQuestionType = (qt) => {
     case_study_mcq: 'Case study MCQ',
     match_the_following: 'Match the following',
     fitb: 'Fill in the blanks',
+    concept_card: 'Concept Card',
   };
   return map[qt] || qt.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
-// Question types with a real authoring/content path as of Sprint 7.11 — the only
+// Question types with a real authoring/content path as of Sprint 7.12 — the only
 // ones worth offering in a "narrow decks by type" filter. Add to this array (not
 // hardcoded JSX) as later sprints ship new authorable types. test_your_understanding
 // removed (D-10 correction) — collapsed into theory + subtype. true_false removed
 // (D-14) — merged into correct_incorrect (CA Revision Portal's own schema documents
 // them as functionally identical, and correct_incorrect is the one with real usage).
+// concept_card (Sprint 7.12) is browse-only reference material — belongs here so
+// Browse Study Sets can filter to it, but must NEVER be added to
+// GRADED_QUESTION_TYPES below (D-06: no grade, no rung, no reviews row, ever).
 export const BROWSABLE_QUESTION_TYPES = [
   'flashcard', 'mcq', 'correct_incorrect', 'theory',
-  'match_the_following', 'case_study_mcq', 'fitb',
+  'match_the_following', 'case_study_mcq', 'fitb', 'concept_card',
 ];
 
 // theory's required 2-option classification field (Sprint 7.9) — mirrors the CA

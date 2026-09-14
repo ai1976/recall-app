@@ -303,8 +303,18 @@
 - **Bulk upload (`BulkUploadFlashcards.jsx`) — built, not deferred:** new `fitb_answers` CSV column, semicolon-delimited within one cell (e.g. `"Rs 2.5 lakhs;2.5 lakhs;250000"`) — unlike `case_study_mcq`, fitb has no multi-row fan-out problem, so a flat multi-value cell is enough; no reason to defer like match_the_following's 7.8-C did.
 - Authorship gated by the same D-10 RESTRICTIVE RLS pair already covering `fitb` since Sprint 7.5 (it was already in both policies' IN-lists before this sprint's authoring UI existed) — zero SQL needed this sprint, confirmed live via the same introspection discipline as every prior question-type sprint.
 
+**concept_card Representation (Sprint 7.12, 14/09/2026) — browse-only reference material, never graded, last type in the roster:**
+- `front_text` (NOT NULL) = heading (concept name). `back_text` (NOT NULL) = summary (2-3 sentence explanation), typed directly like a plain flashcard's back — **not derived**.
+- `options` = jsonb array of `{term, definition}` objects (keyTerms, min 1) — a third reuse of the same column mcq/fitb use, this time as object pairs rather than scalar strings.
+- `correct_answer`/`hints`/`scenario`/`subtype`/`explanation` all stay **NULL** — there is no verdict, ever, for this type (D-06).
+- **Ungated** — open to all users (like `flashcard`/`theory`), unlike the 5 D-10-gated verdict-bearing types. There's no authoring-judgment risk to gate against when nothing is ever graded.
+- `src/lib/conceptCard.js`: `buildConceptOptions()` drops any row missing either half of a term/definition pair; `validateConceptTerms()` enforces at least one complete pair. `CONCEPT_MIN_TERMS`=1, `CONCEPT_MAX_TERMS`=10.
+- **Bulk upload explicitly deferred** (same call as `match_the_following`'s 7.8-C): keyTerms is a variable-length list of `{term, definition}` **pairs**, not a flat list like fitb's `fitb_answers` — a second-level CSV-cell delimiter would silently mis-split real content, since terms/definitions routinely contain their own colons and commas. Manual authoring (`FlashcardCreate.jsx`) only.
+- **Browse-only viewer:** `ReviewFlashcards.jsx` (Browse Study Sets) renders a "Read Concepts" button on any deck tile whose `get_browsable_decks` row has `has_concept_card=true` (v6, below) — opens `src/components/flashcards/ConceptCardViewer.jsx`, a read-only accordion (heading always visible, click expands to summary + keyTerms), fetched directly via the 5-column deck-membership join (D-04). Zero grade buttons, zero `apply_review` calls anywhere in that component.
+- **StudyMode leak closed this sprint:** `get_study_queue` had already excluded `concept_card` from the due-set since Sprint 6.0, but `StudyMode.jsx`'s separate "never-reviewed → new card" fallback filter didn't check `question_type` — since a concept card has no `reviews` row by definition, it passed that fallback and could reach a student, gradeable through the plain flashcard flip UI. Fixed with an explicit `question_type !== 'concept_card'` clause in the same filter. See the Concept Card Exclusion Rule below and blueprint.md D-06.
+
 **Concept Card Exclusion Rule:**
-- `concept_card` items are **excluded from all review metrics** (Items Reviewed, Items Mastered, accuracy, streak). They are reference material only.
+- `concept_card` items are **excluded from all review metrics** (Items Reviewed, Items Mastered, accuracy, streak) — and, as of Sprint 7.12, from ever entering a study session at all, at any point in the client-side fetch pipeline (not just the RPC's due-set). They are reference material only.
 - All analytics RPCs must use `WHERE question_type != 'concept_card'` inline (the `vw_study_items` safety view was dropped 02/07/2026 as dead/unconsumed — do not reintroduce it).
 - This applies to every RPC that counts reviews, calculates accuracy, or computes streaks.
 
@@ -1297,7 +1307,24 @@ RETURNS TABLE (
 - **v5.** Adds one additive, nullable parameter to the existing v4 (`docs/database/bugfixes/05_FUNCTIONS_get_browsable_decks_v4_per_viewer_cards.sql`). `NULL` (default) reproduces v4 exactly — every pre-7.6 caller is unaffected. When set, a deck is included only if it has ≥1 card of that `question_type` visible to the viewer (same visibility predicate as the existing per-viewer `card_count` lateral: owner sees own private cards, public visible to all, friends-visibility to accepted friends, admin override, group-shared decks to group members). Narrows which **decks** are returned — does NOT narrow the returned `card_count` (stays whole-deck) and does not affect what a study session serves once a student clicks into a deck.
 - **Deployment gotcha (hit live, 13/09/2026):** a plain `CREATE OR REPLACE FUNCTION get_browsable_decks(p_question_type TEXT DEFAULT NULL)` does **not** replace the old zero-arg `get_browsable_decks()` — Postgres treats a changed parameter list (even one added with a `DEFAULT`) as a distinct overload, not a replacement of the old signature. This left both the zero-arg and one-arg versions live simultaneously, and every unparameterized call became ambiguous: `ERROR 42725: function get_browsable_decks() is not unique`. Fixed with an explicit `DROP FUNCTION IF EXISTS get_browsable_decks();` immediately before the `CREATE OR REPLACE` for the new signature. **Applies to any future RPC that adds a parameter to an existing function — `CREATE OR REPLACE` alone is only safe when the parameter list is unchanged.**
 - `SECURITY DEFINER` retained, same `auth.uid()` requirement as v4 (raises `Not authenticated` under an unauthenticated caller — including the SQL Editor's default `postgres` role, which has no `auth.uid()`; test accordingly via `SET LOCAL ROLE authenticated` + `request.jwt.claims` impersonation, same technique as `docs/database/sprint7.5/02_TEST_verify_d10_role_gate.sql`).
-- Powers `ReviewFlashcards.jsx`'s ("Browse Study Sets" since Sprint 7.6) Question Type filter — options limited to the types with a real authoring path, built from `BROWSABLE_QUESTION_TYPES` in `src/lib/questionTypes.js` (`flashcard`, `mcq` as of 7.6; `true_false`/`correct_incorrect`/`theory`/`test_your_understanding` added Sprint 7.7; `match_the_following` added Sprint 7.8; `test_your_understanding` removed Sprint 7.9 (collapsed into `theory`+`subtype`, D-10); `true_false` removed Sprint 7.9 (merged into `correct_incorrect`, D-14)).
+- Powers `ReviewFlashcards.jsx`'s ("Browse Study Sets" since Sprint 7.6) Question Type filter — options limited to the types with a real authoring path, built from `BROWSABLE_QUESTION_TYPES` in `src/lib/questionTypes.js` (`flashcard`, `mcq` as of 7.6; `true_false`/`correct_incorrect`/`theory`/`test_your_understanding` added Sprint 7.7; `match_the_following` added Sprint 7.8; `test_your_understanding` removed Sprint 7.9 (collapsed into `theory`+`subtype`, D-10); `true_false` removed Sprint 7.9 (merged into `correct_incorrect`, D-14); `concept_card` added Sprint 7.12).
+
+---
+
+## Sprint 7.12 — get_browsable_decks v6, has_concept_card flag (✅ deployed & verified live 14/09/2026 — `docs/database/sprint7.12/`, `02_TEST` — 5/5 PASS)
+
+```sql
+get_browsable_decks(p_question_type text DEFAULT NULL)
+RETURNS TABLE (
+  id uuid, user_id uuid, subject_id uuid, custom_subject text, topic_id uuid, custom_topic text,
+  target_course text, visibility text, card_count integer, upvote_count integer, created_at timestamptz,
+  author_name text, author_role text, subject_name text, topic_name text,
+  has_concept_card boolean
+)
+```
+- **v6.** Adds one additive return column, `has_concept_card`, to v5's signature (`docs/database/sprint7.6/01_FUNCTIONS_get_browsable_decks_v5_question_type_filter.sql`). `true` when the deck has ≥1 `concept_card` row visible to the viewer — computed via `bool_or(fc.question_type = 'concept_card')` inside the SAME visibility-filtered lateral subquery that already computes `card_count` (`visible_card_count`), not a second table scan. Every existing caller that doesn't read the new column sees no behavior change.
+- **Return-shape change → DROP+CREATE required**, same lesson as v5's own deployment gotcha (a plain `CREATE OR REPLACE` cannot alter an existing function's return type). Only one overload existed at the time (`p_question_type text` — confirmed via pre-flight `pg_proc` introspection), so no arity-ambiguity risk this time.
+- Powers `ReviewFlashcards.jsx`'s ("Browse Study Sets") conditional "Read Concepts" button — rendered only on a deck tile whose row has `has_concept_card=true`, opening `ConceptCardViewer.jsx` (read-only accordion, no grading).
 
 ---
 
@@ -2585,12 +2612,14 @@ SELECT get_author_content_summary('author-uuid', 'viewer-uuid');
 **Security:** DEFINER
 **Added:** 2026-02-06 (Card Suspension System)
 **Returns:** VOID
+**Write path (fixed 14/09/2026, `docs/database/bugfixes/17_FUNCTIONS_skip_suspend_card_atomic_upsert.sql`):** a single atomic `INSERT ... ON CONFLICT (user_id, flashcard_id) DO UPDATE SET skip_until = ...`. Previously a two-statement `UPDATE; IF NOT FOUND THEN INSERT` — safe for a single call, but non-atomic under concurrent calls (no in-flight guard on the frontend's "Skip 24hr" button): two near-simultaneous calls on the same never-reviewed card could both see "NOT FOUND" and both attempt the INSERT, the second throwing `23505 reviews_user_flashcard_unique`. See `docs/tracking/bugs.md`.
 
 ### suspend_card(p_user_id UUID, p_flashcard_id UUID)
 **Purpose:** Suspends a card indefinitely by setting status='suspended'
 **Security:** DEFINER
 **Added:** 2026-02-06 (Card Suspension System)
 **Returns:** VOID
+**Write path:** same atomic-upsert fix as `skip_card` above (identical pre-fix race, same 14/09/2026 migration).
 
 ### suspend_topic_cards(p_user_id UUID, p_topic_id UUID)
 **Purpose:** Bulk suspends all cards in a topic. Creates review records for cards without one.

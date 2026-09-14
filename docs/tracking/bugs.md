@@ -1,5 +1,34 @@
 # Bug Tracking
 
+## Follow-up — 14/09/2026 (skip_card / suspend_card atomic-upsert fix)
+
+### [14/09/2026] skip_card / suspend_card — non-atomic UPDATE-then-INSERT race, `23505` on a concurrent call — ✅ FIXED
+- **Found while:** Sprint 7.12's live verification (see below) — attempting to manually click through a deck to prove the concept_card StudyMode fix, before switching to a DB pipeline-replay instead.
+- **Symptom:** `Error skipping card: {code: 23505, details: Key (user_id, flashcard_id)=(...) already exists., message: duplicate key value violates unique constraint "reviews_user_flashcard_unique"}`, toast "Failed to skip card," card never advances.
+- **Investigation:** `StudyMode.jsx`'s `handleSkip` does no direct client-side write — it calls a single `skip_card(p_user_id, p_flashcard_id)` RPC (confirmed by reading the handler, correcting the original "unconditional client INSERT" hypothesis). The live RPC body (confirmed via `docs/database/bugfixes/16_DIAGNOSTIC_skip_card_race_condition.sql`, run by the operator, matching `docs/database/bugfixes/09_FUNCTIONS_fix_skip_suspend_card_reviews_columns.sql` exactly) already does a proper existence check — `UPDATE reviews SET skip_until = ...; IF NOT FOUND THEN INSERT ...` — but this is a classic **TOCTOU race, not an ordering bug**: none of StudyMode.jsx's 5 "Skip 24hr" buttons disable while the call is in flight, so two near-simultaneous calls for the same never-reviewed card can both see "NOT FOUND" on their own `UPDATE` and both attempt the `INSERT`; the second violates `reviews_user_flashcard_unique`. `suspend_card` has the identical shape and the identical latent race.
+- **Root Cause:** a non-atomic two-statement upsert (`UPDATE` + conditional `INSERT`) is not safe under concurrent invocation, regardless of how careful the "check first" logic is — the check and the write aren't in the same atomic operation.
+- **Fix (`docs/database/bugfixes/17_FUNCTIONS_skip_suspend_card_atomic_upsert.sql`):** replaced both functions' bodies with a single atomic `INSERT ... ON CONFLICT (user_id, flashcard_id) DO UPDATE SET ...` — Postgres resolves the conflict inside one statement, so a concurrent duplicate call now always resolves as an update, never a failed insert. IDOR guard, timezone logic, and search_path reproduced verbatim from the confirmed-live body — pure write-path change, no behavior change to any successful single call.
+- **Verified via:** `docs/database/bugfixes/18_TEST_verify_skip_suspend_atomic_upsert.sql` — **7/7 PASS**, including calling `skip_card`/`suspend_card` twice in a row on the same never-reviewed card (deterministically exercises the exact path a race's "loser" call takes) with no error and exactly one surviving `reviews` row each time, plus an IDOR regression check (cross-user call still rejected).
+- **Files:** *new* — `docs/database/bugfixes/{16_DIAGNOSTIC_skip_card_race_condition,17_FUNCTIONS_skip_suspend_card_atomic_upsert,18_TEST_verify_skip_suspend_atomic_upsert}.sql` (all 3 ✅ run against production). No frontend change needed — the race lived entirely in the RPC.
+- **Status:** ✅ RESOLVED (14/09/2026, SQL deployed & verified live, 7/7 PASS).
+
+## Sprint 7.12 — 14/09/2026 (concept_card structured authoring + browse-only viewer)
+
+### [14/09/2026] StudyMode's "never-reviewed → new card" fallback didn't exclude concept_card — could reach a student and be graded — ✅ FIXED
+- **Found while:** Task B's pre-flight investigation, following an explicit lead in the sprint spec pointing at `StudyMode.jsx` ~line 352.
+- **Symptom:** `get_study_queue` correctly excludes `concept_card` from the *due*-set (D-06, since Sprint 6.0). But `StudyMode.jsx`'s `fetchFlashcards` applies a SEPARATE filter on top of that RPC result — `cleanedData.filter(c => dueIds.has(c.id) || !reviewedIds.has(c.id))` — meant to also surface never-reviewed ("new") cards, since `get_study_queue` only returns already-scheduled cards. This second filter never checked `question_type`. Since a concept card by definition has no `reviews` row (it's never graded), it always satisfies `!reviewedIds.has(c.id)` and would pass straight through as a "new card," reaching a student in the plain flashcard flip UI and becoming gradeable via `apply_review` exactly like a real flashcard — the precise violation D-06 exists to prevent.
+- **Root Cause:** `get_study_queue`'s due-set exclusion and this client-side new-card fallback were never audited as a pair — the RPC-level fix (Sprint 6.0) covered one of the two paths a card can enter a study session by, not both.
+- **Fix:** added an explicit `c.question_type !== 'concept_card'` clause to the same filter, so concept cards are excluded at every point in the pipeline regardless of due/reviewed status.
+- **Verified via:** pre-flight confirmed 0 `reviews`/`review_events` rows had ever existed for `concept_card` (live gap, not a live incident — no real content or students were ever actually affected, since no professor had a real reason to author one before this sprint gave it a real authoring path). Post-fix, replayed the exact fetch pipeline (deck's 5-column-join card set + `get_study_queue` due-set + `reviews` reviewed-set + the fixed filter) against the live DB with a real test card: present in the deck's raw card set, never-due, never-reviewed (exactly the leak condition), and absent from the final filtered study list.
+- **Files:** `src/pages/dashboard/Study/StudyMode.jsx`.
+- **Status:** ✅ RESOLVED (14/09/2026, same session as the Sprint 7.12 concept_card build).
+
+### [14/09/2026] Skip-24hr fails with a duplicate-key error — ✅ FIXED same day, see "Follow-up" section above
+- **Found while:** attempting to manually click through a 29-card deck to live-verify the concept_card leak fix above (abandoned in favor of a direct DB pipeline-replay, which is what actually proved the fix — see the leak entry above and Sprint 7.12 in `now.md`).
+- **Symptom:** clicking "Skip 24hr" on a card threw a toast ("Failed to skip card") and the console logged `Error skipping card: {code: 23505, ...}`. The card never advanced.
+- Initially flagged out of scope for this sprint and spun off — **fixed the same day as a dedicated follow-up** (a real TOCTOU race in `skip_card`/`suspend_card`'s RPC body, not the client-INSERT hypothesis originally guessed here). Full root cause, fix, and verification: see the "Follow-up — 14/09/2026 (skip_card / suspend_card atomic-upsert fix)" section at the top of this file.
+- **Status:** ✅ RESOLVED (14/09/2026).
+
 ## Sprint 7.11 — 14/09/2026 (fitb authoring + confidence-gated grading)
 
 ### [14/09/2026] Bulk-upload template's `descriptive_case_study` example row had an unquoted comma, corrupting its column count — ✅ FIXED

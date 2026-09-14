@@ -1,6 +1,50 @@
 # Changelog
 
 ---
+## [2026-09-14] fix: skip_card/suspend_card atomic upsert — closes a live 23505 race condition (SQL deployed & verified 7/7 PASS; ⏳ not yet committed)
+
+Found live while verifying Sprint 7.12 (unrelated). `StudyMode.jsx`'s "Skip 24hr" threw `23505 duplicate key value violates reviews_user_flashcard_unique` on a never-reviewed card. Both `skip_card` and `suspend_card` wrote `reviews` via a non-atomic `UPDATE ...; IF NOT FOUND THEN INSERT ...` — safe for one call, but a TOCTOU race under concurrent calls (none of StudyMode's 5 "Skip 24hr" buttons disable while the RPC is in flight). Fixed by rewriting both as a single atomic `INSERT ... ON CONFLICT (user_id, flashcard_id) DO UPDATE`. Pure SQL fix — no frontend change needed, the race lived entirely in the RPC.
+
+### Fixed
+- **`skip_card(p_user_id, p_flashcard_id)`, `suspend_card(p_user_id, p_flashcard_id)`** (`docs/database/bugfixes/17_FUNCTIONS_skip_suspend_card_atomic_upsert.sql`) — atomic `ON CONFLICT DO UPDATE` upsert replaces the non-atomic `UPDATE`/`IF NOT FOUND INSERT` pair. IDOR guard, timezone logic, search_path reproduced verbatim from the live body (confirmed via `16_DIAGNOSTIC` before deploying — matched `docs/database/bugfixes/09_FUNCTIONS_fix_skip_suspend_card_reviews_columns.sql` exactly, no undocumented drift).
+
+### ✅ Verified — `18_TEST_verify_skip_suspend_atomic_upsert.sql`, 7/7 PASS
+Calling each function twice in a row on the same never-reviewed card (the deterministic path a real race's "loser" call takes) — no error, exactly one `reviews` row survives. IDOR regression re-confirmed (cross-user call still rejected).
+
+### Files Changed
+- **New:** `docs/database/bugfixes/{16_DIAGNOSTIC_skip_card_race_condition,17_FUNCTIONS_skip_suspend_card_atomic_upsert,18_TEST_verify_skip_suspend_atomic_upsert}.sql` (all 3 ✅ run against production).
+- **Changed:** `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/tracking/bugs.md`.
+
+---
+## [2026-09-14] feat(sprint-7.12): concept_card structured authoring + browse-only viewer + StudyMode leak fix (get_browsable_decks v6 deployed & verified 5/5 PASS; frontend live-verified end to end; ⏳ not yet committed)
+
+Phase 7, last type in the roster. Concept cards are browse-only reference material — no grade, no rung, no `reviews` row, ever (D-06). `npm run build` clean; `npx eslint` clean on every changed file (same 2 pre-existing `FlashcardCreate.jsx` baseline errors reconfirmed).
+
+### Fixed — StudyMode leak (D-06 violation, closed before it ever hit real content)
+`get_study_queue` already excluded `concept_card` from the *due*-set (since Sprint 6.0). The actual gap was `StudyMode.jsx`'s separate "due OR never-reviewed" fallback filter, which didn't check `question_type` — since a concept card by definition has no `reviews` row, it passed the "never-reviewed → new card" fallback and could reach a student in the plain flashcard flip UI, gradeable via `apply_review`. Pre-flight confirmed 0 `reviews`/`review_events` rows ever existed for `concept_card` — a live gap, not a live incident. Fixed with one added `c.question_type !== 'concept_card'` clause in the same filter. Live-verified by replaying the exact fetch pipeline against the live DB: the test concept card was present in the deck's raw card set (never-due, never-reviewed — exactly the leak condition) but absent from the final filtered study list.
+
+### Added
+- **`src/lib/conceptCard.js`** (new) — `buildConceptOptions()` (drops any `{term, definition}` row missing either half), `validateConceptTerms()`, `emptyConceptTerm()`/`emptyConceptTerms()`. `CONCEPT_MIN_TERMS`=1, `CONCEPT_MAX_TERMS`=10.
+- **"Concept Card" question-type option** in `FlashcardCreate.jsx`, **ungated** (open to all users, like flashcard/theory — nothing is ever graded, so there's no authoring-judgment risk to gate against). Front label "Concept Name", Back label "Summary", plus a repeatable Key Terms (term + definition) list editor. No "Why" field.
+- **`src/components/flashcards/ConceptCardViewer.jsx`** (new) — read-only accordion modal (heading always visible, click expands to summary + keyTerms), fetched via the 5-column deck-membership join (D-04) scoped to `question_type='concept_card'`. Zero grade buttons, zero `apply_review` calls.
+- **"Read Concepts" button** on `ReviewFlashcards.jsx` (Browse Study Sets) deck tiles with `has_concept_card=true`, opening the new viewer.
+
+### Changed
+- **`src/lib/questionTypes.js`** — `concept_card` added to `BROWSABLE_QUESTION_TYPES` and `formatQuestionType()`. Deliberately NOT added to `GRADED_QUESTION_TYPES`.
+- **`get_browsable_decks` v6** (`docs/database/sprint7.12/01_FUNCTIONS_get_browsable_decks_v6_has_concept_card.sql`) — additive `has_concept_card BOOLEAN` return column, computed in the same visibility-filtered lateral subquery that already computes `visible_card_count`. DROP+CREATE (return-shape change). ✅ Deployed; `02_TEST` — 5/5 PASS.
+- **`BulkUploadFlashcards.jsx`** — comment-only: documents why `concept_card` bulk upload is explicitly deferred (variable-length `{term, definition}` pairs don't fit the flat CSV convention cleanly, same call as `match_the_following` in 7.8-C).
+
+### ✅ Live verification — done 14/09/2026 (dev server → live Supabase, professor session)
+Authored a real concept card (Auditing & Ethics → Audit Evidence, same topic as 28 pre-existing gradeable cards) with 2 key terms. Confirmed representation via direct REST read (`options` = `[{term,definition}, ...]`, `correct_answer`/`explanation`/`scenario`/`subtype` all null). "Study" on that deck served only the 24 due/new gradeable cards (verified via pipeline replay, not just UI click-through — the Skip-24hr button hit an unrelated pre-existing bug, flagged separately). "Read Concepts" opened correctly with both key terms rendered (including a colon inside a definition, validating the bulk-upload-deferral reasoning). Zero `reviews` rows ever created for the concept card, confirmed via direct REST read before and after all testing. Console clean aside from the unrelated skip-card bug. QA row deleted after verification (operator confirmed).
+
+### Out-of-scope bug found, fixed same day as a dedicated follow-up
+`StudyMode.jsx`'s Skip-24hr action threw `23505 duplicate key value violates reviews_user_flashcard_unique`. Discovered incidentally during this sprint's live verification; unrelated to concept_card. Root cause and fix: see the `fix: skip_card/suspend_card atomic upsert` entry above.
+
+### Files Changed
+- **New:** `src/lib/conceptCard.js`, `src/components/flashcards/ConceptCardViewer.jsx`, `docs/database/sprint7.12/{00_DIAGNOSTIC_preflight,01_FUNCTIONS_get_browsable_decks_v6_has_concept_card,02_TEST_verify_get_browsable_decks_v6}.sql`.
+- **Changed:** `src/lib/questionTypes.js`, `src/pages/dashboard/Study/StudyMode.jsx`, `src/pages/dashboard/Content/FlashcardCreate.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx`, `src/pages/dashboard/Study/ReviewFlashcards.jsx`, `docs/active/blueprint.md`, `docs/reference/{DATABASE_SCHEMA,FILE_STRUCTURE}.md`, `docs/active/now.md`, `docs/tracking/bugs.md`.
+
+---
 ## [2026-09-14] feat(sprint-7.11): fitb authoring + confidence-gated grading (zero SQL needed; frontend live-verified end to end; ⏳ not yet committed)
 
 Phase 7, the last of the 5 D-10-gated types (`mcq`/`correct_incorrect`/`case_study_mcq`/`match_the_following`/`fitb`) to get a real authoring path. `fitb`'s verdict is confidence-gated, not binary (D-13) — a matching typed answer is confident-correct (`is_correct=true`), a non-matching one is NEVER treated as wrong, falling back to a full free-recall self-grade (`is_correct=NULL`). There is no "confident-wrong" state; no code path submits `is_correct=false` for this type. `npm run build` clean; `npx eslint` clean on every changed file (same 2 pre-existing `FlashcardCreate.jsx` baseline errors + 1 warning reconfirmed).

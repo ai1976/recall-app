@@ -350,7 +350,12 @@ export default function StudyMode({
         const reviewedIds = new Set((reviewed || []).map(r => r.flashcard_id));
 
         cleanedData = cleanedData
-          .filter(c => dueIds.has(c.id) || !reviewedIds.has(c.id))
+          // concept_card is browse-only reference material (D-06) — never enters a
+          // study session, regardless of due/never-reviewed status. get_study_queue
+          // already excludes it from the due set; this closes the "never reviewed"
+          // fallback below, which would otherwise re-admit it as a new card since a
+          // concept card by definition has no reviews row.
+          .filter(c => c.question_type !== 'concept_card' && (dueIds.has(c.id) || !reviewedIds.has(c.id)))
           // due card -> its stored rung; never-reviewed card -> undefined (new-card ladder entry)
           .map(c => ({ ...c, rung: rungById.has(c.id) ? rungById.get(c.id) : undefined }));
       }
