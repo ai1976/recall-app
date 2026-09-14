@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStudySession } from '@/contexts/StudySessionContext';
 import { Button } from '@/components/ui/button';
-import { Card as RvCard, GradeButtonRow, VerifiedEdge, AnswerOption } from '@/components/revisop';
+import { Card as RvCard, GradeButtonRow, VerifiedEdge, AnswerOption, MatchZone } from '@/components/revisop';
 import { bucketForDays, isReadingBody } from '@/lib/revisop-tokens';
 import ContentPreviewWall from '@/components/ui/ContentPreviewWall';
 import FlagButton from '@/components/ui/FlagButton';
@@ -73,9 +73,18 @@ export default function StudyMode({
   // (grade, skip, skip-topic, restart) moved currentIndex.
   const [mcqSelectedIndex, setMcqSelectedIndex] = useState(null);
   const [mcqIsCorrect, setMcqIsCorrect] = useState(null);
+  // match_the_following (Sprint 7.8): the student's in-progress left->right
+  // assignment, plus revealed/verdict state once "Check answers" is tapped.
+  // {} = nothing assigned yet. Reset on every card change, same as MCQ above.
+  const [matchPairs, setMatchPairs] = useState({});
+  const [matchRevealed, setMatchRevealed] = useState(false);
+  const [matchIsCorrect, setMatchIsCorrect] = useState(null);
   useEffect(() => {
     setMcqSelectedIndex(null);
     setMcqIsCorrect(null);
+    setMatchPairs({});
+    setMatchRevealed(false);
+    setMatchIsCorrect(null);
   }, [currentIndex]);
   const [loading, setLoading] = useState(true);
   // Post-forward animation gate — true briefly between a grade submit and the
@@ -446,6 +455,23 @@ export default function StudyMode({
       // No apply_review call yet — the student still needs to pick Hard/Medium/Easy.
     } else {
       handleMcqWrong(optIndex);
+    }
+  };
+
+  // match_the_following (Sprint 7.8): unlike a single tap, this type builds up
+  // an answer across multiple taps, so there's no one moment that determines
+  // the verdict — an explicit Submit reveals every row's correctness at once.
+  // Overall verdict is all-or-nothing (every row must match); a wrong set
+  // submits 'hard' immediately on reveal, same hybrid-grading moment as MCQ.
+  const handleMatchSubmit = () => {
+    const currentCard = flashcards[currentIndex];
+    const correctMap = currentCard.options?.correct || {};
+    const left = currentCard.options?.left || [];
+    const allCorrect = left.every((_, i) => matchPairs[i] === correctMap[i]);
+    setMatchRevealed(true);
+    setMatchIsCorrect(allCorrect);
+    if (!allCorrect) {
+      submitReview('hard', false);
     }
   };
 
@@ -996,9 +1022,93 @@ export default function StudyMode({
                 transitioning ? 'rv-forward-out' : 'rv-forward-in',
               )}
             >
-              <VerifiedEdge on={(showAnswer || mcqSelectedIndex !== null) && !!currentCard.is_verified} />
+              <VerifiedEdge on={(showAnswer || mcqSelectedIndex !== null || matchRevealed) && !!currentCard.is_verified} />
               <div className="flex-1 min-w-0 p-5 sm:p-8 md:p-12 flex flex-col justify-center items-center">
-              {GRADED_QUESTION_TYPES.includes(currentCard.question_type) ? (
+              {currentCard.question_type === 'match_the_following' ? (
+                <div className="w-full">
+                  <div className="mb-6 flex items-center justify-center gap-2">
+                    <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
+                      QUESTION
+                    </span>
+                    {currentCard.front_text && (
+                      <SpeakButton
+                        onClick={handleSpeakFront}
+                        isSpeaking={isSpeaking}
+                        isSupported={isSupported}
+                      />
+                    )}
+                  </div>
+
+                  <p className="text-xl md:text-2xl font-semibold text-rv-ink-900 mb-6 whitespace-pre-wrap text-center">
+                    {currentCard.front_text}
+                  </p>
+
+                  <MatchZone
+                    left={currentCard.options?.left || []}
+                    right={currentCard.options?.right || []}
+                    pairs={matchPairs}
+                    onChange={setMatchPairs}
+                    revealed={matchRevealed}
+                    correct={currentCard.options?.correct || {}}
+                  />
+
+                  {matchRevealed && Array.isArray(currentCard.points_to_remember) && currentCard.points_to_remember.length > 0 && (
+                    <div className="mt-3.5 rounded-rec bg-rv-bg-2 border-l-[3px] border-rv-navy px-4 py-3.5 text-left">
+                      <p className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400 mb-1.5">WHY</p>
+                      {currentCard.points_to_remember.map((point, i) => (
+                        <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900">
+                          {point}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {!matchRevealed ? (
+                    <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+                      <Button
+                        onClick={handleMatchSubmit}
+                        disabled={!(currentCard.options?.left || []).every((_, i) => matchPairs[i] !== undefined)}
+                        size="lg"
+                        className="gap-2 px-6 sm:px-8 min-h-[48px]"
+                      >
+                        Check Answers
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleSkip}
+                        className="gap-2"
+                      >
+                        <SkipForward className="h-4 w-4" />
+                        Skip 24hr
+                      </Button>
+                      {currentCard.user_id !== user?.id && (
+                        <FlagButton contentType="flashcard" contentId={currentCard.id} />
+                      )}
+                    </div>
+                  ) : matchIsCorrect === false ? (
+                    <div className="mt-6 border-t border-rv-border pt-6 text-center">
+                      <Button
+                        onClick={advanceCard}
+                        size="lg"
+                        className="gap-2 px-6 sm:px-8 min-h-[48px]"
+                      >
+                        Continue
+                      </Button>
+                      <p className="text-sm text-rv-ink-400 mt-3">
+                        Marked as Hard — you'll see this again soon
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mt-6 border-t border-rv-border pt-6">
+                      <GradeButtonRow
+                        grades={gradeButtons}
+                        onGrade={(g) => handleRating(g.rating, true)}
+                        prompt="How well did you know it?"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : GRADED_QUESTION_TYPES.includes(currentCard.question_type) ? (
                 <div className="w-full">
                   <div className="mb-6 flex items-center justify-center gap-2">
                     <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
@@ -1333,15 +1443,21 @@ export default function StudyMode({
 
             <div className="text-center mt-6">
               <p className="text-sm text-rv-ink-400">
-                {GRADED_QUESTION_TYPES.includes(currentCard.question_type)
-                  ? (mcqSelectedIndex === null
-                      ? "Choose an answer"
-                      : mcqIsCorrect === false
+                {currentCard.question_type === 'match_the_following'
+                  ? (!matchRevealed
+                      ? "Match every item, then check your answers"
+                      : matchIsCorrect === false
                         ? "Tap Continue to move on"
                         : "Rate how well you knew it to continue")
-                  : showAnswer
-                    ? "Rate how well you remembered to continue"
-                    : "Try to recall the answer before revealing it"}
+                  : GRADED_QUESTION_TYPES.includes(currentCard.question_type)
+                    ? (mcqSelectedIndex === null
+                        ? "Choose an answer"
+                        : mcqIsCorrect === false
+                          ? "Tap Continue to move on"
+                          : "Rate how well you knew it to continue")
+                    : showAnswer
+                      ? "Rate how well you remembered to continue"
+                      : "Try to recall the answer before revealing it"}
               </p>
             </div>
           </div>

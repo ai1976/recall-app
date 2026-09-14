@@ -22,17 +22,20 @@ export const formatQuestionType = (qt) => {
   return map[qt] || qt.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
-// Question types with a real authoring/content path as of Sprint 7.7 — the only
+// Question types with a real authoring/content path as of Sprint 7.8 — the only
 // ones worth offering in a "narrow decks by type" filter. Add to this array (not
 // hardcoded JSX) as later sprints ship new authorable types.
 export const BROWSABLE_QUESTION_TYPES = [
   'flashcard', 'mcq', 'true_false', 'correct_incorrect', 'theory', 'test_your_understanding',
+  'match_the_following',
 ];
 
-// D-10 (blueprint.md §3.1) verdict-bearing types with a real authoring UI as of Sprint 7.7 —
-// mcq, true_false, correct_incorrect all render through the same AnswerOption/hybrid-grading
-// path in StudyMode.jsx. case_study_mcq/integrated_case/match_the_following/fitb are also
-// D-10-gated at the DB layer but have no authoring UI yet — do not add them here until they do.
+// D-10 (blueprint.md §3.1) verdict-bearing types that render through the SHARED
+// AnswerOption/hybrid-grading list in StudyMode.jsx — mcq, true_false, correct_incorrect
+// all pick one option from a flat list. match_the_following also has a real authoring UI
+// as of Sprint 7.8 but renders through its OWN MatchZone branch (a build-up-then-submit
+// pairing interaction, not a single tap) — deliberately NOT added here. case_study_mcq/
+// integrated_case/fitb are also D-10-gated at the DB layer but have no authoring UI yet.
 export const GRADED_QUESTION_TYPES = ['mcq', 'true_false', 'correct_incorrect'];
 
 // true_false/correct_incorrect auto-populate `options` from this pair — never professor-typed,

@@ -1,6 +1,42 @@
 # Changelog
 
 ---
+## [2026-09-14] feat(sprint-7.8): Match the following (SQL confirmed needing zero changes; frontend live-verified end to end; ⏳ not yet committed)
+
+Phase 7, sprint 9 — the first genuinely new interaction mechanic since mcq: left-item/right-item pairing, not a collapse into the shared mcq/true_false/correct_incorrect machinery the way Sprint 7.7's types were. Verdict is still deterministic (fully correct or not), so the hybrid-grading contract is unchanged; `apply_review`/`review_events`/both analytics RPCs needed zero changes. `npm run build` clean; `npx eslint` clean on every changed file (pre-existing `FlashcardCreate.jsx` baseline errors reconfirmed via `git stash` to predate this sprint).
+
+### Pre-flight — ✅ run by the operator 14/09/2026, real finding: zero SQL needed
+This session has only the anon key (`VITE_SUPABASE_ANON_KEY` in `.env.local`) — no service-role key or direct Postgres connection string — so `docs/database/sprint7.8/00_DIAGNOSTIC_preflight.sql` had to be run by the operator in the Supabase SQL Editor rather than by this session. Result: live `pg_get_constraintdef(chk_flashcards_question_type)` includes `'match_the_following'::text` exactly; both `flashcards_gate_verdict_types_insert`/`_update` RESTRICTIVE policies' `with_check` list it exactly in their `<> ALL (ARRAY[...])` clause; zero pre-existing `match_the_following` rows. `match_the_following` was already added to both the CHECK constraint and the D-10 gate back in Sprint 7.5, exactly as documented — no `fitb`-style naming drift this time. Same "needed zero SQL" outcome as true_false/correct_incorrect in Sprint 7.7.
+
+### ✅ Live verification — done 14/09/2026 (dev server → live Supabase, real professor + student accounts, account owner typing credentials directly into the driven browser)
+Authored a 4-pair card and a 3-pair card as professor (`back_text` derivation, auto-generated letters, independent left/right add/remove editors — including mid-authoring row removal — all confirmed exact). Graded the wrong path (2-of-4 rows deliberately swapped): session ledger incremented "Hard 1" before Continue, proving `apply_review('hard', false)` fires on Check Answers; per-row reveal showed correct/incorrect simultaneously regardless of overall verdict. Graded the correct path (all rows matched): `GradeButtonRow` appeared with real interval previews and no pre-selected default. Confirmed the due-filter excludes an already-graded card on re-entry (zero special-casing in `get_study_queue`), the student Create page shows no type leak, Browse Study Sets' filter narrows correctly, and both analytics widgets (`get_question_type_performance`, `get_educator_accuracy_by_qtype`) show real two-measure data with the exact expected math (1 wrong + 1 correct → 50%/50%). Console clean.
+
+### Changed (naming follow-up, same session)
+- **`FlashcardCreate.jsx`** per-block heading — was `{formatQuestionType(card.questionType)} {index + 1}` (e.g. "Flashcard 1"), now **`Item {index + 1} — {formatQuestionType(card.questionType)}`** (e.g. "Item 1 — Flashcard", "Item 1 — Match the following"). Type names themselves are unchanged everywhere else (Question Type dropdown, Progress/Dashboard widgets, Browse Study Sets filter) — this only clarifies that "1" counts items, not decks.
+
+### Fixed (bonus, found during live verification)
+- **`Progress.jsx`** had its own stale, independently-maintained question-type label map (`QT_LABELS` — keys `match`/`fill_blank`/`short_answer`/`case_study`, none ever real `chk_flashcards_question_type` values) instead of the shared `formatQuestionType()` Sprint 7.6 built specifically to prevent this class of drift (the same bug Sprint 7.5 already fixed once in `Dashboard.jsx`). Live-observed rendering the new `match_the_following` row as its raw db key. Fixed by deleting the local map and delegating to the shared helper — re-verified live, `npx eslint` clean.
+
+### ⏳ Not yet done
+- Git commit/push — operator action, per the sprint's Deployment Order Rule and mandatory pre-9 checklist.
+
+### Added
+- **`src/lib/matchTheFollowing.js`** (new) — `keyForRightIndex()` (auto-generates A/B/C... right-item keys by list position, never professor-typed), `buildMatchOptions()` (assembles the `{left,right,correct}` options jsonb shape), `deriveMatchBackText()`, `validateMatchPairs()`. Same shared-helper pattern as `src/lib/mcq.js`.
+- **`src/components/revisop/MatchZone.jsx`** (new) — the pick-a-left-row/assign-a-right-badge interaction, translated from the design reference's interaction logic (`docs/active/design-review/revisop-pass2-reference.jsx` `MatchZone`, lines 649-730) into the project's real tokens (`rounded-rec`, `--rv-navy`/`--rv-slate`, `font-plex-mono`) rather than its inline-style/green-for-correct treatment. The one revisop primitive actually wired into a production page (`StudyMode.jsx`), unlike its `/__design`-only siblings.
+- **`docs/database/sprint7.8/00_DIAGNOSTIC_preflight.sql`** (✅ run against production 14/09/2026) — live `chk_flashcards_question_type` definition, D-10 RESTRICTIVE policy IN-list, existing-row sanity check. All three confirmed clean.
+
+### Changed
+- **Representation (locked):** `question_type='match_the_following'` uses `options` = `{ left: string[], right: {k,v}[], correct: {[leftIndex]: k} }` — deliberately different from mcq's flat array, since the correct mapping needs to live colocated with the `right` list it references. `correct_answer` stays NULL (no single scalar "the answer"). Left/right locked to the same length this sprint (no distractor right-options — explicit future refinement).
+- **`FlashcardCreate.jsx`** — new "Match the following" question-type option (role-gated like mcq/true_false/correct_incorrect). Left items and right items are two independent add/remove editors (2-8 rows each), not paired rows; a "Correct Mapping" section renders one `<Select>` per left item. Draft autosave/restore extended to carry `matchLeft`/`matchRight`/`matchCorrect`; the restore-time role-downgrade check now uses a local `isD10GatedType()` (previously `GRADED_QUESTION_TYPES.includes(...)` alone would have missed this type).
+- **`StudyMode.jsx`** — new top-level render branch, checked *before* `GRADED_QUESTION_TYPES.includes(...)`, with its own `matchPairs`/`matchRevealed`/`matchIsCorrect` state (reset every card change). A "Check Answers" button (enabled only once every left row is assigned) is the explicit commit action, since the answer builds up across multiple taps rather than one. On submit, every row reveals its own correctness regardless of the overall verdict; **overall verdict is all-or-nothing** (3-of-4 correct still grades as wrong) — a deliberate simplification, not an oversight. Hybrid grading unchanged: wrong → immediate `apply_review('hard', false)` + single Continue; correct → reveal + the existing unmodified `GradeButtonRow`.
+- **`src/lib/questionTypes.js`** — `BROWSABLE_QUESTION_TYPES` gains `match_the_following` (one-line addition). `GRADED_QUESTION_TYPES` deliberately left unchanged — it drives the shared single-tap list branch that this type does not use.
+- **`Progress.jsx`** — `qtLabel()` now delegates to the shared `formatQuestionType()` instead of its own stale local map (see Fixed, above).
+
+### Files Changed
+- **New:** `src/lib/matchTheFollowing.js`, `src/components/revisop/MatchZone.jsx`, `docs/database/sprint7.8/00_DIAGNOSTIC_preflight.sql`.
+- **Changed:** `src/lib/questionTypes.js`, `src/components/revisop/index.js`, `src/pages/dashboard/Study/StudyMode.jsx`, `src/pages/dashboard/Content/FlashcardCreate.jsx`, `src/pages/dashboard/Study/Progress.jsx`, `docs/active/blueprint.md`, `docs/reference/{DATABASE_SCHEMA,FILE_STRUCTURE}.md`, `docs/active/now.md`.
+
+---
 ## [2026-09-13] feat(sprint-7.7): True/False, Correct/Incorrect + free-recall labels + Create-page naming sweep (SQL deployed & verified live; frontend live-verified end to end; ✅ committed `1693e1a`)
 
 Phase 7, sprint 8 — second and third proof that the question-type architecture generalizes cheaply. `true_false`/`correct_incorrect` reuse the mcq machinery end-to-end (representation, StudyMode rendering, hybrid grading); `theory`/`test_your_understanding` reuse the plain-flashcard front/back path with zero new StudyMode code. Mid-session, a naming inconsistency was raised and folded in as a copy-only rename. `npm run build` clean; `npx eslint` clean on every changed file (pre-existing baseline errors confirmed via `git stash` to predate this sprint).

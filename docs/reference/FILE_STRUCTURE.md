@@ -135,6 +135,7 @@ recall-app
 │   │   │   ├── GradeButtonRow.jsx               ← the climax — ≥48px navy-outline, mono interval, slate miss
 │   │   │   ├── IntervalChip.jsx                 ← mono micro forward-ledger marker (r4)
 │   │   │   ├── Label.jsx                        ← uppercase tracked eyebrow (type atom)
+│   │   │   ├── MatchZone.jsx                    ← match_the_following pick/assign/reveal (Sprint 7.8) — wired into prod (StudyMode.jsx), unlike its QA-only siblings
 │   │   │   ├── Num.jsx                          ← Plex Mono tabular numeric span (type atom)
 │   │   │   ├── Row.jsx                          ← record container (r4) + optional VerifiedEdge
 │   │   │   ├── VerifiedEdge.jsx                 ← 3px navy verified rail
@@ -290,7 +291,8 @@ recall-app
 - `src/lib/notifyEdge.js` — fire-and-forget helpers for Edge Function calls
 - `src/lib/revisop-tokens.js` — RevisOp reskin shared JS (Phase 6 S6.1): `REVISOP_LITERATA_ENABLED` gate (off), `REVISOP_BUCKETS`, `bucketForDays()` / `ledgerFromForecast()`. No Supabase.
 - `src/lib/mcq.js` — Sprint 7.5 MCQ authoring helpers shared by `FlashcardCreate.jsx` + `BulkUploadFlashcards.jsx`: `compactMcqOptions()` (drops blank option rows, remaps correct index by original position), `deriveMcqBackText()`, `toPointsToRemember()`, `validateMcqOptions()`. Pure functions, no Supabase, no React.
-- `src/lib/questionTypes.js` — Sprint 7.6: `formatQuestionType()` (question_type slug → label; moved out of a `Dashboard.jsx`-local const so `ReviewFlashcards.jsx`'s Question Type filter uses identical labels) + `BROWSABLE_QUESTION_TYPES` (types with a real authoring path — `flashcard`/`mcq` since 7.6, `true_false`/`correct_incorrect`/`theory`/`test_your_understanding` added Sprint 7.7; extend this array, not JSX, for future types). **Sprint 7.7 additions:** `GRADED_QUESTION_TYPES` (`['mcq','true_false','correct_incorrect']` — drives StudyMode.jsx's shared AnswerOption-list rendering branch) + `VERDICT_OPTION_LABELS` (auto-populated option pairs for true_false/correct_incorrect authoring). Pure functions, no Supabase, no React.
+- `src/lib/matchTheFollowing.js` — Sprint 7.8 match_the_following authoring helpers, `FlashcardCreate.jsx` only (bulk upload deferred, 7.8-C): `keyForRightIndex()` (auto-generates A/B/C... right-item keys by list position), `buildMatchOptions()` (assembles the `{left,right,correct}` options jsonb shape), `deriveMatchBackText()`, `validateMatchPairs()`. Pure functions, no Supabase, no React.
+- `src/lib/questionTypes.js` — Sprint 7.6: `formatQuestionType()` (question_type slug → label; moved out of a `Dashboard.jsx`-local const so `ReviewFlashcards.jsx`'s Question Type filter uses identical labels) + `BROWSABLE_QUESTION_TYPES` (types with a real authoring path — `flashcard`/`mcq` since 7.6, `true_false`/`correct_incorrect`/`theory`/`test_your_understanding` added Sprint 7.7, `match_the_following` added Sprint 7.8; extend this array, not JSX, for future types). **Sprint 7.7 additions:** `GRADED_QUESTION_TYPES` (`['mcq','true_false','correct_incorrect']` — drives StudyMode.jsx's shared AnswerOption-list rendering branch; `match_the_following` deliberately NOT added here — it renders through its own `MatchZone` branch instead) + `VERDICT_OPTION_LABELS` (auto-populated option pairs for true_false/correct_incorrect authoring). Pure functions, no Supabase, no React.
 - `src/hooks/usePushNotifications.js` — Web Push permission + VAPID subscribe/unsubscribe
 - `src/components/notifications/PushPermissionBanner.jsx` — one-time push opt-in prompt on Dashboard
 

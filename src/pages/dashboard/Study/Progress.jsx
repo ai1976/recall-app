@@ -30,6 +30,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import StudyHeatmap from '@/components/progress/StudyHeatmap';
 import SubjectMasteryTable from '@/components/progress/SubjectMasteryTable';
 import { Num, Label } from '@/components/revisop';
+import { formatQuestionType } from '@/lib/questionTypes';
 
 // The Num atom's type treatment without its ink-900 colour — for numerals that
 // should INHERIT a muted parent colour rather than carry their own. (An explicit
@@ -55,18 +56,14 @@ const WINDOW_OPTIONS = [
   { key: 'all', label: 'All Time' },
 ];
 
-const QT_LABELS = {
-  flashcard:    'Flashcard',
-  mcq:          'MCQ',
-  true_false:   'True / False',
-  short_answer: 'Short Answer',
-  theory:       'Theory',
-  fill_blank:   'Fill in the Blanks',
-  match:        'Match the Following',
-  case_study:   'Case Study',
-  correct_incorrect: 'Correct / Incorrect',
-};
-const qtLabel = (key) => QT_LABELS[key] ?? key;
+// Sprint 7.8 fix: this used to be a locally-maintained label map with stale/
+// never-live keys (`match`, `fill_blank`, `short_answer`, `case_study` — none
+// of these are real chk_flashcards_question_type values, and it lacked
+// `test_your_understanding`/`match_the_following`/etc.), so any type outside
+// its 4 correct entries rendered as its raw db key (e.g. "match_the_following"
+// instead of "Match the following") — the same class of drift Sprint 7.5 fixed
+// in Dashboard.jsx. Now points at the single shared source of truth.
+const qtLabel = (key) => formatQuestionType(key);
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function MyProgress() {
