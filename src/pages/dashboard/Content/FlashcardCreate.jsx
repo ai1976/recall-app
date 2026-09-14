@@ -33,12 +33,20 @@ import {
   deriveMatchBackText,
   validateMatchPairs,
 } from '@/lib/matchTheFollowing';
+import {
+  CASE_MIN_QUESTIONS,
+  CASE_MAX_QUESTIONS,
+  CASE_DEFAULT_QUESTIONS,
+  emptyCaseQuestion,
+  validateCaseStudy,
+} from '@/lib/caseStudyMcq';
 import { GRADED_QUESTION_TYPES, VERDICT_OPTION_LABELS, THEORY_SUBTYPE_LABELS, formatQuestionType } from '@/lib/questionTypes';
 
 const emptyMcqOptions = () => Array.from({ length: MCQ_DEFAULT_OPTIONS }, () => '');
 const emptyMatchLeft = () => Array.from({ length: MATCH_DEFAULT_PAIRS }, () => '');
 const emptyMatchRight = () => Array.from({ length: MATCH_DEFAULT_PAIRS }, () => '');
 const emptyMatchCorrect = () => Array.from({ length: MATCH_DEFAULT_PAIRS }, () => null);
+const emptyCaseQuestions = () => Array.from({ length: CASE_DEFAULT_QUESTIONS }, () => emptyCaseQuestion(MCQ_DEFAULT_OPTIONS));
 // D-10-gated types that need a role check on draft restore (a role could have
 // changed since the draft was saved) — GRADED_QUESTION_TYPES alone would miss
 // match_the_following, since it renders through its own StudyMode branch, not
@@ -92,7 +100,7 @@ export default function FlashcardCreate() {
       front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null,
       questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null,
       matchLeft: emptyMatchLeft(), matchRight: emptyMatchRight(), matchCorrect: emptyMatchCorrect(), why: '',
-      subtype: null,
+      subtype: null, caseScenario: '', caseQuestions: emptyCaseQuestions(),
     }
   ]);
 
@@ -108,7 +116,10 @@ export default function FlashcardCreate() {
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
 
   // True when the user has entered card content or added extra cards
-  const isDirty = flashcards.some(c => c.front.trim() || c.back.trim()) || flashcards.length > 1;
+  const isDirty = flashcards.some(c =>
+    c.front.trim() || c.back.trim() ||
+    c.caseScenario?.trim() || c.caseQuestions?.some(q => q.front.trim())
+  ) || flashcards.length > 1;
 
   // Intercept browser back button when dirty via popstate
   useEffect(() => {
@@ -156,6 +167,8 @@ export default function FlashcardCreate() {
             matchCorrect: c.matchCorrect || emptyMatchCorrect(),
             why: c.why || '',
             subtype: c.subtype || null,
+            caseScenario: c.caseScenario || '',
+            caseQuestions: c.caseQuestions || emptyCaseQuestions(),
           })),
         }));
       } catch (err) {
@@ -304,7 +317,7 @@ export default function FlashcardCreate() {
         front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null,
         questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null,
         matchLeft: emptyMatchLeft(), matchRight: emptyMatchRight(), matchCorrect: emptyMatchCorrect(), why: '',
-        subtype: null,
+        subtype: null, caseScenario: '', caseQuestions: emptyCaseQuestions(),
       }
     ]);
   };
@@ -398,6 +411,74 @@ export default function FlashcardCreate() {
     const matchCorrect = [...card.matchCorrect];
     matchCorrect[leftIndex] = rightIndexOrNull;
     updated[cardIndex] = { ...card, matchCorrect };
+    setFlashcards(updated);
+  };
+
+  // case_study_mcq (Sprint 7.10) — one shared scenario + N independent
+  // mcq-shaped question blocks. Each question block gets its own options
+  // editor, mirroring updateMcqOption/addMcqOption/removeMcqOption above but
+  // nested one level deeper (card -> caseQuestions[qIndex] -> options).
+  const updateCaseScenario = (cardIndex, value) => {
+    const updated = [...flashcards];
+    updated[cardIndex] = { ...updated[cardIndex], caseScenario: value };
+    setFlashcards(updated);
+  };
+
+  const addCaseQuestion = (cardIndex) => {
+    const updated = [...flashcards];
+    const card = updated[cardIndex];
+    if (card.caseQuestions.length >= CASE_MAX_QUESTIONS) return;
+    updated[cardIndex] = { ...card, caseQuestions: [...card.caseQuestions, emptyCaseQuestion(MCQ_DEFAULT_OPTIONS)] };
+    setFlashcards(updated);
+  };
+
+  const removeCaseQuestion = (cardIndex, qIndex) => {
+    const updated = [...flashcards];
+    const card = updated[cardIndex];
+    if (card.caseQuestions.length <= CASE_MIN_QUESTIONS) return;
+    updated[cardIndex] = { ...card, caseQuestions: card.caseQuestions.filter((_, i) => i !== qIndex) };
+    setFlashcards(updated);
+  };
+
+  const updateCaseQuestionField = (cardIndex, qIndex, field, value) => {
+    const updated = [...flashcards];
+    const questions = [...updated[cardIndex].caseQuestions];
+    questions[qIndex] = { ...questions[qIndex], [field]: value };
+    updated[cardIndex] = { ...updated[cardIndex], caseQuestions: questions };
+    setFlashcards(updated);
+  };
+
+  const updateCaseQuestionOption = (cardIndex, qIndex, optIndex, value) => {
+    const updated = [...flashcards];
+    const questions = [...updated[cardIndex].caseQuestions];
+    const options = [...questions[qIndex].options];
+    options[optIndex] = value;
+    questions[qIndex] = { ...questions[qIndex], options };
+    updated[cardIndex] = { ...updated[cardIndex], caseQuestions: questions };
+    setFlashcards(updated);
+  };
+
+  const addCaseQuestionOption = (cardIndex, qIndex) => {
+    const updated = [...flashcards];
+    const questions = [...updated[cardIndex].caseQuestions];
+    const q = questions[qIndex];
+    if (q.options.length >= MCQ_MAX_OPTIONS) return;
+    questions[qIndex] = { ...q, options: [...q.options, ''] };
+    updated[cardIndex] = { ...updated[cardIndex], caseQuestions: questions };
+    setFlashcards(updated);
+  };
+
+  const removeCaseQuestionOption = (cardIndex, qIndex, optIndex) => {
+    const updated = [...flashcards];
+    const questions = [...updated[cardIndex].caseQuestions];
+    const q = questions[qIndex];
+    if (q.options.length <= MCQ_MIN_OPTIONS) return;
+    const options = q.options.filter((_, i) => i !== optIndex);
+    let correctOptionIndex = q.correctOptionIndex;
+    if (correctOptionIndex === optIndex) correctOptionIndex = null;
+    else if (correctOptionIndex > optIndex) correctOptionIndex -= 1;
+    questions[qIndex] = { ...q, options, correctOptionIndex };
+    updated[cardIndex] = { ...updated[cardIndex], caseQuestions: questions };
     setFlashcards(updated);
   };
 
@@ -498,6 +579,11 @@ export default function FlashcardCreate() {
 
       for (let i = 0; i < flashcards.length; i++) {
         const card = flashcards[i];
+        if (card.questionType === 'case_study_mcq') {
+          const caseError = validateCaseStudy(card.caseScenario, card.caseQuestions);
+          if (caseError) throw new Error(`Item ${i + 1}: ${caseError}`);
+          continue;
+        }
         if (!card.front.trim()) {
           throw new Error(`Item ${i + 1}: Front side cannot be empty`);
         }
@@ -603,8 +689,47 @@ export default function FlashcardCreate() {
       // For study_groups visibility, store as 'private' in individual cards too
       const cardVisibility = visibility === 'study_groups' ? 'private' : visibility;
 
-      // ✅ Create flashcards WITH deck_id
-      const flashcardsToInsert = flashcards.map(card => {
+      // ✅ Create flashcards WITH deck_id — case_study_mcq fans one authoring
+      // block out into N independent rows sharing one batch_id (D-01 grouping
+      // pattern), each its own SRS card; every other type stays a 1:1 map.
+      const flashcardsToInsert = flashcards.flatMap(card => {
+        if (card.questionType === 'case_study_mcq') {
+          const caseBatchId = crypto.randomUUID();
+          const scenarioText = card.caseScenario.trim();
+          return card.caseQuestions.map(q => {
+            const { options, correctIndex } = compactMcqOptions(q.options, q.correctOptionIndex);
+            return {
+              user_id: user.id,
+              contributed_by: user.id,
+              creator_id: user.id,
+              content_creator_id: null,
+              deck_id: deckId,
+              target_course: finalTargetCourse,
+              subject_id: subjectId,
+              topic_id: topicId,
+              custom_subject: customSubjectValue,
+              custom_topic: customTopicValue,
+              front_text: q.front,
+              back_text: deriveMcqBackText(options, correctIndex),
+              front_image_url: null,
+              back_image_url: null,
+              tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+              visibility: cardVisibility,
+              is_verified: false,
+              difficulty: 'medium',
+              batch_id: caseBatchId,
+              batch_description: null,
+              question_type: 'case_study_mcq',
+              options,
+              correct_answer: String(correctIndex),
+              points_to_remember: null,
+              explanation: toPointsToRemember(q.why),
+              subtype: null,
+              scenario: scenarioText,
+            };
+          });
+        }
+
         const isMcq = card.questionType === 'mcq';
         const isCorrectIncorrect = card.questionType === 'correct_incorrect';
         const isMatch = card.questionType === 'match_the_following';
@@ -635,7 +760,7 @@ export default function FlashcardCreate() {
           rowBackImageUrl = null;
         }
 
-        return {
+        return [{
           user_id: user.id,
           contributed_by: user.id,
           creator_id: user.id,
@@ -662,7 +787,7 @@ export default function FlashcardCreate() {
           points_to_remember: null,
           explanation: (isMcq || isCorrectIncorrect || isMatch) ? toPointsToRemember(card.why) : null,
           subtype: card.questionType === 'theory' ? card.subtype : null,
-        };
+        }];
       });
 
       const { error: insertError } = await supabase
@@ -687,8 +812,8 @@ export default function FlashcardCreate() {
       toast({
         title: 'Success!',
         description: visibility === 'study_groups'
-          ? `${flashcards.length} study item(s) created and shared with ${selectedGroupIds.length} group(s)`
-          : `${flashcards.length} study item(s) created successfully`,
+          ? `${flashcardsToInsert.length} study item(s) created and shared with ${selectedGroupIds.length} group(s)`
+          : `${flashcardsToInsert.length} study item(s) created successfully`,
       });
 
       // Fire-and-forget push notification — never blocks the create flow
@@ -738,6 +863,8 @@ export default function FlashcardCreate() {
       matchCorrect: c.matchCorrect || emptyMatchCorrect(),
       why: c.why || '',
       subtype: c.subtype || null,
+      caseScenario: c.caseScenario || '',
+      caseQuestions: c.caseQuestions || emptyCaseQuestions(),
     })));
     setPendingDraft(null);
     toast({
@@ -768,7 +895,7 @@ export default function FlashcardCreate() {
   const isSystemCourse = !showCustomCourse &&
     disciplines.some(d => d.name.toLowerCase() === (targetCourse || '').toLowerCase());
 
-  const unsavedCount = flashcards.filter(c => c.front.trim() || c.back.trim()).length;
+  const unsavedCount = flashcards.filter(c => c.front.trim() || c.back.trim() || c.caseScenario?.trim()).length;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
@@ -1119,6 +1246,8 @@ export default function FlashcardCreate() {
                         matchRight: val === 'match_the_following' ? emptyMatchRight() : updated[index].matchRight,
                         matchCorrect: val === 'match_the_following' ? emptyMatchCorrect() : updated[index].matchCorrect,
                         subtype: val === 'theory' ? updated[index].subtype : null,
+                        caseScenario: val === 'case_study_mcq' ? '' : updated[index].caseScenario,
+                        caseQuestions: val === 'case_study_mcq' ? emptyCaseQuestions() : updated[index].caseQuestions,
                       };
                       setFlashcards(updated);
                     }}
@@ -1132,10 +1261,12 @@ export default function FlashcardCreate() {
                       {canAuthorGradedTypes && <SelectItem value="mcq">Multiple Choice</SelectItem>}
                       {canAuthorGradedTypes && <SelectItem value="correct_incorrect">Correct / Incorrect</SelectItem>}
                       {canAuthorGradedTypes && <SelectItem value="match_the_following">Match the following</SelectItem>}
+                      {canAuthorGradedTypes && <SelectItem value="case_study_mcq">Case study MCQ</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
 
+                {card.questionType !== 'case_study_mcq' && (
                 <div className="space-y-2">
                   <Label htmlFor={`front-${index}`}>
                     {card.questionType === 'mcq' ? 'Question' : card.questionType === 'correct_incorrect' ? 'Statement' : card.questionType === 'match_the_following' ? 'Instructions' : 'Front'}
@@ -1198,6 +1329,7 @@ export default function FlashcardCreate() {
                     </div>
                   )}
                 </div>
+                )}
 
                 {card.questionType === 'mcq' ? (
                   <div className="space-y-4">
@@ -1407,6 +1539,108 @@ export default function FlashcardCreate() {
                         rows={3}
                       />
                     </div>
+                  </div>
+                ) : card.questionType === 'case_study_mcq' ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor={`scenario-${index}`}>Scenario <span className="text-red-500">*</span></Label>
+                      <Textarea
+                        id={`scenario-${index}`}
+                        value={card.caseScenario}
+                        onChange={(e) => updateCaseScenario(index, e.target.value)}
+                        placeholder="The shared case narrative — every question below is graded against this scenario"
+                        rows={5}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Shown above every question in this case. {CASE_MIN_QUESTIONS}-{CASE_MAX_QUESTIONS} questions per case.
+                      </p>
+                    </div>
+
+                    {card.caseQuestions.map((q, qi) => (
+                      <div key={qi} className="rounded-lg border p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-semibold">Question {qi + 1}</Label>
+                          {card.caseQuestions.length > CASE_MIN_QUESTIONS && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeCaseQuestion(index, qi)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+
+                        <Textarea
+                          value={q.front}
+                          onChange={(e) => updateCaseQuestionField(index, qi, 'front', e.target.value)}
+                          placeholder="The question stem"
+                          rows={2}
+                        />
+
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            Mark the correct option. {MCQ_MIN_OPTIONS}-{MCQ_MAX_OPTIONS} options.
+                          </p>
+                          <div className="space-y-2">
+                            {q.options.map((opt, optIndex) => (
+                              <div key={optIndex} className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  name={`case-correct-${index}-${qi}`}
+                                  checked={q.correctOptionIndex === optIndex}
+                                  onChange={() => updateCaseQuestionField(index, qi, 'correctOptionIndex', optIndex)}
+                                  className="h-4 w-4 shrink-0 accent-[#1e1b4b]"
+                                  aria-label={`Mark option ${optIndex + 1} as correct`}
+                                />
+                                <Input
+                                  value={opt}
+                                  onChange={(e) => updateCaseQuestionOption(index, qi, optIndex, e.target.value)}
+                                  placeholder={`Option ${optIndex + 1}`}
+                                />
+                                {q.options.length > MCQ_MIN_OPTIONS && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeCaseQuestionOption(index, qi, optIndex)}
+                                    className="text-destructive hover:text-destructive shrink-0"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          {q.options.length < MCQ_MAX_OPTIONS && (
+                            <Button type="button" variant="outline" size="sm" onClick={() => addCaseQuestionOption(index, qi)}>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Add Option
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor={`case-why-${index}-${qi}`}>Why (Optional)</Label>
+                          <Textarea
+                            id={`case-why-${index}-${qi}`}
+                            value={q.why}
+                            onChange={(e) => updateCaseQuestionField(index, qi, 'why', e.target.value)}
+                            placeholder="Explanation shown after the student answers this question"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                    ))}
+
+                    {card.caseQuestions.length < CASE_MAX_QUESTIONS && (
+                      <Button type="button" variant="outline" size="sm" onClick={() => addCaseQuestion(index)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Question
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-2">

@@ -1,6 +1,31 @@
 # Changelog
 
 ---
+## [2026-09-14] feat(sprint-7.10): case_study_mcq authoring + StudyMode rendering (zero SQL needed, pre-flight confirmed live 3/3; frontend live-verified end to end; ⏳ not yet committed)
+
+Phase 7, first genuinely new feature-building sprint since 7.8 (7.9 was pure hygiene). `case_study_mcq`: a shared scenario narrative followed by 2-8 independently-gradeable mcq questions — each its own `flashcards` row (own SRS card, own rung, own schedule), scenario text duplicated across every row sharing the case's `batch_id` (D-01 pattern) so it renders on any review day without a JOIN. Renders through the **same shared `AnswerOption`/hybrid-grading branch as mcq** (`case_study_mcq` added to `GRADED_QUESTION_TYPES`), not a new mechanic — the only new UI is a collapsible "CASE SCENARIO" block above the question. `npm run build` clean; `npx eslint` clean on every changed file (same 2 pre-existing `FlashcardCreate.jsx` baseline errors + 1 warning reconfirmed via `git stash` to predate this sprint).
+
+### Pre-flight — `docs/database/sprint7.10/00_DIAGNOSTIC_preflight.sql` — ✅ run by the operator, all 3 checks PASS
+Live `chk_flashcards_question_type`: the 8-value enum docs already claimed, `case_study_mcq` included. Both `flashcards_gate_verdict_types_insert`/`_update` RESTRICTIVE policies' `with_check`: `case_study_mcq` present in both IN-lists (D-12's Sprint 7.9 migration only removed `integrated_case`, confirmed not to have touched `case_study_mcq`). `scenario` non-null count: 0 — confirmed genuinely unused before this sprint activated it. This session has only the anon key — no `pg_catalog`/`pg_policy` introspection access — so the operator ran this in the Supabase SQL Editor.
+
+### Real finding: zero SQL needed
+Same outcome as `true_false`/`correct_incorrect` (7.7) and `match_the_following` (7.8) — `case_study_mcq` was already a live CHECK-constraint value and already in the D-10 gate's IN-list since Sprint 7.5, before any authoring UI existed for it. This sprint only builds the authoring surface + StudyMode rendering.
+
+### Added
+- **`src/lib/caseStudyMcq.js`** (new) — `emptyCaseQuestion()`, `validateCaseStudy()` (scenario + 2-8 mcq-shaped question blocks, each validated via `validateMcqOptions()` from `src/lib/mcq.js`), `CASE_MIN_QUESTIONS`/`CASE_MAX_QUESTIONS`/`CASE_DEFAULT_QUESTIONS` (2/8/3).
+- **"Case study MCQ" question-type option** in `FlashcardCreate.jsx`, gated professor/admin/super_admin (D-10) — one shared Scenario textarea + a repeatable mcq-shaped question-block editor. On save, one authoring block fans out into N `INSERT` rows sharing one `batch_id`/`scenario`/`subject_id`/`topic_id`.
+- **Bulk upload support** in `BulkUploadFlashcards.jsx` — built, not deferred (unlike match_the_following's 7.8-C deferral): new `scenario` + `case_group` CSV columns. Rows sharing a `case_group` value (unique per case within the file) resolve client-side into one shared `batch_id`, separate from the file-wide `batch_id` every other bulk-uploaded row in the same CSV shares.
+- **Collapsible "CASE SCENARIO" block** in `StudyMode.jsx`, rendered above the question when `currentCard.scenario` is present, open by default, reset to open on every card change.
+
+### Changed
+- **`src/lib/questionTypes.js`** — `GRADED_QUESTION_TYPES` → `['mcq','correct_incorrect','case_study_mcq']`; `case_study_mcq` added to `BROWSABLE_QUESTION_TYPES` (already had a `formatQuestionType` label — "Case study MCQ" — from Sprint 6's original type-documentation pass).
+- **`FlashcardCreate.jsx`** — toast now counts actual inserted rows (`flashcardsToInsert.length`) instead of authoring blocks (`flashcards.length`), so a 1-block/3-question case correctly reports "3 study item(s) created" — a pre-existing accuracy gap this sprint's fan-out made visible, fixed for all types, not just case_study_mcq. `isD10GatedType()` on draft-restore already covers `case_study_mcq` via the widened `GRADED_QUESTION_TYPES`.
+
+### Files Changed
+- **New:** `src/lib/caseStudyMcq.js`, `docs/database/sprint7.10/00_DIAGNOSTIC_preflight.sql`.
+- **Changed:** `src/lib/questionTypes.js`, `src/pages/dashboard/Content/FlashcardCreate.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx`, `src/pages/dashboard/Study/StudyMode.jsx`, `docs/active/blueprint.md`, `docs/reference/{DATABASE_SCHEMA,FILE_STRUCTURE}.md`, `docs/active/now.md`.
+
+---
 ## [2026-09-14] fix(sprint-7.9): Schema hygiene — test_your_understanding collapse, explanation column split, integrated_case removal, true_false removal (SQL deployed & verified live, 30/30 PASS across two test files; frontend live-verified end to end; ⏳ not yet committed)
 
 Phase 7, schema hygiene sprint. Four small, independent items — three resolved as decisions during earlier Phase 7 design work, a fourth (item 4) raised by Anand mid-session, right after items 1-3 had already shipped: `test_your_understanding` never was a real distinct type (duplicated `theory`+`subtype`, same fix the CA Revision Portal's own D14 already made); grading-rationale text and free-recall "key takeaways" were sharing one column (`points_to_remember`) since Sprint 7.5/7.8; `integrated_case` was a live CHECK-constraint value with no authoring UI or StudyMode rendering ever built for it; `true_false` and `correct_incorrect` were mechanically-identical siblings (CA Revision Portal's own schema docs say so explicitly) with a 6-vs-0 real-usage skew toward `correct_incorrect` in that project's live content. `npm run build` clean; `npx eslint` clean on every changed file (same 2 pre-existing `FlashcardCreate.jsx` baseline errors reconfirmed).

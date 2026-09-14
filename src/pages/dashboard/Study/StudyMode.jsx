@@ -34,6 +34,8 @@ import {
   MoreVertical,
   PauseCircle,
   Trash2,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GRADED_QUESTION_TYPES } from '@/lib/questionTypes';
@@ -79,12 +81,17 @@ export default function StudyMode({
   const [matchPairs, setMatchPairs] = useState({});
   const [matchRevealed, setMatchRevealed] = useState(false);
   const [matchIsCorrect, setMatchIsCorrect] = useState(null);
+  // case_study_mcq (Sprint 7.10): the shared scenario's collapsible-block open
+  // state. Defaults open — the student needs to read it to answer. Resets to
+  // open on every card change, same as the other per-card interaction state.
+  const [scenarioExpanded, setScenarioExpanded] = useState(true);
   useEffect(() => {
     setMcqSelectedIndex(null);
     setMcqIsCorrect(null);
     setMatchPairs({});
     setMatchRevealed(false);
     setMatchIsCorrect(null);
+    setScenarioExpanded(true);
   }, [currentIndex]);
   const [loading, setLoading] = useState(true);
   // Post-forward animation gate — true briefly between a grade submit and the
@@ -1110,6 +1117,28 @@ export default function StudyMode({
                 </div>
               ) : GRADED_QUESTION_TYPES.includes(currentCard.question_type) ? (
                 <div className="w-full">
+                  {currentCard.question_type === 'case_study_mcq' && currentCard.scenario && (
+                    <div className="w-full mb-6 rounded-rec border border-rv-border bg-rv-bg-1 text-left">
+                      <button
+                        type="button"
+                        onClick={() => setScenarioExpanded((v) => !v)}
+                        className="w-full flex items-center justify-between gap-2 px-4 py-3"
+                      >
+                        <span className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400">CASE SCENARIO</span>
+                        {scenarioExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-rv-ink-400 shrink-0" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-rv-ink-400 shrink-0" />
+                        )}
+                      </button>
+                      {scenarioExpanded && (
+                        <p className="font-literata text-[15px] leading-relaxed text-rv-ink-900 px-4 pb-4 whitespace-pre-wrap">
+                          {currentCard.scenario}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <div className="mb-6 flex items-center justify-center gap-2">
                     <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
                       QUESTION
