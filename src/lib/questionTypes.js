@@ -4,44 +4,58 @@
  * display strings instead of inventing new ones.
  */
 
-// question_type slug → readable label
+// question_type slug → readable label. test_your_understanding, integrated_case, and
+// true_false are deliberately absent as of Sprint 7.9 (D-10/D-12/D-14 corrections) —
+// all three are now live-uninsertable (dropped from chk_flashcards_question_type), so
+// any row still showing one is impossible post-migration; no fallback label is worth carrying.
 export const formatQuestionType = (qt) => {
   if (!qt) return 'Other';
   const map = {
     flashcard: 'Flashcard',
     mcq: 'MCQ',
-    true_false: 'True / False',
     correct_incorrect: 'Correct / Incorrect',
     theory: 'Theory',
-    test_your_understanding: 'Test your understanding',
     case_study_mcq: 'Case study MCQ',
-    integrated_case: 'Integrated case',
     match_the_following: 'Match the following',
     fitb: 'Fill in the blanks',
   };
   return map[qt] || qt.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
-// Question types with a real authoring/content path as of Sprint 7.8 — the only
+// Question types with a real authoring/content path as of Sprint 7.9 — the only
 // ones worth offering in a "narrow decks by type" filter. Add to this array (not
-// hardcoded JSX) as later sprints ship new authorable types.
+// hardcoded JSX) as later sprints ship new authorable types. test_your_understanding
+// removed (D-10 correction) — collapsed into theory + subtype. true_false removed
+// (D-14) — merged into correct_incorrect (CA Revision Portal's own schema documents
+// them as functionally identical, and correct_incorrect is the one with real usage).
 export const BROWSABLE_QUESTION_TYPES = [
-  'flashcard', 'mcq', 'true_false', 'correct_incorrect', 'theory', 'test_your_understanding',
+  'flashcard', 'mcq', 'correct_incorrect', 'theory',
   'match_the_following',
 ];
 
+// theory's required 2-option classification field (Sprint 7.9) — mirrors the CA
+// Revision Portal's own D14 exactly (pure_theory | descriptive_case_study),
+// activating the flashcards.subtype column that had sat unused since it was added.
+// Classification metadata only — does not change how StudyMode.jsx renders the card.
+export const THEORY_SUBTYPE_LABELS = {
+  pure_theory: 'Pure theory',
+  descriptive_case_study: 'Descriptive case study',
+};
+
 // D-10 (blueprint.md §3.1) verdict-bearing types that render through the SHARED
-// AnswerOption/hybrid-grading list in StudyMode.jsx — mcq, true_false, correct_incorrect
-// all pick one option from a flat list. match_the_following also has a real authoring UI
+// AnswerOption/hybrid-grading list in StudyMode.jsx — mcq and correct_incorrect both
+// pick one option from a flat list. match_the_following also has a real authoring UI
 // as of Sprint 7.8 but renders through its OWN MatchZone branch (a build-up-then-submit
 // pairing interaction, not a single tap) — deliberately NOT added here. case_study_mcq/
-// integrated_case/fitb are also D-10-gated at the DB layer but have no authoring UI yet.
-export const GRADED_QUESTION_TYPES = ['mcq', 'true_false', 'correct_incorrect'];
+// fitb are also D-10-gated at the DB layer but have no authoring UI yet. integrated_case
+// (D-12) and true_false (D-14) were also on this list — both removed entirely, no
+// longer live question_type values.
+export const GRADED_QUESTION_TYPES = ['mcq', 'correct_incorrect'];
 
-// true_false/correct_incorrect auto-populate `options` from this pair — never professor-typed,
+// correct_incorrect auto-populates `options` from this pair — never professor-typed,
 // unlike MCQ's free-text options. Index into the pair is what `correct_answer` stores (as a
-// string), same 0-based-index convention as MCQ.
+// string), same 0-based-index convention as MCQ. true_false's ['True','False'] pair removed
+// (D-14, Sprint 7.9) — merged into correct_incorrect, the one with real usage.
 export const VERDICT_OPTION_LABELS = {
-  true_false: ['True', 'False'],
   correct_incorrect: ['Correct', 'Incorrect'],
 };

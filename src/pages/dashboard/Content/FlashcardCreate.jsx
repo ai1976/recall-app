@@ -33,13 +33,9 @@ import {
   deriveMatchBackText,
   validateMatchPairs,
 } from '@/lib/matchTheFollowing';
-import { GRADED_QUESTION_TYPES, VERDICT_OPTION_LABELS, formatQuestionType } from '@/lib/questionTypes';
+import { GRADED_QUESTION_TYPES, VERDICT_OPTION_LABELS, THEORY_SUBTYPE_LABELS, formatQuestionType } from '@/lib/questionTypes';
 
 const emptyMcqOptions = () => Array.from({ length: MCQ_DEFAULT_OPTIONS }, () => '');
-// true_false/correct_incorrect (Sprint 7.7) — verdict-bearing like mcq but with exactly 2
-// auto-populated, non-editable options. Reuses the same options/correctOptionIndex card
-// fields as mcq so compactMcqOptions/deriveMcqBackText/toPointsToRemember all still apply.
-const isTwoWayVerdictType = (qt) => qt === 'true_false' || qt === 'correct_incorrect';
 const emptyMatchLeft = () => Array.from({ length: MATCH_DEFAULT_PAIRS }, () => '');
 const emptyMatchRight = () => Array.from({ length: MATCH_DEFAULT_PAIRS }, () => '');
 const emptyMatchCorrect = () => Array.from({ length: MATCH_DEFAULT_PAIRS }, () => null);
@@ -66,8 +62,8 @@ export default function FlashcardCreate() {
   const { toast } = useToast();
   const { isProfessor, isAdmin, isSuperAdmin } = useRole();
   // D-10 (Phase 7): only professor/admin/super_admin may author verdict-bearing
-  // question types (mcq, true_false, correct_incorrect et al). The question-type
-  // selector itself is shown to everyone (Sprint 7.7 adds theory/test_your_understanding,
+  // question types (mcq, correct_incorrect et al). The question-type
+  // selector itself is shown to everyone (theory/flashcard/concept_card are
   // free-recall types open to all users) — only the graded-type options within it are
   // hidden from students. This is a UX nicety only; the real boundary is the
   // flashcards_gate_verdict_types RLS policy — see docs/database/sprint7.5.
@@ -96,6 +92,7 @@ export default function FlashcardCreate() {
       front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null,
       questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null,
       matchLeft: emptyMatchLeft(), matchRight: emptyMatchRight(), matchCorrect: emptyMatchCorrect(), why: '',
+      subtype: null,
     }
   ]);
 
@@ -158,6 +155,7 @@ export default function FlashcardCreate() {
             matchRight: c.matchRight || emptyMatchRight(),
             matchCorrect: c.matchCorrect || emptyMatchCorrect(),
             why: c.why || '',
+            subtype: c.subtype || null,
           })),
         }));
       } catch (err) {
@@ -306,6 +304,7 @@ export default function FlashcardCreate() {
         front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null,
         questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null,
         matchLeft: emptyMatchLeft(), matchRight: emptyMatchRight(), matchCorrect: emptyMatchCorrect(), why: '',
+        subtype: null,
       }
     ]);
   };
@@ -505,7 +504,7 @@ export default function FlashcardCreate() {
         if (card.questionType === 'mcq') {
           const mcqError = validateMcqOptions(card.options, card.correctOptionIndex);
           if (mcqError) throw new Error(`Item ${i + 1}: ${mcqError}`);
-        } else if (isTwoWayVerdictType(card.questionType)) {
+        } else if (card.questionType === 'correct_incorrect') {
           if (card.correctOptionIndex !== 0 && card.correctOptionIndex !== 1) {
             throw new Error(`Item ${i + 1}: Mark which side is correct`);
           }
@@ -514,6 +513,8 @@ export default function FlashcardCreate() {
           if (matchError) throw new Error(`Item ${i + 1}: ${matchError}`);
         } else if (!card.back.trim()) {
           throw new Error(`Item ${i + 1}: Back side cannot be empty`);
+        } else if (card.questionType === 'theory' && card.subtype !== 'pure_theory' && card.subtype !== 'descriptive_case_study') {
+          throw new Error(`Item ${i + 1}: Choose a subtype for this theory item`);
         }
       }
 
@@ -605,7 +606,7 @@ export default function FlashcardCreate() {
       // ✅ Create flashcards WITH deck_id
       const flashcardsToInsert = flashcards.map(card => {
         const isMcq = card.questionType === 'mcq';
-        const isTwoWayVerdict = isTwoWayVerdictType(card.questionType);
+        const isCorrectIncorrect = card.questionType === 'correct_incorrect';
         const isMatch = card.questionType === 'match_the_following';
 
         let rowOptions = null;
@@ -619,7 +620,7 @@ export default function FlashcardCreate() {
           rowCorrectAnswer = String(correctIndex);
           rowBackText = deriveMcqBackText(options, correctIndex);
           rowBackImageUrl = null;
-        } else if (isTwoWayVerdict) {
+        } else if (isCorrectIncorrect) {
           rowOptions = VERDICT_OPTION_LABELS[card.questionType];
           rowCorrectAnswer = String(card.correctOptionIndex);
           rowBackText = deriveMcqBackText(rowOptions, card.correctOptionIndex);
@@ -658,7 +659,9 @@ export default function FlashcardCreate() {
           question_type: card.questionType,
           options: rowOptions,
           correct_answer: rowCorrectAnswer,
-          points_to_remember: (isMcq || isTwoWayVerdict || isMatch) ? toPointsToRemember(card.why) : null,
+          points_to_remember: null,
+          explanation: (isMcq || isCorrectIncorrect || isMatch) ? toPointsToRemember(card.why) : null,
+          subtype: card.questionType === 'theory' ? card.subtype : null,
         };
       });
 
@@ -725,13 +728,16 @@ export default function FlashcardCreate() {
       backImagePreview: c.backImageUrl || null,
       questionType: (isD10GatedType(c.questionType) && !canAuthorGradedTypes)
         ? 'flashcard'
-        : (c.questionType || 'flashcard'),
+        // A stale draft from before Sprint 7.9 could carry the now-retired
+        // test_your_understanding value — fall back to its collapse target.
+        : (c.questionType === 'test_your_understanding' ? 'theory' : (c.questionType || 'flashcard')),
       options: c.options || emptyMcqOptions(),
       correctOptionIndex: c.correctOptionIndex ?? null,
       matchLeft: c.matchLeft || emptyMatchLeft(),
       matchRight: c.matchRight || emptyMatchRight(),
       matchCorrect: c.matchCorrect || emptyMatchCorrect(),
       why: c.why || '',
+      subtype: c.subtype || null,
     })));
     setPendingDraft(null);
     toast({
@@ -1112,6 +1118,7 @@ export default function FlashcardCreate() {
                         matchLeft: val === 'match_the_following' ? emptyMatchLeft() : updated[index].matchLeft,
                         matchRight: val === 'match_the_following' ? emptyMatchRight() : updated[index].matchRight,
                         matchCorrect: val === 'match_the_following' ? emptyMatchCorrect() : updated[index].matchCorrect,
+                        subtype: val === 'theory' ? updated[index].subtype : null,
                       };
                       setFlashcards(updated);
                     }}
@@ -1122,9 +1129,7 @@ export default function FlashcardCreate() {
                     <SelectContent>
                       <SelectItem value="flashcard">Flashcard</SelectItem>
                       <SelectItem value="theory">Theory</SelectItem>
-                      <SelectItem value="test_your_understanding">Test your understanding</SelectItem>
                       {canAuthorGradedTypes && <SelectItem value="mcq">Multiple Choice</SelectItem>}
-                      {canAuthorGradedTypes && <SelectItem value="true_false">True / False</SelectItem>}
                       {canAuthorGradedTypes && <SelectItem value="correct_incorrect">Correct / Incorrect</SelectItem>}
                       {canAuthorGradedTypes && <SelectItem value="match_the_following">Match the following</SelectItem>}
                     </SelectContent>
@@ -1133,7 +1138,7 @@ export default function FlashcardCreate() {
 
                 <div className="space-y-2">
                   <Label htmlFor={`front-${index}`}>
-                    {card.questionType === 'mcq' ? 'Question' : isTwoWayVerdictType(card.questionType) ? 'Statement' : card.questionType === 'match_the_following' ? 'Instructions' : 'Front'}
+                    {card.questionType === 'mcq' ? 'Question' : card.questionType === 'correct_incorrect' ? 'Statement' : card.questionType === 'match_the_following' ? 'Instructions' : 'Front'}
                   </Label>
                   <Textarea
                     id={`front-${index}`}
@@ -1142,8 +1147,8 @@ export default function FlashcardCreate() {
                     placeholder={
                       card.questionType === 'mcq'
                         ? 'The question stem'
-                        : isTwoWayVerdictType(card.questionType)
-                          ? 'The statement to mark true/false or correct/incorrect'
+                        : card.questionType === 'correct_incorrect'
+                          ? 'The statement to mark correct or incorrect'
                           : card.questionType === 'match_the_following'
                             ? 'e.g., Match each cost concept with its formula'
                             : 'Question or prompt'
@@ -1255,7 +1260,7 @@ export default function FlashcardCreate() {
                       />
                     </div>
                   </div>
-                ) : isTwoWayVerdictType(card.questionType) ? (
+                ) : card.questionType === 'correct_incorrect' ? (
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Correct Answer <span className="text-red-500">*</span></Label>
@@ -1413,6 +1418,25 @@ export default function FlashcardCreate() {
                       placeholder="Answer or explanation"
                       rows={3}
                     />
+
+                    {card.questionType === 'theory' && (
+                      <div className="space-y-2 pt-2">
+                        <Label htmlFor={`subtype-${index}`}>Subtype <span className="text-red-500">*</span></Label>
+                        <Select
+                          value={card.subtype || ''}
+                          onValueChange={(val) => updateFlashcard(index, 'subtype', val)}
+                        >
+                          <SelectTrigger id={`subtype-${index}`}>
+                            <SelectValue placeholder="Choose a subtype..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(THEORY_SUBTYPE_LABELS).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-2">
                       {uploadingImage?.index === index && uploadingImage?.side === 'back' ? (

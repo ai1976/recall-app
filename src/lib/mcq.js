@@ -13,7 +13,8 @@ export function deriveMcqBackText(options, correctIndex) {
   return options?.[correctIndex] ?? '';
 }
 
-/** points_to_remember jsonb: one array entry per non-blank line, or null if empty. */
+/** explanation jsonb: one array entry per non-blank line, or null if empty. Also
+ *  reused for points_to_remember on free-recall types that ever adopt this shape. */
 export function toPointsToRemember(whyText) {
   if (!whyText) return null;
   const lines = whyText.split('\n').map(l => l.trim()).filter(Boolean);

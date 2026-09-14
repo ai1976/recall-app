@@ -1,7 +1,41 @@
 # Changelog
 
 ---
-## [2026-09-14] feat(sprint-7.8): Match the following (SQL confirmed needing zero changes; frontend live-verified end to end; ⏳ not yet committed)
+## [2026-09-14] fix(sprint-7.9): Schema hygiene — test_your_understanding collapse, explanation column split, integrated_case removal, true_false removal (SQL deployed & verified live, 30/30 PASS across two test files; frontend live-verified end to end; ⏳ not yet committed)
+
+Phase 7, schema hygiene sprint. Four small, independent items — three resolved as decisions during earlier Phase 7 design work, a fourth (item 4) raised by Anand mid-session, right after items 1-3 had already shipped: `test_your_understanding` never was a real distinct type (duplicated `theory`+`subtype`, same fix the CA Revision Portal's own D14 already made); grading-rationale text and free-recall "key takeaways" were sharing one column (`points_to_remember`) since Sprint 7.5/7.8; `integrated_case` was a live CHECK-constraint value with no authoring UI or StudyMode rendering ever built for it; `true_false` and `correct_incorrect` were mechanically-identical siblings (CA Revision Portal's own schema docs say so explicitly) with a 6-vs-0 real-usage skew toward `correct_incorrect` in that project's live content. `npm run build` clean; `npx eslint` clean on every changed file (same 2 pre-existing `FlashcardCreate.jsx` baseline errors reconfirmed).
+
+### Pre-flight — ✅ run by the operator 14/09/2026, all 7 checks with real numbers
+This session has only the anon key — no `pg_catalog`/`pg_policy` introspection access — so `docs/database/sprint7.9/00_DIAGNOSTIC_preflight.sql` was run by the operator in the Supabase SQL Editor. Live CHECK constraint had 11 values; `test_your_understanding` had 2 rows, `integrated_case` had 0; `points_to_remember` was non-null on 10 more rows (4 mcq, 2 true_false, 2 correct_incorrect, 2 match_the_following); `subtype` was 0 non-null; both D-10 RESTRICTIVE policies' IN-lists still listed `integrated_case`. **The operator confirmed all 12 affected rows (2 + 10) were Claude-authored QA/testing artifacts from Sprints 7.5-7.8's live verification passes, not real content**, and chose (via AskUserQuestion) to delete them rather than classify-and-migrate — real IDs were pulled live and hardcoded into the DELETE.
+
+### SQL — `docs/database/sprint7.9/{01_SCHEMA_sprint7.9_hygiene,02_TEST_verify_sprint7.9}.sql`
+One migration: `DELETE` the 12 known rows by explicit ID → `DROP`/re-`ADD CONSTRAINT chk_flashcards_question_type` without `test_your_understanding`/`integrated_case` (9 remaining values) → `ALTER POLICY` both D-10 RESTRICTIVE policies to drop the stale `integrated_case` mention → `ADD COLUMN explanation jsonb`. No backfill needed — every row that would have needed migrating was one of the 12 deleted. `02_TEST` mirrors Sprint 7.5's self-contained `BEGIN...ROLLBACK` + role-impersonation pattern: **17/17 PASS**, including a D-10 regression re-check (student `mcq` insert still rejected, professor's still succeeds) since the `ALTER POLICY` rewrote the whole `WITH CHECK` expression rather than just removing a substring.
+
+### ✅ Live verification (items 1-3) — done 14/09/2026 (dev server → live Supabase, professor session)
+Question Type selector confirmed exactly 6 options with `test_your_understanding` gone. Authored one `theory` card per subtype value (`pure_theory`, `descriptive_case_study`) — required-field validation held, both persisted correctly (confirmed via a direct Supabase client read). Authored a fresh `mcq` card with a "Why" explanation — confirmed `explanation` populated and `points_to_remember: null` on the row, then studied it live: the WHY block rendered the explanation text correctly post-reveal. `integrated_case` uninsertability confirmed via `02_TEST`'s CHECK-violation assertion (no UI path ever existed to it). Console clean. The 3 rows created during this verification pass were themselves QA artifacts and were deleted afterward, same as the earlier 12.
+
+### Item 4 — `true_false` removed, merged into `correct_incorrect` (D-14)
+Raised by Anand mid-session, noticing `true_false`/`correct_incorrect` look like the same type twice. CA Revision Portal's own `docs/SCHEMA.md` documents `correct_incorrect`'s renderer as "Identical to `true_false`, with Correct/Incorrect buttons instead" — a real-usage census of that project's live chapter files found `correct_incorrect` used 6× vs `true_false`'s 0× (its only occurrence sat in an orphaned legacy file no page loads). D-14 drafted in `blueprint.md` §3.1. Pre-flight (`03_DIAGNOSTIC_preflight_true_false_removal.sql`) confirmed 0 rows for both types, no `srs_ladder_curves` rows for either, no RPC hardcoding the string — a pure narrowing migration. `04_SCHEMA_true_false_removal.sql` deployed: narrows the CHECK constraint to 8 values, drops `true_false` from both D-10 RESTRICTIVE policies. `05_TEST_verify_true_false_removal.sql` — **13/13 PASS**, including a D-10 regression re-check post-`ALTER POLICY`. Frontend: `isTwoWayVerdictType()` retired (only one member left, collapsed to a direct equality check at 6 call sites) in `FlashcardCreate.jsx`/`BulkUploadFlashcards.jsx`. Live-verified: selector shows exactly 5 options, a fresh `correct_incorrect` card authored and studied end-to-end (reveal, WHY block, grading), console clean; test row deleted afterward.
+
+### Added
+- **`flashcards.explanation`** (jsonb, nullable) — grading-rationale text for graded types, split off `points_to_remember`.
+- **`THEORY_SUBTYPE_LABELS`** (`src/lib/questionTypes.js`) — `pure_theory`/`descriptive_case_study`, activating the previously-inert `subtype` column.
+- **Subtype `<Select>`** in `FlashcardCreate.jsx`, required for `question_type='theory'`, rendered below the Back textarea.
+- **`subtype` CSV column** in `BulkUploadFlashcards.jsx`'s template, required for `theory` rows.
+
+### Changed
+- **`chk_flashcards_question_type`** — narrowed from 11 to 8 values (`test_your_understanding`, `integrated_case`, `true_false` all removed).
+- **`flashcards_gate_verdict_types_insert`/`_update`** — `integrated_case` and `true_false` both dropped from both RESTRICTIVE policies' IN-lists (cosmetic; the CHECK constraint alone already made each uninsertable).
+- **`FlashcardCreate.jsx`/`BulkUploadFlashcards.jsx`** — graded types (`mcq`/`correct_incorrect`/`match_the_following`) now write their "Why"/explanation text to `explanation` instead of `points_to_remember` (same `toPointsToRemember()` helper, different target field). `test_your_understanding` and `true_false` both removed from the type selector / `RECOGNIZED_QUESTION_TYPES`; a stale pre-7.9 draft carrying `test_your_understanding` now restores to `theory`. `isTwoWayVerdictType()` retired.
+- **`StudyMode.jsx`** — both post-reveal WHY blocks (`GRADED_QUESTION_TYPES` branch, `match_the_following`'s `MatchZone` branch) now read `currentCard.explanation` instead of `currentCard.points_to_remember`.
+- **`src/lib/questionTypes.js`** — `test_your_understanding`/`integrated_case`/`true_false` all removed from `formatQuestionType`/`BROWSABLE_QUESTION_TYPES` (all now-uninsertable, no fallback label worth carrying); `GRADED_QUESTION_TYPES` → `['mcq','correct_incorrect']`; `VERDICT_OPTION_LABELS` down to one entry.
+
+### Files Changed
+- **New:** `docs/database/sprint7.9/{00_DIAGNOSTIC_preflight,01_SCHEMA_sprint7.9_hygiene,02_TEST_verify_sprint7.9,03_DIAGNOSTIC_preflight_true_false_removal,04_SCHEMA_true_false_removal,05_TEST_verify_true_false_removal}.sql`.
+- **Changed:** `src/lib/questionTypes.js`, `src/lib/mcq.js` (doc comment), `src/pages/dashboard/Content/FlashcardCreate.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx`, `src/pages/dashboard/Study/StudyMode.jsx`, `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/now.md`.
+
+---
+## [2026-09-14] feat(sprint-7.8): Match the following (SQL confirmed needing zero changes; frontend live-verified end to end; ✅ committed `b85afe0`)
 
 Phase 7, sprint 9 — the first genuinely new interaction mechanic since mcq: left-item/right-item pairing, not a collapse into the shared mcq/true_false/correct_incorrect machinery the way Sprint 7.7's types were. Verdict is still deterministic (fully correct or not), so the hybrid-grading contract is unchanged; `apply_review`/`review_events`/both analytics RPCs needed zero changes. `npm run build` clean; `npx eslint` clean on every changed file (pre-existing `FlashcardCreate.jsx` baseline errors reconfirmed via `git stash` to predate this sprint).
 
@@ -16,9 +50,6 @@ Authored a 4-pair card and a 3-pair card as professor (`back_text` derivation, a
 
 ### Fixed (bonus, found during live verification)
 - **`Progress.jsx`** had its own stale, independently-maintained question-type label map (`QT_LABELS` — keys `match`/`fill_blank`/`short_answer`/`case_study`, none ever real `chk_flashcards_question_type` values) instead of the shared `formatQuestionType()` Sprint 7.6 built specifically to prevent this class of drift (the same bug Sprint 7.5 already fixed once in `Dashboard.jsx`). Live-observed rendering the new `match_the_following` row as its raw db key. Fixed by deleting the local map and delegating to the shared helper — re-verified live, `npx eslint` clean.
-
-### ⏳ Not yet done
-- Git commit/push — operator action, per the sprint's Deployment Order Rule and mandatory pre-9 checklist.
 
 ### Added
 - **`src/lib/matchTheFollowing.js`** (new) — `keyForRightIndex()` (auto-generates A/B/C... right-item keys by list position, never professor-typed), `buildMatchOptions()` (assembles the `{left,right,correct}` options jsonb shape), `deriveMatchBackText()`, `validateMatchPairs()`. Same shared-helper pattern as `src/lib/mcq.js`.

@@ -12,12 +12,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, CheckCircle, XCircle, Download, ChevronDown, ChevronUp, FileText, ArrowRight, Info } from 'lucide-react';
 import { compactMcqOptions, deriveMcqBackText, toPointsToRemember, validateMcqOptions } from '@/lib/mcq';
-import { GRADED_QUESTION_TYPES, VERDICT_OPTION_LABELS } from '@/lib/questionTypes';
+import { GRADED_QUESTION_TYPES, VERDICT_OPTION_LABELS, THEORY_SUBTYPE_LABELS } from '@/lib/questionTypes';
 
 const MCQ_CSV_OPTION_COLUMNS = 4;
-// question_type values this CSV recognizes as of Sprint 7.7 — anything else falls back to 'flashcard'.
-const RECOGNIZED_QUESTION_TYPES = ['mcq', 'true_false', 'correct_incorrect', 'theory', 'test_your_understanding'];
-const isTwoWayVerdictType = (qt) => qt === 'true_false' || qt === 'correct_incorrect';
+// question_type values this CSV recognizes as of Sprint 7.9 — anything else falls back to
+// 'flashcard'. test_your_understanding removed (D-10 correction, collapsed into theory+subtype).
+// true_false removed (D-14, merged into correct_incorrect).
+const RECOGNIZED_QUESTION_TYPES = ['mcq', 'correct_incorrect', 'theory'];
+const THEORY_SUBTYPES = Object.keys(THEORY_SUBTYPE_LABELS);
 
 // ─── Stepper step component ───
 function Step({ number, title, subtitle, isOpen, isComplete, onToggle, children }) {
@@ -162,15 +164,15 @@ export default function BulkUploadFlashcards() {
 
   // ─── Download: Template CSV ───
   function downloadTemplate() {
-    const template = '\uFEFF' + `target_course,subject,topic,front,back,tags,difficulty,question_type,option_1,option_2,option_3,option_4,correct_option,explanation
-CA Intermediate,Taxation,Income Tax Basics,What is the basic exemption limit for individuals below 60 years?,₹2.5 lakhs,"#ITR,#basics",easy,,,,,,,
-CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium,,,,,,,
-CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium,,,,,,,
-CA Intermediate,Taxation,Income Tax Basics,Which of these is a deduction under Section 80C?,,"#ITR",medium,mcq,Life insurance premium,House rent paid,Medical insurance premium,Interest on savings account,1,Life insurance premium qualifies under 80C; the others fall under different sections.
-CA Intermediate,Taxation,Income Tax Basics,Interest on savings account is fully exempt from tax regardless of amount.,,"#ITR",medium,true_false,,,,,2,Only up to Rs 10000 is exempt under Section 80TTA -- beyond that it's taxable.
-CA Intermediate,Advanced Accounting,AS 1,AS 1 deals with the disclosure of accounting policies.,,"#AS",easy,correct_incorrect,,,,,1,
-CA Intermediate,Taxation,Income Tax Basics,Explain the difference between exemption and deduction under the Income Tax Act.,An exemption removes income from the tax base entirely; a deduction reduces taxable income after it's included.,"#ITR",medium,theory,,,,,,
-CA Foundation,Quantitative Aptitude,Percentages,Work through: a shop marks up cost by 25% then offers a 10% discount on the marked price. What's the net margin over cost?,Net price = 1.25 x 0.9 = 1.125x cost, so a 12.5% margin over cost.,,medium,test_your_understanding,,,,,,
+    const template = '\uFEFF' + `target_course,subject,topic,front,back,tags,difficulty,question_type,option_1,option_2,option_3,option_4,correct_option,explanation,subtype
+CA Intermediate,Taxation,Income Tax Basics,What is the basic exemption limit for individuals below 60 years?,₹2.5 lakhs,"#ITR,#basics",easy,,,,,,,,
+CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium,,,,,,,,
+CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium,,,,,,,,
+CA Intermediate,Taxation,Income Tax Basics,Which of these is a deduction under Section 80C?,,"#ITR",medium,mcq,Life insurance premium,House rent paid,Medical insurance premium,Interest on savings account,1,Life insurance premium qualifies under 80C; the others fall under different sections.,
+CA Intermediate,Taxation,Income Tax Basics,Interest on savings account is fully exempt from tax regardless of amount.,,"#ITR",medium,correct_incorrect,,,,,2,Only up to Rs 10000 is exempt under Section 80TTA -- beyond that it's taxable.,
+CA Intermediate,Advanced Accounting,AS 1,AS 1 deals with the disclosure of accounting policies.,,"#AS",easy,correct_incorrect,,,,,1,,
+CA Intermediate,Taxation,Income Tax Basics,Explain the difference between exemption and deduction under the Income Tax Act.,An exemption removes income from the tax base entirely; a deduction reduces taxable income after it's included.,"#ITR",medium,theory,,,,,,,pure_theory
+CA Foundation,Quantitative Aptitude,Percentages,Work through: a shop marks up cost by 25% then offers a 10% discount on the marked price. What's the net margin over cost?,Net price = 1.25 x 0.9 = 1.125x cost, so a 12.5% margin over cost.,,medium,theory,,,,,,,descriptive_case_study
 
 ==================================================
 HOW TO USE THIS TEMPLATE
@@ -186,13 +188,14 @@ COLUMNS:
 - subject (REQUIRED) - Must match Valid Entries exactly
 - topic (optional) - Must match Valid Entries if provided
 - front (REQUIRED) - Question / statement / front side
-- back (REQUIRED for flashcard/theory/test_your_understanding; leave blank for mcq/true_false/correct_incorrect — derived from the correct option)
+- back (REQUIRED for flashcard/theory; leave blank for mcq/correct_incorrect — derived from the correct option)
 - tags (optional) - Comma-separated, e.g. "#ITR,#basics"
 - difficulty (optional) - easy / medium / hard (defaults to medium)
-- question_type (optional) - blank/"flashcard" for a plain card, "mcq" for multiple choice, "true_false", "correct_incorrect", "theory", or "test_your_understanding"
-- option_1..option_4 (required for question_type=mcq only) - the answer choices (2-4 filled in). Leave blank for true_false/correct_incorrect — their two options ("True"/"False" or "Correct"/"Incorrect") are filled in automatically, you only pick which one is correct.
-- correct_option (required for mcq/true_false/correct_incorrect) - which option number is correct: 1-4 for mcq, 1-2 for true_false ("True"=1, "False"=2) and correct_incorrect ("Correct"=1, "Incorrect"=2)
-- explanation (optional, mcq/true_false/correct_incorrect only) - shown to the student after they answer
+- question_type (optional) - blank/"flashcard" for a plain card, "mcq" for multiple choice, "correct_incorrect", or "theory"
+- option_1..option_4 (required for question_type=mcq only) - the answer choices (2-4 filled in). Leave blank for correct_incorrect — its two options ("Correct"/"Incorrect") are filled in automatically, you only pick which one is correct.
+- correct_option (required for mcq/correct_incorrect) - which option number is correct: 1-4 for mcq, 1-2 for correct_incorrect ("Correct"=1, "Incorrect"=2)
+- explanation (optional, mcq/correct_incorrect only) - shown to the student after they answer
+- subtype (required for question_type=theory only) - "pure_theory" or "descriptive_case_study"
 
 IMPORTANT:
 ✓ Use EXACT spelling from Valid Entries file
@@ -200,7 +203,7 @@ IMPORTANT:
 ✓ Cannot create new courses/subjects/topics via bulk upload
 ✓ To add a new subject/topic, create one item via "Create Study Item" first
 ✓ Visibility is set on the upload page (private / friends / public)
-✓ question_type=mcq/true_false/correct_incorrect rows require a professor/admin account — student-authored rows of these types are rejected at upload
+✓ question_type=mcq/correct_incorrect rows require a professor/admin account — student-authored rows of these types are rejected at upload
 `;
 
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
@@ -427,8 +430,8 @@ IMPORTANT:
                 flashcard.gradedOptions = mcqOptions;
                 flashcard.gradedCorrectIndex = mcqCorrectIndex;
                 flashcard.back = deriveMcqBackText(mcqOptions, mcqCorrectIndex);
-                flashcard.pointsToRemember = toPointsToRemember(flashcard.explanation);
-              } else if (isTwoWayVerdictType(flashcard.question_type)) {
+                flashcard.explanation = toPointsToRemember(flashcard.explanation);
+              } else if (flashcard.question_type === 'correct_incorrect') {
                 if (!flashcard.target_course || !flashcard.subject || !flashcard.front) {
                   parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front)`);
                   continue;
@@ -443,7 +446,18 @@ IMPORTANT:
                 flashcard.gradedOptions = verdictOptions;
                 flashcard.gradedCorrectIndex = verdictCorrectIndex;
                 flashcard.back = deriveMcqBackText(verdictOptions, verdictCorrectIndex);
-                flashcard.pointsToRemember = toPointsToRemember(flashcard.explanation);
+                flashcard.explanation = toPointsToRemember(flashcard.explanation);
+              } else if (flashcard.question_type === 'theory') {
+                if (!flashcard.target_course || !flashcard.subject || !flashcard.front || !flashcard.back) {
+                  parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front, back)`);
+                  continue;
+                }
+                const cleanSubtype = (flashcard.subtype || '').toString().trim().toLowerCase();
+                if (!THEORY_SUBTYPES.includes(cleanSubtype)) {
+                  parseErrors.push(`Row ${i + 1}: subtype must be ${THEORY_SUBTYPES.join(' or ')} for theory rows`);
+                  continue;
+                }
+                flashcard.subtype = cleanSubtype;
               } else if (!flashcard.target_course || !flashcard.subject || !flashcard.front || !flashcard.back) {
                 parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front, back)`);
                 continue;
@@ -636,7 +650,9 @@ IMPORTANT:
           question_type: card.question_type,
           options: GRADED_QUESTION_TYPES.includes(card.question_type) ? card.gradedOptions : null,
           correct_answer: GRADED_QUESTION_TYPES.includes(card.question_type) ? String(card.gradedCorrectIndex) : null,
-          points_to_remember: GRADED_QUESTION_TYPES.includes(card.question_type) ? (card.pointsToRemember || null) : null,
+          points_to_remember: null,
+          explanation: GRADED_QUESTION_TYPES.includes(card.question_type) ? (card.explanation || null) : null,
+          subtype: card.question_type === 'theory' ? card.subtype : null,
         };
       });
 
@@ -701,7 +717,7 @@ IMPORTANT:
       console.error('Upload error:', error);
       if (error.code === '42501') {
         setErrors([
-          'Upload failed: one or more rows use a question_type (mcq, true_false, correct_incorrect) that requires a professor/admin account.',
+          'Upload failed: one or more rows use a question_type (mcq, correct_incorrect) that requires a professor/admin account.',
           'No rows were created (the whole file is uploaded as one batch) — remove those rows or upload from a professor/admin account.',
         ]);
       } else {

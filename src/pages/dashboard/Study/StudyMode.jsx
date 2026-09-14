@@ -1052,10 +1052,10 @@ export default function StudyMode({
                     correct={currentCard.options?.correct || {}}
                   />
 
-                  {matchRevealed && Array.isArray(currentCard.points_to_remember) && currentCard.points_to_remember.length > 0 && (
+                  {matchRevealed && Array.isArray(currentCard.explanation) && currentCard.explanation.length > 0 && (
                     <div className="mt-3.5 rounded-rec bg-rv-bg-2 border-l-[3px] border-rv-navy px-4 py-3.5 text-left">
                       <p className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400 mb-1.5">WHY</p>
-                      {currentCard.points_to_remember.map((point, i) => (
+                      {currentCard.explanation.map((point, i) => (
                         <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900">
                           {point}
                         </p>
@@ -1158,10 +1158,10 @@ export default function StudyMode({
                     })}
                   </div>
 
-                  {mcqSelectedIndex !== null && Array.isArray(currentCard.points_to_remember) && currentCard.points_to_remember.length > 0 && (
+                  {mcqSelectedIndex !== null && Array.isArray(currentCard.explanation) && currentCard.explanation.length > 0 && (
                     <div className="mt-3.5 rounded-rec bg-rv-bg-2 border-l-[3px] border-rv-navy px-4 py-3.5 text-left">
                       <p className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400 mb-1.5">WHY</p>
-                      {currentCard.points_to_remember.map((point, i) => (
+                      {currentCard.explanation.map((point, i) => (
                         <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900">
                           {point}
                         </p>
