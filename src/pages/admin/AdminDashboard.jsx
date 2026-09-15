@@ -1456,16 +1456,7 @@ export default function AdminDashboard() {
                           <span>Created {new Date(group.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
-                      <Button size="sm" variant="outline" className="shrink-0 ml-3"
-                        onClick={() => {
-                          const link = `${window.location.origin}/join/${group.invite_token}`;
-                          navigator.clipboard.writeText(link).then(
-                            () => alert('Invite link copied!'),
-                            () => prompt('Could not copy automatically — copy this link manually:', link)
-                          );
-                        }}>
-                        Copy Invite Link
-                      </Button>
+                      <CopyInviteLinkButton group={group} />
                     </div>
                   ))}
                 </div>
@@ -1480,6 +1471,42 @@ export default function AdminDashboard() {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+// Sprint 8.0 — reveals the invite link directly on the page instead of
+// relying on a browser dialog. navigator.clipboard.writeText() can silently
+// (or loudly) fail depending on the browser/embedding context — seen live as
+// a NotAllowedError, and in at least one environment window.alert/prompt are
+// also disabled, so a dialog-based fallback isn't reliable either. This
+// always shows the link in a selectable field regardless of what the
+// clipboard call did, so there's always a way to get it.
+function CopyInviteLinkButton({ group }) {
+  const [revealed, setRevealed] = useState(false);
+  const link = `${window.location.origin}/join/${group.invite_token}`;
+
+  if (revealed) {
+    return (
+      <div className="flex items-center gap-1 shrink-0 ml-3">
+        <input readOnly value={link} onFocus={(e) => e.target.select()}
+          className="text-xs border border-gray-300 rounded px-2 py-1.5 w-40" />
+        <Button size="sm" variant="outline" onClick={() => setRevealed(false)}>Hide</Button>
+      </div>
+    );
+  }
+
+  return (
+    <Button size="sm" variant="outline" className="shrink-0 ml-3"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(link);
+        } catch {
+          // clipboard blocked — the revealed field below is the real fallback
+        }
+        setRevealed(true);
+      }}>
+      Copy Invite Link
+    </Button>
+  );
+}
 
 // Sprint 8.0 — explicit student+batch picker for direct admin adds. No
 // course/institution guessing: the admin must pick one exact batch group
