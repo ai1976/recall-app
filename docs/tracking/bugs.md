@@ -1,5 +1,21 @@
 # Bug Tracking
 
+## Sprint 8.0 — 15/09/2026 (batch invite-link joining with admin approval)
+
+### [15/09/2026] `create_batch_group` had no admin guard — any authenticated user could call it — ✅ FIXED
+- **Found while:** rewriting `create_batch_group` for Sprint 8.0's approval workflow (unrelated to that change) — `pg_get_functiondef` on the live body showed no `is_admin()`/role check anywhere before its writes.
+- **Symptom (theoretical, not observed live):** any authenticated user (not just an admin) could call `create_batch_group` directly and create arbitrary batch groups.
+- **Root Cause:** same class of gap already found and fixed for `enroll_user_in_batch_group`/`notify_access_granted` in the earlier residual-IDOR sweep (`docs/database/security/15`) — this function was never included in that sweep.
+- **Fix:** added `IF NOT public.is_admin() THEN RAISE EXCEPTION` at the top, matching the established pattern. Bundled into `docs/database/sprint8.0/02_FUNCTIONS_batch_join_approval.sql` since the function was already being replaced for the approval-workflow change; verified via `03_TEST`'s "non-admin create_batch_group blocked" check — PASS.
+- **Status:** ✅ RESOLVED (15/09/2026, SQL deployed & verified live).
+
+### [15/09/2026] `fn_auto_enroll_batch_group` could enroll a student into the wrong batch — ✅ FIXED (by removal, not a targeted patch)
+- **Found while:** Sprint 8.0's mandatory pre-flight, before any implementation code was written (the sprint spec's own STOP condition).
+- **Symptom (theoretical — 0 duplicate-pair batch groups existed live):** the trigger resolved "the" batch group for a student purely by `(batch_course, batch_institution)`, `LIMIT 1`, with no group-id awareness. If two batch groups ever shared the same course+institution (realistic once a class runs multiple batches per level, e.g. separate exam-attempt cohorts), the trigger could silently enroll a student into the wrong one.
+- **Root Cause:** the trigger's matching logic assumed one batch group per course+institution — an assumption the real teaching model (multiple batches per level per year) doesn't hold.
+- **Fix:** rather than making the match deterministic, removed the trigger's enrollment logic entirely — batch membership now only ever comes from an explicit action (`join_group_by_token` or `enroll_user_in_batch_group`), never a guess. The trigger's course-change cleanup branch (removing membership from a student's *old* matched group) was kept, since it deletes real existing membership rather than generating a guessed one — it still resolves that old group via the same `LIMIT 1` lookup, so it carries a smaller, symmetric version of the same risk on the removal side. Flagged in blueprint.md §3.1 D-15, not fixed this sprint.
+- **Status:** ✅ RESOLVED for the enrollment (grant) side (15/09/2026, SQL deployed & verified live). Removal-side residual left open, documented.
+
 ## Follow-up — 14/09/2026 (skip_card / suspend_card atomic-upsert fix)
 
 ### [14/09/2026] skip_card / suspend_card — non-atomic UPDATE-then-INSERT race, `23505` on a concurrent call — ✅ FIXED

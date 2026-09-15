@@ -47,7 +47,7 @@
 - **follows** - One-way follow graph (separate from friendships)
 - **upvotes** - Polymorphic upvotes for notes and flashcard_decks
 - **study_groups** - Group metadata (name, type: batch/system_course/custom, invite_token)
-- **study_group_members** - Membership with invitation status (invited/active)
+- **study_group_members** - Membership with invitation status (invited/active/requested — 'requested' added Sprint 8.0)
 - **content_group_shares** - Links notes/decks to groups (cascade-deletes on group delete, NOT original content)
 - **notifications** - All notification types with JSONB metadata and Realtime enabled
 
@@ -779,7 +779,7 @@ Prevents: User A sending multiple requests to User B
 | user_id | uuid | NO | - | FK to profiles.id, ON DELETE CASCADE |
 | role | text | NO | 'member' | CHECK: admin or member |
 | joined_at | timestamptz | NO | NOW() | When joined (updated to NOW() on accept) |
-| status | text | NO | 'active' | CHECK: 'invited' or 'active'. Default 'active' for backward compat. |
+| status | text | NO | 'active' | CHECK: 'invited', 'active', or 'requested'. Default 'active' for backward compat. **'requested' added Sprint 8.0** — a student's own self-request via a batch invite link, awaiting admin approval (opposite direction from 'invited'). |
 | invited_by | uuid | YES | NULL | FK to profiles.id, ON DELETE SET NULL. Who sent the invitation. |
 
 **UNIQUE Constraint:** `UNIQUE(group_id, user_id)` - prevents duplicate membership

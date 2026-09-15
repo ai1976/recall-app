@@ -40,6 +40,10 @@ export default function AdminDashboard() {
   const [availableCourses, setAvailableCourses] = useState([]);     // from disciplines table
   const [availableInstitutions, setAvailableInstitutions] = useState([]); // distinct from profiles
 
+  // ── Pending Batch Requests state (Sprint 8.0 — self-requested via invite link)
+  const [pendingBatchRequests, setPendingBatchRequests] = useState([]);
+  const [pendingBatchRequestsLoading, setPendingBatchRequestsLoading] = useState(false);
+
   // ── Flagged content state
   const [flaggedItems, setFlaggedItems] = useState([]);
   const [flagsLoading, setFlagsLoading] = useState(false);
@@ -387,13 +391,28 @@ export default function AdminDashboard() {
       });
       setRecentUsers(prev => prev.map(u => u.id === userId ? { ...u, account_type: 'enrolled' } : u));
       setMatchedProfiles(prev => prev.map(p => p.id === userId ? { ...p, account_type: 'enrolled' } : p));
-      // Auto-enroll in matching batch group (course + institution)
-      await supabase.rpc('enroll_user_in_batch_group', { p_user_id: userId });
       // Notify the user that access has been granted
       await supabase.rpc('notify_access_granted', { p_user_id: userId });
+      // Batch group membership is a separate, explicit action (see the batch
+      // picker next to enrolled users below) — this no longer guesses a
+      // batch from course+institution.
     } catch (err) {
       console.error('grantAccess:', err);
       alert('Failed to grant access');
+    }
+  }
+
+  async function addToBatchGroup(userId, groupId) {
+    try {
+      const { error } = await supabase.rpc('enroll_user_in_batch_group', {
+        p_user_id: userId,
+        p_group_id: groupId,
+      });
+      if (error) throw error;
+      fetchBatchGroups();
+    } catch (err) {
+      console.error('addToBatchGroup:', err);
+      alert(err.message || 'Failed to add to batch group');
     }
   }
 
@@ -460,6 +479,47 @@ export default function AdminDashboard() {
       console.error('fetchBatchGroups:', err);
     } finally {
       setBatchGroupsLoading(false);
+    }
+  }
+
+  async function fetchPendingBatchRequests() {
+    setPendingBatchRequestsLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_admin_pending_batch_requests');
+      if (error) throw error;
+      setPendingBatchRequests(data ?? []);
+    } catch (err) {
+      console.error('fetchPendingBatchRequests:', err);
+    } finally {
+      setPendingBatchRequestsLoading(false);
+    }
+  }
+
+  async function approveBatchRequest(item) {
+    try {
+      const { error } = await supabase.rpc('approve_batch_join_request', {
+        p_membership_id: item.membership_id,
+      });
+      if (error) throw error;
+      fetchPendingBatchRequests();
+      fetchBatchGroups();
+    } catch (err) {
+      console.error('approveBatchRequest:', err);
+      alert(err.message || 'Failed to approve request');
+    }
+  }
+
+  async function rejectBatchRequest(item) {
+    if (!confirm(`Reject ${item.full_name}'s request to join ${item.group_name}?`)) return;
+    try {
+      const { error } = await supabase.rpc('reject_batch_join_request', {
+        p_membership_id: item.membership_id,
+      });
+      if (error) throw error;
+      fetchPendingBatchRequests();
+    } catch (err) {
+      console.error('rejectBatchRequest:', err);
+      alert(err.message || 'Failed to reject request');
     }
   }
 
@@ -546,9 +606,9 @@ export default function AdminDashboard() {
       {/* Tab bar */}
       <div className="flex border-b border-gray-200 mb-6">
         <TabButton label="Content Moderation" active={activeTab === 'content'} onClick={() => setActiveTab('content')} />
-        <TabButton label="User Management"    active={activeTab === 'users'}   onClick={() => setActiveTab('users')} />
+        <TabButton label="User Management"    active={activeTab === 'users'}   onClick={() => { setActiveTab('users'); fetchBatchGroups(); }} />
         <TabButton label="Access Requests"    active={activeTab === 'access'}  onClick={() => { setActiveTab('access'); fetchAccessRequests(); }} />
-        <TabButton label="Batch Groups"       active={activeTab === 'batch'}   onClick={() => { setActiveTab('batch'); fetchBatchGroups(); fetchBatchFormOptions(); }} />
+        <TabButton label="Batch Groups"       active={activeTab === 'batch'}   onClick={() => { setActiveTab('batch'); fetchBatchGroups(); fetchBatchFormOptions(); fetchPendingBatchRequests(); }} />
       </div>
 
       {/* ── Content Moderation ── */}
@@ -988,12 +1048,14 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div className="flex gap-2 ml-3 shrink-0">
-                          {u.account_type === 'self_registered' && (
+                          {u.account_type === 'self_registered' ? (
                             <Button size="sm" variant="outline"
                               className="text-green-600 border-green-300"
                               onClick={() => grantAccess(u.id)}>
                               Grant Access
                             </Button>
+                          ) : (
+                            <BatchGroupPicker userId={u.id} batchGroups={batchGroups} onAssign={addToBatchGroup} />
                           )}
                           {u.status !== 'suspended' && (
                             <Button size="sm" variant="outline"
@@ -1312,6 +1374,57 @@ export default function AdminDashboard() {
             </Card>
           )}
 
+          {/* Pending Batch Requests — always visible, zero-state per project rule */}
+          <div className="mb-2">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Pending Batch Requests</h4>
+            {pendingBatchRequestsLoading ? (
+              <p className="text-sm text-gray-400">Loading…</p>
+            ) : pendingBatchRequests.length === 0 ? (
+              <p className="text-sm text-gray-400 mb-4">No pending requests.</p>
+            ) : (
+              <div className="overflow-x-auto mb-4">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-gray-500 border-b">
+                      <th className="pb-2 pr-4 font-medium">Student</th>
+                      <th className="pb-2 pr-4 font-medium">Batch</th>
+                      <th className="pb-2 pr-4 font-medium">Requested</th>
+                      <th className="pb-2 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {pendingBatchRequests.map((item) => (
+                      <tr key={item.membership_id} className="hover:bg-gray-50">
+                        <td className="py-3 pr-4 font-medium text-gray-900">{item.full_name}</td>
+                        <td className="py-3 pr-4 text-gray-700">
+                          {item.group_name}
+                          <span className="block text-xs text-gray-400">
+                            {[item.batch_course, item.batch_institution].filter(Boolean).join(' · ')}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-4 text-gray-400 text-xs">
+                          {item.requested_at ? new Date(item.requested_at).toLocaleDateString() : '—'}
+                        </td>
+                        <td className="py-3">
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" className="text-green-600 border-green-300"
+                              onClick={() => approveBatchRequest(item)}>
+                              Approve
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-red-600"
+                              onClick={() => rejectBatchRequest(item)}>
+                              Reject
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           {/* Existing batch groups */}
           <Card>
             <CardContent className="pt-4">
@@ -1321,7 +1434,7 @@ export default function AdminDashboard() {
                 <div className="text-center py-12">
                   <Shield className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-sm text-gray-500 mb-1">No batch groups yet</p>
-                  <p className="text-xs text-gray-400">Create a batch group to auto-enroll students by course level.</p>
+                  <p className="text-xs text-gray-400">Create a batch group, then share its invite link — students request to join and you approve them above.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1343,6 +1456,14 @@ export default function AdminDashboard() {
                           <span>Created {new Date(group.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
+                      <Button size="sm" variant="outline" className="shrink-0 ml-3"
+                        onClick={() => {
+                          const link = `${window.location.origin}/join/${group.invite_token}`;
+                          navigator.clipboard.writeText(link);
+                          alert('Invite link copied!');
+                        }}>
+                        Copy Invite Link
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -1357,6 +1478,45 @@ export default function AdminDashboard() {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+// Sprint 8.0 — explicit student+batch picker for direct admin adds. No
+// course/institution guessing: the admin must pick one exact batch group
+// from the dropdown before "Add" is even enabled.
+function BatchGroupPicker({ userId, batchGroups, onAssign }) {
+  const [groupId, setGroupId] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  if (!batchGroups.length) return null;
+
+  return (
+    <div className="flex items-center gap-1">
+      <select
+        value={groupId}
+        onChange={(e) => setGroupId(e.target.value)}
+        className="text-xs border border-gray-300 rounded px-1.5 py-1.5 bg-white max-w-[9rem]"
+      >
+        <option value="">Add to batch…</option>
+        {batchGroups.map((g) => (
+          <option key={g.id} value={g.id}>{g.name}</option>
+        ))}
+      </select>
+      <Button size="sm" variant="outline" className="text-xs h-7 px-2"
+        disabled={!groupId || loading}
+        onClick={async () => {
+          setLoading(true);
+          try {
+            await onAssign(userId, groupId);
+            setGroupId('');
+          } finally {
+            setLoading(false);
+          }
+        }}>
+        Add
+      </Button>
+    </div>
+  );
+}
+
 function TabButton({ label, active, onClick }) {
   return (
     <button onClick={onClick}

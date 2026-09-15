@@ -1,6 +1,33 @@
 # Changelog
 
 ---
+## [2026-09-15] feat(sprint-8.0): batch invite-link joining with admin approval (SQL deployed & verified 20/20 PASS; ⏳ not yet committed)
+
+Replaces guess-based batch enrollment (matching a student's `course_level`+`institution` to "the" batch group) with explicit approval, after a pre-flight found this could enroll a student into the wrong batch once multiple batches share a course+institution (real scenario for multi-cohort B2B classes, e.g. separate May/Sept attempt batches). Full design decision: blueprint.md §3.1 D-15.
+
+### Added
+- **`study_group_members.status`** gains `'requested'` (student self-requested via batch invite link, awaiting admin approval — opposite direction from `'invited'`).
+- **`approve_batch_join_request(p_membership_id)`, `reject_batch_join_request(p_membership_id)`** — admin approves/rejects one pending request. `is_admin()` guard.
+- **`get_admin_pending_batch_requests()`** — admin's pending-request queue across all batch groups. `is_admin()` guard.
+- **AdminDashboard.jsx** — "Pending Batch Requests" table (Approve/Reject), "Copy Invite Link" per batch group, `BatchGroupPicker` (explicit student+batch dropdown, no guessing) next to enrolled users.
+- **GroupJoin.jsx** — shows batch course/institution, "Request to Join" wording + pending-approval message for batch groups.
+
+### Changed
+- **`join_group_by_token(p_token)`** — return type `uuid` → `jsonb` (`{group_id, status}`). For a batch group joined by a student, inserts `status='requested'` (idempotent) instead of activating; a pre-existing `'invited'` row flips straight to `'active'`. Never writes `profiles.course_level`/`institution`. Unchanged for non-batch groups and non-student callers.
+- **`get_group_preview(p_token)`** — additive fields `group_type`/`batch_course`/`batch_institution`/`viewer_status`.
+- **`get_admin_batch_groups()`** — additive `invite_token` column (wasn't returned before).
+- **`create_batch_group(...)`** — now creates the `study_groups` row only, no bulk auto-add of matching students (pending or active). Also gained an `is_admin()` guard it was missing entirely (any authenticated user could previously call it — same bug class already fixed for `enroll_user_in_batch_group`/`notify_access_granted`, security/15).
+- **`enroll_user_in_batch_group(...)`** — signature changed to `(p_user_id, p_group_id)`, explicit group instead of guessed from course+institution; raises `'Not a batch group'` if `p_group_id` isn't one. Admin's explicit pick activates `status='active'` immediately.
+- **`fn_auto_enroll_batch_group()`** (the `profiles` trigger) — no longer creates any membership. Cleanup-only now: still removes membership from a student's *old* matched batch group on a course-level change (kept — removes real membership, doesn't generate a guessed one; flagged as carrying the same theoretical wrong-group risk on that removal lookup, not fixed this sprint).
+
+### ✅ Verified — `03_TEST_verify_batch_approval_workflow.sql`, 20/20 PASS
+Every `[CRITICAL]` check included: join never writes `profiles.course_level`/`institution`; repeated self-request idempotent (1 row); approve/reject atomic + admin-gated; an unapproved (`'requested'`) member blocked from `get_group_detail`; explicit admin-add activates immediately with no guessing; a bogus `p_group_id` raises rather than silently matching; old-group cleanup still works; `create_batch_group` creates zero membership rows; non-admin callers blocked on every admin-only RPC.
+
+### Files Changed
+- **New:** `docs/database/sprint8.0/{01_SCHEMA_add_requested_status,02_FUNCTIONS_batch_join_approval,03_TEST_verify_batch_approval_workflow}.sql` (all 3 ✅ run against production).
+- **Changed:** `src/pages/public/GroupJoin.jsx`, `src/pages/admin/AdminDashboard.jsx`, `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/now.md`.
+
+---
 ## [2026-09-14] fix: skip_card/suspend_card atomic upsert — closes a live 23505 race condition (SQL deployed & verified 7/7 PASS; ⏳ not yet committed)
 
 Found live while verifying Sprint 7.12 (unrelated). `StudyMode.jsx`'s "Skip 24hr" threw `23505 duplicate key value violates reviews_user_flashcard_unique` on a never-reviewed card. Both `skip_card` and `suspend_card` wrote `reviews` via a non-atomic `UPDATE ...; IF NOT FOUND THEN INSERT ...` — safe for one call, but a TOCTOU race under concurrent calls (none of StudyMode's 5 "Skip 24hr" buttons disable while the RPC is in flight). Fixed by rewriting both as a single atomic `INSERT ... ON CONFLICT (user_id, flashcard_id) DO UPDATE`. Pure SQL fix — no frontend change needed, the race lived entirely in the RPC.

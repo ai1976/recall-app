@@ -17,6 +17,7 @@ export default function GroupJoin() {
   const [notFound, setNotFound] = useState(false);
   const [joining, setJoining] = useState(false);
   const [joined, setJoined] = useState(false);
+  const [requested, setRequested] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -27,6 +28,7 @@ export default function GroupJoin() {
           setNotFound(true);
         } else {
           setPreview(data);
+          if (data.group.viewer_status === 'requested') setRequested(true);
         }
       } catch (err) {
         console.error('GroupJoin load:', err);
@@ -46,10 +48,14 @@ export default function GroupJoin() {
     }
     setJoining(true);
     try {
-      const { data: groupId, error } = await supabase.rpc('join_group_by_token', { p_token: token });
+      const { data, error } = await supabase.rpc('join_group_by_token', { p_token: token });
       if (error) throw error;
-      setJoined(true);
-      setTimeout(() => navigate(`/dashboard/groups/${groupId}`), 1500);
+      if (data?.status === 'requested') {
+        setRequested(true);
+      } else {
+        setJoined(true);
+        setTimeout(() => navigate(`/dashboard/groups/${data.group_id}`), 1500);
+      }
     } catch (err) {
       console.error('handleJoin:', err);
       alert(err.message || 'Failed to join group');
@@ -105,6 +111,11 @@ export default function GroupJoin() {
                 <Users className="h-8 w-8 text-amber-600" />
               </div>
               <h1 className="text-xl font-bold text-gray-900">{group.name}</h1>
+              {group.group_type === 'batch' && (group.batch_course || group.batch_institution) && (
+                <p className="text-xs font-medium text-amber-700 mt-1">
+                  {[group.batch_course, group.batch_institution].filter(Boolean).join(' · ')}
+                </p>
+              )}
               {group.description && (
                 <p className="text-sm text-gray-500 mt-2">{group.description}</p>
               )}
@@ -142,9 +153,16 @@ export default function GroupJoin() {
               <div className="text-center">
                 <p className="text-green-600 font-medium mb-1">Joined! Redirecting...</p>
               </div>
+            ) : requested ? (
+              <div className="text-center bg-amber-50 rounded-lg py-3 px-4">
+                <p className="text-amber-700 font-medium mb-1">Request sent</p>
+                <p className="text-xs text-amber-600">Waiting for your admin to approve your request to join this batch.</p>
+              </div>
             ) : user ? (
               <Button className="w-full" onClick={handleJoin} disabled={joining}>
-                {joining ? 'Joining...' : 'Join Group'}
+                {joining
+                  ? (group.group_type === 'batch' ? 'Sending request...' : 'Joining...')
+                  : (group.group_type === 'batch' ? 'Request to Join' : 'Join Group')}
               </Button>
             ) : (
               <div className="space-y-3">
@@ -155,7 +173,7 @@ export default function GroupJoin() {
                     navigate('/signup');
                   }}
                 >
-                  Sign up free to join
+                  {group.group_type === 'batch' ? 'Sign up free to request access' : 'Sign up free to join'}
                 </Button>
                 <p className="text-center text-xs text-gray-400">
                   Already on RevisOp?{' '}
