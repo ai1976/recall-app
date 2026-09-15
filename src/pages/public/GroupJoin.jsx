@@ -123,6 +123,11 @@ export default function GroupJoin() {
                 <span className="font-medium text-gray-700">{group.member_count}</span>{' '}
                 {group.member_count === 1 ? 'member' : 'members'} studying together
               </p>
+              {group.group_type === 'batch' && (
+                <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mt-3">
+                  Joining shares your study activity and progress with this batch's institution.
+                </p>
+              )}
             </div>
 
             {/* Stats */}

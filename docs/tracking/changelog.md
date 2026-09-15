@@ -1,6 +1,24 @@
 # Changelog
 
 ---
+## [2026-09-15] fix(sprint-8.0): Quality Auditor follow-up — monitoring disclosure + retire auto-enroll trigger (⏳ SQL not yet deployed)
+
+Same-day follow-up after the Sprint 8.0 completion report was reviewed by the operator's Quality Auditor. Three points raised, all addressed:
+
+### Added
+- **`GroupJoin.jsx`** — batch groups only: a notice that joining shares the student's study activity and progress with that batch's institution. Not shown for custom (non-batch) groups, which carry no monitoring relationship.
+
+### Removed
+- **`fn_auto_enroll_batch_group` trigger and function** — fully dropped (`docs/database/sprint8.0/04_SCHEMA_retire_auto_enroll_trigger.sql`). Its last remaining branch (removing a student from their old matched batch group on a course-level change) used the same course+institution guessing the "add" branch was already stripped of earlier today — a course change could have silently removed a student from the wrong batch. With both branches gone the function did nothing, so it was retired rather than patched. Batch membership removal is now exclusively the pre-existing explicit `remove_group_member`/`leave_group` action.
+
+### Noted, not built
+- Automated "inactive student" nudges were never part of this sprint. Recorded in blueprint.md D-15: any future nudge feature must not equate "no recorded activity in RevisOp" with "not studying."
+
+### Files Changed
+- **New:** `docs/database/sprint8.0/{04_SCHEMA_retire_auto_enroll_trigger,05_TEST_verify_trigger_retired}.sql` (⏳ not yet run by operator).
+- **Changed:** `src/pages/public/GroupJoin.jsx`, `docs/active/blueprint.md`, `docs/active/now.md`.
+
+---
 ## [2026-09-15] feat(sprint-8.0): batch invite-link joining with admin approval (SQL deployed & verified 20/20 PASS; ⏳ not yet committed)
 
 Replaces guess-based batch enrollment (matching a student's `course_level`+`institution` to "the" batch group) with explicit approval, after a pre-flight found this could enroll a student into the wrong batch once multiple batches share a course+institution (real scenario for multi-cohort B2B classes, e.g. separate May/Sept attempt batches). Full design decision: blueprint.md §3.1 D-15.
