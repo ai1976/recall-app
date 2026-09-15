@@ -1,7 +1,24 @@
 # Changelog
 
 ---
-## [2026-09-15] feat(sprint-8.1): batch group Active/Archived lifecycle (✅ SQL deployed & verified 33/33 PASS; not yet committed)
+## [2026-09-15] test(sprint-8.1): Quality Auditor follow-up — snapshot atomicity + frozen-report verification (✅ 7/7 PASS)
+
+Quality Auditor review of the Sprint 8.1 completion report asked whether three specific scenarios were verified before sign-off: simultaneous actions during archiving, snapshot-capture failure leaving no partial state, and real later student activity not leaking into an archived batch's frozen report. Honest answer: the first two were genuinely untested despite the original 33 checks looking thorough. Closed the two closeable ones same day.
+
+### Added
+- **`docs/database/sprint8.1/08_TEST_auditor_followup.sql`** — new test, 7/7 PASS:
+  - **Snapshot-capture failure → no partial state.** A transaction-scoped fault-injection trigger (same proven pattern as `sprint7.4/04_TEST`) forces the snapshot `INSERT` to fail; confirms the batch stays active, the membership is untouched, and no orphaned snapshot row is created.
+  - **Frozen report vs. genuine later activity — not a proxy.** Real `reviews` rows inserted for a real student: one before archiving is captured in the snapshot; a second inserted strictly after archiving does not change the already-saved snapshot, while the live reporting path (unaffected by archiving) correctly reflects both.
+
+### Not resolved, disclosed as a residual
+- **Genuine concurrent-session locking** — still not completed. True concurrency needs two independently-open database connections; the two-tab manual approach (`05_TEST_concurrency_manual.sql`) already failed repeatedly on human-timing coordination, never on a code bug. An automated single-script alternative via `dblink` was considered and rejected — it would require embedding a database password. The `FOR UPDATE` lock-first pattern used throughout is standard and correct by construction, but has not been demonstrated against a real race.
+
+### Files Changed
+- **New:** `docs/database/sprint8.1/08_TEST_auditor_followup.sql` (✅ run, 7/7 PASS).
+- **Changed:** `docs/active/blueprint.md`, `docs/active/now.md`.
+
+---
+## [2026-09-15] feat(sprint-8.1): batch group Active/Archived lifecycle (✅ SQL deployed & verified 33/33 PASS; committed `6bc1796`)
 
 Complete Active/Archived workflow for institution batch groups: archiving stops new requests/invitations/approvals/direct-adds and drops the batch from active monitoring, while approved memberships, shared-content access, and student accounts/progress are untouched, and the batch's report is frozen as a server-side snapshot rather than left to keep following live activity. Restore reopens the same batch without rebuilding memberships. Full design decision: blueprint.md §3.1 D-16.
 
