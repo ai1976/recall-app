@@ -1,5 +1,30 @@
 # Bug Tracking
 
+## Sprint 8.1 — 15/09/2026 (batch group Active/Archived lifecycle)
+
+### [15/09/2026] `sg_delete_creator` / `sg_update_creator` RLS had no batch-group clause — creating admin could delete a batch group or write `archived_at` directly, bypassing the snapshot transaction — ✅ FIXED
+- **Found while:** pre-flight for D-16 (needed to confirm no existing "block batch deletion" guard existed before designing one) — read the live RLS policies on `study_groups` directly.
+- **Symptom (theoretical, not observed live):** `sg_delete_creator` (`USING (created_by = auth.uid())`) and `sg_update_creator` (same) had no `is_batch_group` condition at all — pre-dating batch groups entirely, never revisited when the column was added. The only thing stopping a batch group's creating admin from deleting it, or from writing `archived_at` straight via a client `.update()` call (skipping `archive_batch_group`'s snapshot-capture transaction entirely, corrupting the archived-report requirement this sprint exists to build), was `MyGroups.jsx` hiding the button client-side — the RLS itself permitted both.
+- **Root Cause:** both policies were written before batch groups existed and were never updated when `is_batch_group` was introduced.
+- **Fix (`docs/database/sprint8.1/01_SCHEMA_add_archiving.sql`):** both narrowed to add `AND is_batch_group = false`. Safe — batch groups have never had a direct-edit UI (AdminDashboard's batch tab is read-only display), so no existing capability is removed; all batch group metadata changes now go exclusively through the new `SECURITY DEFINER` RPCs, which are unaffected by RLS.
+- **Verified via:** a dedicated live diagnostic (`07_DIAGNOSTIC_rls_delete_investigation.sql`) impersonating the creating admin under `SET ROLE authenticated` (not just `postgres` with `jwt.claims` set, which still bypasses RLS as superuser) — confirmed the DELETE affects 0 rows and the row survives; `04_TEST`'s equivalent checks pass. (An earlier test-script draft checked row-visibility *before* resetting role, which made the same-working policy look like a failure — see `now.md`'s Sprint 8.1 entry for the full trail.)
+- **Status:** ✅ RESOLVED (15/09/2026, SQL deployed & verified live).
+
+### [15/09/2026] `sgm_insert_admin` RLS had no archived check — direct client INSERT could add a member to an archived batch, bypassing `enroll_user_in_batch_group`'s guard — ✅ FIXED
+- **Found while:** same pre-flight pass, checking every write path to `study_group_members` for an archived-bypass risk (the sprint's own "ensure direct client writes cannot bypass the restriction" requirement).
+- **Symptom (theoretical):** the INSERT policy allows any caller who is `role='admin'` in a group's own `study_group_members` to insert new member rows for that `group_id` — with no check against the target group's archived state. A client call built directly against this policy (skipping `enroll_user_in_batch_group` entirely) could add a member to an archived batch.
+- **Root Cause:** the policy predates the archived_at concept (this sprint introduces it) and, more generally, predates any RPC-guard-bypass consideration for this INSERT path.
+- **Fix (`docs/database/sprint8.1/01_SCHEMA_add_archiving.sql`):** added `AND NOT EXISTS (SELECT 1 FROM study_groups sg WHERE sg.id = group_id AND sg.archived_at IS NOT NULL)` to the policy's `WITH CHECK`.
+- **Status:** ✅ RESOLVED (15/09/2026, SQL deployed; covered indirectly by `04_TEST`'s enrollment-path checks — `enroll_user_in_batch_group` itself refuses first, so this INSERT policy is defense-in-depth not separately exercised by a raw client-side INSERT in the test).
+
+### [15/09/2026] `leave_group` cascade-delete had no batch-group exclusion — a batch group's last active member leaving would delete the group row — ✅ FIXED
+- **Found while:** pre-flight audit of every existing `study_groups` deletion path, per the sprint's "existing deletion routes must also refuse batch-group deletion" requirement.
+- **Symptom (theoretical, not observed live):** `leave_group`'s `IF v_member_count = 1 THEN DELETE FROM study_groups...` fires for any group, batch or not, whenever its last **active** member leaves — cascading to `study_group_members` and `content_group_shares`. A batch group could reach that state (e.g. an admin removing everyone down to one member, who then leaves), silently deleting the group and losing the ability to ever archive/restore or report on it again.
+- **Root Cause:** the branch was written before batch groups existed and was never given a batch-aware exclusion.
+- **Fix (`docs/database/sprint8.1/03_FUNCTIONS_guard_enrollment_paths.sql`):** condition changed to `IF v_member_count = 1 AND NOT v_is_batch THEN` — a batch group's lifecycle is now exclusively `archive_batch_group`/`restore_batch_group`. Ordinary-group behavior (the delete still fires) is unchanged.
+- **Verified via:** `04_TEST` — a batch group's last active member leaving no longer deletes the row (group persists), while an ordinary group under the identical scenario still cascade-deletes (unchanged) — both PASS.
+- **Status:** ✅ RESOLVED (15/09/2026, SQL deployed & verified live, 04_TEST 33/33 PASS).
+
 ## Sprint 8.0 — 15/09/2026 (batch invite-link joining with admin approval)
 
 ### [15/09/2026] `create_batch_group` had no admin guard — any authenticated user could call it — ✅ FIXED

@@ -90,6 +90,7 @@ export default function GroupJoin() {
   }
 
   const { group, stats } = preview;
+  const ended = group.is_batch_group && !!group.archived_at;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
@@ -123,7 +124,7 @@ export default function GroupJoin() {
                 <span className="font-medium text-gray-700">{group.member_count}</span>{' '}
                 {group.member_count === 1 ? 'member' : 'members'} studying together
               </p>
-              {group.group_type === 'batch' && (
+              {group.group_type === 'batch' && !ended && (
                 <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mt-3">
                   Joining shares your study activity and progress with this batch's institution.
                 </p>
@@ -154,7 +155,11 @@ export default function GroupJoin() {
             )}
 
             {/* CTA */}
-            {joined ? (
+            {ended ? (
+              <div className="text-center bg-gray-50 rounded-lg py-3 px-4">
+                <p className="text-gray-700 font-medium">This batch has ended.</p>
+              </div>
+            ) : joined ? (
               <div className="text-center">
                 <p className="text-green-600 font-medium mb-1">Joined! Redirecting...</p>
               </div>

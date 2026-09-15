@@ -1,6 +1,36 @@
 # Changelog
 
 ---
+## [2026-09-15] feat(sprint-8.1): batch group Active/Archived lifecycle (✅ SQL deployed & verified 33/33 PASS; not yet committed)
+
+Complete Active/Archived workflow for institution batch groups: archiving stops new requests/invitations/approvals/direct-adds and drops the batch from active monitoring, while approved memberships, shared-content access, and student accounts/progress are untouched, and the batch's report is frozen as a server-side snapshot rather than left to keep following live activity. Restore reopens the same batch without rebuilding memberships. Full design decision: blueprint.md §3.1 D-16.
+
+### Added
+- **`study_groups.archived_at timestamptz`** (NULL = active) + `archived_by`. Set/cleared exclusively by the two new RPCs below — RLS narrowed to block direct client writes.
+- **`study_group_members.status`** gains `'closed'` (alongside `invited`/`active`/`requested`), plus `closed_at`/`closed_reason` — archiving closes outstanding `requested`/`invited` rows to this status instead of deleting them or leaving them live.
+- **`batch_group_archives`** table — one jsonb snapshot row per archive event (group metadata + `get_batch_group_member_stats`'s own rows, reused rather than reimplemented). RLS enabled, zero client-facing policies — read only through the new RPC below. A restore-then-re-archive cycle adds a new row; earlier snapshots are retained.
+- **`archive_batch_group(p_group_id)` / `restore_batch_group(p_group_id)`** — admin-only, `SECURITY DEFINER`, both lock the batch row (`FOR UPDATE`) before acting, both idempotent. Archive captures the snapshot, sets `archived_at`, and closes outstanding requests/invitations, all in one transaction.
+- **`get_batch_group_archive(p_group_id)`** — reads the snapshot for the batch's current archive event. Gated identically to `get_batch_group_member_stats` (professor/admin/super_admin only).
+- **`AdminDashboard.jsx`** — Active/Archived pill filter on the batch tab, per-row Archive/Restore buttons with confirmation dialogs, disabled while saving.
+- **`GroupDetail.jsx`** — archived batches show the frozen snapshot (via `get_batch_group_archive`) instead of live stats, with an "Archived on [date]" label.
+- **`GroupJoin.jsx`** — "This batch has ended" replaces the join CTA for an archived batch's invite link; the RPC already suppresses stats in that case.
+
+### Changed
+- **`join_group_by_token`, `enroll_user_in_batch_group`, `approve_batch_join_request`, `reject_batch_join_request`** — each now locks the target batch row under the same convention as archive/restore and refuses once `archived_at` is set. `join_group_by_token`'s `'requested'` insert now reactivates a `'closed'` row (post-restore explicit re-request) instead of only ever no-op'ing.
+- **`get_group_preview`** — additive `is_batch_group`/`archived_at`; `stats` returns `null` when the batch is archived (public previews never expose activity data for an ended batch).
+- **`get_admin_batch_groups()`** — additive `archived_at` (still returns both, AdminDashboard filters client-side). **`get_my_batch_groups()`** — now excludes archived batches (a monitoring list, not the management view).
+- **`get_group_detail`** — additive `archived_at` on the returned group object.
+- **`leave_group`** — its last-active-member cascade-delete no longer applies to batch groups (previously true for any group); ordinary-group behavior unchanged.
+
+### Fixed (pre-existing gaps found during pre-flight, unrelated to this sprint's own design but directly relevant to "prevent bypasses")
+- **`sg_delete_creator`, `sg_update_creator` (RLS on `study_groups`)** — neither had an `is_batch_group` clause; a batch group's creating admin could delete it directly, or write `archived_at` via a plain client `.update()`, bypassing the snapshot transaction entirely. Both narrowed to `is_batch_group = false` — safe, since batch groups have no direct-edit UI to lose.
+- **`sgm_insert_admin` (RLS INSERT on `study_group_members`)** — no archived check; a client with local group-admin rights could insert a member into an archived batch past `enroll_user_in_batch_group`'s own guard. Closed with an `archived_at IS NOT NULL` exclusion.
+
+### Files Changed
+- **New:** `docs/database/sprint8.1/{00_DIAGNOSTIC_preflight,01_SCHEMA_add_archiving,02_FUNCTIONS_archive_restore,03_FUNCTIONS_guard_enrollment_paths,04_TEST_verify_archiving,06_FIX_archive_timestamp_precision,07_DIAGNOSTIC_rls_delete_investigation}.sql` (✅ deployed, `04_TEST` 33/33 PASS). `05_TEST_concurrency_manual.sql` attempted but not completed — the manual two-tab live-session procedure proved too fragile to coordinate reliably; not pursued further given `04_TEST`'s coverage of the same guards.
+- **Changed:** `src/pages/admin/AdminDashboard.jsx`, `src/pages/dashboard/Groups/GroupDetail.jsx`, `src/pages/public/GroupJoin.jsx`, `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/now.md`.
+
+---
 ## [2026-09-15] fix(sprint-8.0): Quality Auditor follow-up — monitoring disclosure + retire auto-enroll trigger (⏳ SQL not yet deployed)
 
 Same-day follow-up after the Sprint 8.0 completion report was reviewed by the operator's Quality Auditor. Three points raised, all addressed:

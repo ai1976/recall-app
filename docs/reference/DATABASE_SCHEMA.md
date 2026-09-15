@@ -738,8 +738,8 @@ Prevents: User A sending multiple requests to User B
 
 **Purpose:** Study group metadata (name, description, creator)
 **Created:** February 6, 2026
-**Last Updated:** March 19, 2026 (added invite_token, group_type, linked_course)
-**Columns:** 12
+**Last Updated:** 15/09/2026 (Sprint 8.1 — added archived_at, archived_by)
+**Columns:** 14
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -747,21 +747,23 @@ Prevents: User A sending multiple requests to User B
 | name | text | NO | - | Group name |
 | description | text | YES | - | Optional description |
 | created_by | uuid | NO | - | FK to profiles.id, ON DELETE CASCADE |
-| is_batch_group | boolean | NO | false | True = official batch group created by admin; hides Leave/Delete for members |
+| is_batch_group | boolean | NO | false | True = official batch group created by admin; hides Leave/Delete for members. **The canonical batch flag** — every admin/report/guard RPC trusts this, not `group_type` (confirmed live 1:1-consistent as of Sprint 8.1 pre-flight, but `create_batch_group` never writes `group_type` itself, so don't assume future rows stay in sync — see `group_type` note below). |
 | batch_course | text | YES | NULL | Course level this batch group belongs to (e.g. 'CA Foundation') |
 | batch_institution | text | YES | NULL | Institution this batch group belongs to (e.g. 'More Classes Commerce'). Isolates groups per B2B client. |
 | invite_token | uuid | YES | gen_random_uuid() | Shareable join link token — used in `/join/:token` public URL |
-| group_type | text | NO | 'custom' | CHECK: 'batch' \| 'system_course' \| 'custom'. 'batch' = official B2B group; 'system_course' = linked to user's enrolled course; 'custom' = free-form group |
+| group_type | text | NO | 'custom' | CHECK: 'batch' \| 'system_course' \| 'custom'. 'batch' = official B2B group; 'system_course' = linked to user's enrolled course; 'custom' = free-form group. **Not the canonical batch flag** (see `is_batch_group` above) — used by `join_group_by_token`'s approval-queue branch and `GroupJoin.jsx`'s copy, but `create_batch_group` never sets it to `'batch'` on the rows it creates (a pre-existing gap, flagged during Sprint 8.1 pre-flight, not fixed — orthogonal to archiving since D-16 gates everything on `is_batch_group`). |
 | linked_course | text | YES | NULL | For group_type='system_course': the course level the group is linked to (e.g. 'CA Inter') |
 | created_at | timestamptz | NO | NOW() | When created |
 | updated_at | timestamptz | NO | NOW() | When last updated |
+| archived_at | timestamptz | YES | NULL | **Sprint 8.1 (D-16).** NULL = active. Batch groups only. Set/cleared exclusively by `archive_batch_group`/`restore_batch_group` — RLS blocks direct client writes to this column (`sg_update_creator` narrowed to `is_batch_group = false`). |
+| archived_by | uuid | YES | NULL | **Sprint 8.1 (D-16).** FK to profiles.id, ON DELETE SET NULL. Admin who archived; cleared on restore. |
 
-**Batch group isolation:** `batch_course` + `batch_institution` together uniquely identify a batch. `create_batch_group` RPC auto-enrolls enrolled students matching both fields. Prevents students from different institutes sharing the same batch group.
+**Batch group isolation:** `batch_course` + `batch_institution` together uniquely identify a batch. Membership is never auto-enrolled from these fields — `create_batch_group` (Sprint 8.0/D-15) creates only the group row; every membership change is an explicit action (invite-link self-request, admin direct-add, approve/reject). See D-15/D-16 in blueprint.md.
 
-**Join links:** Any group (batch or personal) can be joined via `/join/:invite_token`. `get_group_preview` and `join_group_by_token` RPCs both work for all group types — the old `is_batch_group = false` filter has been removed.
+**Join links:** Any group (batch or personal) can be joined via `/join/:invite_token`. `get_group_preview` and `join_group_by_token` RPCs both work for all group types — the old `is_batch_group = false` filter has been removed. **Sprint 8.1:** an archived batch's link shows "This batch has ended" — no join/request action.
 
-**Key Indexes:** created_by, created_at
-**RLS Policies:** Members can read, creator can update/delete, authenticated can insert own
+**Key Indexes:** created_by, created_at, `archived_at WHERE is_batch_group = true` (Sprint 8.1)
+**RLS Policies:** Members can read (`sg_select_member`). Creator can update/delete **only non-batch groups** (`sg_update_creator`/`sg_delete_creator`, both narrowed to `is_batch_group = false` in Sprint 8.1 — previously had no batch clause at all, a real bypass: the creating admin could delete a batch group or write `archived_at` directly). Authenticated can insert own (`sg_insert`).
 
 ---
 
@@ -769,8 +771,8 @@ Prevents: User A sending multiple requests to User B
 
 **Purpose:** Group membership with roles (admin/member) and invitation status
 **Created:** February 6, 2026
-**Updated:** February 6, 2026 (added status + invited_by for invitation flow)
-**Columns:** 7
+**Updated:** 15/09/2026 (Sprint 8.1 — added 'closed' status, closed_at, closed_reason)
+**Columns:** 9
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -779,12 +781,34 @@ Prevents: User A sending multiple requests to User B
 | user_id | uuid | NO | - | FK to profiles.id, ON DELETE CASCADE |
 | role | text | NO | 'member' | CHECK: admin or member |
 | joined_at | timestamptz | NO | NOW() | When joined (updated to NOW() on accept) |
-| status | text | NO | 'active' | CHECK: 'invited', 'active', or 'requested'. Default 'active' for backward compat. **'requested' added Sprint 8.0** — a student's own self-request via a batch invite link, awaiting admin approval (opposite direction from 'invited'). |
+| status | text | NO | 'active' | CHECK: 'invited', 'active', 'requested', or 'closed'. Default 'active' for backward compat. **'requested' added Sprint 8.0** — a student's own self-request via a batch invite link, awaiting admin approval (opposite direction from 'invited'). **'closed' added Sprint 8.1** — an outstanding 'requested'/'invited' row closed out by `archive_batch_group`, not deleted; `join_group_by_token` reactivates a 'closed' row back to 'requested' on an explicit re-request after restore, preserving the prior closure as history. |
 | invited_by | uuid | YES | NULL | FK to profiles.id, ON DELETE SET NULL. Who sent the invitation. |
+| closed_at | timestamptz | YES | NULL | **Sprint 8.1.** Set when status transitions to 'closed'. |
+| closed_reason | text | YES | NULL | **Sprint 8.1.** e.g. `'batch_archived'`. |
 
 **UNIQUE Constraint:** `UNIQUE(group_id, user_id)` - prevents duplicate membership
 **Key Indexes:** group_id, user_id, role, status
-**RLS Policies:** Members read own groups, admins insert/delete, user can delete self
+**RLS Policies:** Members read own groups (`sgm_select_own`). Group admins insert (`sgm_insert_admin` — **Sprint 8.1:** now also excludes any group with `archived_at IS NOT NULL`, closing a direct-add bypass past `enroll_user_in_batch_group`'s own guard). User can delete self, or a group admin can delete any member (`sgm_delete`, unchanged — member removal is not blocked by archiving).
+
+---
+
+### 2.16a batch_group_archives ⭐ NEW (Sprint 8.1)
+
+**Purpose:** Frozen report/roster snapshot captured at the moment a batch group is archived — `get_batch_group_member_stats` computes everything live relative to `CURRENT_DATE`, so a snapshot is the only way an archived batch's report can stop following new student activity.
+**Created:** 15/09/2026
+**Columns:** 6
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | uuid | NO | gen_random_uuid() | Primary key |
+| group_id | uuid | NO | - | FK to study_groups.id, ON DELETE CASCADE |
+| archived_at | timestamptz | NO | - | Matches `study_groups.archived_at` at the moment of this archive event — used to resolve the *current* snapshot after a restore-then-re-archive cycle |
+| archived_by | uuid | YES | NULL | FK to profiles.id, ON DELETE SET NULL |
+| report | jsonb | NO | - | `{ group: {name, description, batch_course, batch_institution}, member_count, members: [...one row per active member, same shape as get_batch_group_member_stats] }` |
+| created_at | timestamptz | NO | NOW() | |
+
+**UNIQUE Constraint:** `UNIQUE(group_id, archived_at)` — one row per archive event. A restore-then-re-archive cycle adds a new row rather than overwriting; earlier snapshots are retained as historical records (no history-browser UI built this sprint, just the data).
+**RLS Policies:** Enabled, **zero client-facing policies** — no direct table access at all. All reads go through `get_batch_group_archive(p_group_id)`, gated identically to `get_batch_group_member_stats` (professor/admin/super_admin only).
 
 ---
 
@@ -1193,6 +1217,33 @@ SECURITY DEFINER
 - All aggregates use `COALESCE(..., 0)` — students with zero activity return `0`, not NULL
 - Week boundary: `date_trunc('week', CURRENT_DATE)` (Monday start, server UTC — acceptable for aggregated batch data)
 - Filters `study_group_members` on `group_id = p_group_id AND status = 'active'`
+- **Sprint 8.1:** unchanged — reused as-is by `archive_batch_group` to build its snapshot (called internally; `auth.uid()` still reflects the real caller, so the two security gates above still apply and pass since only admins can call `archive_batch_group`).
+
+---
+
+## archive_batch_group / restore_batch_group / get_batch_group_archive (Sprint 8.1, D-16)
+
+```sql
+archive_batch_group(p_group_id uuid) RETURNS jsonb  -- {group_id, archived_at, already_archived}
+restore_batch_group(p_group_id uuid) RETURNS jsonb  -- {group_id, archived_at, already_active}
+get_batch_group_archive(p_group_id uuid) RETURNS jsonb  -- {archived_at, report}
+```
+All three `SECURITY DEFINER`, `SET search_path TO public, extensions`.
+
+- **`archive_batch_group`** — `is_admin()` guard. Locks the `study_groups` row (`FOR UPDATE`) first — the same convention every enrollment-adjacent function below follows, so a concurrent request/invite/approve/direct-add either commits before this lock is acquired (honored) or blocks until this transaction commits and then sees `archived_at` set (refused). Raises `'Group not found'` / `'Not a batch group'` as appropriate. **Idempotent:** already-archived returns `{already_archived: true}` with the original timestamp — no snapshot replacement. On first archive, in one transaction: builds the snapshot jsonb (group metadata + `get_batch_group_member_stats` rows), inserts it into `batch_group_archives`, sets `archived_at`/`archived_by`, then updates `study_group_members` to `status='closed', closed_at=<same timestamp>, closed_reason='batch_archived'` for every row still `'requested'` or `'invited'`. If the snapshot build fails, the whole call raises and the transaction rolls back — no partial state (default plpgsql exception propagation, no special-case handling needed).
+- **`restore_batch_group`** — same guard + lock convention. Clears `archived_at`/`archived_by`. Does **not** touch `study_group_members` at all — active memberships stay active, closed rows stay closed (a student must explicitly re-request; `join_group_by_token` handles reactivating a closed row — see below). Idempotent: already-active returns `{already_active: true}`.
+- **`get_batch_group_archive`** — gated identically to `get_batch_group_member_stats` (professor/admin/super_admin). Resolves the snapshot by matching `batch_group_archives.archived_at` to the batch's *current* `study_groups.archived_at`, so a restore-then-re-archive cycle always returns the latest snapshot. Raises `'Batch is not archived'` if called on an active batch.
+- **Explicit grants:** `GRANT EXECUTE TO authenticated`, `REVOKE ALL FROM PUBLIC, anon` on all three (project convention — unlike several of the Sprint 8.0 D-15 functions, which rely on default/broader grants; not changed this sprint).
+
+### Archived-state guards added to existing functions (Sprint 8.1, `CREATE OR REPLACE`, additive diffs only)
+- **`join_group_by_token`** — locks the resolved group row first; raises `'This batch has ended'` if `archived_at` is set, before any status change. The `'requested'`-status `INSERT ... ON CONFLICT` now does `DO UPDATE SET status='requested', joined_at=NOW() WHERE study_group_members.status = 'closed'` (reactivates a closed row) instead of always `DO NOTHING` — still a no-op for an existing active/requested/invited row.
+- **`enroll_user_in_batch_group`** (admin direct-add) — locks the group row; raises `'This batch has been archived'` if archived.
+- **`approve_batch_join_request` / `reject_batch_join_request`** — resolve the request's group, lock that row, raise `'This batch has been archived'` if archived (mostly moot since archiving already closes outstanding requests, but keeps the same lock convention as every other path).
+- **`get_group_preview`** — additive `is_batch_group`/`archived_at` fields; `stats` returns `NULL` (not the live aggregate) when the batch is archived.
+- **`get_admin_batch_groups`** — additive `archived_at` column, still returns both active and archived rows.
+- **`get_my_batch_groups`** — added `AND archived_at IS NULL` to both role branches (excludes archived from the monitoring list).
+- **`get_group_detail`** — additive `archived_at` on the returned group object.
+- **`leave_group`** — the last-active-member cascade-delete of the group row is now `IF v_member_count = 1 AND NOT v_is_batch` (previously unconditional) — a batch group's lifecycle is exclusively archive/restore now; ordinary-group behavior unchanged.
 
 ---
 

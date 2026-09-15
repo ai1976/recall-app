@@ -44,6 +44,10 @@ export default function AdminDashboard() {
   const [pendingBatchRequests, setPendingBatchRequests] = useState([]);
   const [pendingBatchRequestsLoading, setPendingBatchRequestsLoading] = useState(false);
 
+  // ── Batch Group archiving state (Sprint 8.1)
+  const [batchStatusFilter, setBatchStatusFilter] = useState('active'); // 'active' | 'archived'
+  const [batchActionLoadingId, setBatchActionLoadingId] = useState(null);
+
   // ── Flagged content state
   const [flaggedItems, setFlaggedItems] = useState([]);
   const [flagsLoading, setFlagsLoading] = useState(false);
@@ -520,6 +524,41 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error('rejectBatchRequest:', err);
       alert(err.message || 'Failed to reject request');
+    }
+  }
+
+  async function archiveBatchGroup(group) {
+    if (!confirm(
+      `Archive "${group.name}"?\n\n` +
+      `New requests, invitations, approvals, and direct additions stop immediately, and it drops off ongoing monitoring. ` +
+      `Approved members keep their access and content — nothing about their accounts or study progress changes. ` +
+      `The batch's report is frozen as of today; you can restore it later without rebuilding memberships.`
+    )) return;
+    setBatchActionLoadingId(group.id);
+    try {
+      const { error } = await supabase.rpc('archive_batch_group', { p_group_id: group.id });
+      if (error) throw error;
+      await fetchBatchGroups();
+    } catch (err) {
+      console.error('archiveBatchGroup:', err);
+      alert(err.message || 'Failed to archive batch group');
+    } finally {
+      setBatchActionLoadingId(null);
+    }
+  }
+
+  async function restoreBatchGroup(group) {
+    if (!confirm(`Restore "${group.name}"? This reopens it for requests, invitations, and direct additions — approved members are unaffected.`)) return;
+    setBatchActionLoadingId(group.id);
+    try {
+      const { error } = await supabase.rpc('restore_batch_group', { p_group_id: group.id });
+      if (error) throw error;
+      await fetchBatchGroups();
+    } catch (err) {
+      console.error('restoreBatchGroup:', err);
+      alert(err.message || 'Failed to restore batch group');
+    } finally {
+      setBatchActionLoadingId(null);
     }
   }
 
@@ -1055,7 +1094,7 @@ export default function AdminDashboard() {
                               Grant Access
                             </Button>
                           ) : (
-                            <BatchGroupPicker userId={u.id} batchGroups={batchGroups} onAssign={addToBatchGroup} />
+                            <BatchGroupPicker userId={u.id} batchGroups={batchGroups.filter(g => !g.archived_at)} onAssign={addToBatchGroup} />
                           )}
                           {u.status !== 'suspended' && (
                             <Button size="sm" variant="outline"
@@ -1428,39 +1467,100 @@ export default function AdminDashboard() {
           {/* Existing batch groups */}
           <Card>
             <CardContent className="pt-4">
-              {batchGroupsLoading ? (
-                <p className="text-center text-gray-400 py-8 text-sm">Loading…</p>
-              ) : batchGroups.length === 0 ? (
-                <div className="text-center py-12">
-                  <Shield className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm text-gray-500 mb-1">No batch groups yet</p>
-                  <p className="text-xs text-gray-400">Create a batch group, then share its invite link — students request to join and you approve them above.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {batchGroups.map((group) => (
-                    <div key={group.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Shield className="h-4 w-4 text-amber-600 shrink-0" />
-                          <p className="font-medium text-gray-900 text-sm">{group.name}</p>
+              <div className="flex items-center gap-1 mb-4">
+                <button
+                  onClick={() => setBatchStatusFilter('active')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full border ${
+                    batchStatusFilter === 'active'
+                      ? 'bg-[#1e1b4b] text-white border-[#1e1b4b]'
+                      : 'text-gray-600 border-gray-300 hover:bg-gray-50'
+                  }`}>
+                  Active
+                </button>
+                <button
+                  onClick={() => setBatchStatusFilter('archived')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full border ${
+                    batchStatusFilter === 'archived'
+                      ? 'bg-[#1e1b4b] text-white border-[#1e1b4b]'
+                      : 'text-gray-600 border-gray-300 hover:bg-gray-50'
+                  }`}>
+                  Archived
+                </button>
+              </div>
+
+              {(() => {
+                const visibleGroups = batchGroups.filter(g =>
+                  batchStatusFilter === 'archived' ? !!g.archived_at : !g.archived_at
+                );
+                if (batchGroupsLoading) {
+                  return <p className="text-center text-gray-400 py-8 text-sm">Loading…</p>;
+                }
+                if (visibleGroups.length === 0) {
+                  return (
+                    <div className="text-center py-12">
+                      <Shield className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-sm text-gray-500 mb-1">
+                        {batchStatusFilter === 'archived' ? 'No archived batch groups' : 'No active batch groups'}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {batchStatusFilter === 'archived'
+                          ? 'Batches you archive will show up here, with their report frozen as of the archive date.'
+                          : 'Create a batch group, then share its invite link — students request to join and you approve them above.'}
+                      </p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-3">
+                    {visibleGroups.map((group) => (
+                      <div key={group.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <Shield className="h-4 w-4 text-amber-600 shrink-0" />
+                            <p className="font-medium text-gray-900 text-sm">{group.name}</p>
+                            {group.archived_at && (
+                              <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
+                                Archived
+                              </span>
+                            )}
+                          </div>
+                          {group.description && (
+                            <p className="text-xs text-gray-500 mt-0.5 ml-6">{group.description}</p>
+                          )}
+                          <div className="flex items-center gap-3 mt-1 ml-6 text-xs text-gray-400">
+                            <span className="font-medium text-amber-700">{group.batch_course}</span>
+                            <span>·</span>
+                            <span>{group.member_count} {group.member_count === 1 ? 'member' : 'members'}</span>
+                            <span>·</span>
+                            <span>Created {new Date(group.created_at).toLocaleDateString()}</span>
+                          </div>
+                          {group.archived_at && (
+                            <p className="text-xs text-gray-400 mt-1 ml-6">
+                              Archived on {new Date(group.archived_at).toLocaleDateString()} — activity shown as of this date.
+                            </p>
+                          )}
                         </div>
-                        {group.description && (
-                          <p className="text-xs text-gray-500 mt-0.5 ml-6">{group.description}</p>
-                        )}
-                        <div className="flex items-center gap-3 mt-1 ml-6 text-xs text-gray-400">
-                          <span className="font-medium text-amber-700">{group.batch_course}</span>
-                          <span>·</span>
-                          <span>{group.member_count} {group.member_count === 1 ? 'member' : 'members'}</span>
-                          <span>·</span>
-                          <span>Created {new Date(group.created_at).toLocaleDateString()}</span>
+                        <div className="flex items-center gap-2 shrink-0 ml-3">
+                          {!group.archived_at && <CopyInviteLinkButton group={group} />}
+                          {group.archived_at ? (
+                            <Button size="sm" variant="outline"
+                              disabled={batchActionLoadingId === group.id}
+                              onClick={() => restoreBatchGroup(group)}>
+                              {batchActionLoadingId === group.id ? 'Restoring…' : 'Restore'}
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" className="text-red-600 border-red-300"
+                              disabled={batchActionLoadingId === group.id}
+                              onClick={() => archiveBatchGroup(group)}>
+                              {batchActionLoadingId === group.id ? 'Archiving…' : 'Archive'}
+                            </Button>
+                          )}
                         </div>
                       </div>
-                      <CopyInviteLinkButton group={group} />
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>

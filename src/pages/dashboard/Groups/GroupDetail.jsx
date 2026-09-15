@@ -103,6 +103,27 @@ export default function GroupDetail() {
     }
   };
 
+  // Sprint 8.1 — archived batches read the frozen snapshot instead of live
+  // stats. Reuses batchStats/batchStatsError/batchStatsLoading so the table
+  // rendering below is unchanged; the snapshot's member rows are the same
+  // shape as get_batch_group_member_stats.
+  const fetchBatchArchive = async () => {
+    setBatchStatsLoading(true);
+    setBatchStatsError(false);
+    try {
+      const { data, error } = await supabase.rpc('get_batch_group_archive', {
+        p_group_id: groupId,
+      });
+      if (error) throw error;
+      setBatchStats(data?.report?.members || []);
+    } catch (error) {
+      console.error('Error fetching batch archive:', error);
+      setBatchStatsError(true);
+    } finally {
+      setBatchStatsLoading(false);
+    }
+  };
+
   const fetchGroupData = async () => {
     setLoading(true);
     try {
@@ -141,9 +162,14 @@ export default function GroupDetail() {
       // Shared content
       setSharedContent(data.shared_content || { notes: [], decks: [] });
 
-      // If this is a batch group and the viewer is professor/admin, load stats
+      // If this is a batch group and the viewer is professor/admin, load
+      // stats — the frozen snapshot if archived, otherwise the live report.
       if (data.group?.is_batch_group && ['professor', 'admin', 'super_admin'].includes(viewerRole)) {
-        fetchBatchStats();
+        if (data.group?.archived_at) {
+          fetchBatchArchive();
+        } else {
+          fetchBatchStats();
+        }
       }
     } catch (error) {
       console.error('Error fetching group data:', error);
@@ -472,10 +498,20 @@ export default function GroupDetail() {
               <Shield className="h-3.5 w-3.5" />
               Batch Performance
             </span>
+            {group.archived_at && (
+              <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-full">
+                Archived
+              </span>
+            )}
           </div>
           <p className="text-gray-600">
             {members.length} {members.length === 1 ? 'student' : 'students'}
           </p>
+          {group.archived_at && (
+            <p className="text-sm text-gray-500 mt-1">
+              Archived on {formatDate(group.archived_at)} — activity shown as of this date.
+            </p>
+          )}
         </div>
 
         {/* Stats Table */}
@@ -496,14 +532,16 @@ export default function GroupDetail() {
             ) : batchStatsError ? (
               <div className="py-16 text-center">
                 <p className="text-gray-600 mb-4">Could not load batch stats</p>
-                <Button variant="outline" onClick={fetchBatchStats}>
+                <Button variant="outline" onClick={group.archived_at ? fetchBatchArchive : fetchBatchStats}>
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Retry
                 </Button>
               </div>
             ) : batchStats.length === 0 ? (
               <div className="py-16 text-center">
-                <p className="text-gray-500">No activity recorded yet for this batch</p>
+                <p className="text-gray-500">
+                  {group.archived_at ? 'No activity was recorded for this batch as of the archive date' : 'No activity recorded yet for this batch'}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
