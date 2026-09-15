@@ -1291,7 +1291,7 @@ export default function AdminDashboard() {
             <div>
               <h2 className="text-base font-semibold text-gray-900">Batch Groups</h2>
               <p className="text-xs text-gray-400 mt-0.5">
-                Official course groups. Students are auto-enrolled when they set a matching course level.
+                Official course groups. Students request to join via the invite link and you approve them below.
               </p>
             </div>
             <Button size="sm" onClick={() => setCreateBatchForm({ course: '', name: '', description: '', institution: 'More Classes Commerce' })}>
@@ -1459,8 +1459,10 @@ export default function AdminDashboard() {
                       <Button size="sm" variant="outline" className="shrink-0 ml-3"
                         onClick={() => {
                           const link = `${window.location.origin}/join/${group.invite_token}`;
-                          navigator.clipboard.writeText(link);
-                          alert('Invite link copied!');
+                          navigator.clipboard.writeText(link).then(
+                            () => alert('Invite link copied!'),
+                            () => prompt('Could not copy automatically — copy this link manually:', link)
+                          );
                         }}>
                         Copy Invite Link
                       </Button>

@@ -526,7 +526,7 @@ export default function Home() {
               For Institutes & Educators
             </h2>
             <p className="text-xl text-amber-100 max-w-2xl mx-auto">
-              Bring your institute onto RevisOp. Auto-enrol your batch. Curate content once — every student benefits.
+              Bring your institute onto RevisOp. Share one invite link with your batch. Curate content once — every student benefits.
             </p>
           </div>
 
@@ -539,7 +539,7 @@ export default function Home() {
                   <CheckCircle className="h-6 w-6 text-green-300 mt-0.5 flex-shrink-0" />
                   <div>
                     <div className="font-semibold">Dedicated Institute Setup</div>
-                    <div className="text-amber-100 text-sm">Batch groups auto-created, students auto-enrolled on registration</div>
+                    <div className="text-amber-100 text-sm">Batch groups auto-created — students join via your invite link, you approve</div>
                   </div>
                 </li>
                 <li className="flex items-start space-x-3">
@@ -588,8 +588,8 @@ export default function Home() {
                     <Users className="h-6 w-6" />
                   </div>
                   <div>
-                    <div className="font-semibold">Students Auto-Enrolled</div>
-                    <div className="text-amber-100 text-sm">Students are automatically added to your batch on registration — no manual invites</div>
+                    <div className="font-semibold">Simple Invite & Approve</div>
+                    <div className="text-amber-100 text-sm">Share one invite link with your class — approve each student with a single click</div>
                   </div>
                 </div>
                 <div className="flex items-start space-x-4">
