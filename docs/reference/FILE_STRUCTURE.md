@@ -75,7 +75,7 @@ recall-app
 │   │   ├── CourseContext.jsx                    ← multi-course teaching context for professors/admins; activeCourse session state; exposes role/courseLevel
 │   │   ├── NavDataContext.jsx                   ← Sprint 7.0, extended 7.2-F: one instance of useRole/useNotifications/useFriendRequestCount/useDueForecast for the whole app; useNavData() + useRole shim
 │   │   ├── StudySessionContext.jsx              ← Sprint 7.1: boolean inStudySession (StudyMode sets it) so NavBottomTabs hides during the card loop
-│   │   ├── StudyTimerContext.jsx                ← Sprint 7.3-C: app-wide manual-timer state + 3-tier stale-session policy; own localStorage key; cross-tab storage-event sync
+│   │   ├── StudyTimerContext.jsx                ← Sprint 7.3-C: app-wide manual-timer state + 3-tier stale-session policy; own localStorage key; cross-tab storage-event sync. Sprint 8.5: pendingLog state (own localStorage key) — duration finalized but category not yet chosen; confirmCategory() does the actual insert
 │   │   └── ExamDateContext.jsx                  ← Sprint 8.4: exam_date/exam_month/has_dismissed_exam_prompt fetch-once + mutators (saveExamDate, dismissPrompt), shared by nav chip/Dashboard card/prompt modal/Profile Settings
 │   ├── lib
 │   │   ├── supabase.js                          ← Supabase client

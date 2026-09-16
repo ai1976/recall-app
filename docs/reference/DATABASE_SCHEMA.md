@@ -985,13 +985,16 @@ Stores completed study sessions only. Incomplete/abandoned sessions are held in 
 | `duration_seconds` | integer | NOT NULL, CHECK > 0 |
 | `session_date` | date | NOT NULL — stored as user's LOCAL date (YYYY-MM-DD), passed from frontend |
 | `source` | text | NOT NULL, CHECK IN ('manual', 'study_mode') |
+| `category` | text | NULLABLE, CHECK IN ('reading', 'writing_practice', 'lecture_viewing', 'paper_solving', 'mock_test') or NULL. Sprint 8.5 (D-18). Applies only to `source = 'manual'` rows — chosen by the student at stop/log time, required for a manual log to complete. No default, no backfill: every row logged before Sprint 8.5 has `category IS NULL`. `get_study_time_stats` does not reference this column (confirmed additive via `pg_get_functiondef` before adding). |
 | `created_at` | timestamptz | DEFAULT now() |
 
-**RLS:** Enabled. INSERT and SELECT for own rows only (`auth.uid() = user_id`). No UPDATE or DELETE — sessions are immutable.
+**RLS:** Enabled. INSERT and SELECT for own rows only (`auth.uid() = user_id`). No UPDATE or DELETE — sessions are immutable (live-confirmed 16/09/2026: no RLS UPDATE policy, no function anywhere references this table with an UPDATE, no trigger attached to the table itself — `docs/database/sprint8.5/03_DIAGNOSTIC_confirm_study_sessions_immutable.sql`).
+
+**Constraint — `study_sessions_manual_requires_category` (Sprint 8.5, D-18 addendum):** `CHECK (source <> 'manual' OR category IS NOT NULL) NOT VALID`. Added after a quality-auditor review found the frontend-only "category is required" rule was a DB integrity gap — nothing stopped a future write path from inserting `source='manual', category=NULL`. `NOT VALID` enforces this on every future INSERT (and UPDATE, though none exist) without validating pre-existing rows, so no backfill and no rewrite of history. Live-verified: a `NULL`-category manual insert is rejected (`23514`), a valid categorized one still succeeds, and pre-existing historical `NULL`-category rows read back untouched.
 
 **Index:** `idx_study_sessions_user_date` on `(user_id, session_date)` — optimises the stats RPC.
 
-**Design decision — no incomplete rows:** The single INSERT pattern means the DB stores only sessions that actually completed. Abandoned sessions are recovered client-side via localStorage on next app load (< 4h recovery prompt, ≥ 4h silent discard).
+**Design decision — no incomplete rows:** The single INSERT pattern means the DB stores only sessions that actually completed. Abandoned sessions are recovered client-side via localStorage on next app load (< 4h recovery prompt, ≥ 4h silent discard). Sprint 8.5 added a second, distinct in-flight state: a session whose duration is finalized (Stop tapped, or a recovery choice made) but whose required `category` hasn't been chosen yet — held client-side as `pendingLog` in `StudyTimerContext.jsx`, persisted to its own `revisop_manual_timer_pending_log` localStorage key so a reload mid-picker doesn't lose it, and never written to `study_sessions` until `confirmCategory()` succeeds.
 
 **Design decision — local date:** `session_date` is the user's local date (`new Date().toLocaleDateString('en-CA')`), not UTC. This is critical for users in UTC+5:30 and later — after 6:30 PM UTC the DB's `CURRENT_DATE` would already be "tomorrow".
 

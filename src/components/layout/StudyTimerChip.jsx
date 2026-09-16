@@ -6,7 +6,11 @@
 // reserved for the dedicated /dashboard/study-time route.
 //
 // Tap behavior:
-//   elapsed < 4h   → stop + log immediately, toast confirmation, no navigation
+//   elapsed < 10s  → stop + no-op log (too short to count), toast confirmation
+//   elapsed 10s-4h → stop, then navigate to /dashboard/study-time, where the
+//                    required category picker is already showing (Sprint 8.5
+//                    — context state drives it, same pattern as the recovery
+//                    prompt below; the chip has no room for a picker itself)
 //   elapsed 4–16h  → navigate to /dashboard/study-time, where the recovery
 //                    prompt is already showing (context state drives it)
 //   elapsed > 16h  → defensive — should not be reachable given the app-wide
@@ -52,7 +56,7 @@ export default function StudyTimerChip({ compact = false }) {
     const result = await stop();
     if (result.outcome === 'logged' && result.durationSeconds > 0) {
       toast({ title: 'Session logged', description: `Session logged: ${formatDuration(result.durationSeconds)}` });
-    } else if (result.outcome === 'needs_recovery') {
+    } else if (result.outcome === 'needs_recovery' || result.outcome === 'needs_category') {
       navigate('/dashboard/study-time');
     } else if (result.outcome === 'discarded') {
       toast({

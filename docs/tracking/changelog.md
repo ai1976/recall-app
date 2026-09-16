@@ -1,6 +1,65 @@
 # Changelog
 
 ---
+## [2026-09-16] fix(sprint-8.5): DB-level enforcement that manual sessions carry a category
+
+Quality-auditor review of the completed sprint found a real integrity gap before commit: the frontend required a category, but the database didn't. `category` is nullable and its own `CHECK` only validates a value when present, so nothing stopped a future write path outside `confirmCategory()` — a bulk import, a different form, a regression — from silently inserting `source='manual', category=NULL` and reopening the exact gap this sprint exists to close.
+
+### Added
+- **`study_sessions_manual_requires_category`** — `CHECK (source <> 'manual' OR category IS NOT NULL) NOT VALID` (`docs/database/sprint8.5/04_SCHEMA_manual_requires_category.sql`). `NOT VALID` enforces on every future INSERT/UPDATE without scanning or rewriting rows that already exist — no backfill, no global `NOT NULL`. Chosen over a trigger since every other rule on this table (`source`'s values, `duration_seconds > 0`, `category`'s own value set) is already a plain `CHECK`, and triggers elsewhere in this app are reserved for cross-table side effects, not single-row validation.
+
+### Verified
+- **Immutability confirmed live, not just from the doc's claim**, before relying on it (`03_DIAGNOSTIC_confirm_study_sessions_immutable.sql`): no RLS `UPDATE` policy on `study_sessions`, no function in `public` references this table alongside an `UPDATE`, no trigger attached to the table — rows are genuinely write-once, so `NOT VALID`'s "also enforced on future UPDATEs" caveat is a non-issue here.
+- **All three required cases proved live** (`05_TEST_verify_manual_requires_category.sql`): a `NULL`-category manual insert is rejected (`23514` on `study_sessions_manual_requires_category`); a valid categorized manual insert still succeeds; 3 real pre-existing March 2026 manual rows with `category IS NULL` read back untouched.
+- The one real test row (left by the case that wasn't wrapped in `ROLLBACK`, to see its own `RETURNING` result) was removed via a tightly-scoped preview-then-delete, confirmed to match exactly 1 row before deletion.
+- No frontend changes needed — `confirmCategory()` already only ever sends one of the 5 valid category values.
+
+### Logged as backlog (not fixed, not blocking)
+- **`sprint7.3/03_TEST_verify_study_time_and_goal_prompt.sql`** likely has the same `auth.uid()`-is-`NULL`-in-the-SQL-Editor issue this sprint's own `02_TEST` hit. Not re-run to confirm; test-harness debt, not a product bug.
+
+### Files Changed
+- **Added:** `docs/database/sprint8.5/03_DIAGNOSTIC_confirm_study_sessions_immutable.sql`, `04_SCHEMA_manual_requires_category.sql`, `05_TEST_verify_manual_requires_category.sql`, `06_CLEANUP_remove_test_row.sql`.
+- **Changed:** `docs/reference/DATABASE_SCHEMA.md`, `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md` (this entry).
+
+---
+## [2026-09-16] docs(sprint-8.5): SQL deployed & verified live — Group A now fully shipped
+
+Follow-up to the entry below: the operator ran `00_DIAGNOSTIC` (confirmed live `study_sessions` matched docs exactly, `get_study_time_stats` had zero category references) then `01_SCHEMA` (added the column), then `02_TEST` in two parts. Result: valid `reading` insert succeeded, invalid `'not_a_real_category'` correctly hit `23514 check_violation` — both rolled back, nothing persisted. Phase 8 Group A is now fully shipped, SQL and frontend both live.
+
+### Fixed
+- **`02_TEST_verify_category_column.sql`'s write checks** — originally used `auth.uid()`, which is always `NULL` in the Supabase SQL Editor's no-session context and caused a `user_id NOT NULL` violation on the first run (caught safely by the existing `BEGIN`/`ROLLBACK` wrapper — nothing left behind). Rewritten to look up the project's existing disposable test account (`anandmore@outlook.com` / TestOutlook) via `profiles.email`, the same pattern Sprint 8.4's `02_FIX_reset_exam_prompt_dismissal_test_account.sql` already uses.
+
+### Verified
+- Both `02_TEST` runs passed exactly as expected. No frontend changes needed — it was already built against the final schema.
+
+### Files Changed
+- **Changed:** `docs/database/sprint8.5/02_TEST_verify_category_column.sql`, `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md` (this entry).
+
+---
+## [2026-09-16] feat(sprint-8.5): required category picker for offline study-log entries
+
+Phase 8, Group A's last item. A manually-logged offline study session (`source = 'manual'`) now requires a category — one of Reading, Writing Practice, Lecture Viewing, Paper Solving, or Mock Test (timed) — chosen at stop/log time rather than at Start, to keep the Start click frictionless. **SQL not yet deployed** — the frontend is built and live-verified against a real `PGRST204` error confirming it's correctly gated on the schema landing first.
+
+### Added
+- **`study_sessions.category`** — nullable `text`, `CHECK`-constrained to the 5 values above, no default, no backfill (`docs/database/sprint8.5/01_SCHEMA_add_study_session_category.sql`). Applies only to `source = 'manual'` rows.
+- **Category picker** in `StudyTimerWidget.jsx` — 5 buttons + a Save button disabled until one is selected, shown for both the direct <4h stop path and a resolved recovery-prompt choice (full-time or custom-hours).
+- **`StudyTimerContext.jsx`'s new `pendingLog` state** — `stopAndLog()` now finalizes a duration into this state instead of writing to the DB directly; a new `confirmCategory(category)` performs the actual insert once chosen. Persisted to its own `revisop_manual_timer_pending_log` localStorage key so a page reload mid-picker re-shows the picker instead of losing an already-stopped session.
+
+### Changed
+- **`StudyTimerChip.jsx`** (nav bar) — a tap that used to stop+log+toast in one motion for a <4h session now navigates to `/dashboard/study-time` when a category is needed, since the chip has no room to host a picker. Same pattern the chip already used for the 4-16h recovery case. This was a gap the sprint brief didn't cover; resolved by asking the operator rather than guessing (chose "navigate to the page" over "build a chip popover").
+
+### Dropped from the brief (deliberate, not an oversight)
+- **"Revision/Recap" as a 6th category** — mixed a purpose/timing axis into an activity-type axis, creating real overlap with every other category. Logged as a possible orthogonal flag in `blueprint.md` §3.2, not built.
+- **Per-category breakdown UI** — the brief asked for categorization at logging time only, not a new report. Logged as backlog.
+
+### Verified
+- `npx eslint` clean on all 3 touched files. Live click-through in the Browser pane (`TestOutlook`): picker renders all 5 options, Save disabled until selected, selection highlighting correct; `pendingLog` confirmed to survive a full page reload (picker re-appears, nothing lost); pre-existing <10s no-op path confirmed unchanged. Tapping Save against the still-undeployed schema correctly surfaced `PGRST204 "category column not found"` and left the picker state intact — proves the write path and the SQL-first gate are both correct. **Frontend requires `00_DIAGNOSTIC` + `01_SCHEMA` deployed in Supabase before this is live** — not yet confirmed done.
+
+### Files Changed
+- **Added:** `docs/database/sprint8.5/00_DIAGNOSTIC_confirm_no_category_column.sql`, `01_SCHEMA_add_study_session_category.sql`, `02_TEST_verify_category_column.sql`.
+- **Changed:** `src/contexts/StudyTimerContext.jsx`, `src/components/dashboard/StudyTimerWidget.jsx`, `src/components/layout/StudyTimerChip.jsx`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md` (this entry).
+
+---
 ## [2026-09-16] feat(sprint-8.4): "Exam Runway" reframe replaces the tentative hedge
 
 Audit review of the previous entry's `~{days} days (tentative — assumes the 1st of {Month})` found it still framed the number as an estimate of days-until-exam, just with a caveat attached. Stronger fix: change what the number measures instead of hedging it — days until the stated calendar month begins is exact, unhedged fact, not a guess about an unannounced exam date.

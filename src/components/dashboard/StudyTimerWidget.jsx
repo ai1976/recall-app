@@ -20,6 +20,18 @@ import { Input } from '@/components/ui/input';
 import { Timer, Square } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useStudyTimer } from '@/contexts/StudyTimerContext';
+import { cn } from '@/lib/utils';
+
+// Sprint 8.5 — required at stop/log time, both for the direct <4h stop path
+// and the resolved recovery-prompt path. Values match study_sessions.category's
+// CHECK constraint (docs/database/sprint8.5/01_SCHEMA_add_study_session_category.sql).
+const CATEGORIES = [
+  { value: 'reading',          label: 'Reading' },
+  { value: 'writing_practice', label: 'Writing Practice' },
+  { value: 'lecture_viewing',  label: 'Lecture Viewing' },
+  { value: 'paper_solving',    label: 'Paper Solving' },
+  { value: 'mock_test',        label: 'Mock Test (timed)' },
+];
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
 
@@ -51,13 +63,18 @@ function formatMs(ms) {
 
 export default function StudyTimerWidget() {
   const { toast } = useToast();
-  const { isRunning, startedAt, recoveryPrompt, start, stop, stopAndLog, discard } = useStudyTimer();
+  const {
+    isRunning, startedAt, recoveryPrompt, pendingLog,
+    start, stop, stopAndLog, discard, confirmCategory,
+  } = useStudyTimer();
 
   const [busy, setBusy] = useState(false);
   const [confirmation, setConfirmation] = useState('');
   const [postRecovery, setPostRecovery] = useState(false);
   const [customInputMode, setCustomInputMode] = useState(false);
   const [customHours, setCustomHours] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [pendingViaRecovery, setPendingViaRecovery] = useState(false);
 
   const clockRef = useRef(null);
 
@@ -82,7 +99,10 @@ export default function StudyTimerWidget() {
     setBusy(true);
     try {
       const result = await stop();
-      if (result.outcome === 'logged' && result.durationSeconds > 0) {
+      if (result.outcome === 'needs_category') {
+        setPendingViaRecovery(false);
+        setSelectedCategory('');
+      } else if (result.outcome === 'logged' && result.durationSeconds > 0) {
         setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
       } else if (result.outcome === 'discarded') {
         toast({
@@ -103,9 +123,9 @@ export default function StudyTimerWidget() {
     setBusy(true);
     try {
       const result = await stopAndLog(Math.round(recoveryPrompt.elapsedMs / 1000));
-      if (result.outcome === 'logged' && result.durationSeconds > 0) {
-        setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
-        setPostRecovery(true);
+      if (result.outcome === 'needs_category') {
+        setPendingViaRecovery(true);
+        setSelectedCategory('');
       }
     } finally {
       setBusy(false);
@@ -121,13 +141,29 @@ export default function StudyTimerWidget() {
     setBusy(true);
     try {
       const result = await stopAndLog(hrs * 3600);
-      if (result.outcome === 'logged' && result.durationSeconds > 0) {
-        setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
-        setPostRecovery(true);
+      if (result.outcome === 'needs_category') {
+        setPendingViaRecovery(true);
+        setSelectedCategory('');
       }
     } finally {
       setCustomHours('');
       setCustomInputMode(false);
+      setBusy(false);
+    }
+  };
+
+  const handleConfirmCategory = async () => {
+    if (!selectedCategory) return;
+    setBusy(true);
+    try {
+      const result = await confirmCategory(selectedCategory);
+      if (result.outcome === 'logged' && result.durationSeconds > 0) {
+        setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
+        if (pendingViaRecovery) setPostRecovery(true);
+      }
+    } finally {
+      setSelectedCategory('');
+      setPendingViaRecovery(false);
       setBusy(false);
     }
   };
@@ -224,13 +260,47 @@ export default function StudyTimerWidget() {
           </div>
         )}
 
+        {/* ── Category picker — required before the session is logged (Sprint 8.5) ── */}
+        {pendingLog && !busy && (
+          <div className="space-y-2">
+            <p className="text-xs sm:text-sm font-medium leading-snug">
+              What were you studying?
+            </p>
+            <div className="grid grid-cols-1 gap-1.5">
+              {CATEGORIES.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setSelectedCategory(value)}
+                  className={cn(
+                    'h-8 rounded-md border px-3 text-left text-xs transition-colors',
+                    selectedCategory === value
+                      ? 'border-amber-500 bg-amber-50 font-medium text-amber-800'
+                      : 'border-input hover:bg-muted'
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <Button
+              size="sm"
+              className="h-8 w-full"
+              disabled={!selectedCategory}
+              onClick={handleConfirmCategory}
+            >
+              Save
+            </Button>
+          </div>
+        )}
+
         {/* ── Saving ── */}
         {busy && !recoveryPrompt && (
           <p className="text-xs sm:text-sm text-muted-foreground">Saving...</p>
         )}
 
         {/* ── Idle ── */}
-        {!isRunning && !recoveryPrompt && !busy && (
+        {!isRunning && !recoveryPrompt && !pendingLog && !busy && (
           <div className="flex items-center justify-between">
             <div>
               {confirmation ? (
