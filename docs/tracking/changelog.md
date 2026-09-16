@@ -1,6 +1,25 @@
 # Changelog
 
 ---
+## [2026-09-16] docs(sprint-8.3): Quality Auditor follow-up — B1 malformed-input test + audit disposition recorded
+
+A Quality Auditor review of Sprint 8.3's completion report (below) found one material issue: the report characterized 2 of the originally-planned 5 help screenshots as satisfied by a "native browser dialog" technical finding, when the correct disposition is deferred (a real UX fix needed first), not waived. Also flagged: B1's malformed-input handling was only shown via a happy-path click, and A1's test-plan gap (extracted-logic testing instead of a live file-upload) should be recorded as a limitation, not implied full verification.
+
+### Verified (new this entry)
+- B1's exact `renderInlineLinks` parser extracted and run against 17 cases — unclosed brackets, external URLs, reversed/nested brackets, empty label/target, non-string inputs (`null`/`undefined`/a number), and a string mixing valid links with a broken tail. All 17 degraded to plain text or partial-link output with zero crashes.
+
+### Changed (docs only, no code)
+- `docs/active/blueprint.md` — Sprint 8.3 entry corrected: "Dropped" screenshots 4-5 reworded to "Deferred, not waived"; the `create_batch_group` bug fix framed explicitly as independently-documented, out-of-scope; status changed from a flat ✅ SHIPPED to "implementation complete, audit close pending 2 housekeeping items"; A1's test limitation stated plainly rather than only implied. New Pending Work (§3.2) item: replace the native `confirm()`/`prompt()` dialogs in `SuperAdminDashboard.jsx` (role-change, Hard Delete) with real accessible in-app dialogs, then capture the 2 remaining screenshots against those.
+- `docs/active/now.md` — added a "Quality Auditor follow-up" section recording the full disposition.
+
+### Added
+- `docs/database/sprint8.3/04_CLEANUP_delete_test_batches.sql` — preview-then-delete script for the operator to remove the 2 disposable Sprint 8.3 test batch groups, required before the sprint is considered operationally closed.
+
+### Files Changed
+- **New:** `docs/database/sprint8.3/04_CLEANUP_delete_test_batches.sql`.
+- **Changed:** `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md` (this entry).
+
+---
 ## [2026-09-16] feat(sprint-8.3): bug fixes + Help renderer (hyperlinks & screenshots) + a real batch-approval bug found and fixed
 
 Content-only-looking sprint that turned up a real production bug along the way. Part A: two isolated `BulkUploadFlashcards.jsx` fixes. Part B: extended `Help.jsx`'s renderer with an internal link syntax and an image block, then used both on the Sprint 8.2 batch-lifecycle sections. While staging a disposable test batch group to capture screenshots, discovered `create_batch_group` never set `group_type='batch'`, silently disabling the D-15 student-approval gate for any batch created through the live function — fixed and verified same session.
