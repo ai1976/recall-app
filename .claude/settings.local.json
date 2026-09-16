@@ -204,7 +204,32 @@
       "Bash(cd \"/c/Users/Anand/Desktop/CA Revision Portal\" && grep -rlo '\"type\":\\\\s*\"true_false\"' --include=\"*.js\" --include=\"*.json\" . 2>/dev/null | sort -u *)",
       "Bash(node scratch_check_csv.js)",
       "Bash(node scratch_check_csv.cjs)",
-      "Bash(git diff *)"
+      "Bash(git diff *)",
+      "Bash(awk '{ print length, NR }' \"C:\\\\Users\\\\Anand\\\\Desktop\\\\recall-app\\\\docs\\\\active\\\\blueprint.md\")",
+      "Bash(awk 'NR==20 || NR==21 || NR==22 || NR==23 || NR==24 {print NR\": \"substr\\($0,1,200\\)}' \"C:\\\\Users\\\\Anand\\\\Desktop\\\\recall-app\\\\docs\\\\active\\\\blueprint.md\")",
+      "Bash(awk '{ print NR, length }' \"C:\\\\Users\\\\Anand\\\\Desktop\\\\recall-app\\\\docs\\\\active\\\\blueprint.md\")",
+      "Bash(awk '{sum+=$2; if\\(NR%50==0\\){print \"up to line\",$1,\"cumulative chars\",sum}}')",
+      "Bash(awk '{print NR, length}' \"C:\\\\Users\\\\Anand\\\\Desktop\\\\recall-app\\\\docs\\\\active\\\\now.md\")",
+      "Bash(mkdir -p \"C:/Users/Anand/Desktop/recall-app/docs/database/sprint8.0\")",
+      "Bash(mkdir -p \"/c/Users/Anand/Desktop/recall-app/docs/database/sprint8.1\")",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(node --input-type=module -e ' *)",
+      "Bash(awk '/\\\\*\\\\*Sprint History:\\\\*\\\\*/,/^---$/' docs/active/blueprint.md)",
+      "Bash(npx vite *)",
+      "Bash(mkdir -p /tmp/commit-split)",
+      "Bash(cp docs/active/blueprint.md docs/active/now.md docs/tracking/bugs.md docs/tracking/changelog.md /tmp/commit-split/)",
+      "Bash(git show *)",
+      "Read(//tmp/commit-split/**)",
+      "Bash(cp /tmp/commit-split/bugs.md /c/Users/Anand/Desktop/recall-app/docs/tracking/bugs.md && cd /c/Users/Anand/Desktop/recall-app && git diff --stat -- docs/tracking/bugs.md)",
+      "Bash(head -n 2 now.head.md)",
+      "Bash(cat now.insert.md)",
+      "Bash(tail -n +4 now.head.md)",
+      "Bash(git apply *)",
+      "Bash(git mv *)",
+      "Bash(head -n 4 now.head2.md)",
+      "Bash(cat now.insert2.md)",
+      "Bash(tail -n +5 now.head2.md)",
+      "Bash(grep -n \"^## Sprint 8.2\\\\|^## Sprint 8.1\\\\|^---$\" docs/active/now.md)"
     ]
   }
 }

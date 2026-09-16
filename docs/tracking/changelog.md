@@ -28,7 +28,7 @@ Audited the repo for deadweight, duplicates, and misplaced files. Every deletion
 ---
 ## [2026-09-16] fix: note deletion now cleans up its Storage image (both delete paths)
 
-Discovered during an unrelated file-cleanup audit: deleting a note never removed its image from the `notes` Storage bucket, in either the student (`MyNotes.jsx`) or admin (`AdminDashboard.jsx`) delete path. Confirmed via a `storage.objects`-vs-`notes.image_url` diagnostic (8 orphans, ~47MB) and a trigger audit (no DB trigger covers it either). The 8 pre-existing orphans were manually deleted via the Supabase Dashboard the same day and reverified at 0 rows.
+Discovered during an unrelated file-cleanup audit: deleting a note never removed its image from the `notes` Storage bucket, in either the student (`MyNotes.jsx`) or admin (`AdminDashboard.jsx`) delete path. Confirmed via a `storage.objects`-vs-`notes.image_url` diagnostic (8 orphans, ~47MB) and a trigger audit (no DB trigger covers it either).
 
 ### Added
 - **`src/lib/noteStorage.js`** — `extractNoteStoragePath(imageUrl)` + `deleteNoteStorageImage(imageUrl)` (best-effort; warns on failure rather than throwing, so it never blocks a note delete that already succeeded).
@@ -40,10 +40,58 @@ Discovered during an unrelated file-cleanup audit: deleting a note never removed
 ### Verified
 - `npm run build` and `npx eslint` on all three files: clean.
 - **Not done:** in-browser click-through delete of a real note — destructive against production data, not attempted this session. Operator should confirm on a throwaway note.
+- **Not retroactive:** the 8 pre-existing orphaned images require a manual one-time Supabase Dashboard cleanup (no Storage trash/versioning exists — Claude does not perform permanent deletion itself).
 
 ### Files Changed
 - **New:** `src/lib/noteStorage.js`.
 - **Changed:** `src/pages/dashboard/Content/MyNotes.jsx`, `src/pages/admin/AdminDashboard.jsx`, `docs/active/blueprint.md`, `docs/reference/FILE_STRUCTURE.md`, `docs/tracking/bugs.md`, `docs/active/now.md`.
+
+---
+## [2026-09-16] docs(sprint-8.2): Help — batch lifecycle corrections + question-type guidance (content-only)
+
+`src/data/helpContent.js` still described the pre-Sprint-8.0 batch-enrollment model (automatic course+institution matching, "Grant Access" auto-enrolling into a batch) and had no real guidance for 7 of the app's 8 question types. Corrected the seven affected sections to match the live Sprint 8.0/8.1 approval + archive/restore flow, and added question-type and CSV documentation that didn't exist before. No product behavior changed — data file only.
+
+### Added
+- **`question-types-guide`** (Content tab, all roles) — purpose, one CA example, creator role, dos/don'ts, and how-to-answer for all 8 question types.
+- **`prof-question-type-authoring`** (Content tab, professor/admin/super_admin) — manual-authoring field reference for the 5 D-10-gated types (MCQ, Correct/Incorrect, Case study MCQ, Match the following, Fill in the Blank).
+- **`bulk-csv-basics`** (Content tab, all roles) — what a CSV is, the real 18-column template, quoting/blank/multiline rules, and which types Bulk Upload does and doesn't support, for any role.
+
+### Changed
+- **`prof-welcome`, `prof-profile-setup`, `prof-batch-groups`, `prof-batch-performance`** (professor-guide tab) and **`admin-dashboard-overview`, `admin-access-requests`, `admin-batch-groups`** (admin-guide tab) — removed every "automatic enrollment matches course+institution" claim; now describe the real invite-link + approve/reject + direct-add flow (D-15) and archive/restore lifecycle (D-16). Corrected the Admin Dashboard's tab names to the real ones (Content Moderation / User Management / Access Requests / Batch Groups).
+- **`flashcard-creation`** (renamed "Creating Study Items") — rescoped to the 3 open-to-everyone types (Flashcard, Theory, Concept Card), pointing to the new sections for the rest.
+- **`prof-bulk-csv`** — rewritten from a stale 2-column "front,back" description (with a fabricated "Maximum 200 cards per upload" limit) to the 4 professor/admin-gated CSV types' real columns, with example rows copied verbatim from the app's own downloadable template.
+- **`superadmin-user-roles`, `superadmin-hard-delete`, `superadmin-sa-analytics`** — spot-checked against current `SuperAdminDashboard.jsx`/`SuperAdminAnalytics.jsx` and corrected real drift (wrong button labels/dialogs, wrong deleted-data list, wrong analytics columns/misplaced bullets) — see `bugs.md` for the itemized list.
+
+### Verified
+- `npm run build` and `npx eslint src/data/helpContent.js` both clean; 53 sections across 8 tabs, no duplicate ids.
+- Every button label, tab name, and behavior claim checked against live component source (`AdminDashboard.jsx`, `GroupJoin.jsx`, `FlashcardCreate.jsx`, `BulkUploadFlashcards.jsx`, `StudyMode.jsx`, `SuperAdminDashboard.jsx`, `SuperAdminAnalytics.jsx`, `src/lib/{mcq,fitb,matchTheFollowing,caseStudyMcq,conceptCard,questionTypes}.js`), not assumed from the prior help text.
+- **Live role-based click-through completed same day**, once the operator supplied credentials in the Browser pane (Claude never saw or entered a password) — all four roles confirmed correct, gated sections don't leak, consoles clean.
+- **One real bug caught during that live check:** the raw CSV example rows had no spaces after their commas, causing horizontal page overflow (1520px content in a 985px viewport). Fixed same session (see the Quality Auditor follow-up entry above/below for the full correction, since the header-row example needed a different fix than the data rows).
+
+### Files Changed
+- **Changed:** `src/data/helpContent.js`, `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/bugs.md`.
+
+---
+## [2026-09-16] fix(sprint-8.2): Quality Auditor follow-up — 6 corrections to Help content (content-only)
+
+A plain-language report of Sprint 8.2 (including the live four-role click-through above) was sent to the operator's Quality Auditor. Six corrections came back and were fixed the same day — three were real factual/functional bugs in the new help text, not just wording preferences.
+
+### Fixed
+- **CSV header-row example would have broken on copy-paste.** The wrapping fix applied to the header-row example added a space after every comma — but `BulkUploadFlashcards.jsx`'s parser never trims header names (only cell values), so a literal copy-paste would have produced unmatched keys like `" subject"`. Removed that one raw line (the column list is already covered by prose bullets; the exact header is one click away via "Download the Template"). Data-row examples were untouched — those values *are* trimmed, so they were never actually broken.
+- **`prof-question-type-authoring` wrongly implied `match_the_following` supports Bulk Upload.** Its opening sentence grouped all 5 gated types under "manual creation and Bulk Upload" — false for Match the following, which CSV has never supported for any role. Reworded to carve it out.
+- **A tip overgeneralized Fill in the Blank's grading.** "These five types... a wrong verdict automatically marks the card Hard" is true for the other four gated types but false for FITB, which never has a "wrong" verdict (D-13) — only a match or a self-graded fallback. Split into two sentences so FITB's real mechanism isn't misdescribed.
+- **Hard Delete claimed an unverified guarantee.** "so a record survives even if the delete itself fails partway" was never actually confirmed (a shared transaction could roll both operations back together). Replaced with the Auditor's suggested wording: "The system attempts to record the action before deletion runs." Also dropped the `admin_audit_log` table-name reference from user-facing text.
+- **`admin-batch-groups` never said where to view a batch's actual performance report.** It covered membership/lifecycle management only; added a cross-reference to the report-viewing surface (Study Groups → the batch → GroupDetail, shared with professors).
+- **Tax examples with no year/regime.** Swapped every example that was original prose (not copied from the app) to timeless alternatives (a percentage question, an "AS 1" reference) already used elsewhere in the app's own template. The literal CSV example rows genuinely copied verbatim from the real downloadable template were left as-is (changing them would break the "guaranteed to match the real download" property) — added a caveat tip next to them instead. The app's own template carrying the same unqualified tax figures is logged separately in `bugs.md` as a small future fix, out of scope here.
+
+### Deferred, not skipped
+- Annotated screenshots (Auditor recommendation) and in-app navigation hyperlinks (operator request) both require extending `Help.jsx`'s renderer (no image block, no link parsing today) — real feature work, not a content edit. Bundled into one follow-up sprint per the operator's decision; logged in `blueprint.md`'s Pending Work (Immediate).
+
+### Verified
+- `npm run build` and `npx eslint src/data/helpContent.js` clean. Re-checked all four roles live again in the Browser pane after the fixes — no leaks, corrected CSV examples still parse, no overflow at desktop or 375px mobile.
+
+### Files Changed
+- **Changed:** `src/data/helpContent.js`, `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/bugs.md`.
 
 ---
 ## [2026-09-15] test(sprint-8.1): Quality Auditor follow-up — snapshot atomicity + frozen-report verification (✅ 7/7 PASS)
