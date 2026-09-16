@@ -1107,7 +1107,7 @@ export const HELP_TABS = [
           {
             type: 'steps',
             items: [
-              'Go to Study Groups in the navigation bar.',
+              'Go to [Study Groups](/dashboard/groups) in the navigation bar.',
               'Batch groups appear in your groups list with an "Official" badge. Click one.',
               'The Batch Performance table loads automatically — you do not need to click anything extra.',
               'Click any column header to sort. Click again to reverse the sort direction.',
@@ -1203,7 +1203,7 @@ export const HELP_TABS = [
         defaultExpanded: true,
         roles: ['admin', 'super_admin'],
         content: [
-          { type: 'paragraph', text: 'The Admin Dashboard is at /admin (Manage → Admin Dashboard in the nav bar). It has four tabs:' },
+          { type: 'paragraph', text: 'The Admin Dashboard is at [/admin](/admin) (Manage → Admin Dashboard in the nav bar). It has four tabs:' },
           { type: 'list', items: [
             'Content Moderation — Browse all public notes and flashcard decks. Review or remove content that violates community guidelines.',
             'User Management — Browse all registered users, grant access to new signups, suspend accounts, and add an already-enrolled student directly to a batch group.',
@@ -1221,7 +1221,7 @@ export const HELP_TABS = [
         content: [
           { type: 'paragraph', text: "When a student signs up and requests access, their request appears in the Access Requests tab. Review each request and grant or decline access." },
           { type: 'steps', items: [
-            'Go to Admin Dashboard → Access Requests tab.',
+            'Go to [Admin Dashboard](/admin) → Access Requests tab.',
             "Each request shows the student's name, email, institution, and course level.",
             'Click "Grant Access" to activate the student\'s account. This sets their account type to Enrolled and notifies them — it does not add them to any batch group.',
             'To decline, mark the request as declined.',
@@ -1237,25 +1237,43 @@ export const HELP_TABS = [
         content: [
           { type: 'paragraph', text: 'A batch group gives your institution a private view of one course’s study activity. Creating one adds no students — they join afterward, one at a time, with your approval.' },
           { type: 'steps', items: [
-            'Go to Admin Dashboard → Batch Groups tab.',
+            'Go to [Admin Dashboard](/admin) → Batch Groups tab.',
             'Click "Create Batch Group".',
             'Choose the Course Level, enter a Group Name, an optional description, and select the Institution.',
             'Click "Create Group". The batch starts with no members.',
           ]},
+          {
+            type: 'image',
+            src: '/help-screenshots/admin-batch-create-invite-link.png',
+            alt: 'Admin Dashboard Batch Groups tab showing a newly created batch card with its invite link revealed next to Hide and Archive buttons',
+            caption: 'After creating a batch, click "Copy Invite Link" on its card to reveal and share the URL.',
+          },
           { type: 'list', items: [
             'Click "Copy Invite Link" on the batch’s card and share it with your students (for example, over WhatsApp).',
             'When a student opens the link and taps "Request to Join", their request appears under "Pending Batch Requests" above the batch list. Click "Approve" to add them or "Reject" to turn them down — approving is the only way a request becomes a real member.',
             'To add one specific student without an invite link, find them in User Management and use the "Add to batch…" picker next to their name. This counts as approval immediately.',
             'Course and institution are never matched automatically to add or remove a student — every membership change is one of these explicit steps.',
           ]},
+          {
+            type: 'image',
+            src: '/help-screenshots/admin-batch-pending-requests.png',
+            alt: 'Pending Batch Requests table showing a student\'s request to join a batch, with Approve and Reject buttons',
+            caption: 'A student\'s join request waits here until you Approve or Reject it.',
+          },
           { type: 'steps', items: [
             'Once a course/cohort has ended, click "Archive" on its batch group.',
             'Archiving stops new join requests and invitations and closes any that were still pending. Approved members and their existing content access are unaffected.',
             'The batch’s report freezes exactly as it stood at the moment you archived it — later student activity, even from existing members, is not reflected.',
             'Click "Restore" to reopen an archived batch and resume live reporting. Restoring does not reopen requests or invitations that archiving closed — a student must request to join again.',
           ]},
+          {
+            type: 'image',
+            src: '/help-screenshots/admin-batch-archive-filter.png',
+            alt: 'Batch Groups list showing the Active/Archived filter toggle and an Archive button on each batch card',
+            caption: 'Switch between Active and Archived batches with the toggle; Archive is on each card.',
+          },
           { type: 'tip', text: 'There is no way to permanently delete a batch group — archive it instead once it has ended.' },
-          { type: 'tip', text: 'This Admin Dashboard tab is for managing membership and lifecycle only. To see a batch’s actual weekly performance report (reviews, streaks, study time per student), open Study Groups in the navigation bar and click into the batch — the same monitoring view professors use. See "Batch Performance View" under For Professors for what that report shows.' },
+          { type: 'tip', text: 'This Admin Dashboard tab is for managing membership and lifecycle only. To see a batch’s actual weekly performance report (reviews, streaks, study time per student), open [Study Groups](/dashboard/groups) in the navigation bar and click into the batch — the same monitoring view professors use. See "Batch Performance View" under For Professors for what that report shows.' },
         ],
       },
       {

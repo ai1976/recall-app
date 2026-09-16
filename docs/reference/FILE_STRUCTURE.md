@@ -310,6 +310,7 @@ recall-app
 - `src/pages/guide/StudentGuide.jsx` — public /guide page (no auth, no DB)
 - `src/data/guideContent.js` — single source of truth for Student Guide + GuideInfoModal
 - `src/components/shared/GuideInfoModal.jsx` — contextual modal on DeckPreview / NotePreview / GroupJoin (moved from `src/components/` root, 16/09/2026)
+- `public/help-screenshots/*.png` — Sprint 8.3, first static content images this codebase has shipped (root-relative path, referenced by `helpContent.js`'s new `image` content-block type in `Help.jsx`). Dummy test-account/test-batch data only, resized/recompressed with `sharp` before commit.
 
 ### Configuration
 - `vite.config.js` — manualChunks splits vendor bundles for caching

@@ -59,16 +59,51 @@ function DynamicIcon({ name, className }) {
   return <Icon className={className} />;
 }
 
+// ─── Inline link syntax: [label](/route) → internal <Link> (Sprint 8.3 B1) ───
+// Only matches a `/`-prefixed target inside well-formed brackets/parens — no
+// external-link handling, and anything that doesn't match this exact shape
+// (a stray "[label](", an external http(s) URL, unbalanced brackets) simply
+// never matches, so it degrades to plain text instead of throwing.
+const INLINE_LINK_PATTERN = /\[([^[\]]+)\]\((\/[^()\s]*)\)/g;
+
+function renderInlineLinks(text) {
+  if (!text || typeof text !== 'string' || !text.includes('[')) return text;
+
+  const parts = [];
+  let lastIndex = 0;
+  let key = 0;
+  let match;
+
+  INLINE_LINK_PATTERN.lastIndex = 0;
+  while ((match = INLINE_LINK_PATTERN.exec(text)) !== null) {
+    const [full, label, target] = match;
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    parts.push(
+      <Link key={`link-${key++}`} to={target} className="text-amber-600 hover:underline font-medium">
+        {label}
+      </Link>
+    );
+    lastIndex = match.index + full.length;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length ? parts : text;
+}
+
 // ─── Content block renderer ───
 function ContentBlock({ item }) {
   switch (item.type) {
     case 'paragraph':
-      return <p className="text-gray-700 mb-4 leading-relaxed">{item.text}</p>;
+      return <p className="text-gray-700 mb-4 leading-relaxed">{renderInlineLinks(item.text)}</p>;
     case 'list':
       return (
         <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-4">
           {item.items.map((li, i) => (
-            <li key={i} className="leading-relaxed">{li}</li>
+            <li key={i} className="leading-relaxed">{renderInlineLinks(li)}</li>
           ))}
         </ul>
       );
@@ -76,7 +111,7 @@ function ContentBlock({ item }) {
       return (
         <ol className="list-decimal pl-6 text-gray-700 space-y-2 mb-4">
           {item.items.map((step, i) => (
-            <li key={i} className="leading-relaxed">{step}</li>
+            <li key={i} className="leading-relaxed">{renderInlineLinks(step)}</li>
           ))}
         </ol>
       );
@@ -85,9 +120,38 @@ function ContentBlock({ item }) {
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex gap-3">
           <HelpCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <p className="text-sm text-[#1e1b4b] leading-relaxed">
-            <span className="font-semibold">Tip:</span> {item.text}
+            <span className="font-semibold">Tip:</span> {renderInlineLinks(item.text)}
           </p>
         </div>
+      );
+    case 'image':
+      return (
+        <figure className="mb-4">
+          <div className="relative w-full rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
+            <img src={item.src} alt={item.alt} className="w-full h-auto block" />
+            {(item.annotations || []).map((ann, i) => (
+              <div
+                key={i}
+                className="absolute -translate-x-1/2 -translate-y-1/2"
+                style={{ left: `${ann.x}%`, top: `${ann.y}%` }}
+              >
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-600 text-white text-xs font-bold shadow-md ring-2 ring-white">
+                  {i + 1}
+                </span>
+              </div>
+            ))}
+          </div>
+          {item.caption && (
+            <figcaption className="text-xs text-gray-500 mt-1.5">{item.caption}</figcaption>
+          )}
+          {(item.annotations || []).length > 0 && (
+            <ol className="text-xs text-gray-600 mt-2 space-y-0.5 list-decimal pl-5">
+              {item.annotations.map((ann, i) => (
+                <li key={i}>{ann.label}</li>
+              ))}
+            </ol>
+          )}
+        </figure>
       );
     default:
       return null;

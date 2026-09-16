@@ -184,18 +184,18 @@ export default function BulkUploadFlashcards() {
   // ─── Download: Template CSV ───
   function downloadTemplate() {
     const template = '\uFEFF' + `target_course,subject,topic,front,back,tags,difficulty,question_type,option_1,option_2,option_3,option_4,correct_option,explanation,subtype,scenario,case_group,fitb_answers
-CA Intermediate,Taxation,Income Tax Basics,What is the basic exemption limit for individuals below 60 years?,₹2.5 lakhs,"#ITR,#basics",easy,,,,,,,,,,,
+CA Intermediate,Taxation,Income Tax Basics,What is the difference between a direct tax and an indirect tax?,A direct tax is paid directly by the person it is levied on (e.g. income tax); an indirect tax is collected by an intermediary and passed on to the government (e.g. GST).,"#ITR,#basics",easy,,,,,,,,,,,
 CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium,,,,,,,,,,,
 CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium,,,,,,,,,,,
 CA Intermediate,Taxation,Income Tax Basics,Which of these is a deduction under Section 80C?,,"#ITR",medium,mcq,Life insurance premium,House rent paid,Medical insurance premium,Interest on savings account,1,Life insurance premium qualifies under 80C; the others fall under different sections.,,,,
-CA Intermediate,Taxation,Income Tax Basics,Interest on savings account is fully exempt from tax regardless of amount.,,"#ITR",medium,correct_incorrect,,,,,2,Only up to Rs 10000 is exempt under Section 80TTA -- beyond that it's taxable.,,,,
+CA Intermediate,Taxation,Income Tax Basics,Interest on savings account is fully exempt from tax regardless of amount.,,"#ITR",medium,correct_incorrect,,,,,2,Section 80TTA/80TTB provides only a limited exemption on savings account interest -- not a full exemption. Check the current threshold rather than assuming it's unlimited.,,,,
 CA Intermediate,Advanced Accounting,AS 1,AS 1 deals with the disclosure of accounting policies.,,"#AS",easy,correct_incorrect,,,,,1,,,,,
 CA Intermediate,Taxation,Income Tax Basics,Explain the difference between exemption and deduction under the Income Tax Act.,An exemption removes income from the tax base entirely; a deduction reduces taxable income after it's included.,"#ITR",medium,theory,,,,,,,pure_theory,,,
 CA Foundation,Quantitative Aptitude,Percentages,Work through: a shop marks up cost by 25% then offers a 10% discount on the marked price. What's the net margin over cost?,"Net price = 1.25 x 0.9 = 1.125x cost, so a 12.5% margin over cost.",,medium,theory,,,,,,,descriptive_case_study,,,
 CA Intermediate,Auditing,Audit Evidence,What type of audit opinion should be issued given the evidence described in the scenario?,,"#audit",medium,case_study_mcq,Unmodified opinion,Qualified opinion,Adverse opinion,Disclaimer of opinion,2,The misstatement is material but not pervasive -- a qualified opinion is appropriate.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case,
 CA Intermediate,Auditing,Audit Evidence,Which audit procedure would have been most effective in detecting this misstatement earlier?,,"#audit",medium,case_study_mcq,Analytical review of gross margin trends,Bank confirmation,Related party disclosure review,Subsequent events review,1,A gross margin trend analysis would have flagged the anomaly before year-end.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case,
 CA Intermediate,Auditing,Audit Evidence,What should the auditor do if management continues to refuse the adjustment?,,"#audit",medium,case_study_mcq,Issue an unmodified opinion anyway,Modify the opinion and describe the basis in the audit report,Withdraw from the engagement immediately,Ignore it as immaterial,2,SA 705 requires a modified opinion with a clear basis-for-qualification paragraph.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case,
-CA Intermediate,Taxation,Income Tax Basics,The basic exemption limit for individuals below 60 years is ______.,,"#ITR",medium,fitb,,,,,,No explanation needed -- this is a direct recall fact.,,,,"₹2.5 lakhs;2.5 lakhs;250000;2,50,000"
+CA Intermediate,Taxation,Income Tax Basics,"Deductions for life insurance premium, PPF, and ELSS investments are available under Section ______ of the Income Tax Act.",,"#ITR",medium,fitb,,,,,,No explanation needed -- this is a direct recall fact.,,,,"80C;Section 80C;80 C"
 
 ==================================================
 HOW TO USE THIS TEMPLATE
@@ -430,9 +430,17 @@ IMPORTANT:
                 flashcard[header] = cleanValue;
               });
 
-              // question_type: recognized graded/free-recall types pass through; anything else -> plain flashcard
+              // question_type: recognized graded/free-recall types pass through; a blank cell
+              // defaults to plain flashcard; any other non-blank value is rejected outright
+              // (Sprint 8.3 A1) rather than silently downgraded — a professor authoring a type
+              // Bulk Upload doesn't support (e.g. match_the_following, concept_card) or making a
+              // typo deserves an error, not silently-wrong content.
               const cleanQuestionType = (flashcard.question_type || '').toString().trim().toLowerCase();
-              flashcard.question_type = RECOGNIZED_QUESTION_TYPES.includes(cleanQuestionType) ? cleanQuestionType : 'flashcard';
+              if (cleanQuestionType && !RECOGNIZED_QUESTION_TYPES.includes(cleanQuestionType)) {
+                parseErrors.push(`Row ${i + 1}: question_type '${cleanQuestionType}' isn't supported for bulk upload yet — create these individually.`);
+                continue;
+              }
+              flashcard.question_type = cleanQuestionType || 'flashcard';
 
               if (flashcard.question_type === 'mcq') {
                 if (!flashcard.target_course || !flashcard.subject || !flashcard.front) {

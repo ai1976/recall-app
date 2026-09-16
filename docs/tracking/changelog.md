@@ -1,6 +1,37 @@
 # Changelog
 
 ---
+## [2026-09-16] feat(sprint-8.3): bug fixes + Help renderer (hyperlinks & screenshots) + a real batch-approval bug found and fixed
+
+Content-only-looking sprint that turned up a real production bug along the way. Part A: two isolated `BulkUploadFlashcards.jsx` fixes. Part B: extended `Help.jsx`'s renderer with an internal link syntax and an image block, then used both on the Sprint 8.2 batch-lifecycle sections. While staging a disposable test batch group to capture screenshots, discovered `create_batch_group` never set `group_type='batch'`, silently disabling the D-15 student-approval gate for any batch created through the live function — fixed and verified same session.
+
+### Added
+- **`Help.jsx` `ContentBlock`** — inline `[label](/route)` link syntax (regex-based, only matches a `/`-prefixed target inside well-formed brackets; anything else — external URLs, a stray `[label](`, unbalanced brackets — never matches, so it degrades to plain text rather than crashing) applied to `paragraph`/`list`/`steps`/`tip` blocks. New `case 'image'` block type (`{ src, alt, caption?, annotations?: [{x, y, label}] }`) with numbered CSS-positioned callout markers over the image (percentage `x`/`y`) and a matching numbered caption list.
+- **`public/help-screenshots/`** (new folder) — 3 screenshots wired into `admin-batch-groups`: batch creation + Copy Invite Link, Pending Batch Requests approve/reject, and the Active/Archived filter. All use a disposable, clearly-labeled test batch and a dummy student test account — no real student/professor data. Captured via the operator's own screenshot tool (the session's Browser pane has no file-export capability), then resized/recompressed with `sharp` to 10-20KB each.
+- **`docs/database/sprint8.3/`** — 2 diagnostic scripts, 1 fix, 1 verification script for the `group_type` bug (see Fixed below).
+
+### Fixed
+- **A1 (`BulkUploadFlashcards.jsx`):** a non-blank, unrecognized `question_type` (e.g. `match_the_following`, a typo) is now rejected with a specific row error instead of silently downgrading to a plain `flashcard`. A blank cell is unchanged — still silently defaults to `flashcard`.
+- **A2 (`BulkUploadFlashcards.jsx`):** `downloadTemplate()`'s own example rows carried real, budget-year-dependent tax figures (₹2.5 lakhs exemption limit, Rs 10000 u/s 80TTA) — the same class of issue Sprint 8.2 fixed in `helpContent.js`'s prose but missed here since it's a different file. Replaced with timeless structural facts.
+- **`create_batch_group` (SQL, live production bug):** never included `group_type` in its INSERT, so every batch group created through the Admin Dashboard's "Create Batch Group" button since whichever change last replaced this function silently got `group_type='custom'` instead of `'batch'` — which disabled `join_group_by_token`'s D-15 approval gate entirely for that batch (any caller, student or staff, joined instantly active, no pending step). All 3 real production batches (CA Final, CA Foundation, CA Intermediate) were confirmed unaffected — already `group_type='batch'`, predating the regression. Fixed to set `group_type='batch'` alongside `is_batch_group=true`; the one bad test row was backfilled.
+
+### Verified
+- `npm run build` + `npx eslint` clean on all 4 touched files.
+- A1's gate logic verified via a standalone extraction test (8 cases, all passed) — not a live file-upload click-through (the Browser pane tool has no file-upload capability this session).
+- A2's corrected template rows re-parsed with the app's own `parseCSVLine` (copied verbatim) — all 10 rows still produce exactly 18 columns.
+- B1 live-verified in the Browser pane: the new `/dashboard/groups` link actually navigates there; checked at desktop and 375px mobile width, no overflow, console clean.
+- The `group_type` fix live-verified end-to-end: after the fix, a fresh test batch + dummy student account correctly produced a "Pending Batch Requests" row (previously skipped straight to active membership).
+- All 3 screenshots manually checked for PII by both the session and the operator before commit.
+
+### Dropped from original scope
+- 2 of the originally-planned 5 screenshots (role-change confirmation, Hard Delete confirmation) — both are native browser `confirm()`/`prompt()` dialogs, not custom app UI; not click-through-able by browser automation and not meaningfully screenshot-able even by hand (generic OS chrome, not RevisOp UI).
+
+### Files Changed
+- **New:** `public/help-screenshots/admin-batch-create-invite-link.png`, `public/help-screenshots/admin-batch-pending-requests.png`, `public/help-screenshots/admin-batch-archive-filter.png`, `docs/database/sprint8.3/00_DIAGNOSTIC_batch_join_instant_approve.sql`, `docs/database/sprint8.3/01_DIAGNOSTIC_batch_group_type_scope.sql`, `docs/database/sprint8.3/02_FIX_create_batch_group_type.sql`, `docs/database/sprint8.3/03_TEST_verify_batch_group_type_fix.sql`.
+- **Changed:** `src/pages/dashboard/BulkUploadFlashcards.jsx`, `src/pages/dashboard/Help.jsx`, `src/data/helpContent.js`, `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/bugs.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`.
+- **Database (deployed live by operator):** `create_batch_group` function replaced; 1 row backfilled.
+
+---
 ## [2026-09-16] chore: repo file cleanup — dead files removed, GuideInfoModal/checklist relocated
 
 Audited the repo for deadweight, duplicates, and misplaced files. Every deletion/move was verified with a fresh repo-wide grep run immediately before acting (not reused from an earlier check), per the project's stated bar for this kind of change: proving nothing imports/links to a file before removing it. `MigrateNoteImages.jsx` was explicitly excluded — a separate SQL check found its migration still incomplete.
