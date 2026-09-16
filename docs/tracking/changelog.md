@@ -1,6 +1,108 @@
 # Changelog
 
 ---
+## [2026-09-16] feat(sprint-8.4): "Exam Runway" reframe replaces the tentative hedge
+
+Audit review of the previous entry's `~{days} days (tentative — assumes the 1st of {Month})` found it still framed the number as an estimate of days-until-exam, just with a caveat attached. Stronger fix: change what the number measures instead of hedging it — days until the stated calendar month begins is exact, unhedged fact, not a guess about an unannounced exam date.
+
+### Changed
+- **Dashboard month-only nudge**, restructured from one hedged line into a labeled 3-line "Exam Runway" block:
+  ```
+  EXAM RUNWAY · May 2027
+  227 days until May begins
+  Exact exam date not yet set · Update once announced
+  ```
+  No `~`, no "tentative" — nothing left to hedge, since the count is no longer standing in for the exam date itself. Same underlying `daysUntilExamDate(examMonth)` call as before; only the label and framing changed. Still un-carded, matching the earlier "lower visual weight than the exact-date card" decision.
+
+### Added (backlog, not built)
+- **Revision-phase indicator** — a named phase (e.g. "Build & Strengthen" → "Intensive Revision" → "Final Consolidation") derived from the runway length, proposed as a stronger early-warning layer than a bare count. Needs real pedagogical judgment on phase boundaries and per-phase guidance; logged in `blueprint.md` §3.2, not implemented this sprint.
+
+### Verified
+- `npm run build` clean. Live-verified against a real month-only profile: renders exactly as designed, day-count unchanged and still correct.
+
+### Files Changed
+- **Changed:** `src/pages/Dashboard.jsx`, `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md` (this entry).
+
+---
+## [2026-09-16] feat(sprint-8.4): tentative days-count added to the month-only exam nudge
+
+Follow-up to the same-day month-only nudge (below): the operator asked for the days-count back after all, explicitly labeled "tentative" — a materially different ask from the flat countdown declined earlier, since the original objection was to an unlabeled number implying certainty, not to a labeled estimate.
+
+### Changed
+- **Dashboard month-only nudge** — now reads `~{days} days (tentative — assumes the 1st of {Month Year}) · Update once announced`, computed from `exam_month` (already the 1st of the month, so no new date-math needed). The "tentative" qualifier sits directly beside the number, not in a caption underneath, so it can't be skimmed past the way sub-text under a bold number can. Nav chip and the exact-date countdown card are both left untouched by explicit choice — the chip has no room for the caveat, and the real countdown should stay visually distinct from an estimate.
+
+### Verified
+- `npm run build` clean. Live-verified against a real month-only profile: `~227 days (tentative — assumes the 1st of May 2027)` rendered correctly, day-count confirmed correct against the calendar.
+
+### Files Changed
+- **Changed:** `src/pages/Dashboard.jsx`, `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md` (this entry).
+
+---
+## [2026-09-16] feat(sprint-8.4): month-only exam nudge on the Dashboard
+
+A month-only student (`exam_month` set, no `exam_date`) had no on-Dashboard signal at all beyond the nav chip's text — the countdown card intentionally stays exact-date-only per D-17. Added a slim text line instead of a card, to avoid reintroducing a fabricated countdown.
+
+### Added
+- **Dashboard "exam month nudge"** — renders only when `exam_month` is set and `exam_date` is not: "Exam expected [Month Year] — date announced? Update it", linking to Profile Settings. Sits where the countdown card would be; the two are mutually exclusive.
+
+### Declined (same request, evaluated and rejected)
+- An assumed-1st-of-month countdown — reverses D-17's own precision rule that a month-level guess must never imply exact-date precision.
+- An automated notification when the real date is announced — the app has no way to detect an external exam-board announcement, and this is explicitly out of scope per the Sprint 8.4 brief.
+
+### Verified
+- `npm run build` clean. Live-verified in the Browser pane: nudge renders correctly for a month-only profile, "Update it" navigates to `/dashboard/settings`.
+
+### Files Changed
+- **Changed:** `src/pages/Dashboard.jsx`, `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md` (this entry).
+
+---
+## [2026-09-16] docs(sprint-8.4): audit follow-up — has_dismissed_exam_prompt recorded as an approved D-17 extension + dismiss lifecycle verified
+
+An audit review of Sprint 8.4's completion report (below) found one material point: `has_dismissed_exam_prompt` plus `ExamDatePromptModal` are a genuine, database-persisted product/schema decision beyond the sprint brief's original two-nullable-column contract — it changes the contract from "student sees the CTA when no date exists" to "student can permanently suppress the popup" — and its lifecycle had been disclosed as untested rather than actually verified. Recommendation: record it as an approved extension to D-17 and verify the lifecycle before commit, reusing the existing test account rather than creating a second one.
+
+### Verified (new this entry)
+- Reset `TestOutlook`'s `has_dismissed_exam_prompt`/`exam_date`/`exam_month` to pristine `false`/`NULL`/`NULL` via a new scoped, rerunnable SQL fix (no second account needed). Confirmed live: popup reappears when unset → "Skip for now" dismisses cleanly → reload does **not** bring the popup back (permanent, not per-session) → nav chip's CTA state is shown identically before and after dismissal (the flag gates only the modal, never the chip) → Profile Settings' Exam Date section stays fully reachable/functional throughout → setting an exact date afterward updates cleanly everywhere with no interference from the prior dismissal.
+
+### Changed (docs only, no code)
+- `docs/active/blueprint.md` — D-17 gained an explicit "Approved extension" entry recording `has_dismissed_exam_prompt`/`ExamDatePromptModal` as reviewed and approved, with the 6-point lifecycle verification above. Removed the now-resolved "verify dismiss lifecycle" backlog line from §3.2.
+- `docs/tracking/changelog.md` — this entry.
+
+### Added
+- `docs/database/sprint8.4/02_FIX_reset_exam_prompt_dismissal_test_account.sql` — scoped by email to the one disposable test profile, safe to rerun for future regression checks of this same lifecycle.
+
+### Files Changed
+- **New:** `docs/database/sprint8.4/02_FIX_reset_exam_prompt_dismissal_test_account.sql`.
+- **Changed:** `docs/active/blueprint.md`, `docs/tracking/changelog.md` (this entry).
+
+---
+## [2026-09-16] feat(sprint-8.4): exam date field (chip, dashboard countdown, first-login popup, Profile Settings) + group_type/is_batch_group pre-flight audit
+
+Pre-flight Step 0 (carried in from Sprint 8.3): audited every `group_type`/`is_batch_group` read/write on `study_groups`. No second instance of the bug Sprint 8.3 fixed was found. Did not collapse the two columns — two live RPCs the frontend calls (`create_study_group`, `get_user_groups`) have no matching definition anywhere in the repo's SQL docs, so a blind schema change was out of scope per the sprint's own capped-scope rule.
+
+Exam-date feature scope changed twice during pre-flight, both by explicit operator decision: (1) dropped the planned `Signup.jsx` picker entirely — signup profile creation goes through a `handle_new_user()` DB trigger with no client session available, so capture instead happens via a dismissible popup on first login (new or pre-existing student); (2) popup dismissal is permanent, matching the existing `has_dismissed_goal_prompt` pattern.
+
+### Added
+- **SQL** (`docs/database/sprint8.4/`) — `exam_date`/`exam_month` (nullable, `exam_month` CHECK'd to the 1st of the month) + `has_dismissed_exam_prompt` (boolean, default false) on `profiles`.
+- **`src/contexts/ExamDateContext.jsx`** — fetch-once + mutators (`saveExamDate`, `dismissPrompt`), same shape as `CourseContext.jsx`; wired into `App.jsx`.
+- **`src/components/dashboard/ExamDatePromptModal.jsx`** — dismissible first-login popup (month/year or exact date), shown from `Dashboard.jsx` only after the onboarding/profile-completion modals have both cleared so dialogs never stack.
+- **`src/components/layout/ExamDateChip.jsx`** — nav pill beside `StudyTimerChip` in `NavDesktop.jsx`/`NavMobile.jsx`, student-only, three states (countdown days / month text / "Set exam date" CTA), taps through to Profile Settings.
+- **Dashboard "Days Until Your Exam" card** — self-gates on an exact `exam_date` only; a month-level guess never gets a fabricated days-count.
+- **Exam Date section in `ProfileSettings.jsx`** — set/refine indefinitely, month↔exact toggle, pre-fills from existing value.
+- **`src/lib/examDate.js`** — `daysUntilExamDate`/`formatExamMonth`/`buildExamMonthValue`, parses `YYYY-MM-DD` date-only values directly and does UTC-anchored day-count arithmetic, never `toISOString()` or a timezone-local `Date` read.
+
+### Fixed (unrelated, found while verifying)
+- **`.claude/launch.json`** — `vite`'s own port-increment logic ignored the harness's assigned proxy port whenever the default port was already taken (by another session), so the dev-server preview silently never loaded. Pinned an explicit `--port 5183 --strictPort`.
+
+### Verified
+- `npm run build` clean across all new/changed files, including lazy-loaded route chunks.
+- Live click-through in the Browser pane, logged in as a pre-existing student with no exam info set: popup appeared on first login (confirms no-backfill CTA behavior); set month-only → chip showed month text, no dashboard card; upgraded to an exact date via Profile Settings → chip updated to a days-remaining count immediately with no reload, dashboard card appeared with the matching count and date; changed the exact date again → clean update everywhere, no stale cache; mobile nav (375px) checked, no overflow. Day-count math verified correct against the calendar.
+- **Not live-verified:** the "dismiss without setting, never reappears" path — needs a second student account, which this session can't create (account-creation/credential restriction). Code-reviewed instead.
+
+### Files Changed
+- **New:** `docs/database/sprint8.4/00_DIAGNOSTIC_confirm_no_exam_date_columns.sql`, `docs/database/sprint8.4/01_SCHEMA_add_exam_date_tracking.sql`, `src/contexts/ExamDateContext.jsx`, `src/components/dashboard/ExamDatePromptModal.jsx`, `src/components/layout/ExamDateChip.jsx`, `src/lib/examDate.js`.
+- **Changed:** `src/App.jsx`, `src/pages/Dashboard.jsx`, `src/pages/dashboard/Profile/ProfileSettings.jsx`, `src/components/layout/NavDesktop.jsx`, `src/components/layout/NavMobile.jsx`, `.claude/launch.json`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`, `docs/active/now.md`, `docs/active/blueprint.md`, `docs/tracking/changelog.md` (this entry).
+
+---
 ## [2026-09-16] docs(sprint-8.3): Quality Auditor follow-up — B1 malformed-input test + audit disposition recorded
 
 A Quality Auditor review of Sprint 8.3's completion report (below) found one material issue: the report characterized 2 of the originally-planned 5 help screenshots as satisfied by a "native browser dialog" technical finding, when the correct disposition is deferred (a real UX fix needed first), not waived. Also flagged: B1's malformed-input handling was only shown via a happy-path click, and A1's test-plan gap (extracted-logic testing instead of a live file-upload) should be recorded as a limitation, not implied full verification.

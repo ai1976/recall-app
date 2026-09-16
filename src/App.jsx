@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { CourseContextProvider } from '@/contexts/CourseContext'
 import { NavDataProvider } from '@/contexts/NavDataContext'
+import { ExamDateProvider } from '@/contexts/ExamDateContext'
 import { StudySessionProvider } from '@/contexts/StudySessionContext'
 import { StudyTimerProvider } from '@/contexts/StudyTimerContext'
 
@@ -388,16 +389,21 @@ function App() {
             as ONE instance for the whole app (Sprint 7.0 — Finding 5). Above the
             router so every route (nav shell + pages) reads the same context. */}
         <NavDataProvider>
-          <StudySessionProvider>
-            {/* StudyTimerProvider — Sprint 7.3-C. App-wide so the manual-timer
-                stale-session classification runs once on load, not gated
-                behind visiting whichever page happens to host the timer UI. */}
-            <StudyTimerProvider>
-              <BrowserRouter>
-                <AppContent />
-              </BrowserRouter>
-            </StudyTimerProvider>
-          </StudySessionProvider>
+          {/* ExamDateProvider — Sprint 8.4. App-wide so the nav chip, the
+              first-login prompt, and Profile Settings all read/write the
+              same fetch and stay in sync without a page reload. */}
+          <ExamDateProvider>
+            <StudySessionProvider>
+              {/* StudyTimerProvider — Sprint 7.3-C. App-wide so the manual-timer
+                  stale-session classification runs once on load, not gated
+                  behind visiting whichever page happens to host the timer UI. */}
+              <StudyTimerProvider>
+                <BrowserRouter>
+                  <AppContent />
+                </BrowserRouter>
+              </StudyTimerProvider>
+            </StudySessionProvider>
+          </ExamDateProvider>
         </NavDataProvider>
       </CourseContextProvider>
     </AuthProvider>

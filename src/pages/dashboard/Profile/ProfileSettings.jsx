@@ -8,10 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
-import { Save, Loader2, Plus, X, Star, GraduationCap, Bell, BellOff, Smartphone, Target } from 'lucide-react';
+import { Save, Loader2, Plus, X, Star, GraduationCap, Bell, BellOff, Smartphone, Target, CalendarClock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useExamDateContext } from '@/contexts/ExamDateContext';
+import { MONTH_NAMES, buildExamMonthValue, daysUntilExamDate } from '@/lib/examDate';
+
+const CURRENT_YEAR = new Date().getFullYear();
+const EXAM_YEAR_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2];
 
 const COURSE_LEVELS = [
   'CA Foundation',
@@ -84,6 +89,34 @@ export default function ProfileSettings() {
   const [goalType, setGoalType] = useState('review'); // 'review' | 'study'
   const [goalValue, setGoalValue] = useState('');
   const [goalSaving, setGoalSaving] = useState(false);
+
+  // Exam Date state (students only) — Sprint 8.4: set/refine indefinitely,
+  // shared with the nav chip + Dashboard card via ExamDateContext.
+  const {
+    examDate, examMonth, loading: examDateLoading, saveExamDate,
+  } = useExamDateContext();
+  const [examMode, setExamMode] = useState('month'); // 'month' | 'exact'
+  const [examMonthSelect, setExamMonthSelect] = useState('');
+  const [examYearSelect, setExamYearSelect] = useState(String(CURRENT_YEAR));
+  const [examExactDate, setExamExactDate] = useState('');
+  const [examSaving, setExamSaving] = useState(false);
+  const [examPrefilled, setExamPrefilled] = useState(false);
+
+  // Prefill once the context finishes its own fetch — runs once (examPrefilled
+  // guard) so it doesn't stomp on the student's in-progress edits on refetch.
+  useEffect(() => {
+    if (examDateLoading || examPrefilled) return;
+    if (examDate) {
+      setExamMode('exact');
+      setExamExactDate(examDate);
+    } else if (examMonth) {
+      setExamMode('month');
+      const [y, m] = examMonth.split('-');
+      setExamYearSelect(y);
+      setExamMonthSelect(String(Number(m)));
+    }
+    setExamPrefilled(true);
+  }, [examDateLoading, examPrefilled, examDate, examMonth]);
 
   // Teaching Areas state
   const [allDisciplines, setAllDisciplines] = useState([]);         // all active disciplines from DB
@@ -253,6 +286,33 @@ export default function ProfileSettings() {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setGoalSaving(false);
+    }
+  };
+
+  // ── Exam Date handlers ───────────────────────────────────────────────────
+
+  const handleSaveExamDate = async () => {
+    if (examMode === 'exact' && !examExactDate) {
+      toast({ title: 'Pick a date', description: 'Select your exam date, or switch to "Only the month".', variant: 'destructive' });
+      return;
+    }
+    if (examMode === 'month' && !examMonthSelect) {
+      toast({ title: 'Pick a month', description: 'Select the month your exam is expected in.', variant: 'destructive' });
+      return;
+    }
+
+    setExamSaving(true);
+    try {
+      const { error } = examMode === 'exact'
+        ? await saveExamDate({ examDate: examExactDate, examMonth: null })
+        : await saveExamDate({ examDate: null, examMonth: buildExamMonthValue(Number(examYearSelect), Number(examMonthSelect)) });
+
+      if (error) throw error;
+      toast({ title: 'Exam date updated' });
+    } catch (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setExamSaving(false);
     }
   };
 
@@ -475,6 +535,93 @@ export default function ProfileSettings() {
                 </Button>
               )}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Exam Date (students only) — Sprint 8.4: set/refine indefinitely,
+           month→exact upgrade supported, no clear (nothing to guess back to). ── */}
+      {!isContentCreator && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarClock className="h-5 w-5 text-amber-500" />
+              Exam Date
+            </CardTitle>
+            <CardDescription>
+              {examDate
+                ? `Set — ${Math.max(daysUntilExamDate(examDate), 0)} day${daysUntilExamDate(examDate) === 1 ? '' : 's'} to go. Shown on your dashboard and nav bar.`
+                : 'Set your exam date (or just the month, if that\'s all you know) — shown on your dashboard and nav bar.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={examMode === 'month' ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1"
+                onClick={() => setExamMode('month')}
+                disabled={examDateLoading}
+              >
+                Only the month
+              </Button>
+              <Button
+                type="button"
+                variant={examMode === 'exact' ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1"
+                onClick={() => setExamMode('exact')}
+                disabled={examDateLoading}
+              >
+                Exact date
+              </Button>
+            </div>
+
+            {examMode === 'month' ? (
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Select value={examMonthSelect} onValueChange={setExamMonthSelect} disabled={examDateLoading}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MONTH_NAMES.map((name, i) => (
+                        <SelectItem key={name} value={String(i + 1)}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-28">
+                  <Select value={examYearSelect} onValueChange={setExamYearSelect} disabled={examDateLoading}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EXAM_YEAR_OPTIONS.map((y) => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ) : (
+              <Input
+                type="date"
+                value={examExactDate}
+                onChange={(e) => setExamExactDate(e.target.value)}
+                disabled={examDateLoading}
+              />
+            )}
+
+            <Button onClick={handleSaveExamDate} disabled={examSaving || examDateLoading}>
+              {examSaving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {examSaving ? 'Saving...' : 'Save Exam Date'}
+            </Button>
           </CardContent>
         </Card>
       )}

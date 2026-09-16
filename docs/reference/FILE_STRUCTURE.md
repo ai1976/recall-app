@@ -75,13 +75,15 @@ recall-app
 │   │   ├── CourseContext.jsx                    ← multi-course teaching context for professors/admins; activeCourse session state; exposes role/courseLevel
 │   │   ├── NavDataContext.jsx                   ← Sprint 7.0, extended 7.2-F: one instance of useRole/useNotifications/useFriendRequestCount/useDueForecast for the whole app; useNavData() + useRole shim
 │   │   ├── StudySessionContext.jsx              ← Sprint 7.1: boolean inStudySession (StudyMode sets it) so NavBottomTabs hides during the card loop
-│   │   └── StudyTimerContext.jsx                ← Sprint 7.3-C: app-wide manual-timer state + 3-tier stale-session policy; own localStorage key; cross-tab storage-event sync
+│   │   ├── StudyTimerContext.jsx                ← Sprint 7.3-C: app-wide manual-timer state + 3-tier stale-session policy; own localStorage key; cross-tab storage-event sync
+│   │   └── ExamDateContext.jsx                  ← Sprint 8.4: exam_date/exam_month/has_dismissed_exam_prompt fetch-once + mutators (saveExamDate, dismissPrompt), shared by nav chip/Dashboard card/prompt modal/Profile Settings
 │   ├── lib
 │   │   ├── supabase.js                          ← Supabase client
 │   │   ├── noteStorage.js                       ← 16/09/2026: extractNoteStoragePath()/deleteNoteStorageImage() — shared note-delete Storage cleanup (MyNotes.jsx, AdminDashboard.jsx)
 │   │   ├── utils.js                             ← shadcn cn() utility
 │   │   ├── qualityTier.js                       ← shared score/rate → colour-tier util (AdminAnalytics, SuperAdminDashboard) — Sprint 6.0
-│   │   └── notifyEdge.js                        ← fire-and-forget helpers: notifyContentCreated(), notifyFriendEvent()
+│   │   ├── notifyEdge.js                        ← fire-and-forget helpers: notifyContentCreated(), notifyFriendEvent()
+│   │   └── examDate.js                          ← Sprint 8.4: daysUntilExamDate/formatExamMonth/buildExamMonthValue — timezone-safe date-only math (never toISOString())
 │   ├── hooks
 │   │   ├── use-toast.js                         ← shadcn toast hook
 │   │   ├── useActivityFeed.js                   ← recent content feed for dashboard activity section
@@ -106,7 +108,8 @@ recall-app
 │   │   │   ├── GoalProgressWidget.jsx           ← daily review/study-time goal vs today's actual; writes via update_daily_goal RPC
 │   │   │   ├── LeaderboardWidget.jsx            ← friends + following leaderboard tabs; isolated, zero parent re-renders
 │   │   │   ├── OnboardingModal.jsx              ← 3-step first-login modal (shown when has_seen_onboarding = false)
-│   │   │   └── StudyTimerWidget.jsx             ← manual offline study timer; clock via DOM ref (zero React re-renders/tick)
+│   │   │   ├── StudyTimerWidget.jsx             ← manual offline study timer; clock via DOM ref (zero React re-renders/tick)
+│   │   │   └── ExamDatePromptModal.jsx          ← Sprint 8.4: dismissible first-login popup (month/year or exact date), permanent dismiss via has_dismissed_exam_prompt
 │   │   ├── flashcards
 │   │   │   ├── ConceptCardViewer.jsx            ← read-only concept_card accordion modal (Sprint 7.12) — summary + keyTerms, zero grade buttons, zero apply_review calls
 │   │   │   ├── FlashcardCard.jsx                ← standalone flashcard display/edit card component
@@ -122,7 +125,8 @@ recall-app
 │   │   │   ├── NotificationCenter.jsx           ← Sprint 7.2-B: unified bell dropdown (merges former ActivityDropdown + FriendsDropdown) — friend requests (inline accept/decline) + notifications, one badge; shared by NavDesktop + NavMobile
 │   │   │   ├── PageContainer.jsx                ← wrapper with width prop (full/medium/narrow); bottom-bar safe-area clearance
 │   │   │   ├── ProfileDropdown.jsx              ← avatar dropdown (My Progress, My Contributions, My Achievements, Report History [7.3 follow-up], Help, Settings, Sign Out)
-│   │   │   └── StudyTimerChip.jsx               ← Sprint 7.3-C: nav-bar pill beside the bell, hidden unless a manual timer is running; tap-to-stop/navigate
+│   │   │   ├── StudyTimerChip.jsx               ← Sprint 7.3-C: nav-bar pill beside the bell, hidden unless a manual timer is running; tap-to-stop/navigate
+│   │   │   └── ExamDateChip.jsx                 ← Sprint 8.4: nav-bar exam-date pill beside StudyTimerChip, student-only; countdown/month-text/CTA states, taps to Profile Settings
 │   │   ├── notifications
 │   │   │   └── PushPermissionBanner.jsx         ← one-time dismissible push prompt (Android: enable button; iOS: install guide)
 │   │   ├── progress

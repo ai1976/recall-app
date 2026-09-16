@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Wordmark } from '@/components/revisop';
 import NotificationCenter from './NotificationCenter';
 import StudyTimerChip from './StudyTimerChip';
+import ExamDateChip from './ExamDateChip';
 
 /**
  * NavMobile — the mobile TOP bar.
@@ -31,6 +32,9 @@ export default function NavMobile({
       <div className="flex items-center gap-2">
         {/* Manual study-timer indicator (Sprint 7.3-C) — hidden when not running */}
         <StudyTimerChip compact />
+
+        {/* Exam date indicator (Sprint 8.4) — student-only, self-gates */}
+        <ExamDateChip compact />
 
         {/* Unified notification center (Sprint 7.2-B) */}
         <NotificationCenter

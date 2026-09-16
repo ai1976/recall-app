@@ -18,6 +18,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import OnboardingModal from '@/components/dashboard/OnboardingModal';
+import ExamDatePromptModal from '@/components/dashboard/ExamDatePromptModal';
 import LeaderboardWidget from '@/components/dashboard/LeaderboardWidget';
 import GoalProgressWidget from '@/components/dashboard/GoalProgressWidget';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
@@ -28,6 +29,8 @@ import { useBadges } from '@/hooks/useBadges';
 import { useToast } from '@/hooks/use-toast';
 import BadgeToast from '@/components/badges/BadgeToast';
 import PageContainer from '@/components/layout/PageContainer';
+import { useExamDateContext } from '@/contexts/ExamDateContext';
+import { daysUntilExamDate, formatExamMonth } from '@/lib/examDate';
 import {
   CreditCard,
   CheckCircle,
@@ -43,6 +46,7 @@ import {
   Flag,
   AlertTriangle,
   Clock,
+  CalendarClock,
 } from 'lucide-react';
 
 // Must match ProfileSettings.jsx — static curated list, "Other" always last.
@@ -99,6 +103,10 @@ export default function Dashboard() {
 
   // activeCourse from CourseContext — lets professors switch class stats by course
   const { activeCourse } = useCourseContext();
+  // Sprint 8.4 — exam date/month + first-login prompt dismissal, shared with
+  // the nav chip and Profile Settings via ExamDateContext.
+  const { examDate, examMonth, hasDismissedExamPrompt, loading: examDateLoading } = useExamDateContext();
+  const [showExamDatePrompt, setShowExamDatePrompt] = useState(false);
   // Sprint 7.2-A: professor's own due count, for contrast against the cohort
   // forward-load chart below — reads the NavDataContext singleton (7.2-F), no
   // separate get_due_forecast call.
@@ -199,6 +207,25 @@ export default function Dashboard() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCourse]);
+
+  // Sprint 8.4 — show the exam-date prompt once, student-only, after the
+  // profile-completion modal and onboarding have both cleared (never stack
+  // dialogs). Re-evaluates whenever either of those closes, so the prompt
+  // surfaces right after instead of waiting for another login.
+  useEffect(() => {
+    if (loading || examDateLoading) return;
+    const isStudentRole = !['professor', 'admin', 'super_admin'].includes(userRole);
+    if (
+      isStudentRole &&
+      !examDate &&
+      !examMonth &&
+      !hasDismissedExamPrompt &&
+      !showProfileModal &&
+      !showOnboarding
+    ) {
+      setShowExamDatePrompt(true);
+    }
+  }, [loading, examDateLoading, userRole, examDate, examMonth, hasDismissedExamPrompt, showProfileModal, showOnboarding]);
 
   const fetchDashboardData = async () => {
     try {
@@ -535,6 +562,12 @@ export default function Dashboard() {
 
         {/* ===== ONBOARDING MODAL ===== */}
         <OnboardingModal open={showOnboarding} onDismiss={handleDismissOnboarding} />
+
+        {/* ===== EXAM DATE PROMPT (Sprint 8.4) ===== */}
+        <ExamDatePromptModal
+          open={showExamDatePrompt}
+          onDismiss={() => setShowExamDatePrompt(false)}
+        />
 
         {/* ===== PROFILE COMPLETION MODAL (non-dismissible) ===== */}
         <Dialog open={showProfileModal} onOpenChange={() => {}}>
@@ -1151,6 +1184,72 @@ export default function Dashboard() {
             <PushPermissionBanner />
 
             <div className="space-y-4 sm:space-y-6">
+
+              {/* ===== EXAM COUNTDOWN (Sprint 8.4) =====
+                   Self-gates on an exact exam_date only — a month-level guess
+                   (exam_month) isn't precise enough to earn a days-remaining
+                   number, so it stays out of the card entirely and lives only
+                   in the nav chip's text state. */}
+              {examDate && (
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-xs sm:text-sm font-medium">Days Until Your Exam</CardTitle>
+                    <CalendarClock className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="font-plex-mono text-xl sm:text-2xl font-medium [font-variant-numeric:tabular-nums] text-rv-ink-900">
+                      {(() => {
+                        const days = daysUntilExamDate(examDate);
+                        return days < 0 ? 'Passed' : days === 0 ? 'Today' : <Num>{days}</Num>;
+                      })()}
+                    </div>
+                    <p className="text-[10px] sm:text-xs text-rv-ink-400">
+                      {new Date(examDate + 'T00:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* ===== EXAM RUNWAY (Sprint 8.4 follow-up, iteration 3 — audit reframe) =====
+                   Only exam_month is set (no exact date yet) — a slim,
+                   un-carded block, distinct from the "Days Until Your Exam"
+                   card above (exact-date only). Counts days until the stated
+                   MONTH begins, not days until the exam — that number is
+                   exact arithmetic on a known calendar fact, not an estimate
+                   of the exam date, so it needs no "tentative" hedge at all
+                   (audit finding: hedging an estimate is weaker than simply
+                   not estimating — change what the number measures, not how
+                   apologetically it's presented). Nudges toward Profile
+                   Settings once the real date is announced. */}
+              {!examDate && examMonth && (
+                <div className="flex items-start gap-1.5 text-xs sm:text-sm">
+                  <CalendarClock className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-rv-ink-400">
+                      Exam Runway · {formatExamMonth(examMonth)}
+                    </p>
+                    <p className="font-plex-mono font-medium text-rv-ink-900">
+                      {(() => {
+                        const days = daysUntilExamDate(examMonth);
+                        const monthLabel = formatExamMonth(examMonth).split(' ')[0];
+                        if (days > 0) return `${days} days until ${monthLabel} begins`;
+                        if (days === 0) return `${monthLabel} begins today`;
+                        return `${monthLabel} has begun`;
+                      })()}
+                    </p>
+                    <p className="text-rv-ink-400">
+                      Exact exam date not yet set ·{' '}
+                      <button
+                        type="button"
+                        onClick={() => navigate('/dashboard/settings')}
+                        className="text-rv-navy underline underline-offset-2 hover:text-rv-navy-400"
+                      >
+                        Update once announced
+                      </button>
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* ===== NEW USER ONBOARDING ===== */}
               {isNewUser && (

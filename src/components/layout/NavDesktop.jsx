@@ -32,6 +32,7 @@ import NotificationCenter from './NotificationCenter';
 import ProfileDropdown from './ProfileDropdown';
 import CourseSwitcher from './CourseSwitcher';
 import StudyTimerChip from './StudyTimerChip';
+import ExamDateChip from './ExamDateChip';
 
 export default function NavDesktop({
   user,
@@ -287,6 +288,9 @@ export default function NavDesktop({
 
         {/* Manual study-timer indicator (Sprint 7.3-C) — hidden when not running */}
         <StudyTimerChip />
+
+        {/* Exam date indicator (Sprint 8.4) — student-only, self-gates */}
+        <ExamDateChip />
 
         {/* Unified notification center (Sprint 7.2-B) — friend requests +
             content notifications, one bell, one badge. */}

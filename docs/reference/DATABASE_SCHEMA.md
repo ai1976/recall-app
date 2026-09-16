@@ -84,8 +84,8 @@
 
 **Purpose:** User accounts with 4-tier role system (student/professor/admin/super_admin)
 **Created:** December 2025 (Phase 0.5)
-**Last Updated:** March 22, 2026 (added daily_review_goal, daily_study_goal_minutes — Sprint 3.5)
-**Columns:** 13
+**Last Updated:** 16/09/2026 (Sprint 8.4 — added exam_date/exam_month/has_dismissed_exam_prompt, corrected column count against live schema)
+**Columns:** 19 (was documented as 13 — `access_request_ref`/`updated_at` were live but undocumented; both confirmed and added below, alongside the 3 new Sprint 8.4 columns)
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -103,6 +103,11 @@
 | daily_review_goal | integer | YES | NULL | Student's daily review target. CHECK >0 AND <=200. NULL = no goal set. Sprint 3.5. |
 | daily_study_goal_minutes | integer | YES | NULL | Student's daily study time target in minutes. CHECK >0 AND <=480. NULL = no goal set. Sprint 3.5. |
 | has_dismissed_goal_prompt | boolean | NO | false | One-time dismissal of the dashboard "no goal set" prompt line. Sprint 7.3-B. Same self-service update pattern as has_seen_onboarding. |
+| access_request_ref | uuid | YES | NULL | Previously undocumented — confirmed live via Sprint 8.4 pre-flight diagnostic (16/09/2026). Links a signup to the `access_requests` row that referred them. |
+| updated_at | timestamptz | YES | now() | Previously undocumented — confirmed live via Sprint 8.4 pre-flight diagnostic (16/09/2026). |
+| exam_date | date | YES | NULL | ⭐ NEW (Sprint 8.4, 16/09/2026). Exact exam date, once known. No default, no backfill — every pre-existing student sees the CTA/popup exactly like a new student who skipped it. Editable indefinitely from Profile Settings. Takes precedence over `exam_month` for display (countdown) once set. |
+| exam_month | date | YES | NULL | ⭐ NEW (Sprint 8.4, 16/09/2026). 1st-of-month placeholder used only before an exact date is announced (e.g. "sometime in November 2026"). `CHECK (exam_month IS NULL OR EXTRACT(DAY FROM exam_month) = 1)`. Displayed as text only ("Exam: November 2026") — never a fabricated days-count, since a month-level guess doesn't earn one. |
+| has_dismissed_exam_prompt | boolean | NO | false | ⭐ NEW (Sprint 8.4, 16/09/2026). One-time dismissal of the post-first-login exam-date popup. Same self-service pattern as `has_dismissed_goal_prompt`. The nav chip / dashboard CTA still shows regardless — this only gates the modal. |
 
 **Key distinction — role vs account_type:**
 - `role` = permission level (student/professor/admin/super_admin)
