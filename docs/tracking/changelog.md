@@ -1,6 +1,31 @@
 # Changelog
 
 ---
+## [2026-09-16] chore: repo file cleanup — dead files removed, GuideInfoModal/checklist relocated
+
+Audited the repo for deadweight, duplicates, and misplaced files. Every deletion/move was verified with a fresh repo-wide grep run immediately before acting (not reused from an earlier check), per the project's stated bar for this kind of change: proving nothing imports/links to a file before removing it. `MigrateNoteImages.jsx` was explicitly excluded — a separate SQL check found its migration still incomplete.
+
+### Removed (confirmed zero references, `git rm`)
+- `src/pages/professor/ProfessorTools.jsx` — 944-line page, not imported or routed anywhere in `App.jsx`; the `/professor/tools` redirect route itself is unrelated and untouched. Empty `src/pages/professor/` folder went with it.
+- `src/assets/react.svg` — default Vite scaffold asset, zero references.
+- `recall-favicon.svg` (repo root) — pre-rebrand "Recall" asset, superseded by the RevisOp favicon set; not linked from `index.html` or any code.
+- `scripts/export-favicon.js` — reads from `public/logo-concepts/icon-dark-bg.svg`, confirmed missing; superseded by `scripts/export-favicon.cjs`.
+- `repomix-output.xml` (repo root, untracked/gitignored) — stale generated dump, plain `rm`, no git action needed.
+
+### Moved
+- `src/components/GuideInfoModal.jsx` → `src/components/shared/GuideInfoModal.jsx` — was the only component sitting loose at the `components/` root instead of a themed subfolder. Updated all 3 import sites (`NotePreview.jsx`, `GroupJoin.jsx`, `DeckPreview.jsx`).
+- `docs/active/design-review-screenshot-checklist.md` → `docs/active/design-review/screenshot-checklist.md` — grouped with the review outputs it describes, rather than sitting one level up.
+
+### Verified
+- `npm run build` and `npx eslint` on all touched files: clean.
+- A stale doc claim caught in passing: `blueprint.md`'s pending-work list said `MigrateNoteImages.jsx`'s migration was "complete" — it isn't (12 live notes still have oversized images per an earlier SQL check). Corrected in place rather than left to mislead a future session.
+
+### Files Changed
+- **Deleted:** `src/pages/professor/ProfessorTools.jsx`, `src/assets/react.svg`, `recall-favicon.svg`, `scripts/export-favicon.js`.
+- **Moved:** `src/components/GuideInfoModal.jsx` → `src/components/shared/GuideInfoModal.jsx`, `docs/active/design-review-screenshot-checklist.md` → `docs/active/design-review/screenshot-checklist.md`.
+- **Changed:** `src/pages/public/NotePreview.jsx`, `src/pages/public/GroupJoin.jsx`, `src/pages/public/DeckPreview.jsx`, `docs/active/blueprint.md`, `docs/reference/FILE_STRUCTURE.md`, `docs/active/now.md`.
+
+---
 ## [2026-09-16] fix: note deletion now cleans up its Storage image (both delete paths)
 
 Discovered during an unrelated file-cleanup audit: deleting a note never removed its image from the `notes` Storage bucket, in either the student (`MyNotes.jsx`) or admin (`AdminDashboard.jsx`) delete path. Confirmed via a `storage.objects`-vs-`notes.image_url` diagnostic (8 orphans, ~47MB) and a trigger audit (no DB trigger covers it either). The 8 pre-existing orphans were manually deleted via the Supabase Dashboard the same day and reverified at 0 rows.

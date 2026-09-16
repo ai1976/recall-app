@@ -593,7 +593,7 @@ No formal migration files exist (direct Supabase SQL editor). Milestones by spri
 | `archive_batch_group(p_group_id)` / `restore_batch_group(p_group_id)` | Sprint 8.1 (D-16). Admin-only, `SECURITY DEFINER`, lock the batch row (`FOR UPDATE`) before acting. Archive: captures a snapshot into `batch_group_archives` (reuses `get_batch_group_member_stats`), sets `archived_at`, closes outstanding `requested`/`invited` rows to `'closed'` — all one transaction, idempotent (repeat call returns existing state, no snapshot replacement). Restore: clears `archived_at`, leaves active memberships and closed rows untouched, idempotent. | AdminDashboard.jsx |
 | `get_batch_group_archive(p_group_id)` | Sprint 8.1 (D-16). Reads the frozen report/roster snapshot for the batch's *current* archive event (matched by exact `archived_at`, so restore→re-archive always resolves the latest). Gated identically to `get_batch_group_member_stats` (professor/admin/super_admin). | GroupDetail.jsx |
 | `submit_content_flag(...)` | Flag content; dedup check; priority escalation | ContentFlagModal |
-| `get_my_content_flags()` | Professor queue: pending content_error flags on own content | ProfessorTools |
+| `get_my_content_flags()` | Professor queue: pending content_error flags on own content | Dashboard.jsx |
 | `get_admin_flags(p_status)` | Admin queue: all flags by status | AdminAnalytics |
 | `resolve_content_flag(...)` | Resolve/reject/remove flag | Admin UI |
 | Notification RPCs (6) | get/mark/delete notifications | useNotifications.js |
@@ -771,8 +771,6 @@ All tables have RLS enabled. Key patterns:
 | `/super-admin` | SuperAdminDashboard.jsx | `src/pages/admin/SuperAdminDashboard.jsx` | Auth (super_admin) |
 | `/super-admin/analytics` | SuperAdminAnalytics.jsx | `src/pages/admin/SuperAdminAnalytics.jsx` | Auth (super_admin) |
 | `/professor/tools` | — | redirect → `/dashboard/bulk-upload` | Auth (legacy redirect only) |
-
-**Dead file:** `src/pages/professor/ProfessorTools.jsx` exists on disk but is not imported or routed anywhere — it is orphaned legacy code pending deletion.
 | `/notes/edit/:id` | — | redirect → `/dashboard/notes/edit/:id` | Public (legacy) |
 
 ---
@@ -926,7 +924,7 @@ Key pages with data flows:
 #### Other Components
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| GuideInfoModal.jsx | `src/components/` | Contextual intro tooltip on public share pages (GroupJoin, NotePreview, DeckPreview) |
+| GuideInfoModal.jsx | `src/components/shared/` | Contextual intro tooltip on public share pages (GroupJoin, NotePreview, DeckPreview). Moved from `src/components/` root, 16/09/2026. |
 | FlagButton.jsx | `src/components/ui/` | Content reporting button (triggers content_flags insert) |
 | ContentPreviewWall.jsx | `src/components/ui/` | Blurred paywall-style preview for unauthenticated users |
 | UpvoteButton.jsx | `src/components/ui/` | Polymorphic upvote toggle (notes + flashcard_decks) |
@@ -1328,8 +1326,7 @@ This section and all §1.1 column/type/trigger corrections were reconciled again
 | **PostHog integration** | Listed in Privacy Policy; not in code | Install `posthog-js`; init in `src/main.jsx`; API key from posthog.com |
 | **Sentry integration** | Listed in Privacy Policy; not in code | Install `@sentry/react`; init in `src/main.jsx`; DSN from sentry.io |
 | **Remove `tesseract.js`** | Dead dependency | Verify no imports; remove from package.json |
-| **Delete `MigrateNoteImages.jsx`** | Migration complete | Also remove its route from App.jsx |
-| **Delete `ProfessorTools.jsx`** | Dead file — not imported or routed anywhere | `src/pages/professor/ProfessorTools.jsx` |
+| **Delete `MigrateNoteImages.jsx`** | ⚠️ NOT yet complete — verified via SQL 16/09/2026: 12 live notes still reference images above the 400KB threshold. Do not delete until a re-run of that check returns 0 rows. | Also remove its route from App.jsx once confirmed |
 
 #### Near-term
 

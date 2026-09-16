@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, TrendingUp, Zap, Award, LogIn } from 'lucide-react';
-import GuideInfoModal from '@/components/GuideInfoModal';
+import GuideInfoModal from '@/components/shared/GuideInfoModal';
 
 export default function GroupJoin() {
   const { token } = useParams();

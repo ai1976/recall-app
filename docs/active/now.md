@@ -2,6 +2,10 @@
 
 **Last Updated:** 16/09/2026
 
+## Same-day, out-of-sprint cleanup (16/09/2026): dead-file removal + relocations
+
+Ran a repo-wide audit for deadweight/duplicate/misplaced files, then re-verified each candidate with a fresh grep immediately before acting. Removed `ProfessorTools.jsx` (orphaned, 944 lines, zero references), `src/assets/react.svg`, `recall-favicon.svg`, `scripts/export-favicon.js`, and stale `repomix-output.xml`. Moved `GuideInfoModal.jsx` into `src/components/shared/` (updated 3 import sites) and the design-review screenshot checklist into its own folder. `MigrateNoteImages.jsx` was deliberately left alone — its migration is confirmed still incomplete. Also caught and fixed a stale `blueprint.md` claim that said that migration was "complete." `npm run build`/`eslint` clean. Full detail in `changelog.md`.
+
 ## Same-day, out-of-sprint fix (16/09/2026): note-delete Storage leak
 
 Found during an unrelated file-cleanup audit: deleting a note (student `MyNotes.jsx` or admin `AdminDashboard.jsx`) never removed its image from the `notes` Storage bucket — confirmed via a `storage.objects`-vs-`image_url` diagnostic (8 orphans, ~47MB) and a trigger audit (nothing else covers it). Fixed with new `src/lib/noteStorage.js` (`deleteNoteStorageImage()`), wired into both delete handlers. `npm run build`/`eslint` clean; live click-through delete not attempted (destructive against production data) — operator should confirm on a throwaway note. The 8 pre-existing orphans were manually deleted via the Supabase Dashboard the same day and reverified at 0 rows (no Storage trash/versioning exists; Claude does not perform permanent deletion itself). See `bugs.md` and `changelog.md` for full detail.

@@ -143,6 +143,8 @@ recall-app
 │   │   │   ├── VerifiedEdge.jsx                 ← 3px navy verified rail
 │   │   │   ├── Wordmark.jsx                     ← two-tone logotype (amber Revis + navy Op), token-driven, no gradient
 │   │   │   └── index.js                         ← barrel
+│   │   ├── shared                               ← 16/09/2026: home for components with no thematic subfolder (previously loose at src/components/ root)
+│   │   │   └── GuideInfoModal.jsx               ← contextual info modal for DeckPreview / NotePreview / GroupJoin
 │   │   └── ui
 │   │       ├── alert.jsx
 │   │       ├── button.jsx
@@ -193,8 +195,6 @@ recall-app
 │   │   │   ├── MigrateNoteImages.jsx            ← TEMP — delete after note image migration is confirmed complete
 │   │   │   ├── SuperAdminAnalytics.jsx          ← /super-admin/analytics (super_admin only)
 │   │   │   └── SuperAdminDashboard.jsx          ← /super-admin (user management, role promotion, hard delete)
-│   │   ├── professor
-│   │   │   └── ProfessorTools.jsx               ← legacy; /professor/tools redirects to /dashboard/bulk-upload
 │   │   └── dashboard
 │   │       ├── BulkUploadFlashcards.jsx         ← /dashboard/bulk-upload (all users; 3-step CSV stepper)
 │   │       ├── Help.jsx                         ← /dashboard/help (role-filtered tabs, search, accordion mobile)
@@ -228,7 +228,6 @@ recall-app
 │   │           ├── ReviewFlashcards.jsx         ← /dashboard/review-flashcards (deck browser; "My Cards" pinned; share button)
 │   │           ├── ReviewSession.jsx            ← /dashboard/review-session (due cards only)
 │   │           └── StudyMode.jsx                ← /dashboard/study (SRS engine; TTS; Skip/Suspend/Reset; study time logging)
-│   ├── GuideInfoModal.jsx                       ← shared contextual info modal for DeckPreview / NotePreview / GroupJoin
 │   ├── App.css
 │   ├── index.css
 │   └── main.jsx                                 ← registers /sw.js service worker on window load (non-blocking)
@@ -310,7 +309,7 @@ recall-app
 - `src/data/helpContent.js` — single source of truth for all help content
 - `src/pages/guide/StudentGuide.jsx` — public /guide page (no auth, no DB)
 - `src/data/guideContent.js` — single source of truth for Student Guide + GuideInfoModal
-- `src/components/GuideInfoModal.jsx` — contextual modal on DeckPreview / NotePreview / GroupJoin
+- `src/components/shared/GuideInfoModal.jsx` — contextual modal on DeckPreview / NotePreview / GroupJoin (moved from `src/components/` root, 16/09/2026)
 
 ### Configuration
 - `vite.config.js` — manualChunks splits vendor bundles for caching

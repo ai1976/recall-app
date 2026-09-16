@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { FileText, LogIn, User } from 'lucide-react';
-import GuideInfoModal from '@/components/GuideInfoModal';
+import GuideInfoModal from '@/components/shared/GuideInfoModal';
 
 export default function NotePreview() {
   const { noteId } = useParams();
