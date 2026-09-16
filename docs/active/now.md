@@ -1,6 +1,11 @@
 # NOW - Current Development Status
 
-**Last Updated:** 15/09/2026
+**Last Updated:** 16/09/2026
+
+## Same-day, out-of-sprint fix (16/09/2026): note-delete Storage leak
+
+Found during an unrelated file-cleanup audit: deleting a note (student `MyNotes.jsx` or admin `AdminDashboard.jsx`) never removed its image from the `notes` Storage bucket — confirmed via a `storage.objects`-vs-`image_url` diagnostic (8 orphans, ~47MB) and a trigger audit (nothing else covers it). Fixed with new `src/lib/noteStorage.js` (`deleteNoteStorageImage()`), wired into both delete handlers. `npm run build`/`eslint` clean; live click-through delete not attempted (destructive against production data) — operator should confirm on a throwaway note. The 8 pre-existing orphans were manually deleted via the Supabase Dashboard the same day and reverified at 0 rows (no Storage trash/versioning exists; Claude does not perform permanent deletion itself). See `bugs.md` and `changelog.md` for full detail.
+
 **Current Phase:** **Phase 8 (B2B growth), Sprint 8.1 — batch group Active/Archived lifecycle (archive/restore, frozen report snapshot). SQL deployed & verified live (`docs/database/sprint8.1/`, 04_TEST 33/33 PASS). Frontend written against the deployed signatures — ready to commit.** See its own section below. Sprint 8.0 (batch invite-link joining) underneath, fully shipped. Phase 7 (question-type epic) closed out with Sprint 7.12 underneath that — see that section. ⏳ **Still-open 7.0 operator follow-up:** disable Speed Insights in the Vercel dashboard (7.0-C).
 
 ## Sprint 8.1: Batch group Active/Archived lifecycle — Phase 8 sprint 2 (15/09/2026) — ✅ Just Completed

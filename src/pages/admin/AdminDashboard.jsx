@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useRole } from '@/contexts/NavDataContext'; // Sprint 7.0: shared nav-data context, not a per-mount fetch
+import { deleteNoteStorageImage } from '@/lib/noteStorage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -204,7 +205,7 @@ export default function AdminDashboard() {
       const [notesRes, decksRes] = await Promise.all([
         supabase
           .from('notes')
-          .select('id, title, target_course, created_at, view_count, user_id')
+          .select('id, title, target_course, created_at, view_count, user_id, image_url')
           .eq('visibility', 'public')
           .order('created_at', { ascending: false })
           .limit(notesLimit),
@@ -352,8 +353,13 @@ export default function AdminDashboard() {
   async function deleteNote(noteId) {
     if (!confirm('Delete this note? This cannot be undone.')) return;
     try {
+      const noteToDelete = notes.find(n => n.id === noteId);
+
       const { error } = await supabase.from('notes').delete().eq('id', noteId);
       if (error) throw error;
+
+      await deleteNoteStorageImage(noteToDelete?.image_url);
+
       const { data: { user } } = await supabase.auth.getUser();
       await supabase.from('admin_audit_log').insert({
         action: 'delete_note', admin_id: user.id, details: { note_id: noteId },

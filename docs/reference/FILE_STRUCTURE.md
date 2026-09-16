@@ -78,6 +78,7 @@ recall-app
 │   │   └── StudyTimerContext.jsx                ← Sprint 7.3-C: app-wide manual-timer state + 3-tier stale-session policy; own localStorage key; cross-tab storage-event sync
 │   ├── lib
 │   │   ├── supabase.js                          ← Supabase client
+│   │   ├── noteStorage.js                       ← 16/09/2026: extractNoteStoragePath()/deleteNoteStorageImage() — shared note-delete Storage cleanup (MyNotes.jsx, AdminDashboard.jsx)
 │   │   ├── utils.js                             ← shadcn cn() utility
 │   │   ├── qualityTier.js                       ← shared score/rate → colour-tier util (AdminAnalytics, SuperAdminDashboard) — Sprint 6.0
 │   │   └── notifyEdge.js                        ← fire-and-forget helpers: notifyContentCreated(), notifyFriendEvent()

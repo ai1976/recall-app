@@ -1,5 +1,15 @@
 # Bug Tracking
 
+## Out-of-sprint fix — 16/09/2026
+
+### [16/09/2026] Deleting a note never removed its image from Storage — every note delete leaked its file forever — ✅ FIXED
+- **Found while:** a file-cleanup audit (unrelated to any sprint) noticed 8 images in the `notes` Storage bucket with no matching `notes.image_url` anywhere; a diagnostic cross-referencing `storage.objects` against live `image_url` values confirmed 8 genuine orphans (~47MB).
+- **Symptom:** `MyNotes.jsx`'s student self-delete (`handleDelete`) and `AdminDashboard.jsx`'s moderation delete (`deleteNote`) both did only `supabase.from('notes').delete().eq('id', noteId)` — the Storage object at `notes.image_url` was never removed. `NoteEdit.jsx` gets this right on image *replace* (calls `storage.remove()` on the old file), but outright note deletion leaked it.
+- **Root Cause:** the delete handlers were written to remove the DB row only; nobody added the matching Storage cleanup when either handler was built. Confirmed no DB trigger covers this either — the only `DELETE` trigger on `notes` (`trg_aaa_counter_notes`) just decrements a counter.
+- **Fix:** new `src/lib/noteStorage.js` (`extractNoteStoragePath`, `deleteNoteStorageImage` — best-effort, warns not throws so a Storage failure never blocks a DB delete that already succeeded). Both `MyNotes.jsx` and `AdminDashboard.jsx` now look up the note's `image_url` before deleting the row, then call `deleteNoteStorageImage()` after the DB delete succeeds (`AdminDashboard.jsx`'s `fetchContent()` select also needed `image_url` added — it wasn't previously fetched).
+- **Not retroactive:** the fix only stops *future* leaks. The 8 pre-existing orphans required a one-time manual cleanup via the Supabase Dashboard (no trash/versioning on Storage — deletion there is immediate and permanent, so Claude does not perform it programmatically). **Cleanup done 16/09/2026** — all 8 deleted, re-verified at 0 rows, ~47MB reclaimed.
+- **Status:** ✅ RESOLVED (16/09/2026) — `src/lib/noteStorage.js` (new), `src/pages/dashboard/Content/MyNotes.jsx`, `src/pages/admin/AdminDashboard.jsx`. `npm run build` + `npx eslint` both clean. **Not done:** live click-through delete of a real note (destructive against production data) — verified by lint/build/code-review only; operator should confirm on a throwaway note before trusting fully.
+
 ## Sprint 8.1 — 15/09/2026 (batch group Active/Archived lifecycle)
 
 ### [15/09/2026] `sg_delete_creator` / `sg_update_creator` RLS had no batch-group clause — creating admin could delete a batch group or write `archived_at` directly, bypassing the snapshot transaction — ✅ FIXED

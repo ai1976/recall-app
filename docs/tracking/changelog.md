@@ -1,6 +1,26 @@
 # Changelog
 
 ---
+## [2026-09-16] fix: note deletion now cleans up its Storage image (both delete paths)
+
+Discovered during an unrelated file-cleanup audit: deleting a note never removed its image from the `notes` Storage bucket, in either the student (`MyNotes.jsx`) or admin (`AdminDashboard.jsx`) delete path. Confirmed via a `storage.objects`-vs-`notes.image_url` diagnostic (8 orphans, ~47MB) and a trigger audit (no DB trigger covers it either). The 8 pre-existing orphans were manually deleted via the Supabase Dashboard the same day and reverified at 0 rows.
+
+### Added
+- **`src/lib/noteStorage.js`** — `extractNoteStoragePath(imageUrl)` + `deleteNoteStorageImage(imageUrl)` (best-effort; warns on failure rather than throwing, so it never blocks a note delete that already succeeded).
+
+### Changed
+- **`src/pages/dashboard/Content/MyNotes.jsx`** — `handleDelete` now looks up the note's `image_url` before the DB delete, then calls `deleteNoteStorageImage()` after it succeeds.
+- **`src/pages/admin/AdminDashboard.jsx`** — `fetchContent()`'s notes query now selects `image_url` (previously omitted); `deleteNote` cleans up storage the same way as `MyNotes.jsx`.
+
+### Verified
+- `npm run build` and `npx eslint` on all three files: clean.
+- **Not done:** in-browser click-through delete of a real note — destructive against production data, not attempted this session. Operator should confirm on a throwaway note.
+
+### Files Changed
+- **New:** `src/lib/noteStorage.js`.
+- **Changed:** `src/pages/dashboard/Content/MyNotes.jsx`, `src/pages/admin/AdminDashboard.jsx`, `docs/active/blueprint.md`, `docs/reference/FILE_STRUCTURE.md`, `docs/tracking/bugs.md`, `docs/active/now.md`.
+
+---
 ## [2026-09-15] test(sprint-8.1): Quality Auditor follow-up — snapshot atomicity + frozen-report verification (✅ 7/7 PASS)
 
 Quality Auditor review of the Sprint 8.1 completion report asked whether three specific scenarios were verified before sign-off: simultaneous actions during archiving, snapshot-capture failure leaving no partial state, and real later student activity not leaking into an archived batch's frozen report. Honest answer: the first two were genuinely untested despite the original 33 checks looking thorough. Closed the two closeable ones same day.

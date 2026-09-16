@@ -556,7 +556,7 @@ No formal migration files exist (direct Supabase SQL editor). Milestones by spri
 
 | Bucket | Access | Notes |
 |--------|--------|-------|
-| `notes` | Public read | Note images. Compressed at upload: max 500 KB / 1920px. |
+| `notes` | Public read | Note images. Compressed at upload: max 500 KB / 1920px. **16/09/2026:** note deletion (`MyNotes.jsx`, `AdminDashboard.jsx`) now removes the Storage object via `deleteNoteStorageImage()` — previously the DB row delete left the image orphaned forever (no trigger covered it either). Found via a manual storage-vs-`image_url` audit; 8 pre-existing orphans (~47MB) required a manual Dashboard cleanup since the fix is not retroactive. |
 | `flashcard-images` | Public read | Flashcard images. Compressed at upload: max 200 KB / 1200px. Migrated from base64 in Feb 2026 (167 images, 110 MB). |
 
 ---
@@ -952,6 +952,7 @@ Key pages with data flows:
 | File | Purpose |
 |------|---------|
 | `src/lib/supabase.js` | Supabase client (singleton). Always import as `import { supabase } from '@/lib/supabase'`. |
+| `src/lib/noteStorage.js` | **New, 16/09/2026** — `extractNoteStoragePath(imageUrl)` (public-URL → bucket path) and `deleteNoteStorageImage(imageUrl)` (best-effort `storage.remove()`, warns not throws). Shared by `MyNotes.jsx` and `AdminDashboard.jsx`'s note-delete handlers so deleting a note also removes its image — `NoteEdit.jsx`'s own inline extractor (image *replace* path) was left as-is, out of scope for this fix. |
 | `src/lib/utils.js` | `cn()` utility (clsx + `extendTailwindMerge` — `rv-*` radius/shadow/colour families merge last-wins, Sprint 7.0) |
 | `src/lib/navActive.js` | **Sprint 7.1** — pure `(pathname) => boolean` active-route predicates shared by `NavDesktop` + `NavBottomTabs`: `isExact`, `underAny`, `isCreateActive`, `isStudyActive`, `isManageActive`, `isGroupsActive` (behaviour locked to the Sprint 6.0/6.2 output) + `isReviewTabActive` (bottom-bar "Review" tab). No Supabase, no React. |
 | `src/lib/revisop-tokens.js` | RevisOp reskin shared JS (Phase 6 S6.1): `REVISOP_LITERATA_ENABLED` gate (off), `REVISOP_BUCKETS` (forward-ledger scale), `bucketForDays()` / `ledgerFromForecast()` for wiring the ledger primitives to `get_study_queue`/`get_due_forecast`. No Supabase. |

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { deleteNoteStorageImage } from '@/lib/noteStorage';
 
 const VIEW_MODE_KEY = 'myNotes_viewMode';
 
@@ -205,12 +206,16 @@ export default function MyNotes() {
     }
 
     try {
+      const noteToDelete = notes.find(n => n.id === noteId);
+
       const { error } = await supabase
         .from('notes')
         .delete()
         .eq('id', noteId);
 
       if (error) throw error;
+
+      await deleteNoteStorageImage(noteToDelete?.image_url);
 
       toast({
         title: "Note deleted",
