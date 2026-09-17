@@ -1,7 +1,7 @@
 # Changelog
 
 ---
-## [2026-09-17] feat(sprint-8.6c): multi-select MCQ (mcq_multi) — full build, SQL deployed & verified live
+## [2026-09-17] feat(sprint-8.6c): multi-select MCQ (mcq_multi) — full build, SQL deployed & verified live (✅ committed & pushed `19632fe`)
 
 A new, distinct `question_type`, `mcq_multi` — build-up-then-explicit-submit (checkboxes, mirrors `handleMatchSubmit`), not a flag on single-select `mcq`. Exact-set grading, all-or-none. Part of the professor authoring-toolkit-completeness work (D-20, blueprint.md §3.1) — not direct professor demand, but equipping professors with a broadly capable toolkit ahead of serious content onboarding.
 
@@ -27,6 +27,7 @@ A new, distinct `question_type`, `mcq_multi` — build-up-then-explicit-submit (
 - Bonus: the professor dashboard's "Accuracy by question type" widget picked up "Multi-select MCQ" with zero code changes.
 - CSV: an out-of-range `correct_option` index correctly rejected the whole file with a row-specific error (0 rows created); a corrected file then uploaded successfully.
 - All 4 test artifacts cleaned up and reverified at 0 rows (`04_CLEANUP_remove_verification_test_cards.sql`).
+- **✅ Committed and pushed** (`19632fe`, on `main`).
 
 ### Files Changed
 - `src/lib/mcq.js`, `src/lib/questionTypes.js`, `src/pages/dashboard/Content/FlashcardCreate.jsx`, `src/pages/dashboard/Study/StudyMode.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx`, `src/data/helpContent.js`, `docs/database/sprint8.6c/*.sql`, `docs/active/{blueprint,now}.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/tracking/changelog.md`.
