@@ -1,6 +1,29 @@
 # Changelog
 
 ---
+## [2026-09-17] feat(sprint-8.6b): grouped-row CSV import for match_the_following + concept_card
+
+`BulkUploadFlashcards.jsx` previously deferred bulk upload for these two question types entirely ("create individually instead") — both hold a variable-length list of *pairs* that doesn't fit the flat `option_1..4` CSV convention, and forcing an in-cell delimiter onto real content risked silently mis-splitting text that itself contains colons/commas. Instead, each pair now gets its own CSV row, grouped by an uploader-chosen label column — mirroring `case_study_mcq`'s `case_group` mechanic, but fusing every row in a group into ONE card rather than N separate ones.
+
+### Added
+- **`match_group`/`match_left`/`match_right`** CSV columns — one left/right pair per row, `match_group` links rows into one card (2-8 rows), professor/admin/super_admin only (D-10 gate, unchanged from manual authoring).
+- **`concept_group`/`concept_term`/`concept_definition`** CSV columns — one key-term/definition pair per row, `concept_group` links rows into one card (1-10 rows), open to every role (D-06, unchanged).
+- New "Bulk CSV Upload — Grouped-Row Types" section in `helpContent.js` with full grouped-row examples.
+
+### Fixed (pre-existing doc bugs, found along the way)
+- `helpContent.js` had a stale tip claiming an unrecognized `question_type` silently downgrades to a plain flashcard — that's been false since Sprint 8.3's A1 fix, which rejects it outright with a row-specific error. Corrected.
+
+### Confirmed, not assumed
+- A standalone Node harness (importing the real `src/lib/matchTheFollowing.js`/`conceptCard.js` modules, outside React/the browser) exercised 5 scenarios before any live testing: valid 3-pair match card, valid 3-term concept card, an orphan group (1 row, rejected by the existing pair-count minimum), a group id reused across two unrelated cards (the genuinely-matching rows still form a valid card; the conflicting row is rejected on its own, never silently absorbed), and a flat plain-flashcard row (unaffected). All 5 passed.
+
+### Verified
+- **Live (17/09/2026, dev server → live Supabase, real professor session, operator logged in directly — Claude never saw or entered a password).** The Browser pane's automation has no file-picker action to drive a CSV `<input type="file">` directly, so verification exercised the exact insert path `BulkUploadFlashcards.jsx` uses (same library calls, same row shape) via the authenticated page's own module scope: a 3-pair match_the_following card and a 3-term concept_card both inserted successfully (professor RLS gate confirmed permissive for match_the_following), read back with the exact shape manual authoring produces, appeared correctly in My Study Sets, and the concept_card's existing "Read Concepts" viewer rendered all 3 pairs correctly. Both test rows deleted after verification, reverified at 0 rows.
+- No SQL required — both `question_type` values were already live.
+
+### Files Changed
+- **Changed:** `src/pages/dashboard/BulkUploadFlashcards.jsx`, `src/data/helpContent.js`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md` (this entry).
+
+---
 ## [2026-09-17] feat(sprint-8.6a): offline study-log minimum raised to 10 minutes, server-side
 
 The manual study timer's loggable-session floor was 10 seconds — a sub-threshold stop silently discarded the session with no DB row and no user-facing message. Raised to 10 minutes, mirrored server-side, and given an explicit "too short to log" message instead of silence.

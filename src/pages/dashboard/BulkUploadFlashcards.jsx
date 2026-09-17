@@ -13,32 +13,40 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Upload, CheckCircle, XCircle, Download, ChevronDown, ChevronUp, FileText, ArrowRight, Info } from 'lucide-react';
 import { compactMcqOptions, deriveMcqBackText, toPointsToRemember, validateMcqOptions } from '@/lib/mcq';
 import { compactFitbOptions, deriveFitbBackText, validateFitbBlank, validateFitbOptions } from '@/lib/fitb';
+import { MATCH_MAX_PAIRS, buildMatchOptions, deriveMatchBackText, validateMatchPairs } from '@/lib/matchTheFollowing';
+import { CONCEPT_MAX_TERMS, buildConceptOptions, validateConceptTerms } from '@/lib/conceptCard';
 import { GRADED_QUESTION_TYPES, VERDICT_OPTION_LABELS, THEORY_SUBTYPE_LABELS } from '@/lib/questionTypes';
 
 const MCQ_CSV_OPTION_COLUMNS = 4;
-// question_type values this CSV recognizes as of Sprint 7.11 — anything else falls back to
+// question_type values this CSV recognizes as of Sprint 8.6b — anything else falls back to
 // 'flashcard'. test_your_understanding removed (D-10 correction, collapsed into theory+subtype).
 // true_false removed (D-14, merged into correct_incorrect). case_study_mcq added (Sprint
-// 7.10) — a flat CSV row shape fits it fine (unlike match_the_following's variable-length
-// pairs, which stayed manual-authoring-only): each question is still one row, just with a
-// shared `scenario` and `case_group` value linking it to its case's other rows. fitb added
-// (Sprint 7.11) — no multi-row fan-out problem like case_study_mcq, so its variable-length
-// acceptable-answers list is just a semicolon-delimited single cell (`fitb_answers`).
-// concept_card (Sprint 7.12) — explicitly DEFERRED, not added here, same call as
-// match_the_following in 7.8-C: keyTerms is a variable-length list of {term, definition}
-// PAIRS, not a flat list of strings like fitb's acceptable-answers. fitb's semicolon-cell
-// trick works because each entry is one short phrase with no embedded delimiter conflict;
-// forcing a second-level delimiter (e.g. "term:definition;term:definition") onto real CA
-// content is fragile — subject-matter terms and definitions routinely contain colons and
-// commas of their own (ratios like "3:1", monetary values like "₹2,50,000"), so a flat cell
-// would silently mis-split real content rather than fail loudly. Manual authoring only.
-const RECOGNIZED_QUESTION_TYPES = ['mcq', 'correct_incorrect', 'theory', 'case_study_mcq', 'fitb'];
+// 7.10) — a flat CSV row shape fits it fine: each question is still one row, just with a
+// shared `scenario` and `case_group` value linking it to its case's other rows (N rows stay
+// N separate cards, sharing a batch_id). fitb added (Sprint 7.11) — no multi-row fan-out
+// problem like case_study_mcq, so its variable-length acceptable-answers list is just a
+// semicolon-delimited single cell (`fitb_answers`).
+// match_the_following and concept_card added (Sprint 8.6b) — unlike case_study_mcq, these
+// fan N CSV rows into ONE card (options is a single {left,right,correct} object / a single
+// array of {term,definition} pairs), not N separate cards. The grouping MECHANIC (a
+// uploader-chosen group-id column, unique per card, identical across every row belonging to
+// it) mirrors case_group exactly — only the fan TARGET differs. Both were deferred through
+// 7.8-C/7.12-C specifically to avoid an in-cell delimiter, since real content (definitions,
+// ratios like "3:1", amounts like "₹2,50,000") routinely contains commas/colons that would
+// silently mis-split a flat cell; one-row-per-pair avoids that problem entirely.
+const RECOGNIZED_QUESTION_TYPES = ['mcq', 'correct_incorrect', 'theory', 'case_study_mcq', 'fitb', 'match_the_following', 'concept_card'];
 const THEORY_SUBTYPES = Object.keys(THEORY_SUBTYPE_LABELS);
 // GRADED_QUESTION_TYPES (mcq/correct_incorrect/case_study_mcq) all store a scalar
 // correct_answer index; fitb also writes options/explanation the same way but has
 // no scalar verdict (D-13 — the verdict is computed at grading time by normalizing
 // against every options entry), so it needs its own flag rather than joining that array.
+// match_the_following also has no scalar correct_answer (verdict lives in options.correct).
 const isCsvGradedType = (qt) => GRADED_QUESTION_TYPES.includes(qt) || qt === 'fitb';
+// Which types get their `options` column populated from card.gradedOptions at insert time.
+const hasCsvOptions = (qt) => isCsvGradedType(qt) || qt === 'match_the_following' || qt === 'concept_card';
+// Which types get their `explanation` column populated — concept_card is deliberately
+// excluded (D-06: never graded, so no grading-rationale "Why" to show).
+const hasCsvExplanation = (qt) => isCsvGradedType(qt) || qt === 'match_the_following';
 
 // ─── Stepper step component ───
 function Step({ number, title, subtitle, isOpen, isComplete, onToggle, children }) {
@@ -183,19 +191,25 @@ export default function BulkUploadFlashcards() {
 
   // ─── Download: Template CSV ───
   function downloadTemplate() {
-    const template = '\uFEFF' + `target_course,subject,topic,front,back,tags,difficulty,question_type,option_1,option_2,option_3,option_4,correct_option,explanation,subtype,scenario,case_group,fitb_answers
-CA Intermediate,Taxation,Income Tax Basics,What is the difference between a direct tax and an indirect tax?,A direct tax is paid directly by the person it is levied on (e.g. income tax); an indirect tax is collected by an intermediary and passed on to the government (e.g. GST).,"#ITR,#basics",easy,,,,,,,,,,,
-CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium,,,,,,,,,,,
-CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium,,,,,,,,,,,
-CA Intermediate,Taxation,Income Tax Basics,Which of these is a deduction under Section 80C?,,"#ITR",medium,mcq,Life insurance premium,House rent paid,Medical insurance premium,Interest on savings account,1,Life insurance premium qualifies under 80C; the others fall under different sections.,,,,
-CA Intermediate,Taxation,Income Tax Basics,Interest on savings account is fully exempt from tax regardless of amount.,,"#ITR",medium,correct_incorrect,,,,,2,Section 80TTA/80TTB provides only a limited exemption on savings account interest -- not a full exemption. Check the current threshold rather than assuming it's unlimited.,,,,
-CA Intermediate,Advanced Accounting,AS 1,AS 1 deals with the disclosure of accounting policies.,,"#AS",easy,correct_incorrect,,,,,1,,,,,
-CA Intermediate,Taxation,Income Tax Basics,Explain the difference between exemption and deduction under the Income Tax Act.,An exemption removes income from the tax base entirely; a deduction reduces taxable income after it's included.,"#ITR",medium,theory,,,,,,,pure_theory,,,
-CA Foundation,Quantitative Aptitude,Percentages,Work through: a shop marks up cost by 25% then offers a 10% discount on the marked price. What's the net margin over cost?,"Net price = 1.25 x 0.9 = 1.125x cost, so a 12.5% margin over cost.",,medium,theory,,,,,,,descriptive_case_study,,,
-CA Intermediate,Auditing,Audit Evidence,What type of audit opinion should be issued given the evidence described in the scenario?,,"#audit",medium,case_study_mcq,Unmodified opinion,Qualified opinion,Adverse opinion,Disclaimer of opinion,2,The misstatement is material but not pervasive -- a qualified opinion is appropriate.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case,
-CA Intermediate,Auditing,Audit Evidence,Which audit procedure would have been most effective in detecting this misstatement earlier?,,"#audit",medium,case_study_mcq,Analytical review of gross margin trends,Bank confirmation,Related party disclosure review,Subsequent events review,1,A gross margin trend analysis would have flagged the anomaly before year-end.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case,
-CA Intermediate,Auditing,Audit Evidence,What should the auditor do if management continues to refuse the adjustment?,,"#audit",medium,case_study_mcq,Issue an unmodified opinion anyway,Modify the opinion and describe the basis in the audit report,Withdraw from the engagement immediately,Ignore it as immaterial,2,SA 705 requires a modified opinion with a clear basis-for-qualification paragraph.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case,
-CA Intermediate,Taxation,Income Tax Basics,"Deductions for life insurance premium, PPF, and ELSS investments are available under Section ______ of the Income Tax Act.",,"#ITR",medium,fitb,,,,,,No explanation needed -- this is a direct recall fact.,,,,"80C;Section 80C;80 C"
+    const template = '\uFEFF' + `target_course,subject,topic,front,back,tags,difficulty,question_type,option_1,option_2,option_3,option_4,correct_option,explanation,subtype,scenario,case_group,fitb_answers,match_group,match_left,match_right,concept_group,concept_term,concept_definition
+CA Intermediate,Taxation,Income Tax Basics,What is the difference between a direct tax and an indirect tax?,A direct tax is paid directly by the person it is levied on (e.g. income tax); an indirect tax is collected by an intermediary and passed on to the government (e.g. GST).,"#ITR,#basics",easy,,,,,,,,,,,,,,,,,
+CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium,,,,,,,,,,,,,,,,,
+CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium,,,,,,,,,,,,,,,,,
+CA Intermediate,Taxation,Income Tax Basics,Which of these is a deduction under Section 80C?,,"#ITR",medium,mcq,Life insurance premium,House rent paid,Medical insurance premium,Interest on savings account,1,Life insurance premium qualifies under 80C; the others fall under different sections.,,,,,,,,,,
+CA Intermediate,Taxation,Income Tax Basics,Interest on savings account is fully exempt from tax regardless of amount.,,"#ITR",medium,correct_incorrect,,,,,2,Section 80TTA/80TTB provides only a limited exemption on savings account interest -- not a full exemption. Check the current threshold rather than assuming it's unlimited.,,,,,,,,,,
+CA Intermediate,Advanced Accounting,AS 1,AS 1 deals with the disclosure of accounting policies.,,"#AS",easy,correct_incorrect,,,,,1,,,,,,,,,,,
+CA Intermediate,Taxation,Income Tax Basics,Explain the difference between exemption and deduction under the Income Tax Act.,An exemption removes income from the tax base entirely; a deduction reduces taxable income after it's included.,"#ITR",medium,theory,,,,,,,pure_theory,,,,,,,,,
+CA Foundation,Quantitative Aptitude,Percentages,Work through: a shop marks up cost by 25% then offers a 10% discount on the marked price. What's the net margin over cost?,"Net price = 1.25 x 0.9 = 1.125x cost, so a 12.5% margin over cost.",,medium,theory,,,,,,,descriptive_case_study,,,,,,,,,
+CA Intermediate,Auditing,Audit Evidence,What type of audit opinion should be issued given the evidence described in the scenario?,,"#audit",medium,case_study_mcq,Unmodified opinion,Qualified opinion,Adverse opinion,Disclaimer of opinion,2,The misstatement is material but not pervasive -- a qualified opinion is appropriate.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case,,,,,,,
+CA Intermediate,Auditing,Audit Evidence,Which audit procedure would have been most effective in detecting this misstatement earlier?,,"#audit",medium,case_study_mcq,Analytical review of gross margin trends,Bank confirmation,Related party disclosure review,Subsequent events review,1,A gross margin trend analysis would have flagged the anomaly before year-end.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case,,,,,,,
+CA Intermediate,Auditing,Audit Evidence,What should the auditor do if management continues to refuse the adjustment?,,"#audit",medium,case_study_mcq,Issue an unmodified opinion anyway,Modify the opinion and describe the basis in the audit report,Withdraw from the engagement immediately,Ignore it as immaterial,2,SA 705 requires a modified opinion with a clear basis-for-qualification paragraph.,,"During the audit of XYZ Ltd for FY 2025-26, the auditor identified an inventory valuation error understating cost of goods sold by 8% of net profit. Management declined to adjust the financial statements.",xyz-inventory-case,,,,,,,
+CA Intermediate,Taxation,Income Tax Basics,"Deductions for life insurance premium, PPF, and ELSS investments are available under Section ______ of the Income Tax Act.",,"#ITR",medium,fitb,,,,,,No explanation needed -- this is a direct recall fact.,,,,"80C;Section 80C;80 C",,,,,,
+CA Intermediate,Taxation,Income Tax Basics,Match each deduction section to what it covers.,,"#ITR",medium,match_the_following,,,,,,No explanation needed -- straightforward recall matching.,,,,,tax-section-map,Section 80C,"Life insurance, PPF, ELSS investments",,,
+CA Intermediate,Taxation,Income Tax Basics,Match each deduction section to what it covers.,,"#ITR",medium,match_the_following,,,,,,,,,,,tax-section-map,Section 80D,Medical insurance premium,,,
+CA Intermediate,Taxation,Income Tax Basics,Match each deduction section to what it covers.,,"#ITR",medium,match_the_following,,,,,,,,,,,tax-section-map,Section 80TTA,Savings account interest (limited exemption),,,
+CA Intermediate,Advanced Accounting,AS 1,Methods of Depreciation,Two common ways to allocate the cost of an asset over its useful life.,"#AS",medium,concept_card,,,,,,,,,,,,,,depreciation-methods,Straight Line Method,Equal depreciation expense charged each year over the asset's useful life.
+CA Intermediate,Advanced Accounting,AS 1,Methods of Depreciation,Two common ways to allocate the cost of an asset over its useful life.,"#AS",medium,concept_card,,,,,,,,,,,,,,depreciation-methods,Written Down Value Method,Depreciation charged as a fixed percentage of the asset's reducing book value each year.
+CA Intermediate,Advanced Accounting,AS 1,Methods of Depreciation,Two common ways to allocate the cost of an asset over its useful life.,"#AS",medium,concept_card,,,,,,,,,,,,,,depreciation-methods,Units of Production Method,Depreciation based on actual usage or output of the asset rather than time elapsed.
 
 ==================================================
 HOW TO USE THIS TEMPLATE
@@ -210,18 +224,22 @@ COLUMNS:
 - target_course (REQUIRED) - Must match Valid Entries exactly
 - subject (REQUIRED) - Must match Valid Entries exactly
 - topic (optional) - Must match Valid Entries if provided
-- front (REQUIRED) - Question / statement / front side
-- back (REQUIRED for flashcard/theory; leave blank for mcq/correct_incorrect/case_study_mcq/fitb — derived automatically)
+- front (REQUIRED) - Question / statement / front side. For match_the_following, this is the shared instructions text — repeat the EXACT SAME text on every row of the same match_group. For concept_card, this is the concept name — repeat the EXACT SAME text on every row of the same concept_group.
+- back (REQUIRED for flashcard/theory/concept_card; leave blank for mcq/correct_incorrect/case_study_mcq/fitb/match_the_following — derived automatically). For concept_card, repeat the EXACT SAME summary text on every row of the same concept_group.
 - tags (optional) - Comma-separated, e.g. "#ITR,#basics"
 - difficulty (optional) - easy / medium / hard (defaults to medium)
-- question_type (optional) - blank/"flashcard" for a plain card, "mcq" for multiple choice, "correct_incorrect", "theory", "case_study_mcq", or "fitb" (fill in the blank)
+- question_type (optional) - blank/"flashcard" for a plain card, "mcq" for multiple choice, "correct_incorrect", "theory", "case_study_mcq", "fitb" (fill in the blank), "match_the_following", or "concept_card"
 - option_1..option_4 (required for question_type=mcq/case_study_mcq only) - the answer choices (2-4 filled in). Leave blank for correct_incorrect — its two options ("Correct"/"Incorrect") are filled in automatically, you only pick which one is correct.
-- correct_option (required for mcq/correct_incorrect/case_study_mcq) - which option number is correct: 1-4 for mcq/case_study_mcq, 1-2 for correct_incorrect ("Correct"=1, "Incorrect"=2). Not used for fitb — see fitb_answers below.
-- explanation (optional, mcq/correct_incorrect/case_study_mcq/fitb only) - shown to the student after they answer
+- correct_option (required for mcq/correct_incorrect/case_study_mcq) - which option number is correct: 1-4 for mcq/case_study_mcq, 1-2 for correct_incorrect ("Correct"=1, "Incorrect"=2). Not used for fitb/match_the_following/concept_card.
+- explanation (optional, mcq/correct_incorrect/case_study_mcq/fitb/match_the_following only) - shown to the student after they answer. For match_the_following, only needs to be filled on one row of the group (any row left blank is ignored).
 - subtype (required for question_type=theory only) - "pure_theory" or "descriptive_case_study"
 - scenario (required for question_type=case_study_mcq only) - the shared case narrative. Repeat the EXACT SAME text on every row belonging to the same case.
-- case_group (required for question_type=case_study_mcq only) - any label you choose (e.g. "xyz-inventory-case") linking this row to its case's other questions. Must be unique per case within this file, identical across every row in that case.
+- case_group (required for question_type=case_study_mcq only) - any label you choose (e.g. "xyz-inventory-case") linking this row to its case's other questions. Must be unique per case within this file, identical across every row in that case. Each row still becomes its own card, sharing a batch with the rest of the case.
 - fitb_answers (required for question_type=fitb only) - every phrasing you'd accept as correct, separated by semicolons (e.g. "Rs 2.5 lakhs;2.5 lakhs;250000"). Quote the whole cell if any answer itself contains a comma. front must contain a blank marker (______, at least 3 underscores).
+- match_group (required for question_type=match_the_following only) - any label you choose (e.g. "tax-section-map") linking this row to its card's other pairs. Unlike case_group, all rows sharing a match_group combine into ONE card — 2-8 rows per group.
+- match_left / match_right (required for question_type=match_the_following only) - one left/right pair per row. The pairing is positional: this row's match_left is matched with this row's match_right.
+- concept_group (required for question_type=concept_card only) - any label you choose (e.g. "depreciation-methods") linking this row to its card's other key terms. All rows sharing a concept_group combine into ONE card — 1-10 rows per group.
+- concept_term / concept_definition (required for question_type=concept_card only) - one key term/definition pair per row.
 
 IMPORTANT:
 ✓ Use EXACT spelling from Valid Entries file
@@ -229,7 +247,7 @@ IMPORTANT:
 ✓ Cannot create new courses/subjects/topics via bulk upload
 ✓ To add a new subject/topic, create one item via "Create Study Item" first
 ✓ Visibility is set on the upload page (private / friends / public)
-✓ question_type=mcq/correct_incorrect/case_study_mcq/fitb rows require a professor/admin account — student-authored rows of these types are rejected at upload
+✓ question_type=mcq/correct_incorrect/case_study_mcq/fitb/match_the_following rows require a professor/admin account — student-authored rows of these types are rejected at upload. concept_card has no such restriction — anyone can bulk-upload it.
 `;
 
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
@@ -364,6 +382,12 @@ IMPORTANT:
 
           const flashcards = [];
           const parseErrors = [];
+          // match_the_following / concept_card fan N CSV rows into ONE card (unlike
+          // case_study_mcq, which keeps each row as its own card sharing a batch_id) —
+          // accumulate rows here keyed by group id, then resolve into single flashcard
+          // entries once the whole file has been read (grouped rows need not be contiguous).
+          const matchGroups = new Map();
+          const conceptGroups = new Map();
 
           // Handle multi-line cells (quoted newlines)
           const lines = [];
@@ -548,6 +572,39 @@ IMPORTANT:
                 flashcard.gradedCorrectIndex = null;
                 flashcard.back = deriveFitbBackText(fitbOptions);
                 flashcard.explanation = toPointsToRemember(flashcard.explanation);
+              } else if (flashcard.question_type === 'match_the_following') {
+                if (!flashcard.target_course || !flashcard.subject || !flashcard.front) {
+                  parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front)`);
+                  continue;
+                }
+                if (!flashcard.match_group || !flashcard.match_group.trim()) {
+                  parseErrors.push(`Row ${i + 1}: match_group is required for match_the_following rows (links this row to its card's other pairs)`);
+                  continue;
+                }
+                if (!flashcard.match_left || !flashcard.match_left.trim() || !flashcard.match_right || !flashcard.match_right.trim()) {
+                  parseErrors.push(`Row ${i + 1}: match_left and match_right are both required for match_the_following rows`);
+                  continue;
+                }
+                flashcard.match_group = flashcard.match_group.trim();
+                flashcard.match_left = flashcard.match_left.trim();
+                flashcard.match_right = flashcard.match_right.trim();
+                flashcard.explanation = toPointsToRemember(flashcard.explanation);
+              } else if (flashcard.question_type === 'concept_card') {
+                if (!flashcard.target_course || !flashcard.subject || !flashcard.front || !flashcard.back) {
+                  parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front, back)`);
+                  continue;
+                }
+                if (!flashcard.concept_group || !flashcard.concept_group.trim()) {
+                  parseErrors.push(`Row ${i + 1}: concept_group is required for concept_card rows (links this row to its card's other key terms)`);
+                  continue;
+                }
+                if (!flashcard.concept_term || !flashcard.concept_term.trim() || !flashcard.concept_definition || !flashcard.concept_definition.trim()) {
+                  parseErrors.push(`Row ${i + 1}: concept_term and concept_definition are both required for concept_card rows`);
+                  continue;
+                }
+                flashcard.concept_group = flashcard.concept_group.trim();
+                flashcard.concept_term = flashcard.concept_term.trim();
+                flashcard.concept_definition = flashcard.concept_definition.trim();
               } else if (!flashcard.target_course || !flashcard.subject || !flashcard.front || !flashcard.back) {
                 parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front, back)`);
                 continue;
@@ -588,10 +645,87 @@ IMPORTANT:
               flashcard.front = flashcard.front.replace(/[\r\n]+/g, ' ').trim();
               flashcard.back = flashcard.back.replace(/[\r\n]+/g, ' ').trim();
 
-              flashcards.push(flashcard);
+              if (flashcard.question_type === 'match_the_following') {
+                if (!matchGroups.has(flashcard.match_group)) {
+                  matchGroups.set(flashcard.match_group, { rows: [], meta: flashcard, firstRow: i + 1 });
+                }
+                const group = matchGroups.get(flashcard.match_group);
+                if (
+                  flashcard.target_course !== group.meta.target_course ||
+                  flashcard.subject !== group.meta.subject ||
+                  (flashcard.topic || '') !== (group.meta.topic || '') ||
+                  flashcard.front !== group.meta.front
+                ) {
+                  parseErrors.push(`Row ${i + 1}: match_group '${flashcard.match_group}' has a target_course/subject/topic/front that doesn't match row ${group.firstRow} — every row in a match_group must belong to the same card`);
+                  continue;
+                }
+                if (group.rows.length >= MATCH_MAX_PAIRS) {
+                  parseErrors.push(`Row ${i + 1}: match_group '${flashcard.match_group}' has more than ${MATCH_MAX_PAIRS} pairs — that's the maximum for one card`);
+                  continue;
+                }
+                group.rows.push({ left: flashcard.match_left, right: flashcard.match_right });
+                if (flashcard.explanation && flashcard.explanation.length && !(group.meta.explanation && group.meta.explanation.length)) {
+                  group.meta.explanation = flashcard.explanation;
+                }
+              } else if (flashcard.question_type === 'concept_card') {
+                if (!conceptGroups.has(flashcard.concept_group)) {
+                  conceptGroups.set(flashcard.concept_group, { rows: [], meta: flashcard, firstRow: i + 1 });
+                }
+                const group = conceptGroups.get(flashcard.concept_group);
+                if (
+                  flashcard.target_course !== group.meta.target_course ||
+                  flashcard.subject !== group.meta.subject ||
+                  (flashcard.topic || '') !== (group.meta.topic || '') ||
+                  flashcard.front !== group.meta.front ||
+                  flashcard.back !== group.meta.back
+                ) {
+                  parseErrors.push(`Row ${i + 1}: concept_group '${flashcard.concept_group}' has a target_course/subject/topic/front/back that doesn't match row ${group.firstRow} — every row in a concept_group must belong to the same card`);
+                  continue;
+                }
+                if (group.rows.length >= CONCEPT_MAX_TERMS) {
+                  parseErrors.push(`Row ${i + 1}: concept_group '${flashcard.concept_group}' has more than ${CONCEPT_MAX_TERMS} key terms — that's the maximum for one card`);
+                  continue;
+                }
+                group.rows.push({ term: flashcard.concept_term, definition: flashcard.concept_definition });
+              } else {
+                flashcards.push(flashcard);
+              }
             } catch (error) {
               parseErrors.push(`Row ${i + 1}: ${error.message}`);
             }
+          }
+
+          // ── Resolve match_the_following groups into one card per group ──
+          // Positional pairing: each row's own left/right values are the correct
+          // match for each other, since CSV never authors distractor right-items
+          // (that needs the arbitrary-remapping UI, manual authoring only).
+          for (const [groupId, group] of matchGroups) {
+            const left = group.rows.map(r => r.left);
+            const right = group.rows.map(r => r.right);
+            const correctByIndex = left.map((_, idx) => idx);
+            const matchError = validateMatchPairs(left, right, correctByIndex);
+            if (matchError) {
+              parseErrors.push(`match_group '${groupId}' (starting row ${group.firstRow}): ${matchError}`);
+              continue;
+            }
+            const card = { ...group.meta };
+            const options = buildMatchOptions(left, right, correctByIndex);
+            card.gradedOptions = options;
+            card.back = deriveMatchBackText(left, options.correct);
+            card.explanation = group.meta.explanation && group.meta.explanation.length ? group.meta.explanation : null;
+            flashcards.push(card);
+          }
+
+          // ── Resolve concept_card groups into one card per group ──
+          for (const [groupId, group] of conceptGroups) {
+            const conceptError = validateConceptTerms(group.rows);
+            if (conceptError) {
+              parseErrors.push(`concept_group '${groupId}' (starting row ${group.firstRow}): ${conceptError}`);
+              continue;
+            }
+            const card = { ...group.meta };
+            card.gradedOptions = buildConceptOptions(group.rows);
+            flashcards.push(card);
           }
 
           resolve({ flashcards, errors: parseErrors });
@@ -753,12 +887,13 @@ IMPORTANT:
           batch_id: rowBatchId,
           batch_description: trimmedDescription,
           question_type: card.question_type,
-          options: isCsvGradedType(card.question_type) ? card.gradedOptions : null,
-          // fitb stays NULL here (D-13 — no single scalar "the answer"), unlike
-          // mcq/correct_incorrect/case_study_mcq's stringified index.
+          options: hasCsvOptions(card.question_type) ? card.gradedOptions : null,
+          // fitb and match_the_following stay NULL here (D-13/D-10 rep. note — no single
+          // scalar "the answer"), unlike mcq/correct_incorrect/case_study_mcq's stringified
+          // index.
           correct_answer: GRADED_QUESTION_TYPES.includes(card.question_type) ? String(card.gradedCorrectIndex) : null,
           points_to_remember: null,
-          explanation: isCsvGradedType(card.question_type) ? (card.explanation || null) : null,
+          explanation: hasCsvExplanation(card.question_type) ? (card.explanation || null) : null,
           subtype: card.question_type === 'theory' ? card.subtype : null,
           scenario: rowScenario,
         };
@@ -825,7 +960,7 @@ IMPORTANT:
       console.error('Upload error:', error);
       if (error.code === '42501') {
         setErrors([
-          'Upload failed: one or more rows use a question_type (mcq, correct_incorrect, case_study_mcq, fitb) that requires a professor/admin account.',
+          'Upload failed: one or more rows use a question_type (mcq, correct_incorrect, case_study_mcq, fitb, match_the_following) that requires a professor/admin account.',
           'No rows were created (the whole file is uploaded as one batch) — remove those rows or upload from a professor/admin account.',
         ]);
       } else {

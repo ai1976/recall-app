@@ -263,7 +263,7 @@ export const HELP_TABS = [
         icon: 'Layers',
         roles: ['professor', 'admin', 'super_admin'],
         content: [
-          { type: 'paragraph', text: 'Multiple Choice, Correct/Incorrect, Case study MCQ, Match the following, and Fill in the Blank are only creatable from a professor or admin account. Multiple Choice, Correct/Incorrect, Case study MCQ, and Fill in the Blank can be authored either manually or via Bulk Upload. Match the following is manual creation only — Bulk Upload does not support it for any role. Here is what each form looks like.' },
+          { type: 'paragraph', text: 'Multiple Choice, Correct/Incorrect, Case study MCQ, Match the following, and Fill in the Blank are only creatable from a professor or admin account. All five can be authored either manually or via Bulk Upload. Here is what each form looks like.' },
           { type: 'list', items: [
             'Multiple Choice \u2014 a Question field, 2-6 options (add or remove rows freely), and a radio button marking the correct one. Explanation is optional and shown after the student answers.',
             'Correct/Incorrect \u2014 a Statement field. The two options, "Correct" and "Incorrect", are already filled in \u2014 just mark which is right. Explanation is optional.',
@@ -294,8 +294,8 @@ export const HELP_TABS = [
             'tags (optional, comma-separated) and difficulty (optional: easy/medium/hard, defaults to medium) work the same way for every row.',
             'Theory rows need subtype set to pure_theory or descriptive_case_study.',
             'Everyone can bulk-upload plain Flashcard and Theory rows.',
-            'Match the following and Concept Card cannot be created via CSV at all, for any role — create these individually instead.',
-            'Multiple Choice, Correct/Incorrect, Case study MCQ, and Fill in the Blank rows need a professor or admin account — a student’s rows of these types are rejected on upload (see "Bulk CSV Upload — Professor & Admin Types" if you have that role).',
+            'Concept Card can be created via CSV by anyone — see "Bulk CSV Upload — Grouped-Row Types" below.',
+            'Multiple Choice, Correct/Incorrect, Case study MCQ, Match the following, and Fill in the Blank rows need a professor or admin account — a student’s rows of these types are rejected on upload (see "Bulk CSV Upload — Professor & Admin Types" and "Bulk CSV Upload — Grouped-Row Types" if you have that role).',
             'Quote a cell that contains a comma, e.g. "#ITR,#basics". Double up a quote mark inside a quoted cell, e.g. "she said ""exempt""" — that is standard CSV escaping, not a RevisOp rule.',
             'Blank cells are fine for anything optional. Text inside a quoted cell can span multiple lines, but line breaks inside front/back are collapsed into a single space either way.',
           ]},
@@ -305,7 +305,7 @@ export const HELP_TABS = [
           ]},
           { type: 'tip', text: 'Download the Template on the Bulk Upload page for the exact header row to copy — do not retype it by hand, since every column must be spelled exactly right.' },
           { type: 'tip', text: 'The figures in these examples (like the exemption limit above) are for illustrating the CSV format only, not current tax figures — always check the applicable year and regime before treating any number in a study item as authoritative.' },
-          { type: 'tip', text: 'If question_type is spelled anything other than flashcard, theory, mcq, correct_incorrect, case_study_mcq, or fitb — including match_the_following or concept_card — the row is not rejected. It is silently created as a plain Flashcard instead. Double-check the spelling in that column.' },
+          { type: 'tip', text: 'If question_type is spelled anything other than flashcard, theory, mcq, correct_incorrect, case_study_mcq, fitb, match_the_following, or concept_card, the row is rejected with an error — it is not silently created as a plain Flashcard. Double-check the spelling in that column.' },
         ],
       },
       {
@@ -334,6 +334,32 @@ export const HELP_TABS = [
           ]},
           { type: 'tip', text: 'These example rows are copied from the Template you can download on the Bulk Upload page itself, so they are guaranteed to match what the uploader accepts. The figures and rulings in them (tax limits, audit opinions) are for illustrating the format only, not current authoritative figures — check the applicable year, regime, or standard before reusing any of them as real content.' },
           { type: 'tip', text: 'The easiest way to build a real case study is to copy its three example rows above and edit them, rather than typing one from scratch.' },
+        ],
+      },
+      {
+        id: 'bulk-csv-grouped-rows',
+        title: 'Bulk CSV Upload — Grouped-Row Types',
+        icon: 'Upload',
+        content: [
+          { type: 'paragraph', text: 'Match the following and Concept Card cards both hold a variable-length list — match pairs, or key terms — that a single CSV cell can’t safely hold (real content routinely contains its own colons and commas). Instead, each pair or term/definition gets its OWN row, and a shared group label links those rows into one card. This is different from Case study MCQ’s case_group: there, every row stays its own separate card, just sharing one batch. Here, every row in the group is fused into a single card — nothing is inserted per row.' },
+          { type: 'list', items: [
+            'Write match_the_following or concept_card in the question_type column. Match the following also requires a professor or admin account, same as Multiple Choice/Correct-Incorrect/Case study MCQ/Fill in the Blank; Concept Card has no such restriction — anyone can bulk-upload it.',
+            'Match the following — one row per left/right pair, sharing a match_group label of your choosing that is the same across every row in that card and unique to it within the file (e.g. "tax-section-map"). Put the pair itself in match_left and match_right — the pairing is positional (this row’s left goes with this row’s right). 2-8 rows per group. Repeat the identical front text (the shared instructions) on every row; leave back blank, it is derived automatically. explanation only needs filling on one row of the group — the others can leave it blank.',
+            'Concept Card — one row per key term/definition pair, sharing a concept_group label the same way (e.g. "depreciation-methods"). Put the pair in concept_term and concept_definition. 1-10 rows per group. Repeat the identical front (concept name) AND back (2-3 sentence summary) text on every row — unlike every other bulk-uploadable type, Concept Card’s back is typed directly, not derived, so it must be filled in and must match across the group.',
+            'A row whose group label is used by only one row, or a group whose front/back/course/subject/topic doesn’t match its other rows, is rejected with a specific error naming the row and group — it is never silently merged into the wrong card.',
+          ]},
+          { type: 'list', items: [
+            'Match the following — all three rows below combine into ONE card, sharing front and match_group:',
+            `CA Intermediate, Taxation, Income Tax Basics, Match each deduction section to what it covers., , "#ITR", medium, match_the_following, , , , , , No explanation needed -- straightforward recall matching., , , , , tax-section-map, Section 80C, "Life insurance, PPF, ELSS investments", , , `,
+            `CA Intermediate, Taxation, Income Tax Basics, Match each deduction section to what it covers., , "#ITR", medium, match_the_following, , , , , , , , , , , tax-section-map, Section 80D, Medical insurance premium, , , `,
+            `CA Intermediate, Taxation, Income Tax Basics, Match each deduction section to what it covers., , "#ITR", medium, match_the_following, , , , , , , , , , , tax-section-map, Section 80TTA, Savings account interest (limited exemption), , , `,
+            'Concept Card — all three rows below combine into ONE card, sharing front, back, and concept_group:',
+            `CA Intermediate, Advanced Accounting, AS 1, Methods of Depreciation, Two common ways to allocate the cost of an asset over its useful life., "#AS", medium, concept_card, , , , , , , , , , , , , , depreciation-methods, Straight Line Method, Equal depreciation expense charged each year over the asset's useful life.`,
+            `CA Intermediate, Advanced Accounting, AS 1, Methods of Depreciation, Two common ways to allocate the cost of an asset over its useful life., "#AS", medium, concept_card, , , , , , , , , , , , , , depreciation-methods, Written Down Value Method, Depreciation charged as a fixed percentage of the asset's reducing book value each year.`,
+            `CA Intermediate, Advanced Accounting, AS 1, Methods of Depreciation, Two common ways to allocate the cost of an asset over its useful life., "#AS", medium, concept_card, , , , , , , , , , , , , , depreciation-methods, Units of Production Method, Depreciation based on actual usage or output of the asset rather than time elapsed.`,
+          ]},
+          { type: 'tip', text: 'These example rows are copied from the Template you can download on the Bulk Upload page itself, so they are guaranteed to match what the uploader accepts.' },
+          { type: 'tip', text: 'The easiest way to build a real grouped card is to copy its example rows above and edit them, rather than typing one from scratch.' },
         ],
       },
       {
