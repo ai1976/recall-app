@@ -40,6 +40,7 @@ import {
 import { cn } from '@/lib/utils';
 import { GRADED_QUESTION_TYPES } from '@/lib/questionTypes';
 import { isFitbMatch, splitFitbSentence } from '@/lib/fitb';
+import { parseMultiAnswer } from '@/lib/mcq';
 import { useToast } from '@/hooks/use-toast';
 import { useSpeech } from '@/hooks/useSpeech';
 import SpeakButton from '@/components/flashcards/SpeakButton';
@@ -95,6 +96,13 @@ export default function StudyMode({
   const [fitbAnswer, setFitbAnswer] = useState('');
   const [fitbSubmitted, setFitbSubmitted] = useState(false);
   const [fitbMatched, setFitbMatched] = useState(null);
+  // mcq_multi (Sprint 8.6c): the student's in-progress checkbox selection, plus
+  // revealed/verdict state once Submit is tapped — build-up-then-submit, same
+  // shape as match_the_following above (mirrors handleMatchSubmit, not the
+  // single-tap handleMcqSelect). [] = nothing picked yet.
+  const [mcqMultiSelected, setMcqMultiSelected] = useState([]);
+  const [mcqMultiRevealed, setMcqMultiRevealed] = useState(false);
+  const [mcqMultiIsCorrect, setMcqMultiIsCorrect] = useState(null);
   useEffect(() => {
     setMcqSelectedIndex(null);
     setMcqIsCorrect(null);
@@ -105,6 +113,9 @@ export default function StudyMode({
     setFitbAnswer('');
     setFitbSubmitted(false);
     setFitbMatched(null);
+    setMcqMultiSelected([]);
+    setMcqMultiRevealed(false);
+    setMcqMultiIsCorrect(null);
   }, [currentIndex]);
   const [loading, setLoading] = useState(true);
   // Post-forward animation gate — true briefly between a grade submit and the
@@ -384,7 +395,10 @@ export default function StudyMode({
   // MCQ answer) still submit-and-advance together in one tap.
   // p_is_correct is null for the free-recall flashcard path (no deterministic
   // verdict), and true/false once a graded question_type supplies one.
-  const submitReview = async (quality, isCorrect = null) => {
+  // selectedAnswer (Sprint 8.6c) is attempt evidence — only mcq_multi ever
+  // passes a non-null value here; every other question_type leaves it null,
+  // and apply_review stores whatever it's given in review_events.selected_answer.
+  const submitReview = async (quality, isCorrect = null, selectedAnswer = null) => {
     const currentCard = flashcards[currentIndex];
 
     setSessionStats(prev => ({
@@ -407,6 +421,7 @@ export default function StudyMode({
         p_rating: quality, // 'easy' | 'medium' | 'hard'
         p_is_correct: isCorrect,
         p_source: previewModeParam ? null : (currentCard.rung === undefined ? 'new_card' : 'review_session'),
+        p_selected_answer: selectedAnswer,
       });
       if (error) throw error;
 
@@ -457,8 +472,8 @@ export default function StudyMode({
 
   // Flashcard path (unchanged) + MCQ-correct path: the grade tap is both the
   // apply_review call and the forward-advance trigger.
-  const handleRating = async (quality, isCorrect = null) => {
-    await submitReview(quality, isCorrect);
+  const handleRating = async (quality, isCorrect = null, selectedAnswer = null) => {
+    await submitReview(quality, isCorrect, selectedAnswer);
     advanceCard();
   };
 
@@ -497,6 +512,38 @@ export default function StudyMode({
     setMatchIsCorrect(allCorrect);
     if (!allCorrect) {
       submitReview('hard', false);
+    }
+  };
+
+  // mcq_multi (Sprint 8.6c): checkbox taps build up a selection, toggling in
+  // and out — no verdict until the student taps Submit. Mirrors
+  // handleMatchSubmit's build-up-then-submit shape, not handleMcqSelect's
+  // single-tap-immediate-verdict one.
+  const toggleMcqMultiOption = (optIndex) => {
+    if (mcqMultiRevealed) return;
+    setMcqMultiSelected((prev) =>
+      prev.includes(optIndex)
+        ? prev.filter((i) => i !== optIndex)
+        : [...prev, optIndex].sort((a, b) => a - b)
+    );
+  };
+
+  // Exact-set correctness, all-or-none (no partial credit) — the selected set
+  // must match the stored correct set exactly, compared as parsed sets (never
+  // as raw strings), same reasoning as match_the_following's all-or-nothing
+  // verdict. The student's raw selection is passed through as attempt
+  // evidence regardless of verdict (review_events.selected_answer).
+  const handleMcqMultiSubmit = () => {
+    const currentCard = flashcards[currentIndex];
+    const correctSet = new Set(parseMultiAnswer(currentCard.correct_answer));
+    const selectedSet = new Set(mcqMultiSelected);
+    const isCorrect =
+      correctSet.size === selectedSet.size &&
+      [...correctSet].every((i) => selectedSet.has(i));
+    setMcqMultiRevealed(true);
+    setMcqMultiIsCorrect(isCorrect);
+    if (!isCorrect) {
+      submitReview('hard', false, mcqMultiSelected);
     }
   };
 
@@ -1064,7 +1111,7 @@ export default function StudyMode({
                 transitioning ? 'rv-forward-out' : 'rv-forward-in',
               )}
             >
-              <VerifiedEdge on={(showAnswer || mcqSelectedIndex !== null || matchRevealed || fitbSubmitted) && !!currentCard.is_verified} />
+              <VerifiedEdge on={(showAnswer || mcqSelectedIndex !== null || matchRevealed || fitbSubmitted || mcqMultiRevealed) && !!currentCard.is_verified} />
               <div className="flex-1 min-w-0 p-5 sm:p-8 md:p-12 flex flex-col justify-center items-center">
               {currentCard.question_type === 'fitb' ? (
                 <div className="w-full">
@@ -1239,6 +1286,106 @@ export default function StudyMode({
                       <GradeButtonRow
                         grades={gradeButtons}
                         onGrade={(g) => handleRating(g.rating, true)}
+                        prompt="How well did you know it?"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : currentCard.question_type === 'mcq_multi' ? (
+                <div className="w-full">
+                  <div className="mb-6 flex items-center justify-center gap-2">
+                    <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
+                      QUESTION
+                    </span>
+                    {currentCard.front_text && (
+                      <SpeakButton
+                        onClick={handleSpeakFront}
+                        isSpeaking={isSpeaking}
+                        isSupported={isSupported}
+                      />
+                    )}
+                  </div>
+
+                  <p className="text-xl md:text-2xl font-semibold text-rv-ink-900 mb-2 whitespace-pre-wrap text-center">
+                    {currentCard.front_text}
+                  </p>
+                  <p className="text-center text-xs text-rv-ink-400 mb-6">Select all that apply</p>
+
+                  <div className="flex flex-col gap-2.5 mb-2">
+                    {(currentCard.options || []).map((optionText, optIndex) => {
+                      const correctSet = new Set(parseMultiAnswer(currentCard.correct_answer));
+                      let state = 'idle';
+                      if (mcqMultiRevealed) {
+                        if (correctSet.has(optIndex)) state = 'correct';
+                        else if (mcqMultiSelected.includes(optIndex)) state = 'missed';
+                        else state = 'dim';
+                      } else if (mcqMultiSelected.includes(optIndex)) {
+                        state = 'selected';
+                      }
+                      return (
+                        <AnswerOption
+                          key={optIndex}
+                          text={optionText}
+                          index={optIndex}
+                          state={state}
+                          disabled={mcqMultiRevealed}
+                          onClick={() => toggleMcqMultiOption(optIndex)}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {mcqMultiRevealed && Array.isArray(currentCard.explanation) && currentCard.explanation.length > 0 && (
+                    <div className="mt-3.5 rounded-rec bg-rv-bg-2 border-l-[3px] border-rv-navy px-4 py-3.5 text-left">
+                      <p className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400 mb-1.5">WHY</p>
+                      {currentCard.explanation.map((point, i) => (
+                        <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900">
+                          {point}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {!mcqMultiRevealed ? (
+                    <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+                      <Button
+                        onClick={handleMcqMultiSubmit}
+                        disabled={mcqMultiSelected.length === 0}
+                        size="lg"
+                        className="gap-2 px-6 sm:px-8 min-h-[48px]"
+                      >
+                        Submit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleSkip}
+                        className="gap-2"
+                      >
+                        <SkipForward className="h-4 w-4" />
+                        Skip 24hr
+                      </Button>
+                      {currentCard.user_id !== user?.id && (
+                        <FlagButton contentType="flashcard" contentId={currentCard.id} />
+                      )}
+                    </div>
+                  ) : mcqMultiIsCorrect === false ? (
+                    <div className="mt-6 border-t border-rv-border pt-6 text-center">
+                      <Button
+                        onClick={advanceCard}
+                        size="lg"
+                        className="gap-2 px-6 sm:px-8 min-h-[48px]"
+                      >
+                        Continue
+                      </Button>
+                      <p className="text-sm text-rv-ink-400 mt-3">
+                        Marked as Hard — you'll see this again soon
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mt-6 border-t border-rv-border pt-6">
+                      <GradeButtonRow
+                        grades={gradeButtons}
+                        onGrade={(g) => handleRating(g.rating, true, mcqMultiSelected)}
                         prompt="How well did you know it?"
                       />
                     </div>
@@ -1609,6 +1756,12 @@ export default function StudyMode({
                   ? (!matchRevealed
                       ? "Match every item, then check your answers"
                       : matchIsCorrect === false
+                        ? "Tap Continue to move on"
+                        : "Rate how well you knew it to continue")
+                  : currentCard.question_type === 'mcq_multi'
+                  ? (!mcqMultiRevealed
+                      ? "Select all that apply, then submit"
+                      : mcqMultiIsCorrect === false
                         ? "Tap Continue to move on"
                         : "Rate how well you knew it to continue")
                   : GRADED_QUESTION_TYPES.includes(currentCard.question_type)

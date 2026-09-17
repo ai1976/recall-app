@@ -19,6 +19,7 @@ export const formatQuestionType = (qt) => {
     match_the_following: 'Match the following',
     fitb: 'Fill in the blanks',
     concept_card: 'Concept Card',
+    mcq_multi: 'Multi-select MCQ',
   };
   return map[qt] || qt.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 };
@@ -34,7 +35,7 @@ export const formatQuestionType = (qt) => {
 // GRADED_QUESTION_TYPES below (D-06: no grade, no rung, no reviews row, ever).
 export const BROWSABLE_QUESTION_TYPES = [
   'flashcard', 'mcq', 'correct_incorrect', 'theory',
-  'match_the_following', 'case_study_mcq', 'fitb', 'concept_card',
+  'match_the_following', 'case_study_mcq', 'fitb', 'concept_card', 'mcq_multi',
 ];
 
 // theory's required 2-option classification field (Sprint 7.9) — mirrors the CA
@@ -58,7 +59,11 @@ export const THEORY_SUBTYPE_LABELS = {
 // confidence-gated three-way (match/no-match/self-grade, D-13), not the clean
 // binary this shared list assumes, so it deliberately stays out of this array.
 // integrated_case (D-12) and true_false (D-14) were also on this list — both
-// removed entirely, no longer live question_type values.
+// removed entirely, no longer live question_type values. mcq_multi (Sprint
+// 8.6c) is NOT added here either — same reasoning as match_the_following: it
+// builds up a selection across multiple taps with no verdict until an
+// explicit Submit (mirrors handleMatchSubmit, not handleMcqSelect), so it
+// renders through its own StudyMode branch, not this shared single-tap list.
 export const GRADED_QUESTION_TYPES = ['mcq', 'correct_incorrect', 'case_study_mcq'];
 
 // correct_incorrect auto-populates `options` from this pair — never professor-typed,

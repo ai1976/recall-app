@@ -232,7 +232,7 @@
 | created_at | timestamp | NO | NOW() | Creation timestamp |
 | custom_subject | text | YES | NULL | Free-text subject for custom/personal courses. Mutually exclusive with subject_id — exactly one should be set. |
 | custom_topic | text | YES | NULL | Free-text topic for custom/personal courses. Mutually exclusive with topic_id. |
-| question_type | text | NO | 'flashcard' | Type of study item. **Live values (Sprint 7.9, 14/09/2026):** 'flashcard', 'mcq', 'correct_incorrect', 'theory', 'case_study_mcq', 'match_the_following', 'fitb', 'concept_card' (8 values) — Sprint 7.9 dropped `test_your_understanding` (collapsed into `theory`+`subtype`, D-10 correction), `integrated_case` (never had an authoring path, D-12), and `true_false` (merged into `correct_incorrect`, D-14) from `chk_flashcards_question_type` (`docs/database/sprint7.9/{01_SCHEMA_sprint7.9_hygiene,04_SCHEMA_true_false_removal}.sql`). None is insertable any more. 'fill_in_the_blanks' is not and never was a live value (live value is 'fitb'). |
+| question_type | text | NO | 'flashcard' | Type of study item. **Live values (Sprint 8.6c, 17/09/2026, ✅ deployed & verified live):** 'flashcard', 'mcq', 'correct_incorrect', 'theory', 'case_study_mcq', 'match_the_following', 'fitb', 'concept_card', 'mcq_multi' (9 values) — Sprint 7.9 dropped `test_your_understanding` (collapsed into `theory`+`subtype`, D-10 correction), `integrated_case` (never had an authoring path, D-12), and `true_false` (merged into `correct_incorrect`, D-14) from `chk_flashcards_question_type`; Sprint 8.6c added `mcq_multi` (see its own Representation section below, and D-20, blueprint.md §3.1). 'fill_in_the_blanks' is not and never was a live value (live value is 'fitb'). |
 | options | jsonb | YES | NULL | Answer options for MCQ and similar types. |
 | correct_answer | text | YES | NULL | Correct answer identifier for question types that need it. |
 | hints | jsonb | YES | NULL | Optional hints array. |
@@ -259,6 +259,17 @@
 - `explanation` = jsonb array, one entry per non-blank line of the "Why" textarea; shown post-reveal (**was `points_to_remember` until Sprint 7.9's column split** — see `question_type`/`explanation` rows above).
 - `hints`/`scenario`/`subtype` stay NULL for this type.
 - Authorship gated server-side by two new RESTRICTIVE RLS policies — see "RLS Policies" section below and blueprint.md D-10 (§3.1). **Deployed and verified live 13/09/2026** (`docs/database/sprint7.5/`, `02_TEST` — 5/5 PASS against real profiles).
+
+**mcq_multi Representation (Sprint 8.6c, 17/09/2026, D-20 — ✅ SQL deployed & verified live):**
+- `question_type='mcq_multi'` reuses `options`/`correct_answer`, no schema change to `flashcards` — same idiom as every other verdict-bearing type.
+- `options` = jsonb array of option strings, 2-6, same shape as `mcq`.
+- `correct_answer` = text, a **canonicalized SET of 0-based indices**, not a single index — unique, sorted ascending, joined with a single semicolon and no spaces (`"0;2;4"`, never `"4;0;2"` or `"0; 2; 4"`). Both `FlashcardCreate.jsx` (manual authoring) and `BulkUploadFlashcards.jsx` (CSV import) call the same `src/lib/mcq.js` helpers (`compactMcqMultiOptions`/`canonicalizeMultiAnswer`) so the two entry paths cannot drift. Parsed back into a set (`parseMultiAnswer`) and compared as a set at grading time in `StudyMode.jsx` — never string-compared.
+- `back_text` (NOT NULL) is never typed directly — auto-derived as every correct option's text joined with `" • "` (`deriveMcqMultiBackText`).
+- Grading is exact-set, all-or-none — no partial credit. Renders through its own StudyMode.jsx branch (build-up-then-submit via checkboxes, mirrors `match_the_following`'s `handleMatchSubmit` shape), **not** added to `GRADED_QUESTION_TYPES` (that array is specifically the shared single-tap `AnswerOption` list `mcq`/`correct_incorrect`/`case_study_mcq` use).
+- `explanation` = jsonb array, same convention as `mcq`. `hints`/`scenario`/`subtype` stay NULL.
+- Authorship gated by the same D-10 RESTRICTIVE RLS pair as every other verdict-bearing type, extended to include `mcq_multi` (`docs/database/sprint8.6c/01_SCHEMA_add_mcq_multi_type.sql`, not yet deployed).
+- **Attempt evidence:** `review_events.selected_answer` (new nullable jsonb column, see 2.4A below) is populated only for this type, via a new `apply_review` trailing parameter `p_selected_answer` — every other question type passes `NULL` (unchanged call sites).
+- **Deployment correction:** the first deploy attempt of `apply_review`'s new signature left two live overloads (5-arg + 6-arg) instead of replacing in place — `CREATE OR REPLACE FUNCTION` only replaces an exact parameter-signature match, so adding a parameter is always a distinct overload to Postgres, same lesson as `get_browsable_decks` v5 (§1.11). Fixed with an explicit `DROP FUNCTION public.apply_review(uuid,uuid,text,boolean,text);` (`docs/database/sprint8.6c/02b_HOTFIX_drop_ambiguous_apply_review_overload.sql`) before re-verifying. Confirmed post-fix: exactly one `apply_review` function exists.
 
 **correct_incorrect Representation (Sprint 7.7, 13/09/2026; `true_false` merged into it Sprint 7.9 D-14) — identical rendering to mcq, only the option-label pair differs:**
 - Uses the exact same columns as `mcq` above — `options`, `correct_answer`, `back_text` derivation, `explanation` — no schema change, no new StudyMode.jsx rendering branch (the existing mcq `AnswerOption`-list render is shared by both types via `GRADED_QUESTION_TYPES` in `src/lib/questionTypes.js`).
@@ -401,7 +412,7 @@
 
 **Purpose:** Append-only per-review history — one row per grade, ever. `reviews` (2.4) stays the current-state SSOT (unchanged shape/semantics); this table exists because `reviews` is updated in place, so it cannot answer "how many times was this graded, and with what verdict, over time." Written atomically with the `reviews` write, inside `apply_review` (same transaction — a failure in either write rolls back both).
 **Created:** 13/09/2026 (Sprint 7.4)
-**Columns:** 14
+**Columns:** 15 (`selected_answer` added Sprint 8.6c, 17/09/2026, ✅ deployed & verified live)
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -420,6 +431,7 @@
 | next_review_date | date | NO | - | |
 | source | text | YES | NULL | `NULL` \| `'review_session'` \| `'new_card'` \| `'exam_final_pass'` |
 | study_session_id | uuid | YES | NULL | Reserved — stays NULL. Session-logging rework is a later sprint, not Sprint 7.4. |
+| selected_answer | jsonb | YES | NULL | **New, Sprint 8.6c (17/09/2026, ✅ deployed & verified live).** Student's actual selected answer set, as attempt evidence alongside `is_correct`. Populated only by `mcq_multi` for now — every other question_type leaves this NULL, no backfill. Written via `apply_review`'s new `p_selected_answer` parameter. |
 
 **Access:** RLS enabled, **zero policies, zero grants** (`REVOKE ALL FROM PUBLIC, anon, authenticated`). Every read/write goes through a SECURITY DEFINER RPC — `apply_review` writes it, analytics RPCs (`get_question_type_performance`, `get_educator_accuracy_by_qtype`) read it. No client `.from('review_events')` call should ever exist.
 **Measured cost (13/09/2026, live, real rows):** ~142 bytes/row (`pg_column_size`). Current total DB size 53MB against the Supabase Free-plan 500MB limit — no near-term storage concern at current or projected volume; re-measure after real (non-test) usage accumulates. See blueprint.md D-11 for the full projection.
@@ -1315,12 +1327,14 @@ Architectural de-risk gate for the question-type epic — see `review_events` (2
 ```sql
 apply_review(
   p_user_id uuid, p_flashcard_id uuid, p_rating text,
-  p_is_correct boolean DEFAULT NULL, p_source text DEFAULT NULL
+  p_is_correct boolean DEFAULT NULL, p_source text DEFAULT NULL,
+  p_selected_answer jsonb DEFAULT NULL  -- Sprint 8.6c, ✅ deployed & verified live 17/09/2026
 )
 RETURNS TABLE (new_rung smallint, next_review_date date, new_status text, interval_days integer)
 ```
 - **The write SSOT for review scheduling**, superseding `submit_review`. `LANGUAGE plpgsql`, `SECURITY DEFINER`, `SET search_path TO public, extensions` (unquoted), same L5 IDOR idiom as `submit_review` (`auth.uid() IS NULL` → RAISE; `p_user_id IS DISTINCT FROM auth.uid() AND NOT is_admin()` → RAISE). `GRANT EXECUTE TO authenticated` only.
 - Body is `submit_review`'s live body **verbatim** (confirmed byte-identical via introspection before extending — same rules fetch, same today-in-tz calc, same quality/easiness mapping, same new-card-vs-existing-card transition branches), plus: captures `f.topic_id` alongside `f.question_type`; computes `v_rung_before` right after the existing defensive rung clamp (`NULL` for a brand-new card, else the clamped pre-transition rung); and, in the **same transaction** as the `reviews` INSERT/UPDATE, inserts one `review_events` row using the same final `v_new_rung`/`v_new_status`/`v_next` variables the transition logic already computed (not duplicated per branch).
+- **Sprint 8.6c (17/09/2026, ✅ deployed & verified live):** added exactly one new trailing parameter, `p_selected_answer jsonb DEFAULT NULL`, via `CREATE OR REPLACE` against the exact live 5-parameter signature (confirmed unchanged since Sprint 7.4 by `docs/database/sprint8.6c/00_DIAGNOSTIC_preflight.sql`). **Real deployment gotcha, not just a documented risk:** the plain `CREATE OR REPLACE` did NOT replace the old 5-arg overload in place — it left both live simultaneously (`ERROR 42725: function public.apply_review(...) is not unique`, hit for real when `03_TEST` called the old shape) — same overloaded-RPC/PostgREST-ambiguity class as `get_browsable_decks` v5 (§1.11). Fixed with an explicit `DROP FUNCTION public.apply_review(uuid,uuid,text,boolean,text);` (`02b_HOTFIX_drop_ambiguous_apply_review_overload.sql`), confirmed post-fix via `03_TEST`: exactly one `apply_review` function exists. Threaded straight into the `review_events` INSERT as `selected_answer`. Every pre-existing caller (all 7 other question types' `StudyMode.jsx` calls, `submit_review`'s compat wrapper) is a 5-arg call and is unaffected — the new parameter simply defaults to `NULL`, live-verified.
 - Atomic by construction (one function body, one transaction) — proven with a real forced-failure trigger test in `04_TEST`, not just asserted: a `pg_temp` BEFORE INSERT trigger on `review_events` raises mid-call, and the `reviews` write from the same call is confirmed rolled back too (PL/pgSQL's implicit EXCEPTION-block savepoint).
 - `p_is_correct` stays NULL until Sprint 7.5's graded question types exist. `p_source`: `'new_card'` | `'review_session'` | `NULL` (preview mode).
 
@@ -1543,6 +1557,7 @@ RETURNS TABLE (
 - **Why Needed:** D-10 (blueprint.md §3.1) — a bad `correct_answer` under the Phase 7 hybrid grading model doesn't just mislabel a review, it actively corrects a competent student's SRS state backward; a review queue for student-authored graded content doesn't scale against ~3 educators for 150+ students.
 - **New helper function:** `is_professor_or_admin()` — `SECURITY DEFINER`, mirrors `is_admin()`'s pattern, `GRANT EXECUTE TO authenticated` only.
 - **SQL:** `docs/database/sprint7.5/01_SCHEMA_d10_role_gate.sql`. Test: `docs/database/sprint7.5/02_TEST_verify_d10_role_gate.sql` (impersonates a real student + professor via `SET LOCAL ROLE authenticated` + `request.jwt.claims`, asserts student mcq insert rejected / student flashcard insert unaffected / professor mcq insert succeeds).
+- **Sprint 8.6c (17/09/2026, D-20, ✅ deployed & verified live):** `mcq_multi` added to both IN-lists — `question_type NOT IN ('mcq','mcq_multi','correct_incorrect','case_study_mcq','match_the_following','fitb') OR is_professor_or_admin()` (`docs/database/sprint8.6c/01_SCHEMA_add_mcq_multi_type.sql`). Same `ALTER POLICY` mechanism as every prior IN-list change. Live-verified via `03_TEST_verify_sprint8.6c.sql` (real `SET LOCAL ROLE authenticated` impersonation, not just `request.jwt.claims` — see the `apply_review` correction note above for why that distinction matters): professor insert succeeds, student insert genuinely RLS-rejected.
 
 ---
 

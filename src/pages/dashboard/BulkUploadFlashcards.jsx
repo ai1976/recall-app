@@ -11,7 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, CheckCircle, XCircle, Download, ChevronDown, ChevronUp, FileText, ArrowRight, Info } from 'lucide-react';
-import { compactMcqOptions, deriveMcqBackText, toPointsToRemember, validateMcqOptions } from '@/lib/mcq';
+import {
+  compactMcqOptions, deriveMcqBackText, toPointsToRemember, validateMcqOptions,
+  compactMcqMultiOptions, deriveMcqMultiBackText, validateMcqMultiOptions, canonicalizeMultiAnswer,
+} from '@/lib/mcq';
 import { compactFitbOptions, deriveFitbBackText, validateFitbBlank, validateFitbOptions } from '@/lib/fitb';
 import { MATCH_MAX_PAIRS, buildMatchOptions, deriveMatchBackText, validateMatchPairs } from '@/lib/matchTheFollowing';
 import { CONCEPT_MAX_TERMS, buildConceptOptions, validateConceptTerms } from '@/lib/conceptCard';
@@ -34,14 +37,21 @@ const MCQ_CSV_OPTION_COLUMNS = 4;
 // 7.8-C/7.12-C specifically to avoid an in-cell delimiter, since real content (definitions,
 // ratios like "3:1", amounts like "₹2,50,000") routinely contains commas/colons that would
 // silently mis-split a flat cell; one-row-per-pair avoids that problem entirely.
-const RECOGNIZED_QUESTION_TYPES = ['mcq', 'correct_incorrect', 'theory', 'case_study_mcq', 'fitb', 'match_the_following', 'concept_card'];
+// mcq_multi (Sprint 8.6c) added — a flat CSV row shape fits it fine, same as mcq: each
+// card is still one row, just with a delimited correct_option cell ("1;3") instead of
+// a single number, normalized into the same canonical stored form (compactMcqMultiOptions
+// + canonicalizeMultiAnswer) manual authoring produces.
+const RECOGNIZED_QUESTION_TYPES = ['mcq', 'mcq_multi', 'correct_incorrect', 'theory', 'case_study_mcq', 'fitb', 'match_the_following', 'concept_card'];
 const THEORY_SUBTYPES = Object.keys(THEORY_SUBTYPE_LABELS);
 // GRADED_QUESTION_TYPES (mcq/correct_incorrect/case_study_mcq) all store a scalar
 // correct_answer index; fitb also writes options/explanation the same way but has
 // no scalar verdict (D-13 — the verdict is computed at grading time by normalizing
 // against every options entry), so it needs its own flag rather than joining that array.
 // match_the_following also has no scalar correct_answer (verdict lives in options.correct).
-const isCsvGradedType = (qt) => GRADED_QUESTION_TYPES.includes(qt) || qt === 'fitb';
+// mcq_multi also needs its own flag — its correct_answer is a canonicalized SET string
+// ("0;2;4"), not GRADED_QUESTION_TYPES' single stringified index (see the insert-row
+// assembly below, which special-cases it rather than reusing String(card.gradedCorrectIndex)).
+const isCsvGradedType = (qt) => GRADED_QUESTION_TYPES.includes(qt) || qt === 'fitb' || qt === 'mcq_multi';
 // Which types get their `options` column populated from card.gradedOptions at insert time.
 const hasCsvOptions = (qt) => isCsvGradedType(qt) || qt === 'match_the_following' || qt === 'concept_card';
 // Which types get their `explanation` column populated — concept_card is deliberately
@@ -196,6 +206,7 @@ CA Intermediate,Taxation,Income Tax Basics,What is the difference between a dire
 CA Intermediate,Advanced Accounting,AS 1,What is AS 1?,Disclosure of Accounting Policies,"#AS,#important",medium,,,,,,,,,,,,,,,,,
 CA Foundation,Quantitative Aptitude,Percentages,What is 20% of 500?,100,,medium,,,,,,,,,,,,,,,,,
 CA Intermediate,Taxation,Income Tax Basics,Which of these is a deduction under Section 80C?,,"#ITR",medium,mcq,Life insurance premium,House rent paid,Medical insurance premium,Interest on savings account,1,Life insurance premium qualifies under 80C; the others fall under different sections.,,,,,,,,,,
+CA Intermediate,Taxation,Income Tax Basics,Which of these are deductions under Section 80C? (select all that apply),,"#ITR",medium,mcq_multi,Life insurance premium,House rent paid,PPF contribution,Interest on savings account,1;3,Life insurance premium and PPF both qualify under 80C; the other two fall under different sections.,,,,,,,,,,
 CA Intermediate,Taxation,Income Tax Basics,Interest on savings account is fully exempt from tax regardless of amount.,,"#ITR",medium,correct_incorrect,,,,,2,Section 80TTA/80TTB provides only a limited exemption on savings account interest -- not a full exemption. Check the current threshold rather than assuming it's unlimited.,,,,,,,,,,
 CA Intermediate,Advanced Accounting,AS 1,AS 1 deals with the disclosure of accounting policies.,,"#AS",easy,correct_incorrect,,,,,1,,,,,,,,,,,
 CA Intermediate,Taxation,Income Tax Basics,Explain the difference between exemption and deduction under the Income Tax Act.,An exemption removes income from the tax base entirely; a deduction reduces taxable income after it's included.,"#ITR",medium,theory,,,,,,,pure_theory,,,,,,,,,
@@ -228,10 +239,10 @@ COLUMNS:
 - back (REQUIRED for flashcard/theory/concept_card; leave blank for mcq/correct_incorrect/case_study_mcq/fitb/match_the_following — derived automatically). For concept_card, repeat the EXACT SAME summary text on every row of the same concept_group.
 - tags (optional) - Comma-separated, e.g. "#ITR,#basics"
 - difficulty (optional) - easy / medium / hard (defaults to medium)
-- question_type (optional) - blank/"flashcard" for a plain card, "mcq" for multiple choice, "correct_incorrect", "theory", "case_study_mcq", "fitb" (fill in the blank), "match_the_following", or "concept_card"
-- option_1..option_4 (required for question_type=mcq/case_study_mcq only) - the answer choices (2-4 filled in). Leave blank for correct_incorrect — its two options ("Correct"/"Incorrect") are filled in automatically, you only pick which one is correct.
-- correct_option (required for mcq/correct_incorrect/case_study_mcq) - which option number is correct: 1-4 for mcq/case_study_mcq, 1-2 for correct_incorrect ("Correct"=1, "Incorrect"=2). Not used for fitb/match_the_following/concept_card.
-- explanation (optional, mcq/correct_incorrect/case_study_mcq/fitb/match_the_following only) - shown to the student after they answer. For match_the_following, only needs to be filled on one row of the group (any row left blank is ignored).
+- question_type (optional) - blank/"flashcard" for a plain card, "mcq" for multiple choice, "mcq_multi" for multi-select multiple choice, "correct_incorrect", "theory", "case_study_mcq", "fitb" (fill in the blank), "match_the_following", or "concept_card"
+- option_1..option_4 (required for question_type=mcq/mcq_multi/case_study_mcq only) - the answer choices (2-4 filled in). Leave blank for correct_incorrect — its two options ("Correct"/"Incorrect") are filled in automatically, you only pick which one is correct.
+- correct_option (required for mcq/mcq_multi/correct_incorrect/case_study_mcq) - which option number is correct: 1-4 for mcq/case_study_mcq, 1-2 for correct_incorrect ("Correct"=1, "Incorrect"=2). For mcq_multi, list every correct option number separated by semicolons, e.g. "1;3" — at least one required, order doesn't matter. Not used for fitb/match_the_following/concept_card.
+- explanation (optional, mcq/mcq_multi/correct_incorrect/case_study_mcq/fitb/match_the_following only) - shown to the student after they answer. For match_the_following, only needs to be filled on one row of the group (any row left blank is ignored).
 - subtype (required for question_type=theory only) - "pure_theory" or "descriptive_case_study"
 - scenario (required for question_type=case_study_mcq only) - the shared case narrative. Repeat the EXACT SAME text on every row belonging to the same case.
 - case_group (required for question_type=case_study_mcq only) - any label you choose (e.g. "xyz-inventory-case") linking this row to its case's other questions. Must be unique per case within this file, identical across every row in that case. Each row still becomes its own card, sharing a batch with the rest of the case.
@@ -247,7 +258,7 @@ IMPORTANT:
 ✓ Cannot create new courses/subjects/topics via bulk upload
 ✓ To add a new subject/topic, create one item via "Create Study Item" first
 ✓ Visibility is set on the upload page (private / friends / public)
-✓ question_type=mcq/correct_incorrect/case_study_mcq/fitb/match_the_following rows require a professor/admin account — student-authored rows of these types are rejected at upload. concept_card has no such restriction — anyone can bulk-upload it.
+✓ question_type=mcq/mcq_multi/correct_incorrect/case_study_mcq/fitb/match_the_following rows require a professor/admin account — student-authored rows of these types are rejected at upload. concept_card has no such restriction — anyone can bulk-upload it.
 `;
 
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
@@ -488,6 +499,38 @@ IMPORTANT:
                 flashcard.gradedOptions = mcqOptions;
                 flashcard.gradedCorrectIndex = mcqCorrectIndex;
                 flashcard.back = deriveMcqBackText(mcqOptions, mcqCorrectIndex);
+                flashcard.explanation = toPointsToRemember(flashcard.explanation);
+              } else if (flashcard.question_type === 'mcq_multi') {
+                if (!flashcard.target_course || !flashcard.subject || !flashcard.front) {
+                  parseErrors.push(`Row ${i + 1}: Missing required fields (target_course, subject, front)`);
+                  continue;
+                }
+                const rawMultiOptions = [];
+                for (let n = 1; n <= MCQ_CSV_OPTION_COLUMNS; n++) {
+                  rawMultiOptions.push(flashcard[`option_${n}`] || '');
+                }
+                // correct_option is semicolon-delimited here ("1;3"), 1-based like mcq's
+                // single number — converted to 0-based before compacting, same convention.
+                const rawCorrectCols = (flashcard.correct_option || '').toString().split(';')
+                  .map(s => parseInt(s.trim(), 10))
+                  .filter(n => !Number.isNaN(n))
+                  .map(n => n - 1);
+                if (rawCorrectCols.some(n => n < 0 || n >= rawMultiOptions.length)) {
+                  parseErrors.push(`Row ${i + 1}: correct_option contains an index outside the option range (1-${rawMultiOptions.length})`);
+                  continue;
+                }
+                const { options: multiOptions, correctIndices: multiCorrectIndices } = compactMcqMultiOptions(
+                  rawMultiOptions,
+                  rawCorrectCols,
+                );
+                const multiError = validateMcqMultiOptions(multiOptions, multiCorrectIndices);
+                if (multiError) {
+                  parseErrors.push(`Row ${i + 1}: ${multiError}`);
+                  continue;
+                }
+                flashcard.gradedOptions = multiOptions;
+                flashcard.gradedCorrectAnswer = canonicalizeMultiAnswer(multiCorrectIndices);
+                flashcard.back = deriveMcqMultiBackText(multiOptions, multiCorrectIndices);
                 flashcard.explanation = toPointsToRemember(flashcard.explanation);
               } else if (flashcard.question_type === 'correct_incorrect') {
                 if (!flashcard.target_course || !flashcard.subject || !flashcard.front) {
@@ -890,8 +933,11 @@ IMPORTANT:
           options: hasCsvOptions(card.question_type) ? card.gradedOptions : null,
           // fitb and match_the_following stay NULL here (D-13/D-10 rep. note — no single
           // scalar "the answer"), unlike mcq/correct_incorrect/case_study_mcq's stringified
-          // index.
-          correct_answer: GRADED_QUESTION_TYPES.includes(card.question_type) ? String(card.gradedCorrectIndex) : null,
+          // index. mcq_multi stores the already-canonicalized SET string ("0;2;4") computed
+          // above, not a single stringified index.
+          correct_answer: card.question_type === 'mcq_multi'
+            ? card.gradedCorrectAnswer
+            : (GRADED_QUESTION_TYPES.includes(card.question_type) ? String(card.gradedCorrectIndex) : null),
           points_to_remember: null,
           explanation: hasCsvExplanation(card.question_type) ? (card.explanation || null) : null,
           subtype: card.question_type === 'theory' ? card.subtype : null,
@@ -960,7 +1006,7 @@ IMPORTANT:
       console.error('Upload error:', error);
       if (error.code === '42501') {
         setErrors([
-          'Upload failed: one or more rows use a question_type (mcq, correct_incorrect, case_study_mcq, fitb, match_the_following) that requires a professor/admin account.',
+          'Upload failed: one or more rows use a question_type (mcq, mcq_multi, correct_incorrect, case_study_mcq, fitb, match_the_following) that requires a professor/admin account.',
           'No rows were created (the whole file is uploaded as one batch) — remove those rows or upload from a professor/admin account.',
         ]);
       } else {

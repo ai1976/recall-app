@@ -1,6 +1,37 @@
 # Changelog
 
 ---
+## [2026-09-17] feat(sprint-8.6c): multi-select MCQ (mcq_multi) — full build, SQL deployed & verified live
+
+A new, distinct `question_type`, `mcq_multi` — build-up-then-explicit-submit (checkboxes, mirrors `handleMatchSubmit`), not a flag on single-select `mcq`. Exact-set grading, all-or-none. Part of the professor authoring-toolkit-completeness work (D-20, blueprint.md §3.1) — not direct professor demand, but equipping professors with a broadly capable toolkit ahead of serious content onboarding.
+
+### Deployment corrections (two real bugs found live, both fixed and re-verified — not assumed away)
+- `apply_review`'s `CREATE OR REPLACE` with an added parameter left two live overloads instead of replacing in place (`42725 not unique` error) — same class as the `get_browsable_decks` v5 gotcha (blueprint.md §1.11). Fixed with an explicit `DROP FUNCTION` of the old 5-arg signature (`02b_HOTFIX_drop_ambiguous_apply_review_overload.sql`).
+- The verification test's RLS impersonation only set `request.jwt.claims`, not the actual Postgres `ROLE` — the Supabase SQL Editor connects as a role that bypasses RLS entirely, producing a false FAIL on the student-rejection check. Fixed by adding `SET LOCAL ROLE authenticated;`, the idiom `sprint7.5/02_TEST` already used. Final result: all 7 checks PASS.
+
+### Added
+- **`mcq_multi` question type** — 2-6 options, checkboxes, at least 1 correct required (not "at least 1 incorrect" — a pedagogical preference, not enforced). Marking every option correct shows a non-blocking inline confirmation rather than rejecting.
+- **`src/lib/mcq.js`** — `canonicalizeMultiAnswer`/`parseMultiAnswer`/`compactMcqMultiOptions`/`validateMcqMultiOptions`/`deriveMcqMultiBackText`, shared by manual authoring and CSV import so both paths produce byte-identical canonical storage (`correct_answer = "0;2;4"`, sorted ascending, semicolon-joined, no spaces).
+- **`review_events.selected_answer`** (nullable jsonb, SQL drafted) — attempt evidence, populated only by `mcq_multi` for now. `apply_review` gains a new trailing `p_selected_answer jsonb DEFAULT NULL` parameter.
+- CSV support in `BulkUploadFlashcards.jsx` — semicolon-delimited `correct_option` cell (e.g. `"1;3"`), same 1-based-CSV-to-0-based-DB convention as `mcq`.
+- `helpContent.js` — new "Multi-select MCQ" entries across all 5 relevant Help sections, matching the existing 8 types' documentation format.
+
+### Gated (D-10, unchanged mechanism)
+- `mcq_multi` added to both D-10 RESTRICTIVE RLS policies (`flashcards_gate_verdict_types_insert`/`_update`) and `chk_flashcards_question_type` (9th live value) — professor/admin/super_admin only, same `is_professor_or_admin()` check every other verdict-bearing type uses.
+
+### SQL — ✅ deployed & verified live (`docs/database/sprint8.6c/`)
+- `00_DIAGNOSTIC_preflight.sql`, `01_SCHEMA_add_mcq_multi_type.sql`, `02_FUNCTIONS_apply_review_selected_answer.sql`, `02b_HOTFIX_drop_ambiguous_apply_review_overload.sql`, `03_TEST_verify_sprint8.6c.sql` — all 7 test checks PASS.
+
+### Live browser verification (17/09/2026, dev server → live Supabase, real professor session)
+- Manual authoring: partial-correct card (wrong-answer path, auto-Hard) + all-options-correct card (non-blocking confirmation notice, correct-answer path with full self-grade). `back_text` correctly derived as every correct option joined with `•`, matching manual and CSV entry paths byte-for-byte.
+- Bonus: the professor dashboard's "Accuracy by question type" widget picked up "Multi-select MCQ" with zero code changes.
+- CSV: an out-of-range `correct_option` index correctly rejected the whole file with a row-specific error (0 rows created); a corrected file then uploaded successfully.
+- All 4 test artifacts cleaned up and reverified at 0 rows (`04_CLEANUP_remove_verification_test_cards.sql`).
+
+### Files Changed
+- `src/lib/mcq.js`, `src/lib/questionTypes.js`, `src/pages/dashboard/Content/FlashcardCreate.jsx`, `src/pages/dashboard/Study/StudyMode.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx`, `src/data/helpContent.js`, `docs/database/sprint8.6c/*.sql`, `docs/active/{blueprint,now}.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/tracking/changelog.md`.
+
+---
 ## [2026-09-17] feat(sprint-8.6b): grouped-row CSV import for match_the_following + concept_card
 
 `BulkUploadFlashcards.jsx` previously deferred bulk upload for these two question types entirely ("create individually instead") — both hold a variable-length list of *pairs* that doesn't fit the flat `option_1..4` CSV convention, and forcing an in-cell delimiter onto real content risked silently mis-splitting text that itself contains colons/commas. Instead, each pair now gets its own CSV row, grouped by an uploader-chosen label column — mirroring `case_study_mcq`'s `case_group` mechanic, but fusing every row in a group into ONE card rather than N separate ones.

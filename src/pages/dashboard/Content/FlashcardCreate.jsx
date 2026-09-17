@@ -23,6 +23,10 @@ import {
   deriveMcqBackText,
   toPointsToRemember,
   validateMcqOptions,
+  compactMcqMultiOptions,
+  deriveMcqMultiBackText,
+  validateMcqMultiOptions,
+  canonicalizeMultiAnswer,
 } from '@/lib/mcq';
 import {
   MATCH_MIN_PAIRS,
@@ -67,7 +71,7 @@ const emptyFitbOptions = () => [''];
 // changed since the draft was saved) — GRADED_QUESTION_TYPES alone would miss
 // match_the_following and fitb, since both render through their own StudyMode
 // branch, not the shared AnswerOption list.
-const isD10GatedType = (qt) => GRADED_QUESTION_TYPES.includes(qt) || qt === 'match_the_following' || qt === 'fitb';
+const isD10GatedType = (qt) => GRADED_QUESTION_TYPES.includes(qt) || qt === 'match_the_following' || qt === 'fitb' || qt === 'mcq_multi';
 
 const DRAFT_KEY = 'flashcard_create_draft';
 
@@ -114,7 +118,7 @@ export default function FlashcardCreate() {
   const [flashcards, setFlashcards] = useState([
     {
       front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null,
-      questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null,
+      questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null, correctOptionIndices: [],
       matchLeft: emptyMatchLeft(), matchRight: emptyMatchRight(), matchCorrect: emptyMatchCorrect(), why: '',
       subtype: null, caseScenario: '', caseQuestions: emptyCaseQuestions(), fitbOptions: emptyFitbOptions(),
       conceptTerms: emptyConceptTerms(),
@@ -334,7 +338,7 @@ export default function FlashcardCreate() {
       ...flashcards,
       {
         front: '', back: '', frontImageUrl: null, frontImagePreview: null, backImageUrl: null, backImagePreview: null,
-        questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null,
+        questionType: 'flashcard', options: emptyMcqOptions(), correctOptionIndex: null, correctOptionIndices: [],
         matchLeft: emptyMatchLeft(), matchRight: emptyMatchRight(), matchCorrect: emptyMatchCorrect(), why: '',
         subtype: null, caseScenario: '', caseQuestions: emptyCaseQuestions(), fitbOptions: emptyFitbOptions(),
         conceptTerms: emptyConceptTerms(),
@@ -418,7 +422,24 @@ export default function FlashcardCreate() {
     let correctOptionIndex = card.correctOptionIndex;
     if (correctOptionIndex === optionIndex) correctOptionIndex = null;
     else if (correctOptionIndex > optionIndex) correctOptionIndex -= 1;
-    updated[cardIndex] = { ...card, options, correctOptionIndex };
+    // mcq_multi (Sprint 8.6c) tracks a SET of correct indices instead of one —
+    // remap every entry the same way single-select's correctOptionIndex is above.
+    const correctOptionIndices = (card.correctOptionIndices || [])
+      .filter(i => i !== optionIndex)
+      .map(i => (i > optionIndex ? i - 1 : i));
+    updated[cardIndex] = { ...card, options, correctOptionIndex, correctOptionIndices };
+    setFlashcards(updated);
+  };
+
+  // mcq_multi (Sprint 8.6c) — checkbox toggle, the multi-select sibling of the
+  // single-select radio's updateFlashcard(index, 'correctOptionIndex', ...) call.
+  const toggleMcqMultiCorrect = (cardIndex, optionIndex) => {
+    const updated = [...flashcards];
+    const card = updated[cardIndex];
+    const set = new Set(card.correctOptionIndices || []);
+    if (set.has(optionIndex)) set.delete(optionIndex);
+    else set.add(optionIndex);
+    updated[cardIndex] = { ...card, correctOptionIndices: Array.from(set).sort((a, b) => a - b) };
     setFlashcards(updated);
   };
 
@@ -662,6 +683,9 @@ export default function FlashcardCreate() {
         if (card.questionType === 'mcq') {
           const mcqError = validateMcqOptions(card.options, card.correctOptionIndex);
           if (mcqError) throw new Error(`Item ${i + 1}: ${mcqError}`);
+        } else if (card.questionType === 'mcq_multi') {
+          const mcqMultiError = validateMcqMultiOptions(card.options, card.correctOptionIndices);
+          if (mcqMultiError) throw new Error(`Item ${i + 1}: ${mcqMultiError}`);
         } else if (card.questionType === 'correct_incorrect') {
           if (card.correctOptionIndex !== 0 && card.correctOptionIndex !== 1) {
             throw new Error(`Item ${i + 1}: Mark which side is correct`);
@@ -811,6 +835,7 @@ export default function FlashcardCreate() {
         }
 
         const isMcq = card.questionType === 'mcq';
+        const isMcqMulti = card.questionType === 'mcq_multi';
         const isCorrectIncorrect = card.questionType === 'correct_incorrect';
         const isMatch = card.questionType === 'match_the_following';
         const isFitb = card.questionType === 'fitb';
@@ -826,6 +851,15 @@ export default function FlashcardCreate() {
           rowOptions = options;
           rowCorrectAnswer = String(correctIndex);
           rowBackText = deriveMcqBackText(options, correctIndex);
+          rowBackImageUrl = null;
+        } else if (isMcqMulti) {
+          // correct_answer stores the canonicalized SET as a string ("0;2;4"),
+          // not a single index — compact/canonicalize together so the stored
+          // form always matches the (also compacted) options array's indices.
+          const { options, correctIndices } = compactMcqMultiOptions(card.options, card.correctOptionIndices);
+          rowOptions = options;
+          rowCorrectAnswer = canonicalizeMultiAnswer(correctIndices);
+          rowBackText = deriveMcqMultiBackText(options, correctIndices);
           rowBackImageUrl = null;
         } else if (isCorrectIncorrect) {
           rowOptions = VERDICT_OPTION_LABELS[card.questionType];
@@ -879,7 +913,7 @@ export default function FlashcardCreate() {
           options: rowOptions,
           correct_answer: rowCorrectAnswer,
           points_to_remember: null,
-          explanation: (isMcq || isCorrectIncorrect || isMatch || isFitb) ? toPointsToRemember(card.why) : null,
+          explanation: (isMcq || isMcqMulti || isCorrectIncorrect || isMatch || isFitb) ? toPointsToRemember(card.why) : null,
           subtype: card.questionType === 'theory' ? card.subtype : null,
         }];
       });
@@ -1337,7 +1371,8 @@ export default function FlashcardCreate() {
                         ...updated[index],
                         questionType: val,
                         correctOptionIndex: null,
-                        options: val === 'mcq' ? emptyMcqOptions() : updated[index].options,
+                        correctOptionIndices: val === 'mcq_multi' ? [] : updated[index].correctOptionIndices,
+                        options: (val === 'mcq' || val === 'mcq_multi') ? emptyMcqOptions() : updated[index].options,
                         matchLeft: val === 'match_the_following' ? emptyMatchLeft() : updated[index].matchLeft,
                         matchRight: val === 'match_the_following' ? emptyMatchRight() : updated[index].matchRight,
                         matchCorrect: val === 'match_the_following' ? emptyMatchCorrect() : updated[index].matchCorrect,
@@ -1358,6 +1393,7 @@ export default function FlashcardCreate() {
                       <SelectItem value="theory">Theory</SelectItem>
                       <SelectItem value="concept_card">Concept Card</SelectItem>
                       {canAuthorGradedTypes && <SelectItem value="mcq">Multiple Choice</SelectItem>}
+                      {canAuthorGradedTypes && <SelectItem value="mcq_multi">Multi-select MCQ</SelectItem>}
                       {canAuthorGradedTypes && <SelectItem value="correct_incorrect">Correct / Incorrect</SelectItem>}
                       {canAuthorGradedTypes && <SelectItem value="match_the_following">Match the following</SelectItem>}
                       {canAuthorGradedTypes && <SelectItem value="case_study_mcq">Case study MCQ</SelectItem>}
@@ -1369,14 +1405,14 @@ export default function FlashcardCreate() {
                 {card.questionType !== 'case_study_mcq' && (
                 <div className="space-y-2">
                   <Label htmlFor={`front-${index}`}>
-                    {card.questionType === 'mcq' ? 'Question' : card.questionType === 'correct_incorrect' ? 'Statement' : card.questionType === 'match_the_following' ? 'Instructions' : card.questionType === 'fitb' ? 'Sentence with blank' : card.questionType === 'concept_card' ? 'Concept Name' : 'Front'}
+                    {(card.questionType === 'mcq' || card.questionType === 'mcq_multi') ? 'Question' : card.questionType === 'correct_incorrect' ? 'Statement' : card.questionType === 'match_the_following' ? 'Instructions' : card.questionType === 'fitb' ? 'Sentence with blank' : card.questionType === 'concept_card' ? 'Concept Name' : 'Front'}
                   </Label>
                   <Textarea
                     id={`front-${index}`}
                     value={card.front}
                     onChange={(e) => updateFlashcard(index, 'front', e.target.value)}
                     placeholder={
-                      card.questionType === 'mcq'
+                      (card.questionType === 'mcq' || card.questionType === 'mcq_multi')
                         ? 'The question stem'
                         : card.questionType === 'correct_incorrect'
                           ? 'The statement to mark correct or incorrect'
@@ -1487,6 +1523,77 @@ export default function FlashcardCreate() {
                           <Plus className="mr-2 h-4 w-4" />
                           Add Option
                         </Button>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`why-${index}`}>Why (Optional)</Label>
+                      <Textarea
+                        id={`why-${index}`}
+                        value={card.why}
+                        onChange={(e) => updateFlashcard(index, 'why', e.target.value)}
+                        placeholder="Explanation shown after the student answers"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                ) : card.questionType === 'mcq_multi' ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Options <span className="text-red-500">*</span></Label>
+                      <p className="text-xs text-muted-foreground">
+                        Check every correct option. {MCQ_MIN_OPTIONS}-{MCQ_MAX_OPTIONS} options, at least 1 correct.
+                      </p>
+                      <div className="space-y-2">
+                        {card.options.map((opt, optIndex) => (
+                          <div key={optIndex} className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={(card.correctOptionIndices || []).includes(optIndex)}
+                              onChange={() => toggleMcqMultiCorrect(index, optIndex)}
+                              className="h-4 w-4 shrink-0 accent-[#1e1b4b]"
+                              aria-label={`Mark option ${optIndex + 1} as correct`}
+                            />
+                            <Input
+                              value={opt}
+                              onChange={(e) => updateMcqOption(index, optIndex, e.target.value)}
+                              placeholder={`Option ${optIndex + 1}`}
+                            />
+                            {card.options.length > MCQ_MIN_OPTIONS && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeMcqOption(index, optIndex)}
+                                className="text-destructive hover:text-destructive shrink-0"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {card.options.length < MCQ_MAX_OPTIONS && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => addMcqOption(index)}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Option
+                        </Button>
+                      )}
+                      {/* Non-blocking confirmation (spec: hard requirement is only
+                          "at least 1 correct" — every option marked correct is a
+                          valid, if unusual, authoring choice on a course-agnostic
+                          platform, not an error). */}
+                      {card.options.filter(o => o.trim()).length > 0 &&
+                        (card.correctOptionIndices || []).filter(i => card.options[i]?.trim()).length ===
+                          card.options.filter(o => o.trim()).length && (
+                        <p className="text-xs text-amber-600">
+                          All options are marked correct — confirm this is intentional.
+                        </p>
                       )}
                     </div>
 
