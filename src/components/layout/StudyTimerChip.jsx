@@ -6,8 +6,9 @@
 // reserved for the dedicated /dashboard/study-time route.
 //
 // Tap behavior:
-//   elapsed < 10s  → stop + no-op log (too short to count), toast confirmation
-//   elapsed 10s-4h → stop, then navigate to /dashboard/study-time, where the
+//   elapsed < 10m  → stop, no DB row, toast explaining the 10-minute floor
+//                    (Sprint 8.6a)
+//   elapsed 10m-4h → stop, then navigate to /dashboard/study-time, where the
 //                    required category picker is already showing (Sprint 8.5
 //                    — context state drives it, same pattern as the recovery
 //                    prompt below; the chip has no room for a picker itself)
@@ -58,6 +59,12 @@ export default function StudyTimerChip({ compact = false }) {
       toast({ title: 'Session logged', description: `Session logged: ${formatDuration(result.durationSeconds)}` });
     } else if (result.outcome === 'needs_recovery' || result.outcome === 'needs_category') {
       navigate('/dashboard/study-time');
+    } else if (result.outcome === 'too_short') {
+      toast({
+        title: 'Session too short to log',
+        description:
+          'RevisOp records offline study sessions of 10 minutes or more — shorter moments aren’t included in manual study-time tracking.',
+      });
     } else if (result.outcome === 'discarded') {
       toast({
         title: 'Session discarded',

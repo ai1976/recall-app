@@ -1,6 +1,18 @@
 # NOW - Current Development Status
 
-**Last Updated:** 16/09/2026
+**Last Updated:** 17/09/2026
+
+## Sprint 8.6a: Offline Study-Log Minimum: 10 Minutes, Server-Side — Phase 8, Group A (17/09/2026) — ✅ Just Completed
+
+**Pre-flight:** confirmed current floor is `durationSeconds < 10` in `StudyTimerContext.jsx` (~line 186) — sub-threshold sessions were silently discarded, no row, no message. Reused Sprint 8.5's own `study_sessions` immutability finding (no RLS `UPDATE`, no function, no trigger — rows are write-once) to confirm a `NOT VALID` CHECK is safe here for the same reason it was safe for the category constraint.
+
+**Built:** Frontend — `StudyTimerContext.jsx`: new `MIN_LOGGABLE_SECONDS = 600` constant, `stopAndLog()`'s floor raised from `< 10` to `< MIN_LOGGABLE_SECONDS`, returning a new `'too_short'` outcome (instead of the old `{ outcome: 'logged', durationSeconds: 0 }`, which would have rendered a misleading "Session logged: 0s" toast). `StudyTimerWidget.jsx` and `StudyTimerChip.jsx` — both independent `stopAndLog()`-calling entry points gained a matching `'too_short'` toast branch: "Session too short to log" / "RevisOp records offline study sessions of 10 minutes or more — shorter moments aren't included in manual study-time tracking." Confirmed (not assumed) that the 4-16h recovery-prompt path can never produce `'too_short'` — its minimum possible duration is 1 hour (custom-hours input floor).
+
+SQL — `docs/database/sprint8.6a/00_DIAGNOSTIC_confirm_duration_column.sql` (confirms `duration_seconds` is `NOT NULL` and lists existing CHECKs before adding the new one), `01_SCHEMA_add_duration_floor.sql` (`ALTER TABLE study_sessions ADD CONSTRAINT study_sessions_duration_floor CHECK (duration_seconds >= 600) NOT VALID` — prospective only, no backfill, existing sub-threshold rows untouched), `02_TEST_verify_duration_floor.sql` (599s rejected, 600s succeeds, historical sub-floor rows read back unchanged — same `BEGIN`/`ROLLBACK` pattern as Sprint 8.5's tests).
+
+**SQL deployed & verified live by the operator (17/09/2026).** `00_DIAGNOSTIC` confirmed `duration_seconds` carried only the pre-existing `> 0` check, `NOT NULL` — no `IS NULL` guard needed in the new predicate. `01_SCHEMA` added `study_sessions_duration_floor`. `02_TEST` proved all three cases: a 599s insert rejected (`23514`), a 600s insert succeeded, and 3 real pre-existing March 2026 manual rows (17s, 49s, 263s) read back unchanged.
+
+**Current Phase:** **Phase 8 (B2B growth), Group A now fully shipped and live** — SQL and frontend both deployed. Next up per the operator: Group B (content versioning/retirement), per the original phase sequencing.
 
 ## Sprint 8.5: Offline Study-Log Categories — Phase 8, Group A (16/09/2026) — ✅ Just Completed
 

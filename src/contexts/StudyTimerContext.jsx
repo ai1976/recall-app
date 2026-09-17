@@ -39,9 +39,9 @@
 //                                 write happens). Used internally by stop()'s
 //                                 <4h path, and directly by the recovery UI's
 //                                 "log full" / "log less" choices. Sessions
-//                                 under 10s skip the category step entirely
-//                                 and are treated as a no-op log (unchanged
-//                                 from pre-8.5 behavior).
+//                                 under 10 minutes (Sprint 8.6a) skip the
+//                                 category step entirely and return
+//                                 'too_short' — no DB row.
 //   confirmCategory(category)  — Sprint 8.5. The actual study_sessions
 //                                 insert + state clear, once a category has
 //                                 been chosen for whatever is in pendingLog.
@@ -56,8 +56,8 @@
 //
 // All methods return a result descriptor
 // ({ outcome: 'logged' | 'needs_recovery' | 'needs_category' | 'discarded'
-//    | 'noop', ... }) — callers decide toast copy / navigation / UI step,
-// this context stays UI-agnostic.
+//    | 'too_short' | 'noop', ... }) — callers decide toast copy / navigation
+// / UI step, this context stays UI-agnostic.
 
 import { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -66,6 +66,11 @@ import { useAuth } from '@/contexts/AuthContext';
 const SHORT_BREAK_MS   = 4  * 60 * 60 * 1000; // < 4h  → auto-resume
 const PROMPT_CUTOFF_MS = 16 * 60 * 60 * 1000; // 4-16h → prompt, > 16h → discard
 const COARSE_TICK_MS   = 30 * 1000;           // nav-chip display refresh — NOT per-second
+
+// Sprint 8.6a — floor for a loggable offline session, enforced here AND
+// server-side (study_sessions_duration_min CHECK). Below this, stopAndLog()
+// returns 'too_short' instead of writing a row.
+const MIN_LOGGABLE_SECONDS = 600; // 10 minutes
 
 const LS_STARTED = 'revisop_manual_timer_started_at';
 const LS_PENDING = 'revisop_manual_timer_pending_log'; // Sprint 8.5 — duration finalized, category not yet chosen
@@ -183,8 +188,8 @@ export function StudyTimerProvider({ children }) {
     setElapsedMs(0);
     setRecoveryPrompt(null);
 
-    if (durationSeconds < 10) {
-      return { outcome: 'logged', durationSeconds: 0 };
+    if (durationSeconds < MIN_LOGGABLE_SECONDS) {
+      return { outcome: 'too_short', durationSeconds };
     }
 
     const pending = {

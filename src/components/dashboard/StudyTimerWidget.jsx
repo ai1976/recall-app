@@ -104,6 +104,12 @@ export default function StudyTimerWidget() {
         setSelectedCategory('');
       } else if (result.outcome === 'logged' && result.durationSeconds > 0) {
         setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
+      } else if (result.outcome === 'too_short') {
+        toast({
+          title: 'Session too short to log',
+          description:
+            'RevisOp records offline study sessions of 10 minutes or more — shorter moments aren’t included in manual study-time tracking.',
+        });
       } else if (result.outcome === 'discarded') {
         toast({
           title: 'Session discarded',

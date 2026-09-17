@@ -1,6 +1,25 @@
 # Changelog
 
 ---
+## [2026-09-17] feat(sprint-8.6a): offline study-log minimum raised to 10 minutes, server-side
+
+The manual study timer's loggable-session floor was 10 seconds — a sub-threshold stop silently discarded the session with no DB row and no user-facing message. Raised to 10 minutes, mirrored server-side, and given an explicit "too short to log" message instead of silence.
+
+### Added
+- **`study_sessions_duration_floor`** — `CHECK (duration_seconds >= 600) NOT VALID` (`docs/database/sprint8.6a/01_SCHEMA_add_duration_floor.sql`). Same `NOT VALID`/prospective-only pattern as `study_sessions_manual_requires_category` (Sprint 8.5) — enforces on every future INSERT without scanning or rewriting existing rows, so no backfill and pre-existing sub-10-minute rows stay exactly as they are.
+- **`'too_short'` outcome** on `StudyTimerContext.jsx`'s `stopAndLog()` — replaces the old `{ outcome: 'logged', durationSeconds: 0 }`, which rendered as a misleading "Session logged: 0s" toast for what might have been a real short attempt. `StudyTimerWidget.jsx` and `StudyTimerChip.jsx` (the two independent stop entry points) both gained a matching toast: "RevisOp records offline study sessions of 10 minutes or more — shorter moments aren't included in manual study-time tracking."
+
+### Confirmed, not assumed
+- The 4-16h recovery-prompt path (`handleRecoveryFull`/`handleRecoveryCustom`) cannot produce `'too_short'` — its minimum possible duration is 1 hour (the custom-hours input floor) — checked rather than taken for granted.
+
+### Verified
+- **SQL deployed & verified live by the operator (17/09/2026).** `00_DIAGNOSTIC` confirmed `duration_seconds` carried only the pre-existing `> 0` check (`NOT NULL`, no floor) — no `IS NULL` guard needed. `01_SCHEMA` added the constraint. `02_TEST` proved all three required cases: a 599s insert rejected (`23514 check_violation` on `study_sessions_duration_floor`), a 600s insert succeeded, and 3 real pre-existing March 2026 manual rows (17s, 49s, 263s) read back unchanged — confirming `NOT VALID`'s prospective-only guarantee.
+
+### Files Changed
+- **Added:** `docs/database/sprint8.6a/00_DIAGNOSTIC_confirm_duration_column.sql`, `01_SCHEMA_add_duration_floor.sql`, `02_TEST_verify_duration_floor.sql`.
+- **Changed:** `src/contexts/StudyTimerContext.jsx`, `src/components/dashboard/StudyTimerWidget.jsx`, `src/components/layout/StudyTimerChip.jsx`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/blueprint.md`, `docs/active/now.md`, `docs/tracking/changelog.md` (this entry).
+
+---
 ## [2026-09-16] fix(sprint-8.5): DB-level enforcement that manual sessions carry a category
 
 Quality-auditor review of the completed sprint found a real integrity gap before commit: the frontend required a category, but the database didn't. `category` is nullable and its own `CHECK` only validates a value when present, so nothing stopped a future write path outside `confirmCategory()` — a bulk import, a different form, a regression — from silently inserting `source='manual', category=NULL` and reopening the exact gap this sprint exists to close.
