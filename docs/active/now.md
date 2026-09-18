@@ -27,6 +27,8 @@
 
 **Status: D-21 fully shipped end-to-end — creation-path enforcement (8.7.2/8.7.3), authenticated display (8.7.4), and now public/anonymous display (8.7.5). Phase 8.7 complete.**
 
+**Incidental finding, same session:** the operator spotted 7 (turned out to be 8) leftover flashcards live in the app from Sprint 8.7.2's own verification — that sprint, unlike 8.7.3/8.7.4, never had a cleanup script written or run. Diagnosed via `docs/database/sprint8.7.5/03_DIAGNOSTIC_find_sprint8.7.2_leftover_test_data.sql` (found all 8 rows across 7 batches, all tied to 8.7.2-labelled provenance rows, no orphans — one card, "refactor smoke test front", didn't match the `Sprint 8.7.2%` front_text pattern and was only caught by the batch→provenance join, confirming the broader-net query in the diagnostic was necessary, not redundant). Cleaned via `docs/database/sprint8.7.5/04_CLEANUP_remove_sprint8.7.2_leftover_test_data.sql` (exact-ID delete, not pattern match — avoids any risk of catching a real card), which also removed the two now-empty test decks it left behind, guarded on `card_count = 0` post-delete. Re-verified at 0 rows across flashcards/provenance/decks, confirmed by the operator.
+
 ## Sprint 8.7.4: Provenance Display + Phase Reconciliation — Phase 8 (18/09/2026) — ✅ SQL deployed & live-verified via operator; frontend not yet pushed
 
 **Context:** Last sprint in the phase — closes the display half of D-21 that 8.7.1 deliberately deferred (flashcard/note creation now declares provenance server-side as of 8.7.2/8.7.3; this sprint makes it visible). See D-21, blueprint.md §3.1.
