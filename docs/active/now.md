@@ -2,6 +2,31 @@
 
 **Last Updated:** 18/09/2026
 
+## Sprint 8.7.5: Public Deck Provenance — Phase 8 (18/09/2026) — ✅ SQL deployed by operator, live-verified, D-21/Phase 8.7 complete
+
+**Context:** Closes the last D-21 display gap: 8.7.4 (below) deliberately left `DeckPreview.jsx` (`/deck/:id`, anonymous) unbadged, reasoning it as a separate-RPC/separate-surface problem outside that sprint's brief. Confirmed with Anand before starting: surfacing an official-body source on the public teaser is a genuine trust signal for anonymous visitors, worth its own small follow-up.
+
+**Step 0 (investigation only, done via subagent before any code):**
+- `DeckPreview.jsx` calls `supabase.rpc('get_public_deck_preview', { p_deck_id })` — a `SECURITY DEFINER`, anon-allowlisted RPC returning `jsonb` (`{ deck, preview_items }`). Not the same function as `get_browsable_decks` (the authenticated Browse Study Sets RPC) — separate function entirely, confirmed by reading both bodies.
+- **Mixed-provenance-within-one-deck is not new logic to invent this sprint** — `get_browsable_decks` v7 (8.7.4) already solved it: badge only when every relevant card shares exactly one `batch_id` (`sole_batch_id` via `count(DISTINCT batch_id)=1`, else NULL). Ported that exact pattern rather than designing a new rule.
+- `NotePreview.jsx` re-confirmed untouched-and-correctly-so: only metadata (title/subject/topic/author/description) reaches the DOM; the content block is a hardcoded blurred placeholder, never real note text.
+- `flashcard_batch_provenance` RLS: `authenticated`-only SELECT policy, confirmed no `anon` access at either the RLS or grant layer — so provenance must be resolved inside the existing `SECURITY DEFINER` RPC, not via a new direct anon table read (project's own standing rule: unauthenticated pages never query tables directly).
+
+**SQL (`docs/database/sprint8.7.5/01_FUNCTIONS_public_deck_preview_provenance.sql`) — ✅ deployed by the operator (18/09/2026):**
+`CREATE OR REPLACE` on `get_public_deck_preview` (signature unchanged, safe in place). Adds a `CROSS JOIN LATERAL` computing `sole_batch_id` over **all public cards in the deck** (same set `card_count` already counts, not just the 5 `preview_items` rows), then `LEFT JOIN flashcard_batch_provenance` on it. `v_deck` jsonb gains `provenance_source_type`/`provenance_source_name`. Mixed batches among the deck's public cards, or a legacy batch with no provenance row, both resolve to `NULL` — same "render nothing" rule `ProvenanceBadge` already implements, no new "Mixed"/"Unknown" UI state.
+
+**Frontend (`src/pages/public/DeckPreview.jsx`):** renders the existing `ProvenanceBadge` component (built in 8.7.4, reused as-is) under the deck header, sourced from `deck.provenance_source_type`/`deck.provenance_source_name`. No new query — same RPC call, two new response fields.
+
+**Live verification (18/09/2026, dev server → live Supabase, genuinely anonymous sessions where noted):**
+- **Legacy/multi-batch public deck** (`d0e87590-...`, "Business Laws — ICA 1872") — RPC returns `provenance_source_type`/`_name` as `null`; page renders with no badge, zero console errors.
+- **Real single-batch public deck with provenance** (`7b6021e5-...`, professor-created live during this session, `official_body` / "ICAI Study Material") — RPC resolves the real values; opened in a genuinely anonymous tab (localStorage/cookies cleared, confirmed via nav bar showing "Log in"/"Sign up free") — badge renders correctly (Landmark icon, "ICAI Study Material"), zero console errors. Screenshot confirmed visual match to the existing badge treatment.
+- **Anonymous direct table access unchanged:** `supabase.from('flashcard_batch_provenance').select('*')` as anon still returns `42501 permission denied for table` — the RPC change did not broaden table-level access.
+- **Non-existent/private deck via the RPC:** `get_public_deck_preview` with an arbitrary UUID returns `{ data: null }` — no leak, deck-gating logic (`fd.visibility='public'`) untouched by this sprint's change.
+- **Existing authenticated surfaces:** not re-tested live this session (clearing localStorage for the anonymous test also logged the professor test session out, a side effect — noted so it isn't mistaken for a product bug) — assessed as structurally unaffected instead, since `get_browsable_decks`/`StudyMode.jsx`/etc. call entirely different functions with no shared code path to the one function this sprint changed.
+- **Mixed-batch case:** not separately constructed — the legacy/multi-batch deck above already exercises the "public cards don't share one batch_id → NULL" branch of the `sole_batch_id` CASE (same code path, whether the multiple batches are legacy-NULL or provenanced-but-different — the CASE only checks `count(DISTINCT batch_id)`, it doesn't care why there's more than one).
+
+**Status: D-21 fully shipped end-to-end — creation-path enforcement (8.7.2/8.7.3), authenticated display (8.7.4), and now public/anonymous display (8.7.5). Phase 8.7 complete.**
+
 ## Sprint 8.7.4: Provenance Display + Phase Reconciliation — Phase 8 (18/09/2026) — ✅ SQL deployed & live-verified via operator; frontend not yet pushed
 
 **Context:** Last sprint in the phase — closes the display half of D-21 that 8.7.1 deliberately deferred (flashcard/note creation now declares provenance server-side as of 8.7.2/8.7.3; this sprint makes it visible). See D-21, blueprint.md §3.1.

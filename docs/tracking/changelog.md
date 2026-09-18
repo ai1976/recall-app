@@ -1,6 +1,26 @@
 # Changelog
 
 ---
+## [2026-09-18] feat(sprint-8.7.5): public deck provenance, D-21 fully shipped, Phase 8.7 complete
+
+Closes the last D-21 display gap: 8.7.4 deliberately left the anonymous `/deck/:id` teaser page (`DeckPreview.jsx`) unbadged, reasoning it as a separate-RPC problem outside that sprint's brief. Confirmed with Anand: surfacing an official-body source on the public teaser is a genuine trust signal for anonymous visitors.
+
+**Step 0 finding:** mixed-provenance-within-one-deck is not new design work — `get_browsable_decks` v7 (8.7.4) already established the rule (badge only when every relevant card shares one `batch_id`). This sprint ports that exact pattern into `get_public_deck_preview` rather than inventing a new one.
+
+**SQL deployed by the operator and live-verified**, real single-batch public deck (badge renders correctly, genuinely anonymous session) and a legacy/multi-batch deck (correctly no badge) both checked live; anonymous direct table access confirmed still denied; private/non-existent deck via the RPC confirmed no-leak. Full detail in `now.md` and `blueprint.md` §3.1 D-21.
+
+### Added
+- `docs/database/sprint8.7.5/01_FUNCTIONS_public_deck_preview_provenance.sql` — `CREATE OR REPLACE get_public_deck_preview`, adds `provenance_source_type`/`provenance_source_name` to the returned `deck` object, resolved from the deck's public cards' sole `batch_id` (NULL if mixed or legacy). Signature unchanged, in-place replace, no caller change. **✅ Deployed.**
+
+### Changed
+- `src/pages/public/DeckPreview.jsx` — renders the existing `ProvenanceBadge` (built in 8.7.4) under the deck header, sourced from the two new RPC fields. No new query.
+
+### Files Changed
+- `docs/database/sprint8.7.5/01_FUNCTIONS_public_deck_preview_provenance.sql` (new)
+- `src/pages/public/DeckPreview.jsx`
+- `docs/active/blueprint.md`, `docs/active/now.md`, `docs/reference/DATABASE_SCHEMA.md`
+
+---
 ## [2026-09-18] feat(sprint-8.7.4): content provenance display — SQL deployed & live-verified, frontend not yet pushed
 
 Builds the read policy and UI display that 8.7.1 deliberately deferred: a source badge ("Official source" / "Original creator" + name) on every flashcard/note read surface, wired to the actual data path each one uses (direct table query or RPC). Last sprint in the D-21 phase, but D-21 is not being marked closed by this entry — see below.

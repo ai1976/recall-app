@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CreditCard, BookOpen, LogIn, User } from 'lucide-react';
 import GuideInfoModal from '@/components/shared/GuideInfoModal';
+import ProvenanceBadge from '@/components/content/ProvenanceBadge';
 
 export default function DeckPreview() {
   const { deckId } = useParams();
@@ -117,6 +118,11 @@ export default function DeckPreview() {
               {deck.creator_name}
             </Link>
           </div>
+          <ProvenanceBadge
+            sourceType={deck.provenance_source_type}
+            sourceName={deck.provenance_source_name}
+            className="mt-2"
+          />
         </div>
 
         {/* Preview items */}
