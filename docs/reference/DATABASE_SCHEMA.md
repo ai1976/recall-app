@@ -165,8 +165,8 @@
 | featured_approved_at | timestamptz | YES | NULL | ⭐ NEW (Phase 5 Sprint 3, ✅ deployed 2026-07-01). Set alongside `featured_approved_by`. |
 | created_at | timestamp | NO | NOW() | Upload timestamp |
 | updated_at | timestamp | NO | NOW() | Last modified |
-| content_source_type | text | YES | NULL | ⭐ NEW (Sprint 8.7.1, 18/09/2026, ✅ deployed & verified live). `official_body` or `original_creator` (`CHECK`, NULL allowed at column level). Required only on INSERT via `trg_require_note_provenance` (see §3.2 `users_insert_notes`) — legacy rows stay NULL forever, never backfilled, and stay editable (trigger is `BEFORE INSERT` only). |
-| content_source_name | text | YES | NULL | ⭐ NEW (Sprint 8.7.1, 18/09/2026). Free-text source name, paired with `content_source_type`, same INSERT-only enforcement. |
+| content_source_type | text | YES | NULL | ⭐ NEW (Sprint 8.7.1, 18/09/2026, ✅ deployed & verified live; frontend-populated since Sprint 8.7.3, 18/09/2026). `official_body` or `original_creator` (`CHECK`, NULL allowed at column level). Required only on INSERT via `trg_require_note_provenance` (see §3.2 `users_insert_notes`) — legacy rows stay NULL forever, never backfilled, and stay editable (trigger is `BEFORE INSERT` only). `NoteUpload.jsx` now collects and inserts this on every new note; `NoteEdit.jsx` never reads or writes it. |
+| content_source_name | text | YES | NULL | ⭐ NEW (Sprint 8.7.1, 18/09/2026; frontend-populated since Sprint 8.7.3). Free-text source name, paired with `content_source_type`, same INSERT-only enforcement, same `NoteUpload.jsx`-only write path. |
 
 **Visibility System (NEW - January 11, 2026):**
 - `visibility` column replaces old `is_public` boolean

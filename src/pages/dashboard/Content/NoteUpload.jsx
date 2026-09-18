@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { notifyContentCreated } from '@/lib/notifyEdge';
 import imageCompression from 'browser-image-compression';
+import ContentSourceFields from '@/components/flashcards/ContentSourceFields';
 
 export default function NoteUpload() {
   const navigate = useNavigate();
@@ -30,6 +31,8 @@ export default function NoteUpload() {
   const [visibility, setVisibility] = useState('private');
   const [userGroups, setUserGroups] = useState([]);
   const [selectedGroupIds, setSelectedGroupIds] = useState([]);
+  const [sourceType, setSourceType] = useState('');
+  const [sourceName, setSourceName] = useState('');
 
   const [targetCourse, setTargetCourse] = useState('');
   const [showCustomCourse, setShowCustomCourse] = useState(false);
@@ -301,6 +304,13 @@ export default function NoteUpload() {
         throw new Error('Please select or enter a subject');
       }
 
+      if (!sourceType) {
+        throw new Error('Please select a content source type');
+      }
+      if (!sourceName.trim()) {
+        throw new Error('Please enter a content source name');
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
@@ -327,6 +337,8 @@ export default function NoteUpload() {
         topic_id: selectedTopic?.id || null,
         custom_subject: customSubject || null,
         custom_topic: customTopic || null,
+        content_source_type: sourceType,
+        content_source_name: sourceName.trim(),
         image_url: publicUrl,
         content_type: contentType,
         extracted_text: extractedText || null,
@@ -376,9 +388,13 @@ export default function NoteUpload() {
 
     } catch (error) {
       console.error('Upload error:', error);
+      const isProvenanceRejection = error.code === 'P0001'
+        && error.message?.includes('content_source_type and content_source_name are required');
       toast({
         title: 'Error',
-        description: error.message || 'Failed to upload note',
+        description: isProvenanceRejection
+          ? 'Please select a content source before uploading.'
+          : (error.message || 'Failed to upload note'),
         variant: 'destructive',
       });
     } finally {
@@ -684,6 +700,21 @@ export default function NoteUpload() {
                   )}
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Content Source</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ContentSourceFields
+                sourceType={sourceType}
+                onSourceTypeChange={setSourceType}
+                sourceName={sourceName}
+                onSourceNameChange={setSourceName}
+                idPrefix="source"
+              />
             </CardContent>
           </Card>
 

@@ -1,6 +1,28 @@
 # Changelog
 
 ---
+## [2026-09-18] fix(sprint-8.7.3): restore note creation service, close D-21
+
+Sprint 8.7.1 shipped the notes provenance trigger without frontend wiring, which broke `NoteUpload.jsx` in production (a second, independent outage from the flashcards one 8.7.2 fixed). This sprint restores service — the last unmigrated write path — and closes D-21. Much smaller than 8.7.2: notes have no batching concept, so there's no RPC and no atomicity work here, just UI wiring against a trigger that was already live and already tested.
+
+### Fixed
+- **Production outage: note creation was broken for all users** since 8.7.1 deployed `trg_require_note_provenance`. `NoteUpload.jsx` now collects and inserts `content_source_type`/`content_source_name` on every new note; the trigger (not an RPC) remains the sole enforcement mechanism.
+- Raw Postgres trigger rejection (`P0001`) now maps to an actionable toast instead of surfacing the DB message directly, for the case where a submission somehow reaches the DB without a source selected.
+
+### Changed
+- `NoteUpload.jsx` gained a required one-time "Content Source" section, reusing `ContentSourceFields.jsx` (built in 8.7.2) unmodified.
+
+### Verified live (18/09/2026, local dev → live Supabase, real TestOutlook student session)
+Step 0 diagnostic captured the exact live error shape via a direct PostgREST call: `400` / `P0001` / `"content_source_type and content_source_name are required on note creation"`. Confirmed `notes.content_creator_id` does not exist — no field-stripping concern. Plain note upload — succeeded, provenance correct on the row (direct REST read, not just the toast). Study-groups visibility regression check — note shared with 1 group, `content_group_shares` row confirmed correct. `NoteEdit.jsx` legacy-note regression, via the real UI (8.7.1 only proved this in SQL) — opened a genuine pre-8.7 NULL-provenance note, edited a harmless field, saved successfully, provenance stayed NULL. All test notes/shares cleaned up post-verification.
+
+### Files Changed
+- `src/pages/dashboard/Content/NoteUpload.jsx`
+- `docs/active/blueprint.md` (D-21 → shipped), `docs/active/now.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/tracking/changelog.md`
+
+### Non-goals (explicit)
+No `NoteEdit.jsx` changes (provenance is creation-only). No legacy backfill. No provenance read/display (8.7.4). No new SQL — the trigger and columns were already live since 8.7.1.
+
+---
 ## [2026-09-18] fix(sprint-8.7.2): restore flashcard creation service, close source bug
 
 Sprint 8.7.1 shipped the provenance DB foundation without a frontend migration, which broke both live flashcard-creation paths in production (accepted tradeoff at the time). This sprint restores service and closes the `flashcards.source` bug logged in 8.7.1.

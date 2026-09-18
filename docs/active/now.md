@@ -2,6 +2,24 @@
 
 **Last Updated:** 18/09/2026
 
+## Sprint 8.7.3: Note Creation Path — Restore Service — Phase 8 (18/09/2026) — ✅ frontend migrated & live-verified, no SQL needed
+
+**Context:** Last unmigrated write path — closes D-21. Sprint 8.7.1 shipped the notes provenance trigger (`trg_require_note_provenance`) but no frontend wiring, so `NoteUpload.jsx` has been broken in production since 8.7.1 deployed (a second, independent outage from the flashcards one 8.7.2 fixed). Much smaller than 8.7.2: no RPC, no batching, no atomicity concern — notes have none of those concepts. This sprint is UI wiring against an enforcement mechanism already live and already tested (8.7.1 T3/T4).
+
+**Note creation: RESTORED.** `NoteUpload.jsx` gained the same "Content Source" section 8.7.2 built for flashcards (`ContentSourceFields.jsx`, reused unmodified — its single-item interface already fit), and now includes `content_source_type`/`content_source_name` in its existing direct `.insert()` call (no RPC — the trigger is the whole enforcement layer for notes). Live-verified as TestOutlook (student): plain note upload — succeeded, provenance correct on the row (checked via direct REST read). Study-groups visibility path also re-verified in the same pass (flagged in the sprint brief since it's the line right after the changed insert) — note shared with 1 group, `content_group_shares` row confirmed correct.
+
+**Step 0 diagnostic confirmed the exact live error shape**, via a direct PostgREST call (anon key + the session's access token) rather than assuming it matched 8.7.1's SQL-level `RAISE EXCEPTION` text: `status 400`, `code: "P0001"`, `message: "content_source_type and content_source_name are required on note creation"`. The new catch-block maps this to an actionable toast instead of surfacing the raw Postgres message. Also confirmed `notes.content_creator_id` does not exist (`42703`) — no field-stripping concern the way 8.7.2 had for `flashcards`.
+
+**`NoteEdit.jsx` intentionally untouched — verified via the real UI, not just re-trusted from 8.7.1's SQL test.** Provenance is creation-only, no versioning (matches the original 8.7.1 spec). Opened a genuine pre-8.7 note with NULL provenance, edited its description, saved: succeeded, provenance stayed NULL. Change reverted after verification.
+
+**No new SQL this sprint** — confirmed in Step 0 (trigger + columns already live since 8.7.1), not assumed. Frontend-only deploy.
+
+**D-21 closed.** Both live content-creation paths (flashcards: 8.7.2, notes: 8.7.3) now declare and enforce provenance DB-side. 8.7.4 still owns the deferred provenance read/display work.
+
+**Files changed:** `src/pages/dashboard/Content/NoteUpload.jsx` only.
+
+---
+
 ## Sprint 8.7.2: Flashcard Creation Paths — Restore Service — Phase 8 (18/09/2026) — ✅ SQL deployed & live-verified, frontend migrated & live-verified
 
 **Context:** Sprint 8.7.1 shipped the provenance DB foundation but no frontend migration, which was an accepted tradeoff at the time — it left both live flashcard-creation paths broken in production (`FlashcardCreate.jsx`, `BulkUploadFlashcards.jsx`; ~161 active students, professors included). 8.7.2 is the service-restoration sprint. See D-21, blueprint.md §3.1 for full detail.
