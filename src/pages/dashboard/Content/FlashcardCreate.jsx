@@ -60,6 +60,8 @@ import {
   validateConceptTerms,
 } from '@/lib/conceptCard';
 import { GRADED_QUESTION_TYPES, VERDICT_OPTION_LABELS, THEORY_SUBTYPE_LABELS, formatQuestionType } from '@/lib/questionTypes';
+import { groupCardsIntoBatches, isD10Rejection, D10_REJECTION_MESSAGE } from '@/lib/flashcardBatches';
+import ContentSourceFields from '@/components/flashcards/ContentSourceFields';
 
 const emptyMcqOptions = () => Array.from({ length: MCQ_DEFAULT_OPTIONS }, () => '');
 const emptyMatchLeft = () => Array.from({ length: MATCH_DEFAULT_PAIRS }, () => '');
@@ -114,6 +116,11 @@ export default function FlashcardCreate() {
   const [visibility, setVisibility] = useState('private');
   const [userGroups, setUserGroups] = useState([]);
   const [selectedGroupIds, setSelectedGroupIds] = useState([]);
+
+  // Content provenance (Sprint 8.7.2) — declared once per save, applies to every
+  // batch this submit creates. Required by create_flashcard_batches().
+  const [sourceType, setSourceType] = useState('');
+  const [sourceName, setSourceName] = useState('');
 
   const [flashcards, setFlashcards] = useState([
     {
@@ -649,6 +656,13 @@ export default function FlashcardCreate() {
         throw new Error('Please select or enter which course these study items are for');
       }
 
+      if (!sourceType) {
+        throw new Error('Please select a content source type');
+      }
+      if (!sourceName.trim()) {
+        throw new Error('Please enter a content source name');
+      }
+
       // Derive isSystemCourse inside submit (disciplines already loaded)
       const _isSystemCourse = !showCustomCourse &&
         disciplines.some(d => d.name.toLowerCase() === (targetCourse || '').toLowerCase());
@@ -793,9 +807,13 @@ export default function FlashcardCreate() {
       // For study_groups visibility, store as 'private' in individual cards too
       const cardVisibility = visibility === 'study_groups' ? 'private' : visibility;
 
-      // ✅ Create flashcards WITH deck_id — case_study_mcq fans one authoring
+      // ✅ Build flashcard rows WITH deck_id — case_study_mcq fans one authoring
       // block out into N independent rows sharing one batch_id (D-01 grouping
       // pattern), each its own SRS card; every other type stays a 1:1 map.
+      // (Sprint 8.7.2: these are no longer inserted directly — they're grouped by
+      // batch_id below into create_flashcard_batches()'s p_batches shape. user_id/
+      // contributed_by/creator_id/content_creator_id/is_verified are server-derived
+      // by the RPC and must not be sent.)
       const flashcardsToInsert = flashcards.flatMap(card => {
         if (card.questionType === 'case_study_mcq') {
           const caseBatchId = crypto.randomUUID();
@@ -803,10 +821,6 @@ export default function FlashcardCreate() {
           return card.caseQuestions.map(q => {
             const { options, correctIndex } = compactMcqOptions(q.options, q.correctOptionIndex);
             return {
-              user_id: user.id,
-              contributed_by: user.id,
-              creator_id: user.id,
-              content_creator_id: null,
               deck_id: deckId,
               target_course: finalTargetCourse,
               subject_id: subjectId,
@@ -819,7 +833,6 @@ export default function FlashcardCreate() {
               back_image_url: null,
               tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
               visibility: cardVisibility,
-              is_verified: false,
               difficulty: 'medium',
               batch_id: caseBatchId,
               batch_description: null,
@@ -889,10 +902,6 @@ export default function FlashcardCreate() {
         }
 
         return [{
-          user_id: user.id,
-          contributed_by: user.id,
-          creator_id: user.id,
-          content_creator_id: null,
           deck_id: deckId,
           target_course: finalTargetCourse,
           subject_id: subjectId,
@@ -905,7 +914,6 @@ export default function FlashcardCreate() {
           back_image_url: rowBackImageUrl,
           tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
           visibility: cardVisibility,
-          is_verified: false,
           difficulty: 'medium',
           batch_id: crypto.randomUUID(),
           batch_description: null,
@@ -918,9 +926,18 @@ export default function FlashcardCreate() {
         }];
       });
 
-      const { error: insertError } = await supabase
-        .from('flashcards')
-        .insert(flashcardsToInsert);
+      // Group the flat row list into create_flashcard_batches()'s p_batches shape —
+      // every row already carries its own batch_id (case_study_mcq questions share
+      // one per case, everything else gets its own), so this just folds rows with
+      // the same batch_id into one { batch_id, cards } entry.
+      const batches = groupCardsIntoBatches(flashcardsToInsert);
+
+      const { error: insertError } = await supabase.rpc('create_flashcard_batches', {
+        p_source_type: sourceType,
+        p_source_name: sourceName.trim(),
+        p_batches: batches,
+        p_creation_channel: 'manual',
+      });
 
       if (insertError) throw insertError;
 
@@ -963,7 +980,7 @@ export default function FlashcardCreate() {
       console.error('Create error:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create study items',
+        description: isD10Rejection(error) ? D10_REJECTION_MESSAGE : (error.message || 'Failed to create study items'),
         variant: 'destructive',
       });
     } finally {
@@ -1338,6 +1355,22 @@ export default function FlashcardCreate() {
                   )}
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Content Source</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ContentSourceFields
+                sourceType={sourceType}
+                onSourceTypeChange={setSourceType}
+                sourceName={sourceName}
+                onSourceNameChange={setSourceName}
+                idPrefix="source"
+                showCaption
+              />
             </CardContent>
           </Card>
 

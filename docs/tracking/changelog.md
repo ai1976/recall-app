@@ -1,6 +1,40 @@
 # Changelog
 
 ---
+## [2026-09-18] fix(sprint-8.7.2): restore flashcard creation service, close source bug
+
+Sprint 8.7.1 shipped the provenance DB foundation without a frontend migration, which broke both live flashcard-creation paths in production (accepted tradeoff at the time). This sprint restores service and closes the `flashcards.source` bug logged in 8.7.1.
+
+### Fixed
+- **Production outage: flashcard creation was broken for all users** since 8.7.1 deployed the provenance gate. `FlashcardCreate.jsx` (manual) and `BulkUploadFlashcards.jsx` (CSV) both migrated from a direct `flashcards` insert to the `create_flashcard_batches()` RPC.
+- **`flashcards.source` bug closed** — `BulkUploadFlashcards.jsx` never set `source` explicitly, so every bulk-uploaded row silently took the column default of `'manual'`. Live-confirmed pre-fix (100% of production rows were `'manual'`) and post-fix (`manual`→`'manual'`, `bulk_upload`→`'bulk_upload'`).
+- **`scenario` column omission** — found during this sprint's Step 0 diagnostic, not in the original spec: the 8.7.1 RPC's `INSERT INTO flashcards` column list omitted `scenario`, which would have silently dropped case-study text for every `case_study_mcq` card created through it. Fixed in the same migration.
+- **Stale documentation corrected:** `CLAUDE.md` and `DATABASE_SCHEMA.md` both claimed `flashcards.deck_id` is "NEVER populated" — live diagnostic showed it's populated (and correct) for every manually-created card, null only for bulk-uploaded ones. No code/behavior change, doc-only correction.
+
+### Changed
+- **`create_flashcard_batches()` signature** — added `p_creation_channel text` (`'manual' | 'bulk_upload' | 'gemini_import'`, server-validated). The 3-arg overload was explicitly dropped (not left alongside the new 4-arg one — Postgres treats an added parameter as a distinct overload, and nothing in production could call the RPC successfully before this deploy).
+- **D-10 rejection messaging** on both pages changed from an enumerated question-type list to generic "requires a professor/admin account" wording — avoids the frontend copy drifting from the RPC's own `v_verdict_types` list, the actual source of truth for which types are restricted.
+- Both pages gained a required one-time "Content Source" section (`source_type`, `source_name`).
+
+### Verified live (18/09/2026, dev server → live Supabase, real student then professor session)
+Manual creation (student, plain flashcard) — `source='manual'`, `deck_id` populated, provenance correct. D-10 rejection — probed directly against the RPC (not just the UI, which already hides restricted types from students): `P0001` / exact expected message. Atomicity — a direct multi-batch RPC call with one malformed card left zero rows in both `flashcards` and `flashcard_batch_provenance`, including from the batch that was individually valid (done as a direct RPC call because the bulk-upload page's own CSV validation would otherwise catch the bad row before it ever reached the RPC). Professor-authorized `mcq` creation — correct. Bulk CSV upload (plain card + 2-question `case_study_mcq` case) — one RPC call, 2 batch_ids, `source='bulk_upload'` throughout, `scenario` preserved on both case rows. RPC migration sanity — direct PostgREST probe with the anon key confirmed the new 4-arg signature resolves and the old 3-arg one returns a schema-cache miss (`PGRST202`), not just a `pg_proc`-level check.
+
+### Fixed (found by a `/code-review` pass before shipping, both live-verified)
+- `batch_description` was silently dropped to NULL on every RPC-created card — both pages' batching step hoisted it onto the batch object, but the RPC reads it per-card. Fixed in the shared `groupCardsIntoBatches()` helper.
+- Professor/admin bulk-upload verified badge was silently lost — the RPC hardcoded `is_verified = false` for every row regardless of caller role, a regression this migration activated (the RPC had zero live callers before it). Fixed via `docs/database/sprint8.7.2/08_HOTFIX_bulk_verified_badge.sql`.
+
+### Refactored (post-review, same session)
+Extracted the batching-Map + D-10 error-detection logic (duplicated near-identically across both pages) into `src/lib/flashcardBatches.js`, and the "Content Source" form section into `src/components/flashcards/ContentSourceFields.jsx` — matches the codebase's existing pattern of sharing authoring logic between these two pages via `src/lib/` (`caseStudyMcq.js`, `mcq.js`, `fitb.js`). Pure refactor, re-verified both pages behave identically.
+
+### Files Changed
+- `docs/database/sprint8.7.2/01_FUNCTIONS_creation_channel.sql`, `08_HOTFIX_bulk_verified_badge.sql` (+ `00_DIAGNOSTIC_pre_restore.sql`, `02_TEST_verify_signature.sql`, `03`–`07`, `09_TEST_*.sql` live-verification queries)
+- `src/pages/dashboard/Content/FlashcardCreate.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx`, `src/lib/flashcardBatches.js` (new), `src/components/flashcards/ContentSourceFields.jsx` (new)
+- `CLAUDE.md`, `docs/active/blueprint.md` (D-21), `docs/active/now.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`, `docs/tracking/bugs.md`
+
+### Non-goals (explicit)
+No `NoteUpload.jsx` migration (8.7.3). No provenance read policy/UI display (8.7.4). No `content_creator_id` handling. No D-10 authorization redesign. No batch-semantics or deck redesign.
+
+---
 ## [2026-09-18] feat(sprint-8.7.1): content provenance — DB foundation only, no end-user feature yet
 
 Database architecture for content-source tagging (D-21, blueprint.md §3.1). This is a DB-only foundation sprint — **no frontend changes, and this intentionally breaks direct flashcard/note creation in production** until Sprint 8.7.2/8.7.3 migrate `FlashcardCreate.jsx`/`BulkUploadFlashcards.jsx`/`NoteUpload.jsx`.

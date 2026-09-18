@@ -51,8 +51,8 @@ Do not consider a sprint summary complete until both are done.
 - NEVER use `toISOString()` for date calculations
 - Group flashcards by `batch_id`, NEVER by timestamp (client-side display grouping only)
 - Column is `created_at` in reviews table, NOT `reviewed_at`
-- **`deck_id` on `flashcards` is NEVER populated** — do NOT use `WHERE fc.deck_id = p_deck_id` to fetch flashcards for a deck; it always returns 0 rows
-- **To fetch flashcards for a deck**, join on the 5 grouping columns (same logic as the trigger): `fc.user_id = fd.user_id AND (fc.subject_id IS NOT DISTINCT FROM fd.subject_id) AND (fc.topic_id IS NOT DISTINCT FROM fd.topic_id) AND (fc.custom_subject IS NOT DISTINCT FROM fd.custom_subject) AND (fc.custom_topic IS NOT DISTINCT FROM fd.custom_topic)` — see DATABASE_SCHEMA.md flashcard_decks section
+- **`deck_id` on `flashcards` is populated for manually-created cards, NULL for bulk-uploaded ones** (corrected Sprint 8.7.2, 18/09/2026 — live diagnostic showed 377/500 recent rows populated, 100% correct vs. the 5-column join). Do not assume it's always populated — fall back to the 5-column join when it's NULL, don't ignore it entirely.
+- **To fetch flashcards for a deck when `deck_id` may be NULL**, join on the 5 grouping columns (same logic as the trigger): `fc.user_id = fd.user_id AND (fc.subject_id IS NOT DISTINCT FROM fd.subject_id) AND (fc.topic_id IS NOT DISTINCT FROM fd.topic_id) AND (fc.custom_subject IS NOT DISTINCT FROM fd.custom_subject) AND (fc.custom_topic IS NOT DISTINCT FROM fd.custom_topic)` — see DATABASE_SCHEMA.md flashcard_decks section
 
 ## SQL Query Naming (Supabase SQL Editor)
 When providing SQL queries, ALWAYS include:

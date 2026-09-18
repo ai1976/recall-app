@@ -2,6 +2,36 @@
 
 **Last Updated:** 18/09/2026
 
+## Sprint 8.7.2: Flashcard Creation Paths — Restore Service — Phase 8 (18/09/2026) — ✅ SQL deployed & live-verified, frontend migrated & live-verified
+
+**Context:** Sprint 8.7.1 shipped the provenance DB foundation but no frontend migration, which was an accepted tradeoff at the time — it left both live flashcard-creation paths broken in production (`FlashcardCreate.jsx`, `BulkUploadFlashcards.jsx`; ~161 active students, professors included). 8.7.2 is the service-restoration sprint. See D-21, blueprint.md §3.1 for full detail.
+
+**Flashcard manual creation: RESTORED.** `FlashcardCreate.jsx` migrated from a direct `flashcards` insert to `create_flashcard_batches()`. Gained a required one-time-per-save "Content Source" section (`source_type`, `source_name`). Live-verified as a real student (plain flashcard — succeeded, `source='manual'`, `deck_id` populated, provenance correct) and as a real professor (`mcq` — succeeded, `source='manual'`, provenance correct).
+
+**Flashcard bulk upload: RESTORED, `source` bug closed.** `BulkUploadFlashcards.jsx` migrated the same way, gained the same "Content Source" section (once per upload). Live-verified via a real CSV upload (1 plain card + a 2-question `case_study_mcq` case sharing one `case_group`): one RPC call produced 2 distinct `batch_id`s, all 3 rows show `source='bulk_upload'` (closing the bug logged in 8.7.1 — every bulk-uploaded row was previously silently defaulting to `source='manual'`), `scenario` text correctly carried through on both case rows.
+
+**Bug found and fixed in the same migration, not in the original spec:** the 8.7.1 RPC's `INSERT INTO flashcards` column list omitted `scenario` entirely — migrating either frontend page onto it as deployed would have silently dropped scenario text for every `case_study_mcq` card. Found during Step 0's live diagnostic, before either frontend page was touched. Fixed in `docs/database/sprint8.7.2/01_FUNCTIONS_creation_channel.sql`, live-verified via the bulk CSV upload above.
+
+**`deck_id` doc contradiction resolved, not redesigned:** CLAUDE.md and DATABASE_SCHEMA.md both claimed `flashcards.deck_id` is "NEVER populated" — live diagnostic (500 recent rows) showed 377/500 populated, 100% correct against the 5-column join on a 100-row spot check. It's populated for manual creation, null for bulk (unchanged before/after this sprint) — `StudyMode.jsx`/`MyFlashcards.jsx` already read it with a fallback. Both docs corrected; no code or RPC behavior change (deck_id continues to be sent per-card exactly as before, just now inside `create_flashcard_batches()`'s JSON payload instead of a direct insert column).
+
+**RPC signature change, deployed and live-verified (`docs/database/sprint8.7.2/01_FUNCTIONS_creation_channel.sql`):** `create_flashcard_batches()` gained a 4th parameter, `p_creation_channel` (`'manual' | 'bulk_upload' | 'gemini_import'`, validated server-side). Adding a parameter changes the function's identity arguments, so the old 3-arg overload was explicitly `DROP FUNCTION`'d rather than left alongside the new one — confirmed safe (nothing in production could call the RPC successfully before this deploy) and confirmed clean afterward via a direct PostgREST probe with the anon key: new signature resolves (`42501`, correctly grant-denied to anon — i.e. found), old signature returns `PGRST202` (schema-cache miss — gone from the API surface).
+
+**D-10 rejection and atomicity re-verified live, both directly against the RPC (not just through the UI):** a student session directly probed the RPC with `question_type: 'mcq'` — rejected with `P0001` / `"Only professors/admins may author verdict-bearing question_type \"mcq\""`, exactly matching the frontend's message-substring check (`error.message.includes('professors/admins may author')` — deliberately not enumerating restricted types in the toast copy, since that list would drift from the RPC's own `v_verdict_types` SSOT). A direct multi-batch RPC call (one valid batch + one batch with a card missing `front_text`) was rejected and left zero rows in both `flashcards` and `flashcard_batch_provenance`, including from the individually-valid batch — done as a direct RPC call specifically because `BulkUploadFlashcards.jsx`'s own CSV-parse validation already rejects a missing-`front`/`back` row before any RPC call, so testing atomicity through the actual upload UI wouldn't have exercised the RPC's guarantee at all.
+
+**`notes` unaffected, deferred to 8.7.3 regardless:** `NoteUpload.jsx` uses a separate provenance mechanism (an INSERT-only trigger, not this RPC) and was never in scope for 8.7.2.
+
+**`bugs.md` closed** the `flashcards.source` bug — closed on live verification (`manual`→`'manual'`, `bulk_upload`→`'bulk_upload'`), not code inspection alone.
+
+**Two more bugs found by a `/code-review` pass before shipping, both fixed and live-verified before declaring the sprint done:**
+1. **`batch_description` silently dropped to NULL on every card.** Both pages' batching step put it on the outer batch object; the RPC reads it per-card. Fixed in the shared batching helper (see below). Re-verified via a real bulk upload with a batch label — now correctly populated.
+2. **Professor/admin bulk-upload verified badge lost** — the RPC hardcoded `is_verified = false` for every row; pre-migration code set it from role for bulk uploads only. Fixed via `docs/database/sprint8.7.2/08_HOTFIX_bulk_verified_badge.sql` (`is_verified = p_creation_channel='bulk_upload' AND v_is_prof_admin`, server-derived, never caller-supplied). Re-verified: professor bulk upload → `is_verified=true`; professor manual `mcq` → `is_verified=false` (unchanged, correct).
+
+**Post-review refactor:** the duplicated batching-Map/D-10-error-check logic in both pages extracted to `src/lib/flashcardBatches.js`; the duplicated "Content Source" form JSX extracted to `src/components/flashcards/ContentSourceFields.jsx`. Pure refactor — re-verified both pages render and submit identically post-extraction (screenshots + a fresh manual create + fresh bulk upload, both succeeded).
+
+**D-21 status: manual + bulk flashcard creation service restored, live-verified, post-review fixes applied. Still IN PROGRESS** — 8.7.3 (`NoteUpload.jsx`) and 8.7.4 (provenance read policy/UI display) remain.
+
+---
+
 ## Sprint 8.7.1: Content Provenance — DB Foundation Only — Phase 8 (18/09/2026) — ✅ SQL deployed & live-verified, NO frontend changes
 
 **See D-21, blueprint.md §3.1 for full detail.** DB-side foundation for content-source tagging landed: `flashcard_batch_provenance` table (batch-level provenance, RLS-locked to the new RPC only), `notes.content_source_type`/`content_source_name` + INSERT-only enforcement trigger, and the atomic SECURITY DEFINER RPC `create_flashcard_batches()`. Step 0 diagnostic caught one naming drift before any DDL (the live flashcards INSERT policy is `"Users can insert their own flashcards"`, not `users_insert_flashcards` as assumed) — everything else matched the pre-flight spec exactly.

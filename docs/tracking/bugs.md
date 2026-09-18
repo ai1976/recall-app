@@ -2,12 +2,12 @@
 
 ## Sprint 8.7.1 — 18/09/2026 (Content provenance DB foundation)
 
-### [18/09/2026] `flashcards.source` defaults to `'manual'` for every insert, including bulk uploads — FOUND, NOT FIXED, disposition deferred to Sprint 8.7.2
+### [18/09/2026] `flashcards.source` defaults to `'manual'` for every insert, including bulk uploads — ✅ FIXED Sprint 8.7.2, live-verified
 - **Found while:** Step 0 diagnostic for the content-provenance sprint (`docs/database/sprint8.7/00_DIAGNOSTIC_pre_provenance.sql`), cross-checking `flashcards.source`'s column default against how it's actually populated.
 - **Symptom:** `flashcards.source` is `NOT NULL DEFAULT 'manual'::text`. Neither `src/pages/dashboard/Content/FlashcardCreate.jsx` nor `src/pages/dashboard/BulkUploadFlashcards.jsx` ever sets `source` explicitly in their insert payloads (confirmed via code grep, zero matches for `source` in either file) — so every card, whether hand-authored or CSV-bulk-uploaded, silently gets `source = 'manual'` from the column default. `source` is therefore not a reliable signal of how a card was actually created.
-- **Root Cause:** not investigated further this sprint — out of scope (explicit non-goal of Sprint 8.7.1). Unknown whether `source` was ever intended to distinguish manual-vs-bulk authoring, or has some other intended meaning nothing currently sets correctly.
-- **Impact:** low/unknown — no code currently reads `source` for logic or display (not confirmed exhaustively; flagged here rather than assumed safe). Distinct from this sprint's new `content_source_type`/`content_source_name` provenance columns, which describe the source *document*, not the *creation method* `source` appears to target.
-- **Status:** NOT FIXED. Logged for Sprint 8.7.2's auditor to disposition — decide whether `source` should be corrected to distinguish manual vs. bulk upload (and if so, backfill policy for existing rows), or deprecated/repurposed, before any further reliance on it.
+- **Root Cause:** neither creation path ever passed `source`. Confirmed live pre-fix via Sprint 8.7.2's diagnostic (`docs/database/sprint8.7.2/00_DIAGNOSTIC_pre_restore.sql` §5b): 100% of production `flashcards.source` values were `'manual'`, with zero `'bulk_upload'` rows despite bulk uploads having occurred.
+- **Fix (Sprint 8.7.2):** `create_flashcard_batches()` gained a `p_creation_channel` parameter (`'manual' | 'bulk_upload' | 'gemini_import'`, validated server-side), written to `flashcards.source` explicitly on every row the RPC inserts — never left to the column default. `FlashcardCreate.jsx` passes `'manual'`, `BulkUploadFlashcards.jsx` passes `'bulk_upload'`. See `docs/database/sprint8.7.2/01_FUNCTIONS_creation_channel.sql` and DATABASE_SCHEMA.md §4.0b.
+- **Status:** ✅ FIXED, live-verified via a real bulk CSV upload post-deploy — resulting rows show `source='bulk_upload'`, manually-created rows show `source='manual'`. Closed on live verification, not code inspection alone.
 
 ## Sprint 8.3 — 16/09/2026 (Bug fixes + Help renderer: hyperlinks & screenshots)
 

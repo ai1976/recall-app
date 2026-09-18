@@ -19,6 +19,8 @@ import { compactFitbOptions, deriveFitbBackText, validateFitbBlank, validateFitb
 import { MATCH_MAX_PAIRS, buildMatchOptions, deriveMatchBackText, validateMatchPairs } from '@/lib/matchTheFollowing';
 import { CONCEPT_MAX_TERMS, buildConceptOptions, validateConceptTerms } from '@/lib/conceptCard';
 import { GRADED_QUESTION_TYPES, VERDICT_OPTION_LABELS, THEORY_SUBTYPE_LABELS } from '@/lib/questionTypes';
+import { groupCardsIntoBatches, isD10Rejection } from '@/lib/flashcardBatches';
+import ContentSourceFields from '@/components/flashcards/ContentSourceFields';
 
 const MCQ_CSV_OPTION_COLUMNS = 4;
 // question_type values this CSV recognizes as of Sprint 8.6b — anything else falls back to
@@ -105,7 +107,7 @@ function Step({ number, title, subtitle, isOpen, isComplete, onToggle, children 
 }
 
 export default function BulkUploadFlashcards() {
-  const { isProfessor, isAdmin, isSuperAdmin, isLoading: roleLoading } = useRole();
+  const { isLoading: roleLoading } = useRole();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -124,6 +126,10 @@ export default function BulkUploadFlashcards() {
   const [csvFile, setCsvFile] = useState(null);
   const [batchDescription, setBatchDescription] = useState('');
   const [bulkVisibility, setBulkVisibility] = useState('public');
+  // Content provenance (Sprint 8.7.2) — declared once per upload, applies to every
+  // batch this upload creates. Required by create_flashcard_batches().
+  const [sourceType, setSourceType] = useState('');
+  const [sourceName, setSourceName] = useState('');
 
   // Step 3: Upload
   const [isUploading, setIsUploading] = useState(false);
@@ -132,7 +138,7 @@ export default function BulkUploadFlashcards() {
 
   // ─── Step completeness (visual only, not gates) ───
   const step1Complete = templateDownloaded && validEntriesDownloaded;
-  const step2Complete = !!csvFile;
+  const step2Complete = !!csvFile && !!sourceType && !!sourceName.trim();
 
   // ─── Load courses on mount ───
   useEffect(() => {
@@ -791,6 +797,14 @@ IMPORTANT:
       alert('Please select a CSV file first');
       return;
     }
+    if (!sourceType) {
+      alert('Please select a content source type');
+      return;
+    }
+    if (!sourceName.trim()) {
+      alert('Please enter a content source name');
+      return;
+    }
 
     setIsUploading(true);
     setErrors([]);
@@ -914,8 +928,6 @@ IMPORTANT:
         }
 
         return {
-          user_id: user.id,
-          contributed_by: user.id,
           target_course: card.target_course,
           subject_id: subject.id,
           topic_id: topic?.id || null,
@@ -926,7 +938,6 @@ IMPORTANT:
           tags: card.tags || [],
           difficulty: card.difficulty || 'medium',
           visibility: bulkVisibility,
-          is_verified: isProfessor || isAdmin || isSuperAdmin,
           batch_id: rowBatchId,
           batch_description: trimmedDescription,
           question_type: card.question_type,
@@ -945,12 +956,22 @@ IMPORTANT:
         };
       });
 
-      const { data, error } = await supabase
-        .from('flashcards')
-        .insert(flashcardsToInsert)
-        .select();
+      // Group the flat row list into create_flashcard_batches()'s p_batches shape —
+      // every row already carries its own batch_id (the file-wide batchId, or a
+      // per-case-group id for case_study_mcq), so this just folds rows with the
+      // same batch_id into one { batch_id, cards } entry.
+      const batches = groupCardsIntoBatches(flashcardsToInsert);
+
+      const { data, error } = await supabase.rpc('create_flashcard_batches', {
+        p_source_type: sourceType,
+        p_source_name: sourceName.trim(),
+        p_batches: batches,
+        p_creation_channel: 'bulk_upload',
+      });
 
       if (error) throw error;
+
+      const totalCardCount = (data || []).reduce((sum, b) => sum + b.card_count, 0);
 
       // ── Name any decks that the trigger just created (trigger sets name=NULL) ─
       // Only updates rows where name IS NULL — never overwrites an existing name.
@@ -976,8 +997,7 @@ IMPORTANT:
 
       setUploadResults({
         success: true,
-        count: data.length,
-        flashcards: data
+        count: totalCardCount,
       });
 
       // Audit log (non-critical)
@@ -986,7 +1006,7 @@ IMPORTANT:
           action: 'bulk_upload_flashcards',
           admin_id: user.id,
           details: {
-            count: data.length,
+            count: totalCardCount,
             filename: csvFile.name,
             batch_description: trimmedDescription,
             visibility: bulkVisibility
@@ -1004,10 +1024,9 @@ IMPORTANT:
 
     } catch (error) {
       console.error('Upload error:', error);
-      if (error.code === '42501') {
+      if (isD10Rejection(error)) {
         setErrors([
-          'Upload failed: one or more rows use a question_type (mcq, mcq_multi, correct_incorrect, case_study_mcq, fitb, match_the_following) that requires a professor/admin account.',
-          'No rows were created (the whole file is uploaded as one batch) — remove those rows or upload from a professor/admin account.',
+          'Upload failed: one or more items use a question type that requires a professor/admin account. No items were created.',
         ]);
       } else {
         setErrors([`Upload failed: ${error.message}`]);
@@ -1266,6 +1285,16 @@ IMPORTANT:
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Content source (Sprint 8.7.2) */}
+            <ContentSourceFields
+              sourceType={sourceType}
+              onSourceTypeChange={setSourceType}
+              sourceName={sourceName}
+              onSourceNameChange={setSourceName}
+              idPrefix="bulk-source"
+              compact
+            />
 
             {/* File picker */}
             <div>
