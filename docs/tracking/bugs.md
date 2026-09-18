@@ -1,5 +1,14 @@
 # Bug Tracking
 
+## Sprint 8.7.1 — 18/09/2026 (Content provenance DB foundation)
+
+### [18/09/2026] `flashcards.source` defaults to `'manual'` for every insert, including bulk uploads — FOUND, NOT FIXED, disposition deferred to Sprint 8.7.2
+- **Found while:** Step 0 diagnostic for the content-provenance sprint (`docs/database/sprint8.7/00_DIAGNOSTIC_pre_provenance.sql`), cross-checking `flashcards.source`'s column default against how it's actually populated.
+- **Symptom:** `flashcards.source` is `NOT NULL DEFAULT 'manual'::text`. Neither `src/pages/dashboard/Content/FlashcardCreate.jsx` nor `src/pages/dashboard/BulkUploadFlashcards.jsx` ever sets `source` explicitly in their insert payloads (confirmed via code grep, zero matches for `source` in either file) — so every card, whether hand-authored or CSV-bulk-uploaded, silently gets `source = 'manual'` from the column default. `source` is therefore not a reliable signal of how a card was actually created.
+- **Root Cause:** not investigated further this sprint — out of scope (explicit non-goal of Sprint 8.7.1). Unknown whether `source` was ever intended to distinguish manual-vs-bulk authoring, or has some other intended meaning nothing currently sets correctly.
+- **Impact:** low/unknown — no code currently reads `source` for logic or display (not confirmed exhaustively; flagged here rather than assumed safe). Distinct from this sprint's new `content_source_type`/`content_source_name` provenance columns, which describe the source *document*, not the *creation method* `source` appears to target.
+- **Status:** NOT FIXED. Logged for Sprint 8.7.2's auditor to disposition — decide whether `source` should be corrected to distinguish manual vs. bulk upload (and if so, backfill policy for existing rows), or deprecated/repurposed, before any further reliance on it.
+
 ## Sprint 8.3 — 16/09/2026 (Bug fixes + Help renderer: hyperlinks & screenshots)
 
 ### [16/09/2026] `create_batch_group` never set `study_groups.group_type` — every batch created through the live Admin Dashboard button silently skipped the student-approval gate — ✅ FIXED

@@ -1,6 +1,34 @@
 # Changelog
 
 ---
+## [2026-09-18] feat(sprint-8.7.1): content provenance — DB foundation only, no end-user feature yet
+
+Database architecture for content-source tagging (D-21, blueprint.md §3.1). This is a DB-only foundation sprint — **no frontend changes, and this intentionally breaks direct flashcard/note creation in production** until Sprint 8.7.2/8.7.3 migrate `FlashcardCreate.jsx`/`BulkUploadFlashcards.jsx`/`NoteUpload.jsx`.
+
+### Added
+- **`flashcard_batch_provenance` table** — one row per flashcard `batch_id`, `content_source_type` (`official_body`/`original_creator`) + `content_source_name`. Absence of a row = legacy/unknown provenance, read via `LEFT JOIN`, never backfilled. RLS enabled, zero policies for `authenticated`/`anon` — writable only through the new RPC.
+- **`notes.content_source_type`/`content_source_name`** columns, enforced only on INSERT via a new `BEFORE INSERT` trigger (`fn_require_note_provenance`/`trg_require_note_provenance`) — legacy rows stay NULL and editable forever.
+- **`create_flashcard_batches(p_source_type, p_source_name, p_batches jsonb)` RPC** — atomic, `SECURITY DEFINER`. The only path that can create a provenanced flashcard batch. One call can mint multiple `batch_id`s sharing one source. Manually reproduces the ownership (`auth.uid()`) and D-10 verdict-type professor/admin gate, since `FORCE ROW LEVEL SECURITY` is not set on `flashcards`/`notes` and RLS is therefore invisible to this function.
+- **`flashcards` direct-INSERT policy extended** — now additionally requires `EXISTS(... flashcard_batch_provenance ...)` for the row's `batch_id`.
+
+### Fixed (grant-level, found live by the T1–T8 test run, not logic bugs)
+- `flashcard_batch_provenance`'s original `REVOKE ALL` also stripped base `SELECT` from `authenticated`, breaking the flashcards INSERT policy's `EXISTS()` subquery with a raw "permission denied" instead of a clean RLS rejection. Fixed: `GRANT SELECT` only, zero RLS SELECT policy (still 0 rows readable).
+- `anon` could still execute `create_flashcard_batches` after `REVOKE ALL FROM PUBLIC` — this project's default-privileges rule grants `EXECUTE` on new functions directly to `anon`, bypassing `PUBLIC`-only revokes. Fixed with an explicit `REVOKE ... FROM anon`.
+
+### Verified live (18/09/2026, 18/18 checks PASS)
+`docs/database/sprint8.7/03_TEST_verify_sprint8.7.1.sql` (T1–T8, real impersonation via `request.jwt.claims` + `SET LOCAL ROLE authenticated`, `BEGIN...ROLLBACK`): direct flashcard/provenance-table writes blocked, missing-provenance note insert blocked, legacy note edit unaffected, duplicate-batch reuse rejected, RPC atomicity confirmed both happy-path and on a deliberately invalid card, privilege-escalation attempts (verdict-type authorship, injected `user_id`) rejected, `anon`/`PUBLIC` cannot execute the RPC.
+
+### Logged, not fixed this sprint
+- `flashcards.source` defaults to `'manual'` for every insert including bulk uploads (`docs/tracking/bugs.md`) — disposition deferred to Sprint 8.7.2's auditor.
+
+### Files Changed
+- `docs/database/sprint8.7/00_DIAGNOSTIC_pre_provenance.sql`, `01_SCHEMA_provenance_foundation.sql`, `02_FUNCTIONS_create_flashcard_batches.sql`, `03_TEST_verify_sprint8.7.1.sql`, `04_HOTFIX_grants.sql`
+- `docs/active/blueprint.md` (D-21), `docs/active/now.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/tracking/bugs.md`
+
+### Non-goals (explicit)
+No frontend changes. No `NoteUpload.jsx` migration. No new note-creation RPC. No legacy backfill. No fix to the `flashcards.source` bug. No read/display work.
+
+---
 ## [2026-09-17] feat(sprint-8.6c): multi-select MCQ (mcq_multi) — full build, SQL deployed & verified live (✅ committed & pushed `19632fe`)
 
 A new, distinct `question_type`, `mcq_multi` — build-up-then-explicit-submit (checkboxes, mirrors `handleMatchSubmit`), not a flag on single-select `mcq`. Exact-set grading, all-or-none. Part of the professor authoring-toolkit-completeness work (D-20, blueprint.md §3.1) — not direct professor demand, but equipping professors with a broadly capable toolkit ahead of serious content onboarding.

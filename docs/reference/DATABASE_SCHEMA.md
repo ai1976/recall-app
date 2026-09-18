@@ -165,6 +165,8 @@
 | featured_approved_at | timestamptz | YES | NULL | ⭐ NEW (Phase 5 Sprint 3, ✅ deployed 2026-07-01). Set alongside `featured_approved_by`. |
 | created_at | timestamp | NO | NOW() | Upload timestamp |
 | updated_at | timestamp | NO | NOW() | Last modified |
+| content_source_type | text | YES | NULL | ⭐ NEW (Sprint 8.7.1, 18/09/2026, ✅ deployed & verified live). `official_body` or `original_creator` (`CHECK`, NULL allowed at column level). Required only on INSERT via `trg_require_note_provenance` (see §3.2 `users_insert_notes`) — legacy rows stay NULL forever, never backfilled, and stay editable (trigger is `BEFORE INSERT` only). |
+| content_source_name | text | YES | NULL | ⭐ NEW (Sprint 8.7.1, 18/09/2026). Free-text source name, paired with `content_source_type`, same INSERT-only enforcement. |
 
 **Visibility System (NEW - January 11, 2026):**
 - `visibility` column replaces old `is_public` boolean
@@ -362,6 +364,28 @@
 **RLS Policies:** 5 policies (see RLS section) **+ 2 more (Sprint 7.5 D-10, ✅ deployed & verified live 13/09/2026)** — `flashcards_gate_verdict_types_insert`/`_update`, RESTRICTIVE, block non-professor/admin/super_admin authorship of verdict-bearing question types.
 
 **CRITICAL:** Always group by `batch_id`, NOT by timestamp or created_at
+
+---
+
+### 2.3A flashcard_batch_provenance ⭐ NEW (Sprint 8.7.1, 18/09/2026, ✅ deployed & verified live)
+
+**Purpose:** D-21 content provenance (blueprint.md §3.1) — one row per flashcard `batch_id` declaring its content source. Provenance belongs to the batch, not the individual card, because a bulk upload's cards within one batch always share one source document.
+
+**Legacy-absence semantics:** the table is only ever populated by `create_flashcard_batches()` (§4.0b) going forward. Pre-8.7.1 `batch_id`s get no row — **never backfilled**. Any read joining against this table must use `LEFT JOIN` and treat a missing row as "unknown/legacy provenance," never as an error or a value to fill in.
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| batch_id | uuid | NO | - | Primary key. Not a foreign key to `flashcards.batch_id` (that column carries no FK constraint either — confirmed live, Step 0 diagnostic). |
+| content_source_type | text | NO | - | `CHECK (content_source_type IN ('official_body', 'original_creator'))` |
+| content_source_name | text | NO | - | `CHECK (btrim(content_source_name) <> '')` |
+| created_by | uuid | YES | NULL | FK → `profiles.id` |
+| created_at | timestamptz | NO | now() | |
+
+**Why `NOT NULL` on every column except `created_by`/`created_at`'s FK nullability:** a row exists only when provenance exists — there is no partially-populated state. Legacy batches are represented by the *absence* of a row, not by a row with NULL source fields.
+
+**RLS:** enabled, **zero policies** for `authenticated`/`anon` on INSERT/UPDATE/DELETE — direct writes are impossible; only `create_flashcard_batches()` (SECURITY DEFINER, owner `postgres`, bypasses RLS as table owner) can write. `GRANT SELECT ... TO authenticated` exists (added by `04_HOTFIX_grants.sql`) but is **not** a read policy — RLS stays enabled with zero SELECT policy, so `authenticated` still gets 0 rows back on any direct query. The grant exists solely so the `EXISTS(...)` subquery inside the `flashcards` INSERT policy (§3.3) can execute at all; without base `SELECT` grant, Postgres throws a hard "permission denied for table" instead of gracefully evaluating the RLS-filtered subquery to "0 rows → false" (confirmed live during T1's first run). A genuine read *policy* — the one that will actually let a user see provenance for display — is deferred to Sprint 8.7.4, deliberately not added yet ("don't grant more than needed now").
+
+**SQL:** `docs/database/sprint8.7/01_SCHEMA_provenance_foundation.sql`, `04_HOTFIX_grants.sql`. Test: `03_TEST_verify_sprint8.7.1.sql` (T2/T2b/T2c: direct INSERT/UPDATE/DELETE all denied to `authenticated`; T5: duplicate-`batch_id` reuse rejected; T6/T6b/T6c: happy-path row creation correct; 18/18 PASS live 18/09/2026).
 
 ---
 
@@ -1478,6 +1502,8 @@ RETURNS TABLE (
 - **Condition:** `user_id = auth.uid()`
 - **Purpose:** Users can create notes
 - **Why Needed:** Note upload feature
+- **Provenance enforcement (Sprint 8.7.1, 18/09/2026, ✅ deployed & verified live) — trigger, not RLS/CHECK:** `notes.content_source_type`/`content_source_name` columns added (both nullable at the column level — legacy rows stay NULL forever, no backfill). A new `BEFORE INSERT` trigger, `trg_require_note_provenance` → `fn_require_note_provenance()`, rejects any INSERT where either is NULL/blank. Deliberately a trigger and not a `CHECK`: a `CHECK` re-evaluates on every UPDATE too, so one strict enough to force provenance on insert would also block a harmless edit to a pre-8.7.1 legacy note (still NULL), and one loose enough to permit that edit would equally permit `NULL` provenance on a brand-new insert. `BEFORE INSERT` is the only mechanism that distinguishes "new row" from "editing an old one." `NoteUpload.jsx` is NOT migrated to populate these columns this sprint (explicit non-goal) — direct note creation will start failing the same way flashcards did until a later sprint migrates it.
+- **SQL:** `docs/database/sprint8.7/01_SCHEMA_provenance_foundation.sql`. Test: `docs/database/sprint8.7/03_TEST_verify_sprint8.7.1.sql` (T3: missing-provenance insert rejected; T4/T4b: legacy NULL-provenance note stays editable, provenance stays NULL after the edit — trigger correctly does not fire on UPDATE; 18/18 PASS live 18/09/2026).
 
 #### Policy: users_update_own_notes
 - **Command:** UPDATE
@@ -1526,12 +1552,14 @@ RETURNS TABLE (
 - **Purpose:** Users can view their own flashcards
 - **Why Needed:** My Flashcards page
 
-#### Policy: users_insert_flashcards
+#### Policy: users_insert_flashcards (live name: `"Users can insert their own flashcards"` — confirmed via Sprint 8.7.1 Step 0 diagnostic; this doc's alias predates the live rename and was never corrected until now)
 - **Command:** INSERT
 - **Roles:** authenticated
-- **Condition:** `user_id = auth.uid()`
-- **Purpose:** Users can create flashcards
-- **Why Needed:** Create Flashcard, Bulk Upload
+- **Condition (Sprint 8.7.1, 18/09/2026, ✅ deployed & verified live):** `user_id = auth.uid() AND EXISTS (SELECT 1 FROM flashcard_batch_provenance p WHERE p.batch_id = flashcards.batch_id)` — extended via `ALTER POLICY`, original `user_id = auth.uid()` condition preserved unchanged inside the AND. See §"flashcard_batch_provenance" below for why. The separate RESTRICTIVE `flashcards_gate_verdict_types_insert` policy still ANDs with this one unchanged.
+- **⚠️ Breaking change, intentional:** as of this policy change, a direct client `INSERT` into `flashcards` requires a pre-existing provenance row for that `batch_id` — impossible for any current write path, since neither `FlashcardCreate.jsx` nor `BulkUploadFlashcards.jsx` creates one. Direct flashcard creation is broken in production until those pages are migrated to `create_flashcard_batches()` in Sprint 8.7.2/8.7.3.
+- **Purpose:** Users can create flashcards, and (as of 8.7.1) only as part of a provenanced batch
+- **Why Needed:** Create Flashcard, Bulk Upload; provenance requirement added for D-21 (content-source tagging, blueprint.md §3.1)
+- **SQL:** `docs/database/sprint8.7/01_SCHEMA_provenance_foundation.sql`. Test: `docs/database/sprint8.7/03_TEST_verify_sprint8.7.1.sql` (T1, T5–T7 exercise this condition; 18/18 PASS live 18/09/2026).
 
 #### Policy: users_update_own_flashcards
 - **Command:** UPDATE
@@ -1650,6 +1678,32 @@ Ordered by `subject_name NULLS LAST, custom_subject NULLS LAST, created_at`.
 **Course filter is read-time and non-destructive:** the function performs **no writes**. A student who switches `course_level` stops seeing the old course's cards in the queue; switching back restores the previous queue with `next_review_date` values untouched (their previous-course cards remain fully browsable in Library the whole time). Confirmed by `02_TEST` block 9 (reviews row unchanged after call) + blocks 5–6 (course filter on/off).
 
 **Do not reintroduce `vw_study_items`** or any SECURITY DEFINER view — that was an anon-leak surface dropped 02/07/2026 (L1). Authenticated pipeline logic belongs in this guarded RPC.
+
+---
+
+### 4.0b create_flashcard_batches(p_source_type text, p_source_name text, p_batches jsonb) — ✅ Sprint 8.7.1 (deployed & verified live 18/09/2026)
+
+**Purpose:** D-21 content provenance (blueprint.md §3.1). Atomically creates one or more flashcard batches (each with its own `batch_id`) sharing one declared content source, plus a `flashcard_batch_provenance` row per `batch_id`. As of 8.7.1, this is the ONLY way to create a flashcard batch with valid provenance — a direct client `INSERT` into `flashcards` now requires a pre-existing provenance row for its `batch_id` (see §3.3 `users_insert_flashcards`).
+
+**Created:** 18/09/2026 — `docs/database/sprint8.7/02_FUNCTIONS_create_flashcard_batches.sql` (+ hotfix `04_HOTFIX_grants.sql`). Test: `03_TEST_verify_sprint8.7.1.sql`, 18/18 PASS live.
+
+**Security:** `SECURITY DEFINER`, owner `postgres`, `SET search_path = pg_catalog, public`.
+
+**⚠️ RLS does not apply to this function at all.** `FORCE ROW LEVEL SECURITY` is not set on `flashcards`/`notes` (confirmed live, Step 0 diagnostic), and the function owner (`postgres`) owns both tables — so as `SECURITY DEFINER` running as table owner, every RLS policy on `flashcards` (including the D-10 verdict-type gate) is invisible to this function. It manually reproduces both guarantees a direct insert would have gotten from RLS:
+- `user_id` is derived from `auth.uid()` server-side. A card payload containing `user_id`/`contributed_by`/`creator_id`/`content_creator_id`/`is_verified` is rejected outright (not silently overridden) — proven live by T7b.
+- Any card whose `question_type` is in the D-10 verdict-bearing list (`mcq`, `mcq_multi`, `match_the_following`, `case_study_mcq`, `correct_incorrect`, `fitb`) is rejected unless `is_professor_or_admin()` — proven live by T7.
+
+**Grants:** `REVOKE ALL FROM PUBLIC, anon` (both needed explicitly — `anon` had its own default-privileges EXECUTE grant not routed through `PUBLIC`, confirmed live by T8b before the hotfix); `GRANT EXECUTE TO authenticated` only.
+
+**Return Type:** `TABLE(batch_id uuid, card_count integer)` — one row per batch processed.
+
+**Input contract (`p_batches`):** `[{ "batch_id": "<uuid>", "cards": [ { "question_type": ..., "front_text": ..., "back_text": ..., "options": ..., "correct_answer": ..., ... } ] }, ...]` — mirrors the existing `FlashcardCreate.jsx` direct-insert field set (`deck_id`, `note_id`, `discipline_id`, `target_course`, `subject_id`, `topic_id`, `custom_subject`, `custom_topic`, `front_text`, `back_text`, `front_image_url`, `back_image_url`, `tags`, `visibility`, `difficulty`, `batch_description`, `question_type`, `options`, `correct_answer`, `points_to_remember`, `explanation`, `subtype`), minus the server-derived ownership fields above. `p_source_type` is `official_body` or `original_creator`; `p_source_name` non-blank. A card-level `batch_id`, if present, must match its enclosing batch's `batch_id` (derived from the batch, never trusted from the card).
+
+**Atomicity:** single function invocation = single implicit transaction — any `RAISE EXCEPTION` (validation failure or a table `CHECK`/constraint violation) aborts and rolls back the entire call, including any provenance rows already inserted earlier in the same call. Proven live by T6d/T6e (one invalid card in a 2-card batch → zero provenance rows, zero cards survive).
+
+**One provenance per batch, no overwrite:** `flashcard_batch_provenance.batch_id` is the primary key; the function additionally checks `EXISTS(...)` before insert and raises a clear error rather than hitting a raw unique-violation. Calling the RPC again against an already-provenanced `batch_id` fails — proven live by T5.
+
+**Non-goals (explicit, this sprint):** no frontend caller yet (`FlashcardCreate.jsx`/`BulkUploadFlashcards.jsx` are not migrated to call this — Sprint 8.7.2/8.7.3), no per-card provenance (one source per `batch_id`, by design), no `content_creator_id` handling (separate revenue-attribution concern, untouched).
 
 ---
 

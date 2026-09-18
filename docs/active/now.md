@@ -1,6 +1,24 @@
 # NOW - Current Development Status
 
-**Last Updated:** 17/09/2026
+**Last Updated:** 18/09/2026
+
+## Sprint 8.7.1: Content Provenance — DB Foundation Only — Phase 8 (18/09/2026) — ✅ SQL deployed & live-verified, NO frontend changes
+
+**See D-21, blueprint.md §3.1 for full detail.** DB-side foundation for content-source tagging landed: `flashcard_batch_provenance` table (batch-level provenance, RLS-locked to the new RPC only), `notes.content_source_type`/`content_source_name` + INSERT-only enforcement trigger, and the atomic SECURITY DEFINER RPC `create_flashcard_batches()`. Step 0 diagnostic caught one naming drift before any DDL (the live flashcards INSERT policy is `"Users can insert their own flashcards"`, not `users_insert_flashcards` as assumed) — everything else matched the pre-flight spec exactly.
+
+**⚠️ Frontend creation paths are now intentionally incompatible/unmigrated.** `FlashcardCreate.jsx` and `BulkUploadFlashcards.jsx` still `INSERT` directly into `flashcards` without creating a provenance row — every direct flashcard creation in production now fails RLS. This was known and accepted before deploying (see the breaking-change note in `01_SCHEMA_provenance_foundation.sql`). **Sprint 8.7.2/8.7.3 are required before flashcard creation works again** — migrating those two pages (plus `NoteUpload.jsx`, which is similarly now blocked by the notes trigger) to call the new RPC / supply provenance. D-21 stays IN PROGRESS until 8.7.4.
+
+**Two grant-level hotfixes found by the live T1–T8 run (`docs/database/sprint8.7/04_HOTFIX_grants.sql`), no logic bugs:**
+1. `flashcard_batch_provenance`'s original `REVOKE ALL` also stripped base `SELECT` from `authenticated`, which the flashcards INSERT policy's `EXISTS(...)` subquery needs just to execute — surfaced as a raw "permission denied for table" instead of a clean RLS rejection (the insert was still blocked either way). Fixed by granting table-level `SELECT` only, with zero RLS `SELECT` policy — still 0 rows readable.
+2. `anon` could still execute `create_flashcard_batches` after `REVOKE ALL ... FROM PUBLIC` — this project has a default-privileges rule granting `EXECUTE` on new functions directly to `anon`/`authenticated`, not through `PUBLIC` (same pattern Step 0 already found on table grants). Fixed with an explicit `REVOKE ... FROM anon`.
+
+**Live T1–T8 result: 18/18 PASS** (`docs/database/sprint8.7/03_TEST_verify_sprint8.7.1.sql`, real `request.jwt.claims` + `SET LOCAL ROLE authenticated` impersonation, `BEGIN...ROLLBACK`, nothing persisted). Confirms: direct flashcard insert without provenance blocked; direct writes to the provenance table blocked; missing-provenance note insert blocked; a genuine legacy note (NULL provenance) stays editable; duplicate-`batch_id` reuse rejected; RPC happy path atomic and correct; a multi-card call with one invalid card rolls back fully; a student cannot use the RPC to author verdict-bearing types or inject another user's `user_id`; only `authenticated` can execute the RPC.
+
+**Known bug, logged not fixed (`docs/tracking/bugs.md`):** `flashcards.source` defaults to `'manual'` for every insert including bulk uploads — neither creation page ever sets it explicitly. Disposition deferred to Sprint 8.7.2's auditor.
+
+**Next:** Sprint 8.7.2 (auditor disposition on the `source` bug + likely `FlashcardCreate.jsx` migration to the RPC) and 8.7.3 (`BulkUploadFlashcards.jsx`/`NoteUpload.jsx` migration) before flashcard/note creation works in production again. **Confirm git commit + push per the Deployment Order Rule before starting either.**
+
+---
 
 ## Sprint 8.6c: Multi-Select MCQ (mcq_multi) — Full Build — Phase 8 (17/09/2026) — ✅ SQL deployed, live browser verification complete
 
