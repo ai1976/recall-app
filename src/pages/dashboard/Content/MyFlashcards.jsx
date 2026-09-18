@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRole } from '@/contexts/NavDataContext'; // Sprint 7.0: shared nav-data context, not a per-mount fetch
 import FlashcardCard from '@/components/flashcards/FlashcardCard';
 import FeatureNominationButton from '@/components/content/FeatureNominationButton';
+import ProvenanceBadge from '@/components/content/ProvenanceBadge';
+import { fetchBatchProvenanceMap } from '@/lib/provenance';
 
 export default function MyFlashcards() {
   const navigate = useNavigate();
@@ -21,6 +23,8 @@ export default function MyFlashcards() {
   const [filteredCards, setFilteredCards] = useState([]);
   const [userDecks, setUserDecks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [provenanceByBatch, setProvenanceByBatch] = useState(new Map());
+  const provenanceFetchId = useRef(0);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,6 +150,10 @@ export default function MyFlashcards() {
       }));
 
       setFlashcards(cleanedData);
+      const thisFetchId = ++provenanceFetchId.current;
+      fetchBatchProvenanceMap(cleanedData.map(c => c.batch_id)).then(map => {
+        if (thisFetchId === provenanceFetchId.current) setProvenanceByBatch(map);
+      });
 
       const courses = [...new Set(cleanedData.map(c => c.target_course).filter(Boolean))];
       const subjects = [...new Set(cleanedData.map(c => c.subjects?.name || c.custom_subject).filter(Boolean))];
@@ -916,10 +924,21 @@ export default function MyFlashcards() {
                           </p>
                         )}
 
-                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          Uploaded: {formatDateTime(group.createdDate)}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            Uploaded: {formatDateTime(group.createdDate)}
+                          </p>
+                          {(() => {
+                            const prov = provenanceByBatch.get(group.batchId);
+                            return prov && (
+                              <ProvenanceBadge
+                                sourceType={prov.content_source_type}
+                                sourceName={prov.content_source_name}
+                              />
+                            );
+                          })()}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -1008,6 +1027,7 @@ export default function MyFlashcards() {
                           onEditChange={handleEditChange}
                           onDelete={handleDelete}
                           onVisibilityChange={handleCardVisibilityChange}
+                          provenance={provenanceByBatch.get(card.batch_id)}
                         />
                       ))}
                     </div>
@@ -1030,6 +1050,7 @@ export default function MyFlashcards() {
                 onEditChange={handleEditChange}
                 onDelete={handleDelete}
                 onVisibilityChange={handleCardVisibilityChange}
+                provenance={provenanceByBatch.get(card.batch_id)}
               />
             ))}
           </div>

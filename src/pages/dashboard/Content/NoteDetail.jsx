@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import UpvoteButton from '@/components/ui/UpvoteButton';
 import ContentPreviewWall from '@/components/ui/ContentPreviewWall';
 import FlagButton from '@/components/ui/FlagButton';
 import FeatureNominationButton from '@/components/content/FeatureNominationButton';
+import ProvenanceBadge from '@/components/content/ProvenanceBadge';
+import { fetchBatchProvenanceMap } from '@/lib/provenance';
 
 export default function NoteDetail() {
   const { id } = useParams();
@@ -24,6 +26,8 @@ export default function NoteDetail() {
   const [loading, setLoading] = useState(true);
   const [authorProfile, setAuthorProfile] = useState(null);
   const [userAccountType, setUserAccountType] = useState(null);
+  const [provenanceByBatch, setProvenanceByBatch] = useState(new Map());
+  const provenanceFetchId = useRef(0);
 
   useEffect(() => {
     fetchNote();
@@ -76,6 +80,10 @@ export default function NoteDetail() {
 
       if (flashcardsError) throw flashcardsError;
       setFlashcards(flashcardsData || []);
+      const thisFetchId = ++provenanceFetchId.current;
+      fetchBatchProvenanceMap((flashcardsData || []).map(c => c.batch_id)).then(map => {
+        if (thisFetchId === provenanceFetchId.current) setProvenanceByBatch(map);
+      });
     } catch (error) {
       console.error('Error fetching note:', error);
       toast({
@@ -291,6 +299,10 @@ export default function NoteDetail() {
                 <span className="font-medium">Created:</span>
                 <span>{new Date(note.created_at).toLocaleDateString()}</span>
               </div>
+              <ProvenanceBadge
+                sourceType={note.content_source_type}
+                sourceName={note.content_source_name}
+              />
             </div>
 
             {note.tags && note.tags.length > 0 && (
@@ -409,8 +421,19 @@ export default function NoteDetail() {
                   >
                     {/* Front Side */}
                     <div className="p-4 bg-white border-b border-gray-100">
-                      <div className="flex items-start justify-between mb-2">
-                        <p className="text-xs font-semibold text-gray-500 uppercase">Front (Question)</p>
+                      <div className="flex items-start justify-between mb-2 gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-xs font-semibold text-gray-500 uppercase">Front (Question)</p>
+                          {(() => {
+                            const prov = provenanceByBatch.get(card.batch_id);
+                            return prov && (
+                              <ProvenanceBadge
+                                sourceType={prov.content_source_type}
+                                sourceName={prov.content_source_name}
+                              />
+                            );
+                          })()}
+                        </div>
                         {isOwner && (
                           <Button
                             variant="ghost"

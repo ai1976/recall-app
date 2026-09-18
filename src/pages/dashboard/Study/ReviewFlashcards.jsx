@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import UpvoteButton from '@/components/ui/UpvoteButton';
 import ConceptCardViewer from '@/components/flashcards/ConceptCardViewer';
 import { formatQuestionType, BROWSABLE_QUESTION_TYPES } from '@/lib/questionTypes';
+import ProvenanceBadge from '@/components/content/ProvenanceBadge';
 
 export default function ReviewFlashcards() {
   const navigate = useNavigate();
@@ -703,6 +704,10 @@ export default function ReviewFlashcards() {
                                     Yours
                                   </span>
                                 )}
+                                <ProvenanceBadge
+                                  sourceType={deck.provenance_source_type}
+                                  sourceName={deck.provenance_source_name}
+                                />
                               </div>
 
                               {/* Upvote Button for Deck */}

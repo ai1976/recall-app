@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import UpvoteButton from '@/components/ui/UpvoteButton';
 import FlagButton from '@/components/ui/FlagButton';
+import ProvenanceBadge from '@/components/content/ProvenanceBadge';
 
 export default function BrowseNotes() {
   const navigate = useNavigate();
@@ -696,6 +697,15 @@ export default function BrowseNotes() {
                                               +{note.tags.length - 2}
                                             </span>
                                           )}
+                                        </div>
+                                      )}
+
+                                      {note.content_source_type && (
+                                        <div className="mb-3">
+                                          <ProvenanceBadge
+                                            sourceType={note.content_source_type}
+                                            sourceName={note.content_source_name}
+                                          />
                                         </div>
                                       )}
 

@@ -45,6 +45,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useSpeech } from '@/hooks/useSpeech';
 import SpeakButton from '@/components/flashcards/SpeakButton';
 import SpeechSettings from '@/components/flashcards/SpeechSettings';
+import ProvenanceBadge from '@/components/content/ProvenanceBadge';
+import { fetchBatchProvenanceMap } from '@/lib/provenance';
 
 const PREVIEW_LIMIT = 10;
 
@@ -143,6 +145,7 @@ export default function StudyMode({
     title: '',
     description: '',
   });
+  const [provenanceByBatch, setProvenanceByBatch] = useState(new Map());
 
   useEffect(() => {
     if (propFlashcards && propFlashcards.length > 0) {
@@ -153,6 +156,22 @@ export default function StudyMode({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propFlashcards]);
+
+  // Batch provenance for the display badge (Sprint 8.7.4) — keyed off the
+  // distinct batch_ids currently in the deck, so it refetches only when the
+  // actual set of batches changes, not on every reorder/reshuffle.
+  const batchIdKey = flashcards.map(c => c.batch_id).filter(Boolean).sort().join(',');
+  useEffect(() => {
+    if (!batchIdKey) {
+      setProvenanceByBatch(new Map());
+      return;
+    }
+    let cancelled = false;
+    fetchBatchProvenanceMap(batchIdKey.split(',')).then(map => {
+      if (!cancelled) setProvenanceByBatch(map);
+    });
+    return () => { cancelled = true; };
+  }, [batchIdKey]);
 
   // Mark session start in localStorage once cards are ready.
   // Preview mode sessions are excluded — Tier B users shouldn't log study time
@@ -1102,6 +1121,18 @@ export default function StudyMode({
                 </p>
               </div>
             )}
+
+            {(() => {
+              const prov = provenanceByBatch.get(currentCard.batch_id);
+              return prov && (
+                <div className="flex justify-center mb-2">
+                  <ProvenanceBadge
+                    sourceType={prov.content_source_type}
+                    sourceName={prov.content_source_name}
+                  />
+                </div>
+              );
+            })()}
 
             <RvCard
               elevated

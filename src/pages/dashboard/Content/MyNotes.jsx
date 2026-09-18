@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { deleteNoteStorageImage } from '@/lib/noteStorage';
+import ProvenanceBadge from '@/components/content/ProvenanceBadge';
 
 const VIEW_MODE_KEY = 'myNotes_viewMode';
 
@@ -357,6 +358,11 @@ export default function MyNotes() {
               <span> &bull; {note.topics?.name || note.custom_topic}</span>
             )}
           </div>
+
+          <ProvenanceBadge
+            sourceType={note.content_source_type}
+            sourceName={note.content_source_name}
+          />
 
           {note.tags && note.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">

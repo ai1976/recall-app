@@ -58,6 +58,7 @@ export default function ReviewSession() {
         difficulty: row.difficulty,
         is_verified: row.is_verified,
         question_type: row.question_type,
+        batch_id: row.batch_id, // Sprint 8.7.4 — drives StudyMode's provenance badge
         rung: row.rung, // current SRS ladder position — drives StudyMode's local grade-button preview
         subject_name: row.subject_name,
         topic_name: row.topic_name,

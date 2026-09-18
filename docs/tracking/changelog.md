@@ -1,6 +1,46 @@
 # Changelog
 
 ---
+## [2026-09-18] feat(sprint-8.7.4): content provenance display — SQL deployed & live-verified, frontend not yet pushed
+
+Builds the read policy and UI display that 8.7.1 deliberately deferred: a source badge ("Official source" / "Original creator" + name) on every flashcard/note read surface, wired to the actual data path each one uses (direct table query or RPC). Last sprint in the D-21 phase, but D-21 is not being marked closed by this entry — see below.
+
+**This session had no Supabase SQL access of its own** — every SQL file was written here, then run by the operator directly in the SQL Editor with results reconciled turn-by-turn. Every frontend file is linted and build-clean.
+
+### Fixed
+- **Real bug found live: `get_browsable_decks` v7's first deploy was broken.** The original `sole_batch_id` expression used `min(fc.batch_id)`, but Postgres has no default ordering operator class for `uuid` — raises `42883: function min(uuid) does not exist` at call time (the DROP+CREATE itself had no syntax error, so the broken function silently existed until the operator's live T4 run called it). Fixed to `(array_agg(fc.batch_id))[1]`, safe because the surrounding `CASE` already gates on `count(DISTINCT fc.batch_id) = 1`. Re-deployed and re-verified against real deck data.
+
+### Added
+- `src/components/content/ProvenanceBadge.jsx` — shared badge, renders nothing when source data is absent (no "Unknown source" placeholder).
+- `src/lib/provenance.js` — `fetchBatchProvenanceMap(batchIds)`, the client-side batch → provenance lookup used by every direct-query surface.
+- `docs/database/sprint8.7.4/01_SCHEMA_provenance_select_policy.sql` — the read policy 8.7.1/8.7.2 deliberately left unbuilt.
+- `docs/database/sprint8.7.4/02_FUNCTIONS_get_browsable_decks_v7_provenance.sql` — deck-level badge, shown only when every visible card in the deck shares one batch_id (else NULL — a deck routinely spans many batches, so a single badge would misattribute).
+- `docs/database/sprint8.7.4/03_FUNCTIONS_get_browsable_notes_v4_provenance.sql` — row-level passthrough; also pins `search_path` (v3 had none — found while reproducing the function, not previously flagged).
+- `docs/database/sprint8.7.4/04_FUNCTIONS_get_study_queue_batch_id.sql` — adds `batch_id`, found missing via Step 0's diagnostic read of the live function, not assumed present.
+
+### Changed
+- `MyFlashcards.jsx`, `StudyMode.jsx`, `NoteDetail.jsx`, `MyNotes.jsx`, `BrowseNotes.jsx`, `ReviewFlashcards.jsx` — each wired to its actual real data path (direct query or RPC) per Step 0's surface map, not a one-size-fits-all approach.
+
+### Explicitly out of scope this sprint
+- `DeckPreview.jsx`/`NotePreview.jsx` (public/anonymous preview pages) — untouched. No backfill, no source-citation field, no editing provenance after creation — all non-goals stated in the sprint brief.
+- `MyFlashcards.jsx`'s ungrouped grid view, `ReviewBySubject.jsx` (subject-count summary only, no card content shown) — badge not added, documented as a scope cut in now.md.
+
+### Verified live (18/09/2026, dev server → live Supabase, real TestOutlook student session)
+SQL deployed and verified (T1 + T4/T5/T6 confirmed against real result rows; T2/T3/T7's actual NOTICE output was never captured back — flagged as not independently confirmed rather than left as an overclaim). §3 reconciliation pass complete: one manual flashcard, one bulk upload (2 cards), one note — all created in sequence, no cross-path regressions, badges confirmed rendering on every surface. This produced a genuine live multi-batch deck (new cards + a pre-existing 8.7.2 test card sharing one subject/topic) — `get_browsable_decks` correctly showed no badge on it, confirming the ambiguity rule against real data. T7-equivalent re-confirmed via a direct RPC call: a student `mcq` attempt still rejected with the identical D-10 message. Test data cleanup SQL written (`docs/database/sprint8.7.4/06_CLEANUP_remove_verification_test_data.sql`) since the Browser pane's sandbox blocks the in-app delete button's `confirm()` dialog.
+
+### Post-completion audit reconciliation (18/09/2026, same day) — 6 real/plausible bugs found and fixed across two review rounds
+An auditor pass requested explicit reconciliation of 6 points before declaring the sprint done, including an independent `/code-review` pass. Round 1 (manual, before extra credits were available): 3 bugs found and fixed — `ReviewSession.jsx` never forwarded `get_study_queue`'s new `batch_id` to `StudyMode.jsx` (silently defeating the SQL fix for the "Today's Reviews" path, the most common study entry point — the original live verification only exercised the direct-deck-click path); `MyFlashcards.jsx`'s "grouped" view (the page's default) had a second `<FlashcardCard>` call site missing the `provenance` prop; `StudyMode.jsx`'s provenance fetch had no stale-response guard.
+
+Round 2 (after credits were added, running the 3 finder angles that had hit a rate limit in round 1): confirmed no other deploy-breaking SQL bug exists (the `min→array_agg` fix was sufficient; `get_study_queue`/`get_browsable_notes` diffed byte-clean against their sources). Found and fixed the same stale-response race in `MyFlashcards.jsx` and `NoteDetail.jsx` (only `StudyMode.jsx` had been guarded in round 1). Found and **deliberately deferred** (documented in `bugs.md`, not fixed): `handleMergeBatches` doesn't reconcile `flashcard_batch_provenance` on batch merge — a pre-existing gap this sprint's badge display makes visible for the first time, whose correct fix requires a product decision outside this sprint's scope. Also surfaced several non-blocking DRY/efficiency suggestions (a shared `useBatchProvenance` hook opportunity) and process gaps (`05_TEST`'s T4-T6 are documentation-only, not automated; `06_CLEANUP` now explicitly wrapped in `BEGIN`/`COMMIT`) — recorded, not all applied.
+
+Also reconciled and documented: `get_study_queue`'s additive-change compatibility (cites the SRS Ladder Epic's identical prior precedent — no "frozen contract" exists anywhere in the governing docs), an explicit per-surface reconciliation of the two omitted public preview pages and the (now-fixed) grid-view gap, a by-construction proof that deck-level provenance aggregation can't leak another user's or an invisible batch's data, an anonymous-regression check actually run (fresh, localStorage-cleared session) rather than inferred from "untouched," and all three cleanup counters (`remaining_flashcards`/`remaining_notes`/`remaining_provenance`) confirmed at 0 by the operator.
+
+### Files Changed
+- New: `src/components/content/ProvenanceBadge.jsx`, `src/lib/provenance.js`, `docs/database/sprint8.7.4/00`–`05`.
+- Modified: `src/pages/dashboard/Content/MyFlashcards.jsx`, `MyNotes.jsx`, `NoteDetail.jsx`, `BrowseNotes.jsx`, `src/pages/dashboard/Study/StudyMode.jsx`, `ReviewFlashcards.jsx`.
+- Docs: `docs/active/blueprint.md`, `docs/active/now.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/tracking/changelog.md`.
+
+---
 ## [2026-09-18] fix(sprint-8.7.3): restore note creation service, close D-21
 
 Sprint 8.7.1 shipped the notes provenance trigger without frontend wiring, which broke `NoteUpload.jsx` in production (a second, independent outage from the flashcards one 8.7.2 fixed). This sprint restores service — the last unmigrated write path — and closes D-21. Much smaller than 8.7.2: notes have no batching concept, so there's no RPC and no atomicity work here, just UI wiring against a trigger that was already live and already tested.

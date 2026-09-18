@@ -383,9 +383,11 @@
 
 **Why `NOT NULL` on every column except `created_by`/`created_at`'s FK nullability:** a row exists only when provenance exists — there is no partially-populated state. Legacy batches are represented by the *absence* of a row, not by a row with NULL source fields.
 
-**RLS:** enabled, **zero policies** for `authenticated`/`anon` on INSERT/UPDATE/DELETE — direct writes are impossible; only `create_flashcard_batches()` (SECURITY DEFINER, owner `postgres`, bypasses RLS as table owner) can write. `GRANT SELECT ... TO authenticated` exists (added by `04_HOTFIX_grants.sql`) but is **not** a read policy — RLS stays enabled with zero SELECT policy, so `authenticated` still gets 0 rows back on any direct query. The grant exists solely so the `EXISTS(...)` subquery inside the `flashcards` INSERT policy (§3.3) can execute at all; without base `SELECT` grant, Postgres throws a hard "permission denied for table" instead of gracefully evaluating the RLS-filtered subquery to "0 rows → false" (confirmed live during T1's first run). A genuine read *policy* — the one that will actually let a user see provenance for display — is deferred to Sprint 8.7.4, deliberately not added yet ("don't grant more than needed now").
+**RLS:** enabled, **zero policies** for `authenticated`/`anon` on INSERT/UPDATE/DELETE — direct writes are impossible; only `create_flashcard_batches()` (SECURITY DEFINER, owner `postgres`, bypasses RLS as table owner) can write. `GRANT SELECT ... TO authenticated` exists (added by `04_HOTFIX_grants.sql`) — originally not paired with any SELECT *policy*, so it alone unlocked 0 rows; it existed solely so the `EXISTS(...)` subquery inside the `flashcards` INSERT policy (§3.3) could execute at all without a hard "permission denied for table" error.
 
-**SQL:** `docs/database/sprint8.7/01_SCHEMA_provenance_foundation.sql`, `04_HOTFIX_grants.sql`. Test: `03_TEST_verify_sprint8.7.1.sql` (T2/T2b/T2c: direct INSERT/UPDATE/DELETE all denied to `authenticated`; T5: duplicate-`batch_id` reuse rejected; T6/T6b/T6c: happy-path row creation correct; 18/18 PASS live 18/09/2026).
+**Sprint 8.7.4 — read policy added (D-21 display):** `authenticated_read_flashcard_batch_provenance`, `FOR SELECT TO authenticated USING (true)` — unconditional, not an attempt to mirror flashcards' own visibility rules inside a subquery here (`docs/database/sprint8.7.4/01_SCHEMA_provenance_select_policy.sql`; reasoning recorded in that file's header and in now.md). Provenance (a source type + name) is not sensitive per-batch content the way flashcard text is — this policy does not touch `flashcards`' own RLS. `anon` still has no table-level grant at all (unchanged from 8.7.1), so this remains `authenticated`-only.
+
+**SQL:** `docs/database/sprint8.7/01_SCHEMA_provenance_foundation.sql`, `04_HOTFIX_grants.sql`, `docs/database/sprint8.7.4/01_SCHEMA_provenance_select_policy.sql`. Test: `03_TEST_verify_sprint8.7.1.sql` (T2/T2b/T2c: direct INSERT/UPDATE/DELETE all denied to `authenticated`; T5: duplicate-`batch_id` reuse rejected; T6/T6b/T6c: happy-path row creation correct; 18/18 PASS live 18/09/2026); `docs/database/sprint8.7.4/05_TEST_verify_sprint8.7.4.sql` (T1: exactly one SELECT policy; T2: authenticated can now read; T3: writes still denied; T7: anon still denied).
 
 ---
 
@@ -1425,6 +1427,40 @@ RETURNS TABLE (
 - **Return-shape change → DROP+CREATE required**, same lesson as v5's own deployment gotcha (a plain `CREATE OR REPLACE` cannot alter an existing function's return type). Only one overload existed at the time (`p_question_type text` — confirmed via pre-flight `pg_proc` introspection), so no arity-ambiguity risk this time.
 - Powers `ReviewFlashcards.jsx`'s ("Browse Study Sets") conditional "Read Concepts" button — rendered only on a deck tile whose row has `has_concept_card=true`, opening `ConceptCardViewer.jsx` (read-only accordion, no grading).
 
+## Sprint 8.7.4 — get_browsable_decks v7, provenance badge columns (D-21 display)
+
+```sql
+get_browsable_decks(p_question_type text DEFAULT NULL)
+RETURNS TABLE (
+  id uuid, user_id uuid, subject_id uuid, custom_subject text, topic_id uuid, custom_topic text,
+  target_course text, visibility text, card_count integer, upvote_count integer, created_at timestamptz,
+  author_name text, author_role text, subject_name text, topic_name text,
+  has_concept_card boolean, provenance_source_type text, provenance_source_name text
+)
+```
+- **v7.** Adds two additive return columns to v6's signature (`docs/database/sprint8.7.4/02_FUNCTIONS_get_browsable_decks_v7_provenance.sql`). Both `NULL` unless every visible card in the deck shares exactly one `batch_id` AND that `batch_id` has a `flashcard_batch_provenance` row — computed via `CASE WHEN count(DISTINCT fc.batch_id) = 1 THEN (array_agg(fc.batch_id))[1] ELSE NULL END` inside the same visibility-filtered lateral that already computes `card_count`/`has_concept_card`, then `LEFT JOIN flashcard_batch_provenance`. **Deliberate design choice:** a deck is a 5-grouping-column bucket, not a batch — it routinely spans many `batch_id`s, so a deck-level badge is only shown when unambiguous (single-batch deck); a multi-batch or legacy deck renders no badge, same "absence = render nothing" rule as everywhere else in D-21, not a new "mixed sources" treatment.
+- **Real deployment bug, found live 18/09/2026:** the first deploy used `min(fc.batch_id)` instead of `array_agg()[1]` — Postgres has no default ordering operator class for `uuid`, so `min()`/`max()` over a uuid column raises `42883: function min(uuid) does not exist` at call time. The `DROP FUNCTION`+`CREATE` itself succeeded (no syntax error), so the function existed but every call to `get_browsable_decks()` failed until the operator's live verification run surfaced it. Fixed to `(array_agg(fc.batch_id))[1]` — safe because the surrounding `CASE` already gates on `count(DISTINCT fc.batch_id) = 1`, so every array element is identical. Re-deployed and live-verified correct: 1/20 sampled decks resolved real provenance, 19/20 correctly `NULL`.
+- **Cross-user isolation, proven by construction (per auditor request, not just tested):** `sole_batch_id` is computed inside the exact same `LATERAL` subquery, over the exact same `fc` row set, gated by the exact same visibility predicate, as `visible_card_count`. Since the subquery's own `WHERE` clause requires `fc.user_id = fd.user_id` (a deck row belongs to exactly one owner), a different user's batch can never enter the aggregate at all — decks are inherently single-owner in this schema. For a non-owner viewer, the same visibility `OR` chain (public / accepted-friend / admin / group-shared) that filters `visible_card_count` also filters which of that one owner's batches `sole_batch_id` can see — a same-owner private batch invisible to this particular viewer is excluded before `sole_batch_id` ever aggregates over it, so it cannot skew the badge for that viewer. `flashcards.batch_id` is `NOT NULL` (confirmed, column table above), so `count(DISTINCT fc.batch_id)` can never silently drop a row due to a NULL batch_id — the concern that a legacy/untracked card could masquerade as part of a "single-batch" deck does not apply, because no such untracked-batch row can exist. Live-confirmed empirically too: a genuine multi-batch deck (3 real batch_ids, all owned by the same test account) correctly resolved to `NULL`/no badge.
+- **Return-shape change → DROP+CREATE required**, same lesson as v5/v6.
+- Runs inside this SECURITY DEFINER function (owner `postgres`), so the `LEFT JOIN flashcard_batch_provenance` does **not** depend on the new `authenticated_read_flashcard_batch_provenance` SELECT policy (§2.3A) — that policy is only needed for direct client queries (`MyFlashcards.jsx`, `StudyMode.jsx`, `NoteDetail.jsx`'s linked-flashcards list all query the table directly via `src/lib/provenance.js`'s `fetchBatchProvenanceMap`).
+- Powers `ReviewFlashcards.jsx`'s ("Browse Study Sets") deck-tile provenance badge.
+
+## Sprint 8.7.4 — get_browsable_notes v4, provenance passthrough (D-21 display)
+
+```sql
+get_browsable_notes()
+RETURNS TABLE (
+  id uuid, user_id uuid, title text, description text, image_url text, target_course text,
+  subject_id uuid, topic_id uuid, custom_subject text, custom_topic text, tags text[],
+  visibility text, upvote_count integer, created_at timestamptz,
+  author_name text, author_role text, subject_name text, topic_name text,
+  content_source_type text, content_source_name text
+)
+```
+- **v4.** Adds `content_source_type`/`content_source_name` straight off the `notes` row (`docs/database/sprint8.7.4/03_FUNCTIONS_get_browsable_notes_v4_provenance.sql`) — no ambiguity/LEFT JOIN needed here, unlike the flashcards side: a note IS its own unit of provenance (row-level, set once at creation by `trg_require_note_provenance`, 8.7.1), not an aggregation of many creation events.
+- **Also fixed while reproducing this function for the return-type change:** v3 (`docs/database/study-groups/30_FUNCTION_get_browsable_notes_v3.sql`) had **no `SET search_path` clause at all** — every other `SECURITY DEFINER` function in this codebase pins it, per the L3 `17c` outage lesson (§1.11). v4 adds `SET search_path TO public, extensions`, closing that gap.
+- Powers `BrowseNotes.jsx`'s note-card provenance badge.
+
 ---
 
 ## 3. RLS POLICIES
@@ -1661,7 +1697,7 @@ RETURNS TABLE (
 **Security:** `SECURITY DEFINER`, `STABLE`, `SET search_path TO public, extensions` (unquoted — L3 lesson).
 **Grants:** `REVOKE ALL FROM PUBLIC` + `REVOKE ALL FROM anon`; `GRANT EXECUTE TO authenticated`.
 **IDOR guard (L5 read idiom):** `IF p_user_id IS DISTINCT FROM auth.uid() AND NOT public.is_admin() THEN RAISE EXCEPTION 'Access denied: cannot read another user''s study queue'` — a NULL session also RAISEs; admins/super_admins may read any user's queue.
-**Return Type:** `TABLE(flashcard_id uuid, card_user_id uuid, contributed_by uuid, target_course text, subject_id uuid, subject_name text, topic_id uuid, topic_name text, custom_subject text, custom_topic text, front_text text, front_image_url text, back_text text, back_image_url text, difficulty text, is_verified boolean, question_type text, next_review_date date, skip_until date, last_reviewed_at timestamptz)`
+**Return Type:** `TABLE(flashcard_id uuid, card_user_id uuid, contributed_by uuid, target_course text, subject_id uuid, subject_name text, topic_id uuid, topic_name text, custom_subject text, custom_topic text, front_text text, front_image_url text, back_text text, back_image_url text, difficulty text, is_verified boolean, question_type text, next_review_date date, skip_until date, last_reviewed_at timestamptz, rung smallint, batch_id uuid)` — `rung` added by the SRS Ladder Epic; **`batch_id` added Sprint 8.7.4** (`docs/database/sprint8.7.4/04_FUNCTIONS_get_study_queue_batch_id.sql`) so `StudyMode.jsx` can resolve a D-21 provenance badge for cards reached via `ReviewSession.jsx`'s due-queue path, not just the direct deck-browse fetch (which already had `batch_id` via `SELECT *`). Additive, non-breaking for every existing caller — DROP+CREATE required (return-shape change), grants re-applied identically.
 
 **What it returns:** one row per flashcard that is **due** for `p_user_id`, where "due" =
 - a `reviews` row exists for `(p_user_id, flashcard_id)` AND `reviews.status = 'active'`

@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Edit2, Save, X, Trash2, Globe, Lock, Users } from 'lucide-react';
+import ProvenanceBadge from '@/components/content/ProvenanceBadge';
 
 const getVisibilityBadge = (visibility) => {
   switch(visibility) {
@@ -47,7 +48,8 @@ export default function FlashcardCard({
   onSaveEdit,
   onEditChange,
   onDelete,
-  onVisibilityChange
+  onVisibilityChange,
+  provenance
 }) {
   return (
     <Card className={`hover:shadow-lg transition-shadow ${isEditing ? 'ring-2 ring-amber-400' : ''}`}>
@@ -183,8 +185,14 @@ export default function FlashcardCard({
                 <p className="text-sm text-gray-500 italic">No answer provided</p>
               )}
             </div>
-            <div className="mt-4 pt-3 border-t border-gray-200 text-xs text-gray-500">
-              Created {formatDate(card.created_at)}
+            <div className="mt-4 pt-3 border-t border-gray-200 flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-500">Created {formatDate(card.created_at)}</span>
+              {provenance && (
+                <ProvenanceBadge
+                  sourceType={provenance.content_source_type}
+                  sourceName={provenance.content_source_name}
+                />
+              )}
             </div>
           </>
         )}
