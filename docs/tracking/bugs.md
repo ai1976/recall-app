@@ -1,5 +1,18 @@
 # Bug Tracking
 
+## Sprint 8.7.7 — 21/09/2026 (Theory display + console diagnosis)
+
+### [21/09/2026] Reviewed-cards lookup returned 400 for large study sessions — ✅ FIXED (frontend push pending)
+- **Proven:** URL 39,144 chars with 1,000 ids -> bare "Bad Request"; after chunking 20/20 requests return 200 (max URL ~4KB).
+- **Effect while broken:** `reviewedIds` empty -> reviewed-but-not-due cards admitted as "new" in Study Mode.
+
+### [21/09/2026] OPEN — in-app `study_sessions` inserts below 600s likely rejected by `study_sessions_duration_floor` (CHECK duration_seconds >= 600, no source clause)
+- Live constraint definition confirmed. Response body of the failed request NOT yet captured, so not confirmed as the observed 400. Business rule: floor applies to source='manual' only. Proposed SQL (scope the floor to manual) awaiting operator approval. Study Mode insert also ignores the returned `error`.
+
+### [21/09/2026] Recorded for extraction workflow (not fixed here): theory answers stored with inline "•" bullets and no line breaks (0 LF/CR in 8 sampled rows); "▯" in place of bullets; case text as one paragraph.
+
+### OPEN — B1 (refresh_token 400) awaiting fresh-session result; B2 (admin_audit_log 403) awaiting request method/role; neither reproduced on the operator's account at page load.
+
 ## Sprint 8.7.6 — 21/09/2026 (Merge-batches provenance)
 
 ### [21/09/2026] Merging batches silently overwrote provenance and left orphan provenance rows — ✅ FIXED (frontend push pending)

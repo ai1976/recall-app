@@ -6,6 +6,9 @@ import { useStudySession } from '@/contexts/StudySessionContext';
 import { Button } from '@/components/ui/button';
 import { Card as RvCard, GradeButtonRow, VerifiedEdge, AnswerOption, MatchZone } from '@/components/revisop';
 import { bucketForDays, isReadingBody } from '@/lib/revisop-tokens';
+
+// Sprint 8.7.7 — theory cards render as left-aligned, normal-weight prose (no length threshold).
+const isTheory = (card) => card?.question_type === 'theory';
 import ContentPreviewWall from '@/components/ui/ContentPreviewWall';
 import FlagButton from '@/components/ui/FlagButton';
 import {
@@ -372,12 +375,24 @@ export default function StudyMode({
         // current ladder rung per due card — drives the local grade-button interval text
         const rungById = new Map((dueQueue || []).map(r => [r.flashcard_id, r.rung]));
 
-        const { data: reviewed } = await supabase
-          .from('reviews')
-          .select('flashcard_id')
-          .eq('user_id', user.id)
-          .in('flashcard_id', cardIds);
-        const reviewedIds = new Set((reviewed || []).map(r => r.flashcard_id));
+        // Sprint 8.7.7 — chunked: a single .in() over ~1000 ids builds a ~39KB URL that the
+        // API gateway rejects with a bare 400, which silently emptied reviewedIds and admitted
+        // every reviewed-but-not-due card as "new". 100 ids/request keeps the URL small.
+        const REVIEW_LOOKUP_CHUNK = 100;
+        const chunks = [];
+        for (let i = 0; i < cardIds.length; i += REVIEW_LOOKUP_CHUNK) {
+          chunks.push(cardIds.slice(i, i + REVIEW_LOOKUP_CHUNK));
+        }
+        const chunkResults = await Promise.all(
+          chunks.map(ids =>
+            supabase.from('reviews').select('flashcard_id').eq('user_id', user.id).in('flashcard_id', ids)
+          )
+        );
+        const reviewedIds = new Set();
+        chunkResults.forEach(({ data, error }) => {
+          if (error) console.error('Reviewed-cards lookup failed:', error);
+          (data || []).forEach(r => reviewedIds.add(r.flashcard_id));
+        });
 
         cleanedData = cleanedData
           // concept_card is browse-only reference material (D-06) — never enters a
@@ -1199,7 +1214,7 @@ export default function StudyMode({
                     <div className="mt-3.5 rounded-rec bg-rv-bg-2 border-l-[3px] border-rv-navy px-4 py-3.5 text-left">
                       <p className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400 mb-1.5">WHY</p>
                       {currentCard.explanation.map((point, i) => (
-                        <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900">
+                        <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900 mb-1.5 last:mb-0">
                           {point}
                         </p>
                       ))}
@@ -1270,7 +1285,7 @@ export default function StudyMode({
                     <div className="mt-3.5 rounded-rec bg-rv-bg-2 border-l-[3px] border-rv-navy px-4 py-3.5 text-left">
                       <p className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400 mb-1.5">WHY</p>
                       {currentCard.explanation.map((point, i) => (
-                        <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900">
+                        <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900 mb-1.5 last:mb-0">
                           {point}
                         </p>
                       ))}
@@ -1370,7 +1385,7 @@ export default function StudyMode({
                     <div className="mt-3.5 rounded-rec bg-rv-bg-2 border-l-[3px] border-rv-navy px-4 py-3.5 text-left">
                       <p className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400 mb-1.5">WHY</p>
                       {currentCard.explanation.map((point, i) => (
-                        <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900">
+                        <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900 mb-1.5 last:mb-0">
                           {point}
                         </p>
                       ))}
@@ -1467,7 +1482,12 @@ export default function StudyMode({
                     />
                   )}
 
-                  <p className="text-xl md:text-2xl font-semibold text-rv-ink-900 mb-6 whitespace-pre-wrap text-center">
+                  <p
+                    className={cn(
+                      'text-xl md:text-2xl font-semibold text-rv-ink-900 mb-6 whitespace-pre-wrap text-center',
+                      currentCard.question_type === 'case_study_mcq' && 'text-lg md:text-xl text-left',
+                    )}
+                  >
                     {currentCard.front_text}
                   </p>
 
@@ -1498,7 +1518,7 @@ export default function StudyMode({
                     <div className="mt-3.5 rounded-rec bg-rv-bg-2 border-l-[3px] border-rv-navy px-4 py-3.5 text-left">
                       <p className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400 mb-1.5">WHY</p>
                       {currentCard.explanation.map((point, i) => (
-                        <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900">
+                        <p key={i} className="font-literata text-[15px] leading-relaxed text-rv-ink-900 mb-1.5 last:mb-0">
                           {point}
                         </p>
                       ))}
@@ -1543,7 +1563,7 @@ export default function StudyMode({
                   )}
                 </div>
               ) : !showAnswer ? (
-                <div className="w-full text-center">
+                <div className={cn('w-full', !isTheory(currentCard) && 'text-center')}>
                   <div className="mb-6 flex items-center justify-center gap-2">
                     <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
                       QUESTION
@@ -1573,7 +1593,13 @@ export default function StudyMode({
                     />
                   )}
 
-                  <p className="text-2xl md:text-3xl font-semibold text-rv-ink-900 mb-8 whitespace-pre-wrap">
+                  <p
+                    className={cn(
+                      'text-2xl md:text-3xl font-semibold text-rv-ink-900 mb-8 whitespace-pre-wrap',
+                      isTheory(currentCard) &&
+                        'text-base md:text-lg font-normal leading-relaxed text-left',
+                    )}
+                  >
                     {currentCard.front_text}
                   </p>
 
@@ -1664,7 +1690,7 @@ export default function StudyMode({
                     </p>
                   </div>
 
-                  <div className="text-center mb-8">
+                  <div className="mb-8">
                     <div className="flex items-center justify-center gap-2 mb-4">
                       <span className="inline-block px-3 py-1 bg-rv-navy-50 text-rv-navy text-xs font-semibold tracking-wide rounded-rec">
                         ANSWER
@@ -1692,6 +1718,8 @@ export default function StudyMode({
                           'text-xl md:text-2xl font-semibold text-rv-ink-900 whitespace-pre-wrap',
                           isReadingBody(currentCard.back_text) &&
                             'font-literata font-normal leading-relaxed text-[1.35rem]',
+                          isTheory(currentCard) &&
+                            'text-base md:text-lg font-normal leading-relaxed text-left',
                         )}
                       >
                         {currentCard.back_text}

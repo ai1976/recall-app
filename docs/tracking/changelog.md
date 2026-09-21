@@ -1,6 +1,22 @@
 # Changelog
 
 ---
+## [21/09/2026] fix(sprint-8.7.7): theory display + chunked reviews lookup
+
+### Added
+- `docs/database/sprint8.7.7/` — 01 raw theory-answer line-break diagnostic, 02 study_sessions structure diagnostic (both read-only). No schema change.
+
+### Changed
+- `StudyMode.jsx` — revealed answers in the shared card layout (theory, basic flashcards, etc.) are now left-aligned (operator decision 21/09/2026; MCQ/fitb/match/mcq_multi layouts untouched). `question_type='theory'` additionally (only) renders left-aligned, normal weight, relaxed line height, `text-base md:text-lg`, in both the front and revealed-answer states. No length threshold (decided with operator). `whitespace-pre-wrap` untouched.
+- `StudyMode.jsx` — reviewed-cards lookup chunked at 100 ids/request. The single `.in('flashcard_id', cardIds)` over ~1000 ids built a ~39KB URL that the gateway rejected with a bare 400, silently emptying `reviewedIds`. Live check after fix: 20 requests, all 200, max URL ~4KB.
+
+- `StudyMode.jsx` — `case_study_mcq` question left-aligned, `text-lg md:text-xl` (plain mcq unchanged); all four WHY boxes get `mb-1.5 last:mb-0` spacing between explanation points.
+
+### Files Changed
+- src/pages/dashboard/Study/StudyMode.jsx
+- docs/database/sprint8.7.7/01_DIAGNOSTIC_theory_answer_raw_linebreaks.sql, 02_DIAGNOSTIC_study_sessions_structure.sql
+
+---
 ## [21/09/2026] feat(sprint-8.7.6): server-enforced merge-batches provenance rule (D-23)
 
 ### Added

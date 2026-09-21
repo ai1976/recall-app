@@ -2,6 +2,13 @@
 
 **Last Updated:** 18/09/2026
 
+## Sprint 8.7.7: Theory Display + Console Diagnosis (21/09/2026) — frontend built, NOT pushed; B1/B2/B3 partly open
+
+**Just Completed:** Theory cards left-aligned prose (D-24). Reviewed-cards lookup chunked (39KB URL -> 400 fixed, live-verified 20/20 200). Step 0: stored theory answers have 0 line breaks — data issue for extraction thread, no renderer change.
+**Open:** B3 — `study_sessions_duration_floor` (>=600, no source scope) likely rejects in-app sessions; SQL design awaiting approval (scope floor to source='manual'); response body still to capture. B2 — admin_audit_log 403: only admin login/admin pages touch it; need method + role. B1 — needs fresh sign-in result. Visual check of short theory + MCQ still to do.
+
+---
+
 ## Sprint 8.7.6: Merge-Batches Provenance Rule (21/09/2026) — ✅ SQL deployed & test-verified; frontend built, NOT yet pushed; live regression pending operator
 
 **Just Completed:** D-23 (blueprint). Step 0 diagnostics run by operator: no existing trigger touches batch_id; authenticated has SELECT-only on provenance; 1438 legacy batches / 14 with provenance; 0 orphans; 0 NULL-batch cards; 0 multi-owner batches. Migration (guard + statement-level cleanup triggers) deployed; 02_TEST ALL PASS (11 cases). Frontend: `MyFlashcards.jsx` pre-check reusing `provenanceByBatch` (no new fetch), graceful RV601/MERGE_* handling, no-batch group blocked. Lint/build clean.
