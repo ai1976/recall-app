@@ -1449,6 +1449,9 @@ This section and all §1.1 column/type/trigger corrections were reconciled again
     - Deferred, still open: `handleMergeBatches` provenance reconciliation (what happens to provenance when two batches are merged) — never addressed across 8.7.1–8.7.5, logged here as the one remaining D-21-adjacent gap, no sprint scoped against it yet.
   - **Status: D-21 CLOSED. Phase 8.7 COMPLETE.**
 
+**D-25: Duration floor applies to manual (offline) study only (Phase 8, Sprint 8.7.7, decided 21/09/2026 — ✅ SQL deployed & test-verified 21/09/2026: manual 599 blocked, manual 600 allowed, study_mode 60 allowed, study_mode 0 blocked, constraint NOT VALID, 245 old sub-600s rows untouched)**
+Offline/manual study requires >= 600s; in-app RevisOp study (source='study_mode') has no minimum and records real duration. Sprint 8.6a's study_sessions_duration_floor (>= 600, no source clause) wrongly rejected in-app sessions (proven live 21/09/2026: 400/23514, study_mode 60s). Replacement: `CHECK (source <> 'manual' OR duration_seconds >= 600) NOT VALID` (prospective only, no backfill). Files: docs/database/sprint8.7.7/03–06. Frontend logs the Supabase error on the Study Mode insert (no refactor).
+
 **D-24: Theory cards render as left-aligned prose, by question type, no length threshold (Phase 8, Sprint 8.7.7, decided 21/09/2026)**
 Theory cards are structurally different from recall cards, so `question_type='theory'` (only) is left-aligned, normal weight, relaxed line height in StudyMode front and answer states. Consistent alignment doubles as a visual cue and avoids a 119/120-char styling boundary. Data-side issues (inline "•" bullets with no line breaks, "▯" glyphs, single-paragraph case text) belong to the extraction workflow — renderer must not split or reconstruct. Product rule recorded: offline/manual study has a 600s minimum; in-app (source='study_mode') has none — DB floor must be scoped to manual (pending approval).
 

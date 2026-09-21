@@ -12,6 +12,9 @@
 
 - `StudyMode.jsx` — `case_study_mcq` question left-aligned, `text-lg md:text-xl` (plain mcq unchanged); all four WHY boxes get `mb-1.5 last:mb-0` spacing between explanation points.
 
+- **SQL (deployed & verified 21/09/2026, D-25):** `study_sessions_duration_floor` re-scoped to `source = 'manual'` (`docs/database/sprint8.7.7/03–06`).
+- `StudyMode.jsx` — Study Mode `study_sessions` insert now logs the returned Supabase `error` (narrow, no refactor).
+
 ### Files Changed
 - src/pages/dashboard/Study/StudyMode.jsx
 - docs/database/sprint8.7.7/01_DIAGNOSTIC_theory_answer_raw_linebreaks.sql, 02_DIAGNOSTIC_study_sessions_structure.sql

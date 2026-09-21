@@ -869,7 +869,7 @@ export default function StudyMode({
 
       const sessionDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
 
-      await supabase.from('study_sessions').insert({
+      const { error: sessionError } = await supabase.from('study_sessions').insert({
         user_id:          user.id,
         started_at:       startedAt.toISOString(),
         ended_at:         endedAt.toISOString(),
@@ -877,6 +877,7 @@ export default function StudyMode({
         session_date:     sessionDate,
         source:           'study_mode',
       });
+      if (sessionError) console.error('Failed to log study_mode session:', sessionError);
     } catch (err) {
       // Silent fail — never interrupt the user's study completion flow
       console.error('Failed to log study_mode session:', err);

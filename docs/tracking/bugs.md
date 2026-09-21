@@ -6,8 +6,13 @@
 - **Proven:** URL 39,144 chars with 1,000 ids -> bare "Bad Request"; after chunking 20/20 requests return 200 (max URL ~4KB).
 - **Effect while broken:** `reviewedIds` empty -> reviewed-but-not-due cards admitted as "new" in Study Mode.
 
-### [21/09/2026] OPEN — in-app `study_sessions` inserts below 600s likely rejected by `study_sessions_duration_floor` (CHECK duration_seconds >= 600, no source clause)
-- Live constraint definition confirmed. Response body of the failed request NOT yet captured, so not confirmed as the observed 400. Business rule: floor applies to source='manual' only. Proposed SQL (scope the floor to manual) awaiting operator approval. Study Mode insert also ignores the returned `error`.
+### [21/09/2026] In-app `study_sessions` inserts below 600s rejected by `study_sessions_duration_floor` — ✅ FIXED (SQL deployed, D-25)
+- **PROVEN 21/09/2026 on live (professor account):** POST /rest/v1/study_sessions with the exact Study Mode payload (source=study_mode, duration_seconds=60) returned 400, code 23514: new row violates check constraint "study_sessions_duration_floor". Nothing was written. (The originally observed console 400 was not separately captured, but this is the same table, same constraint.) Business rule: floor applies to source='manual' only. **Fix deployed & test-verified 21/09/2026:** floor re-scoped to source='manual'. In-app rows under 600s stopped appearing after 16/09 (8/2/1 rows on 14/15/16 Sep, none after); rejected sessions left no rows, so lost study time cannot be quantified. Study Mode insert also ignores the returned `error`.
+
+### [21/09/2026] OPEN (deferred, not 8.7.7): Question Type filter on Browse Study Sets is not carried into Study Mode
+- Observed live: filter = Case study MCQ (129 cards), "Study All" navigated to `/dashboard/study?subject=…` only; the session loaded the whole subject (theory/basic cards first). Intended behaviour undocumented — may be by design. UX/design item.
+
+### [21/09/2026] OPEN (deferred to case-study work): case-study scenario is expanded by default and can be ~2,800 characters, pushing the question and options far below the fold at 375px.
 
 ### [21/09/2026] Recorded for extraction workflow (not fixed here): theory answers stored with inline "•" bullets and no line breaks (0 LF/CR in 8 sampled rows); "▯" in place of bullets; case text as one paragraph.
 
