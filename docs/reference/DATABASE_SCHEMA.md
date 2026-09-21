@@ -367,6 +367,11 @@
 
 ---
 
+### 2.3A-i Sprint 8.7.6 triggers on flashcards (21/09/2026, ✅ deployed, test ALL PASS)
+- `fn_guard_flashcard_batch_move()` + `trg_guard_flashcard_batch_move` — BEFORE UPDATE OF batch_id, FOR EACH ROW, WHEN (OLD.batch_id IS DISTINCT FROM NEW.batch_id). SECURITY DEFINER, search_path pg_catalog, public. Blocks provenance mismatch (strict type+name), NULL moves, non-existent/foreign-owner targets. SQLSTATE `RV601`; prefixes `MERGE_PROVENANCE_MISMATCH:`, `MERGE_TARGET_INVALID:`.
+- `fn_cleanup_orphan_batch_provenance()` + `trg_cleanup_orphan_batch_provenance` — AFTER UPDATE, FOR EACH STATEMENT, transition tables old_rows/new_rows. SECURITY DEFINER. Deletes provenance rows of source batches left with zero flashcards.
+- Rollback: `docs/database/sprint8.7.6/03_ROLLBACK_merge_provenance_guard.sql`.
+
 ### 2.3A flashcard_batch_provenance ⭐ NEW (Sprint 8.7.1, 18/09/2026, ✅ deployed & verified live)
 
 **Purpose:** D-21 content provenance (blueprint.md §3.1) — one row per flashcard `batch_id` declaring its content source. Provenance belongs to the batch, not the individual card, because a bulk upload's cards within one batch always share one source document.

@@ -1,6 +1,21 @@
 # Changelog
 
 ---
+## [21/09/2026] feat(sprint-8.7.6): server-enforced merge-batches provenance rule (D-23)
+
+### Added
+- `docs/database/sprint8.7.6/` — 00 diagnostic (read-only), 01 guard + cleanup triggers, 02 self-rolling-back test, 03 rollback, 04 live regression checklist. Triggers `trg_guard_flashcard_batch_move` (BEFORE UPDATE OF batch_id, row) and `trg_cleanup_orphan_batch_provenance` (AFTER UPDATE, statement, transition tables). **✅ Deployed, test ALL PASS.**
+
+- `05_TEST_verify_live_merge_provenance_rows.sql`, `06_CLEANUP_remove_live_merge_test_data.sql` — live verification + cleanup, both run by the operator with expected results.
+
+### Changed
+- `MyFlashcards.jsx` — merge pre-check (reuses `provenanceByBatch`), friendly message on server block (`RV601`/`MERGE_*`), no-batch group can no longer reach `.in()` with a non-UUID.
+
+### Files Changed
+- `src/pages/dashboard/Content/MyFlashcards.jsx`
+- `docs/database/sprint8.7.6/*` (new), `docs/active/blueprint.md` (D-23), `docs/active/now.md`, `docs/tracking/bugs.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`
+
+---
 ## [2026-09-18] feat(sprint-8.7.5): public deck provenance, D-21 fully shipped, Phase 8.7 complete
 
 Closes the last D-21 display gap: 8.7.4 deliberately left the anonymous `/deck/:id` teaser page (`DeckPreview.jsx`) unbadged, reasoning it as a separate-RPC problem outside that sprint's brief. Confirmed with Anand: surfacing an official-body source on the public teaser is a genuine trust signal for anonymous visitors.

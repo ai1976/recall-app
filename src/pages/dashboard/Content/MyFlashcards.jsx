@@ -597,12 +597,47 @@ export default function MyFlashcards() {
       });
       return;
     }
+    const blockMessage = getMergeBlockMessage(Array.from(selectedBatches));
+    if (blockMessage) {
+      toast({
+        title: "Can't Merge These Batches",
+        description: blockMessage,
+        variant: "destructive"
+      });
+      return;
+    }
     setShowMergeDialog(true);
+  };
+
+  // Friendly pre-check only — the real enforcement is the server-side trigger (Sprint 8.7.6, D-23).
+  // Rule: merge only when every batch has identical provenance (same type AND name), or none has any.
+  const getMergeBlockMessage = (batchIds) => {
+    if (batchIds.includes('no-batch')) {
+      return "Cards without a batch can't be merged. Select only cards that belong to a batch.";
+    }
+    const keys = new Set(batchIds.map(id => {
+      const prov = provenanceByBatch.get(id);
+      return prov ? `${prov.content_source_type}|${prov.content_source_name}` : 'legacy';
+    }));
+    if (keys.size > 1) {
+      return "These batches can't be merged because their content sources differ. You can only merge batches that share the same source type and source name, or batches that have no source recorded.";
+    }
+    return null;
   };
 
   const executeMerge = async () => {
     try {
       const batchIds = Array.from(selectedBatches);
+      const blockMessage = getMergeBlockMessage(batchIds);
+      if (blockMessage) {
+        toast({
+          title: "Can't Merge These Batches",
+          description: blockMessage,
+          variant: "destructive"
+        });
+        setShowMergeDialog(false);
+        return;
+      }
       const targetBatchId = batchIds[0];
       const finalDescription = newBatchName.trim() || null;
 
@@ -629,9 +664,14 @@ export default function MyFlashcards() {
 
     } catch (error) {
       console.error('Merge error:', error);
+      // Server-side guard (Sprint 8.7.6): SQLSTATE RV601 / MERGE_* message prefix
+      const blockedByServer = error.code === 'RV601' || /^MERGE_(PROVENANCE_MISMATCH|TARGET_INVALID):/.test(error.message || '');
+      if (blockedByServer) setShowMergeDialog(false);
       toast({
-        title: "Merge Failed",
-        description: error.message,
+        title: blockedByServer ? "Can't Merge These Batches" : "Merge Failed",
+        description: blockedByServer
+          ? (error.message || '').replace(/^MERGE_[A-Z_]+:\s*/, '')
+          : error.message,
         variant: "destructive"
       });
     }

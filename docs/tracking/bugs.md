@@ -1,5 +1,16 @@
 # Bug Tracking
 
+## Sprint 8.7.6 — 21/09/2026 (Merge-batches provenance)
+
+### [21/09/2026] Merging batches silently overwrote provenance and left orphan provenance rows — ✅ FIXED (frontend push pending)
+- **Symptom:** `executeMerge` moved cards to the first batch's `batch_id` from the browser; merged cards silently took the target's provenance label; merged-away batches kept orphan provenance rows. Resolves the 8.7.4 "known limitation" entry below.
+- **Fix:** server-side triggers enforce identical-provenance-or-both-legacy and delete the emptied source batch's provenance row atomically. UI pre-check added. Live data at fix time: 0 existing orphans.
+
+### [21/09/2026] Merging the "no-batch" group sent a non-UUID string to `.in('batch_id', …)` and failed — ✅ FIXED (frontend push pending)
+- **Cause:** `getGroupedFlashcards` keys NULL-batch cards as `'no-batch'`; `executeMerge` passed that string to a uuid filter. **Currently unreachable** (0 NULL-batch cards, Step 0) but guarded: UI blocks with a message; server also blocks moves to/from NULL.
+
+### [21/09/2026] OPEN (recorded, not fixed): deleting the final cards of a batch can leave its provenance row orphaned — out of scope for 8.7.6.
+
 ## Sprint 8.7.4 — 18/09/2026 (Content provenance display)
 
 ### [18/09/2026] `handleMergeBatches` (`MyFlashcards.jsx`) doesn't reconcile `flashcard_batch_provenance` on merge — KNOWN LIMITATION, deliberately deferred, not fixed

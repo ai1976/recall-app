@@ -2,6 +2,13 @@
 
 **Last Updated:** 18/09/2026
 
+## Sprint 8.7.6: Merge-Batches Provenance Rule (21/09/2026) — ✅ SQL deployed & test-verified; frontend built, NOT yet pushed; live regression pending operator
+
+**Just Completed:** D-23 (blueprint). Step 0 diagnostics run by operator: no existing trigger touches batch_id; authenticated has SELECT-only on provenance; 1438 legacy batches / 14 with provenance; 0 orphans; 0 NULL-batch cards; 0 multi-owner batches. Migration (guard + statement-level cleanup triggers) deployed; 02_TEST ALL PASS (11 cases). Frontend: `MyFlashcards.jsx` pre-check reusing `provenanceByBatch` (no new fetch), graceful RV601/MERGE_* handling, no-batch group blocked. Lint/build clean.
+**Live regression done (21/09/2026, dev build → live DB):** all five display surfaces clean; merge cases verified live (identical allowed, differing name blocked, provenance-vs-legacy blocked); merged-away provenance row confirmed deleted by SQL; 0 orphans; test data cleaned (0/0/0). **Pending:** git commit + push, then one repeat of the blocked-merge check on www.recallapp.co.in. Final-card-delete orphan path recorded, not fixed.
+
+---
+
 ## Sprint 8.7.5: Public Deck Provenance — Phase 8 (18/09/2026) — ✅ SQL deployed by operator, live-verified, D-21/Phase 8.7 complete
 
 **Context:** Closes the last D-21 display gap: 8.7.4 (below) deliberately left `DeckPreview.jsx` (`/deck/:id`, anonymous) unbadged, reasoning it as a separate-RPC/separate-surface problem outside that sprint's brief. Confirmed with Anand before starting: surfacing an official-body source on the public teaser is a genuine trust signal for anonymous visitors, worth its own small follow-up.
