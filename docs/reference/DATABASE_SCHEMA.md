@@ -1400,6 +1400,15 @@ RETURNS TABLE (
 
 ---
 
+## Sprint 8.7.7 — get_browsable_decks v8, matching_card_count (✅ deployed & test-verified 21/09/2026 — `docs/database/sprint8.7.7/10–13`, D-26)
+
+- **v8** adds ONE trailing return column, `matching_card_count integer`: the number of cards in the deck the VIEWER may see (same visibility predicate as `visible_card_count`) that have `question_type = p_question_type`; equals `card_count` when `p_question_type` is NULL. `card_count` is unchanged (the deck's whole visible total). Inclusion rule, provenance columns, ordering, `SECURITY DEFINER`, `search_path = public, extensions` and ACL unchanged (ACL identical before/after: PUBLIC, postgres, anon, authenticated, service_role EXECUTE).
+- **Why:** with a type filter on, Browse summed `card_count`, so counts were deck totals and mixed-type decks were counted under every filter (professor account: 1,225 vs 1,091).
+- **Verification:** `12_TEST` T1–T7 all PASS (student viewer, 24 decks, 1,351 hidden private cards excluded; note that viewer's decks are single-type so the mixed-deck case was proven separately on the dev build: nine per-type counts sum to 1,091 = All Types; theory 348 = independent direct count). Rollback: `13` (v7 verbatim).
+- **Frontend:** `ReviewFlashcards.jsx` derives `displayCount = matching_card_count ?? card_count` and uses it for every count.
+
+---
+
 ## Sprint 7.6 — get_browsable_decks question type filter (✅ deployed & verified live 13/09/2026 — `docs/database/sprint7.6/`, `02_TEST` verified via impersonated real profile)
 
 ```sql

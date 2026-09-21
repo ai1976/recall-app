@@ -204,7 +204,11 @@ export default function ReviewFlashcards() {
         ...deck,
         owner: { full_name: deck.author_name, role: deck.author_role },
         subjectName: deck.subject_name,
-        topicName: deck.topic_name
+        topicName: deck.topic_name,
+        // Sprint 8.7.7 (v8): the ONE count every tile/total/preview label uses. matching_card_count is the
+        // viewer-visible cards of the active type filter (= card_count when no filter); falls back to
+        // card_count for a response without the column (pre-v8 function).
+        displayCount: deck.matching_card_count ?? deck.card_count
       }));
 
       // Store flat decks for topic filtering
@@ -261,14 +265,14 @@ export default function ReviewFlashcards() {
       }
       
       grouped[subjectName].decks.push(deck);
-      grouped[subjectName].totalCards += deck.card_count || 0;
+      grouped[subjectName].totalCards += deck.displayCount || 0;
       
       if (isProfessor) {
-        grouped[subjectName].professorCards += deck.card_count || 0;
+        grouped[subjectName].professorCards += deck.displayCount || 0;
       }
       
       if (isOwn) {
-        grouped[subjectName].ownCards += deck.card_count || 0;
+        grouped[subjectName].ownCards += deck.displayCount || 0;
       }
     });
 
@@ -290,57 +294,55 @@ export default function ReviewFlashcards() {
       filtered = filtered.filter(subject => subject.name === filterSubject);
     }
 
+    // Sprint 8.7.7 — narrow a subject to `decks` and recompute ALL three figures from what remains, so the
+    // header count, "from professors" and "yours" always describe the decks actually shown. (Search used to
+    // hide decks without recomputing, leaving the pre-search totals on screen.)
+    const narrowSubject = (subject, keep) => {
+      const decks = subject.decks.filter(keep);
+      const sumOf = (list) => list.reduce((sum, deck) => sum + (deck.displayCount || 0), 0);
+      return {
+        ...subject,
+        decks,
+        totalCards: sumOf(decks),
+        professorCards: sumOf(decks.filter(deck => deck.owner?.role === 'professor')),
+        ownCards: sumOf(decks.filter(deck => deck.user_id === user?.id))
+      };
+    };
+
     // Topic filter - filter decks within subjects
     if (filterTopic !== 'all') {
-      filtered = filtered.map(subject => ({
-        ...subject,
-        decks: subject.decks.filter(deck => deck.topicName === filterTopic),
-        totalCards: subject.decks
-          .filter(deck => deck.topicName === filterTopic)
-          .reduce((sum, deck) => sum + (deck.card_count || 0), 0)
-      })).filter(subject => subject.decks.length > 0);
+      filtered = filtered
+        .map(subject => narrowSubject(subject, deck => deck.topicName === filterTopic))
+        .filter(subject => subject.decks.length > 0);
     }
 
     // Role filter - filter by author role
     if (filterRole === 'professor') {
-      filtered = filtered.map(subject => ({
-        ...subject,
-        decks: subject.decks.filter(deck => deck.owner?.role === 'professor'),
-        totalCards: subject.decks
-          .filter(deck => deck.owner?.role === 'professor')
-          .reduce((sum, deck) => sum + (deck.card_count || 0), 0)
-      })).filter(subject => subject.decks.length > 0);
+      filtered = filtered
+        .map(subject => narrowSubject(subject, deck => deck.owner?.role === 'professor'))
+        .filter(subject => subject.decks.length > 0);
     } else if (filterRole === 'student') {
-      filtered = filtered.map(subject => ({
-        ...subject,
-        decks: subject.decks.filter(deck => deck.owner?.role !== 'professor'),
-        totalCards: subject.decks
-          .filter(deck => deck.owner?.role !== 'professor')
-          .reduce((sum, deck) => sum + (deck.card_count || 0), 0)
-      })).filter(subject => subject.decks.length > 0);
+      filtered = filtered
+        .map(subject => narrowSubject(subject, deck => deck.owner?.role !== 'professor'))
+        .filter(subject => subject.decks.length > 0);
     }
 
     // Author filter - filter by specific author ID
     if (filterAuthor !== 'all') {
-      filtered = filtered.map(subject => ({
-        ...subject,
-        decks: subject.decks.filter(deck => deck.user_id === filterAuthor),
-        totalCards: subject.decks
-          .filter(deck => deck.user_id === filterAuthor)
-          .reduce((sum, deck) => sum + (deck.card_count || 0), 0)
-      })).filter(subject => subject.decks.length > 0);
+      filtered = filtered
+        .map(subject => narrowSubject(subject, deck => deck.user_id === filterAuthor))
+        .filter(subject => subject.decks.length > 0);
     }
 
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.map(subject => ({
-        ...subject,
-        decks: subject.decks.filter(deck =>
+      filtered = filtered
+        .map(subject => narrowSubject(subject, deck =>
           deck.subjectName?.toLowerCase().includes(query) ||
           deck.topicName?.toLowerCase().includes(query) ||
           deck.owner?.full_name?.toLowerCase().includes(query)
-        )
-      })).filter(subject => subject.decks.length > 0);
+        ))
+        .filter(subject => subject.decks.length > 0);
     }
 
     setFlashcardSets(filtered);
@@ -387,7 +389,7 @@ export default function ReviewFlashcards() {
       params.set('previewMode', 'true');
       // Pass deck's total card count so progress bar shows proportional fill
       const deck = allDecksFlat.find(d => d.id === deckId);
-      if (deck?.card_count) params.set('totalCards', deck.card_count);
+      if (deck?.displayCount) params.set('totalCards', deck.displayCount);
     }
     navigate(`/dashboard/study?${params.toString()}`);
   };
@@ -658,8 +660,8 @@ export default function ReviewFlashcards() {
                                   </h4>
                                   <p className="text-sm text-gray-600 mt-1">
                                     {isTierB && deck.owner?.role === 'professor'
-                                      ? `Preview: first 10 of ${deck.card_count} items`
-                                      : `${deck.card_count} cards`}
+                                      ? `Preview: first 10 of ${deck.displayCount} items`
+                                      : `${deck.displayCount} cards`}
                                   </p>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-amber-600 flex-shrink-0" />

@@ -7,6 +7,7 @@
 - **Effect while broken:** `reviewedIds` empty -> reviewed-but-not-due cards admitted as "new" in Study Mode.
 
 ### [21/09/2026] In-app `study_sessions` inserts below 600s rejected by `study_sessions_duration_floor` — ✅ CLOSED (SQL deployed D-25; live end-to-end proven: real Study Mode flow 27s study_mode session -> 201, row read back)
+- **Trigger check closed 21/09/2026:** 09_DIAGNOSTIC returned trigger_count = 0 on study_sessions (definitive count query).
 - **PROVEN 21/09/2026 on live (professor account):** POST /rest/v1/study_sessions with the exact Study Mode payload (source=study_mode, duration_seconds=60) returned 400, code 23514: new row violates check constraint "study_sessions_duration_floor". Nothing was written. (The originally observed console 400 was not separately captured, but this is the same table, same constraint.) Business rule: floor applies to source='manual' only. **Fix deployed & test-verified 21/09/2026:** floor re-scoped to source='manual'. In-app rows under 600s stopped appearing after 16/09 (8/2/1 rows on 14/15/16 Sep, none after); rejected sessions left no rows, so lost study time cannot be quantified. Study Mode insert also ignores the returned `error`.
 
 ### [21/09/2026] Question Type filter on Browse Study Sets was not carried into Study Mode — ✅ FIXED (frontend push pending)
@@ -18,9 +19,13 @@
 ### [21/09/2026] Label alignment inconsistency on left-aligned cards — ✅ FIXED (operator request)
 - QUESTION/ANSWER badges + speech icons were centred above left-aligned text. Now left-aligned for theory (front + answer), the ANSWER label in the shared layout, and the case_study_mcq QUESTION label. Verified on dev build (live DB).
 
-### [21/09/2026] Browse count mismatch (type filters sum to 1,225 vs 1,091 "All Types") — CAUSE PROVEN IN CODE, fix needs SQL approval
+### [21/09/2026] Search box on Browse Study Sets did not recompute totals — ✅ FIXED (frontend held with v8, push pending)
+- Search hid decks but subject totals / "N cards available" / "Study All (N)" kept the pre-search values. **Fix:** one narrowSubject() helper in ReviewFlashcards.jsx recomputes total, "from professors" and "yours" from the decks that remain; used by the topic, role, author and search filters (the first three previously recomputed only the total). **Verified on dev build (live DB):** search "Quality Control": 1091 -> 15 available, Study All (15), subject line 15/15/15, tile 15, tile sum 15.
+
+### [21/09/2026] Browse count mismatch (type filters sum to 1,225 vs 1,091 "All Types") — ✅ FIXED (SQL v8 deployed and tested; frontend pushed)
 - **Cause:** get_browsable_decks v7 (sprint8.7.4/02) returns decks that contain >=1 matching card when p_question_type is set, but its card_count is deliberately type-agnostic (the deck's whole visible total; comment at the "QUESTION TYPE FILTER" block). ReviewFlashcards.jsx sums card_count, so under a filter "N cards available" / "Study All (N)" show deck totals, and mixed-type decks are counted under several filters. Not a data error.
-- **Proposed fix (awaiting operator approval):** get_browsable_decks v8 adds a matching_card_count column (visible cards of the requested type; equals visible_card_count when no filter); frontend uses it while a type filter is active. SQL must deploy first.
+- **Status 21/09/2026:** v8 deployed by operator; 10 baseline matched v7, 12_TEST T1–T7 all PASS (ACL identical). **End-to-end proof (dev build, live DB, professor account):** per-type counts Flashcard 697 + Theory 348 + Case study 46 (others 0) = 1,091 = All Types (was 1,225); theory 348 equals the independent direct count. Original proposal:
+- **Proposed fix:** get_browsable_decks v8 adds a matching_card_count column (visible cards of the requested type; equals visible_card_count when no filter); frontend uses it while a type filter is active. SQL must deploy first.
 
 ### [21/09/2026] Recorded for extraction workflow (not fixed here): theory answers stored with inline "•" bullets and no line breaks (0 LF/CR in 8 sampled rows); "▯" in place of bullets; case text as one paragraph.
 

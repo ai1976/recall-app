@@ -22,6 +22,10 @@
 - `StudyMode.jsx` — QUESTION/ANSWER labels and speech icons left-aligned on cards whose text is left-aligned (theory front, ANSWER label in the shared layout, case_study_mcq QUESTION label). Other types unchanged (operator request 21/09/2026).
 - SQL `07_CLEANUP_remove_b2_test_provenance_row.sql` (run by operator, 0 remaining); `08_PLAN_get_browsable_decks_v8_matching_card_count.md` (auditor plan, no SQL yet); `09_DIAGNOSTIC_study_sessions_trigger_count.sql`.
 
+- **SQL (deployed & test-verified 21/09/2026, D-26):** `get_browsable_decks` v8 adds `matching_card_count` (`docs/database/sprint8.7.7/10–13`); `ReviewFlashcards.jsx` uses `displayCount = matching_card_count ?? card_count` for every count, so type-filtered totals now sum to the All Types total.
+
+- `ReviewFlashcards.jsx` — search (and topic/role/author) filters now recompute total, professor and own counts from the remaining decks (narrowSubject helper). Held with the v8 frontend.
+
 ### Files Changed
 - src/pages/dashboard/Study/ReviewFlashcards.jsx
 - src/pages/dashboard/BulkUploadFlashcards.jsx
