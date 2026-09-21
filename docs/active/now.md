@@ -5,7 +5,7 @@
 ## Sprint 8.7.7: Theory Display + Console Diagnosis (21/09/2026) — frontend built, NOT pushed; B1/B2/B3 partly open
 
 **Just Completed:** Theory cards left-aligned prose (D-24). Reviewed-cards lookup chunked (39KB URL -> 400 fixed, live-verified 20/20 200). Step 0: stored theory answers have 0 line breaks — data issue for extraction thread, no renderer change.
-**B1 ✅ closed (stale-session noise, recovery reproduced live). B2 ✅ fixed in code (role-gated audit insert in BulkUploadFlashcards.jsx; 403/42501 proven for professor) — push pending, then verify with a non-admin bulk upload. B3 ✅ closed (SQL + live end-to-end 201).** Pending: commit+push of BulkUploadFlashcards.jsx + docs. Deferred: Question Type filter passthrough, scenario expanded by default. Unexplained: type-filter counts sum (1225) > All Types (1091).
+**B1 ✅ closed (stale-session noise, recovery reproduced live). B2 ✅ fixed and live-verified (role-gated audit insert in BulkUploadFlashcards.jsx; 403/42501 proven for professor; post-deploy professor upload sent 0 audit requests). Operator to run 07_CLEANUP (orphan test provenance row). B3 ✅ closed (SQL + live end-to-end 201).** Question Type filter passthrough ✅ (?type=), case-study scenario ✅ bounded scroll box, label alignment ✅ — pushed. B3 trigger count query (09) pending operator. Filter count mismatch: cause proven (card_count is deck total by design); v8 RPC design awaiting approval.
 
 ---
 

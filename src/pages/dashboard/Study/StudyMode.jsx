@@ -362,6 +362,12 @@ export default function StudyMode({
         }
       }
 
+      // Sprint 8.7.7 — Question Type filter carried over from Browse Study Sets (?type=…).
+      const typeParam = searchParams.get('type');
+      if (typeParam) {
+        cleanedData = cleanedData.filter(card => card.question_type === typeParam);
+      }
+
       // Step 2: SRS-aware filter — show a card if it is DUE, or if it is NEW (never reviewed).
       // "Due" comes from the get_study_queue RPC (the single source of truth — course-aware,
       // concept-cards excluded, status/skip_until/next_review_date resolved server-side).
@@ -1455,14 +1461,14 @@ export default function StudyMode({
                         )}
                       </button>
                       {scenarioExpanded && (
-                        <p className="font-literata text-[15px] leading-relaxed text-rv-ink-900 px-4 pb-4 whitespace-pre-wrap">
+                        <p className="font-literata text-[15px] leading-relaxed text-rv-ink-900 px-4 pb-4 whitespace-pre-wrap max-h-[40vh] overflow-y-auto">
                           {currentCard.scenario}
                         </p>
                       )}
                     </div>
                   )}
 
-                  <div className="mb-6 flex items-center justify-center gap-2">
+                  <div className={cn('mb-6 flex items-center gap-2', currentCard.question_type === 'case_study_mcq' ? 'justify-start' : 'justify-center')}>
                     <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
                       QUESTION
                     </span>
@@ -1565,7 +1571,7 @@ export default function StudyMode({
                 </div>
               ) : !showAnswer ? (
                 <div className={cn('w-full', !isTheory(currentCard) && 'text-center')}>
-                  <div className="mb-6 flex items-center justify-center gap-2">
+                  <div className={cn('mb-6 flex items-center gap-2', isTheory(currentCard) ? 'justify-start' : 'justify-center')}>
                     <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
                       QUESTION
                     </span>
@@ -1692,7 +1698,7 @@ export default function StudyMode({
                   </div>
 
                   <div className="mb-8">
-                    <div className="flex items-center justify-center gap-2 mb-4">
+                    <div className="flex items-center justify-start gap-2 mb-4">
                       <span className="inline-block px-3 py-1 bg-rv-navy-50 text-rv-navy text-xs font-semibold tracking-wide rounded-rec">
                         ANSWER
                       </span>

@@ -17,7 +17,13 @@
 
 - `BulkUploadFlashcards.jsx` — admin_audit_log insert now only for admin/super_admin (non-admin uploads got a silent 403/42501). No SQL/RLS change.
 
+- `ReviewFlashcards.jsx` + `StudyMode.jsx` — Question Type filter now carried into Study Mode via ?type=.
+- `StudyMode.jsx` — case-study scenario box capped at 40vh with internal scroll (stays expanded by default).
+- `StudyMode.jsx` — QUESTION/ANSWER labels and speech icons left-aligned on cards whose text is left-aligned (theory front, ANSWER label in the shared layout, case_study_mcq QUESTION label). Other types unchanged (operator request 21/09/2026).
+- SQL `07_CLEANUP_remove_b2_test_provenance_row.sql` (run by operator, 0 remaining); `08_PLAN_get_browsable_decks_v8_matching_card_count.md` (auditor plan, no SQL yet); `09_DIAGNOSTIC_study_sessions_trigger_count.sql`.
+
 ### Files Changed
+- src/pages/dashboard/Study/ReviewFlashcards.jsx
 - src/pages/dashboard/BulkUploadFlashcards.jsx
 - src/pages/dashboard/Study/StudyMode.jsx
 - docs/database/sprint8.7.7/01_DIAGNOSTIC_theory_answer_raw_linebreaks.sql, 02_DIAGNOSTIC_study_sessions_structure.sql

@@ -9,21 +9,29 @@
 ### [21/09/2026] In-app `study_sessions` inserts below 600s rejected by `study_sessions_duration_floor` — ✅ CLOSED (SQL deployed D-25; live end-to-end proven: real Study Mode flow 27s study_mode session -> 201, row read back)
 - **PROVEN 21/09/2026 on live (professor account):** POST /rest/v1/study_sessions with the exact Study Mode payload (source=study_mode, duration_seconds=60) returned 400, code 23514: new row violates check constraint "study_sessions_duration_floor". Nothing was written. (The originally observed console 400 was not separately captured, but this is the same table, same constraint.) Business rule: floor applies to source='manual' only. **Fix deployed & test-verified 21/09/2026:** floor re-scoped to source='manual'. In-app rows under 600s stopped appearing after 16/09 (8/2/1 rows on 14/15/16 Sep, none after); rejected sessions left no rows, so lost study time cannot be quantified. Study Mode insert also ignores the returned `error`.
 
-### [21/09/2026] OPEN (deferred, not 8.7.7): Question Type filter on Browse Study Sets is not carried into Study Mode
-- Observed live: filter = Case study MCQ (129 cards), "Study All" navigated to `/dashboard/study?subject=…` only; the session loaded the whole subject (theory/basic cards first). Intended behaviour undocumented — may be by design. UX/design item.
+### [21/09/2026] Question Type filter on Browse Study Sets was not carried into Study Mode — ✅ FIXED (frontend push pending)
+- Observed live: filter = Case study MCQ, "Study All" navigated to /dashboard/study?subject=… only, so the session loaded the whole subject. **Fix:** ReviewFlashcards.jsx adds ?type=<question_type> when a type filter is active; StudyMode.jsx filters cards by it. **Verified on dev build (live DB):** URL carried type=case_study_mcq, first card was a case study, session showed 40 cards.
 
-### [21/09/2026] OPEN (deferred to case-study work): case-study scenario is expanded by default and can be ~2,800 characters, pushing the question and options far below the fold at 375px.
+### [21/09/2026] Case-study scenario pushed question/options far below the fold on phones — ✅ FIXED (frontend push pending)
+- Scenario stays expanded by default (students see the context) but is now a scroll box, max-h-[40vh]. **Verified at 375px:** 1,381px of scenario text in a 325px scroll area; the QUESTION label and question start on the first screen. Collapse toggle unchanged.
+
+### [21/09/2026] Label alignment inconsistency on left-aligned cards — ✅ FIXED (operator request)
+- QUESTION/ANSWER badges + speech icons were centred above left-aligned text. Now left-aligned for theory (front + answer), the ANSWER label in the shared layout, and the case_study_mcq QUESTION label. Verified on dev build (live DB).
+
+### [21/09/2026] Browse count mismatch (type filters sum to 1,225 vs 1,091 "All Types") — CAUSE PROVEN IN CODE, fix needs SQL approval
+- **Cause:** get_browsable_decks v7 (sprint8.7.4/02) returns decks that contain >=1 matching card when p_question_type is set, but its card_count is deliberately type-agnostic (the deck's whole visible total; comment at the "QUESTION TYPE FILTER" block). ReviewFlashcards.jsx sums card_count, so under a filter "N cards available" / "Study All (N)" show deck totals, and mixed-type decks are counted under several filters. Not a data error.
+- **Proposed fix (awaiting operator approval):** get_browsable_decks v8 adds a matching_card_count column (visible cards of the requested type; equals visible_card_count when no filter); frontend uses it while a type filter is active. SQL must deploy first.
 
 ### [21/09/2026] Recorded for extraction workflow (not fixed here): theory answers stored with inline "•" bullets and no line breaks (0 LF/CR in 8 sampled rows); "▯" in place of bullets; case text as one paragraph.
 
 ### [21/09/2026] B1 — 400 on refresh_token + "Invalid Refresh Token" — ✅ CLOSED, stale-session noise, no code change
 - **Reproduced on live** (bad refresh token + expired access token, browser pane only): exactly one 400 on /auth/v1/token?grant_type=refresh_token, AuthApiError in console, app cleared the stored session and redirected to /login. No stuck loading. Real session restored afterwards (refresh 200). AuthContext already recovers correctly; no auth change.
 
-### [21/09/2026] B2 — 403 on admin_audit_log — ✅ FIXED (frontend push pending)
+### [21/09/2026] B2 — 403 on admin_audit_log — ✅ FIXED and live-verified
 - **Proven cause: role-gating bug.** BulkUploadFlashcards.jsx (/dashboard/bulk-upload, open to all signed-in users) inserted into admin_audit_log after every successful upload with no role check. admin_audit_log INSERT is RLS-restricted to admin/super_admin. **Proof (live, professor account, 21/09/2026):** POST /rest/v1/admin_audit_log -> 403, code 42501, "new row violates row-level security policy for table admin_audit_log" (nothing written). The supabase-js error is returned, not thrown, so the surrounding try/catch never fired — silent 403.
 - **Ruled out (live):** professor login/study session (no audit request); admin login (201); admin on /super-admin ("Access Denied", no request); super_admin login (201) and /super-admin audit read (200).
 - **Fix:** audit insert now runs only when isAdmin (admin or super_admin). No RLS/SQL change. Other writers (AdminDashboard, BulkUploadTopics) already role-gated.
-- **Not yet proven end to end:** that this exact path produced the originally reported 403 (needs a non-admin bulk upload after deploy). Verification plan: professor uploads a small CSV; expect zero admin_audit_log requests.
+- **Live verification (21/09/2026, after deploy 6dbbd65):** professor uploaded a 1-row private test CSV -> "Successfully uploaded 1 study item", **0 admin_audit_log requests, 0 errors** in the request log. Test card then deleted. Side effect: one orphaned flashcard_batch_provenance row (batch 5e76768d-…) — the known 8.7.6 final-card-delete gap, reproduced; cleanup in docs/database/sprint8.7.7/07_CLEANUP_remove_b2_test_provenance_row.sql (operator to run).
 
 
 ## Sprint 8.7.6 — 21/09/2026 (Merge-batches provenance)

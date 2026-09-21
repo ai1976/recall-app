@@ -380,6 +380,8 @@ export default function ReviewFlashcards() {
       if (topicName) params.set('topic', topicName);
       if (filterAuthor !== 'all') params.set('author', filterAuthor);
     }
+    // Sprint 8.7.7 — carry the Question Type filter into Study Mode so the session matches the filtered browse view
+    if (filterQuestionType !== 'all') params.set('type', filterQuestionType);
     // Tier B users get preview mode for professor content
     if (isProfessorContent && userProfile?.account_type === 'self_registered') {
       params.set('previewMode', 'true');
