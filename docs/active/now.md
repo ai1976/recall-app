@@ -5,7 +5,7 @@
 ## Sprint 8.7.7: Theory Display + Console Diagnosis (21/09/2026) — frontend built, NOT pushed; B1/B2/B3 partly open
 
 **Just Completed:** Theory cards left-aligned prose (D-24). Reviewed-cards lookup chunked (39KB URL -> 400 fixed, live-verified 20/20 200). Step 0: stored theory answers have 0 line breaks — data issue for extraction thread, no renderer change.
-**B3 ✅ RESOLVED (SQL):** D-25 deployed and test-verified 21/09/2026 (files 03–06). Pending: commit + push of the small Study Mode error-log change, then a live check that a short in-app session is recorded. **Open:** B2/B1 not reproduced on professor account. Deferred: Question Type filter passthrough, scenario expanded by default.
+**B1 ✅ closed (stale-session noise, recovery reproduced live). B2 ✅ fixed in code (role-gated audit insert in BulkUploadFlashcards.jsx; 403/42501 proven for professor) — push pending, then verify with a non-admin bulk upload. B3 ✅ closed (SQL + live end-to-end 201).** Pending: commit+push of BulkUploadFlashcards.jsx + docs. Deferred: Question Type filter passthrough, scenario expanded by default. Unexplained: type-filter counts sum (1225) > All Types (1091).
 
 ---
 

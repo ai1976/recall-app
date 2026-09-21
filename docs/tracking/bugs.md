@@ -6,7 +6,7 @@
 - **Proven:** URL 39,144 chars with 1,000 ids -> bare "Bad Request"; after chunking 20/20 requests return 200 (max URL ~4KB).
 - **Effect while broken:** `reviewedIds` empty -> reviewed-but-not-due cards admitted as "new" in Study Mode.
 
-### [21/09/2026] In-app `study_sessions` inserts below 600s rejected by `study_sessions_duration_floor` — ✅ FIXED (SQL deployed, D-25)
+### [21/09/2026] In-app `study_sessions` inserts below 600s rejected by `study_sessions_duration_floor` — ✅ CLOSED (SQL deployed D-25; live end-to-end proven: real Study Mode flow 27s study_mode session -> 201, row read back)
 - **PROVEN 21/09/2026 on live (professor account):** POST /rest/v1/study_sessions with the exact Study Mode payload (source=study_mode, duration_seconds=60) returned 400, code 23514: new row violates check constraint "study_sessions_duration_floor". Nothing was written. (The originally observed console 400 was not separately captured, but this is the same table, same constraint.) Business rule: floor applies to source='manual' only. **Fix deployed & test-verified 21/09/2026:** floor re-scoped to source='manual'. In-app rows under 600s stopped appearing after 16/09 (8/2/1 rows on 14/15/16 Sep, none after); rejected sessions left no rows, so lost study time cannot be quantified. Study Mode insert also ignores the returned `error`.
 
 ### [21/09/2026] OPEN (deferred, not 8.7.7): Question Type filter on Browse Study Sets is not carried into Study Mode
@@ -16,7 +16,15 @@
 
 ### [21/09/2026] Recorded for extraction workflow (not fixed here): theory answers stored with inline "•" bullets and no line breaks (0 LF/CR in 8 sampled rows); "▯" in place of bullets; case text as one paragraph.
 
-### OPEN — B1 (refresh_token 400) awaiting fresh-session result; B2 (admin_audit_log 403) awaiting request method/role; neither reproduced on the operator's account at page load.
+### [21/09/2026] B1 — 400 on refresh_token + "Invalid Refresh Token" — ✅ CLOSED, stale-session noise, no code change
+- **Reproduced on live** (bad refresh token + expired access token, browser pane only): exactly one 400 on /auth/v1/token?grant_type=refresh_token, AuthApiError in console, app cleared the stored session and redirected to /login. No stuck loading. Real session restored afterwards (refresh 200). AuthContext already recovers correctly; no auth change.
+
+### [21/09/2026] B2 — 403 on admin_audit_log — ✅ FIXED (frontend push pending)
+- **Proven cause: role-gating bug.** BulkUploadFlashcards.jsx (/dashboard/bulk-upload, open to all signed-in users) inserted into admin_audit_log after every successful upload with no role check. admin_audit_log INSERT is RLS-restricted to admin/super_admin. **Proof (live, professor account, 21/09/2026):** POST /rest/v1/admin_audit_log -> 403, code 42501, "new row violates row-level security policy for table admin_audit_log" (nothing written). The supabase-js error is returned, not thrown, so the surrounding try/catch never fired — silent 403.
+- **Ruled out (live):** professor login/study session (no audit request); admin login (201); admin on /super-admin ("Access Denied", no request); super_admin login (201) and /super-admin audit read (200).
+- **Fix:** audit insert now runs only when isAdmin (admin or super_admin). No RLS/SQL change. Other writers (AdminDashboard, BulkUploadTopics) already role-gated.
+- **Not yet proven end to end:** that this exact path produced the originally reported 403 (needs a non-admin bulk upload after deploy). Verification plan: professor uploads a small CSV; expect zero admin_audit_log requests.
+
 
 ## Sprint 8.7.6 — 21/09/2026 (Merge-batches provenance)
 

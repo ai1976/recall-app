@@ -107,7 +107,7 @@ function Step({ number, title, subtitle, isOpen, isComplete, onToggle, children 
 }
 
 export default function BulkUploadFlashcards() {
-  const { isLoading: roleLoading } = useRole();
+  const { isLoading: roleLoading, isAdmin } = useRole();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -1000,20 +1000,23 @@ IMPORTANT:
         count: totalCardCount,
       });
 
-      // Audit log (non-critical)
-      try {
-        await supabase.from('admin_audit_log').insert({
-          action: 'bulk_upload_flashcards',
-          admin_id: user.id,
-          details: {
-            count: totalCardCount,
-            filename: csvFile.name,
-            batch_description: trimmedDescription,
-            visibility: bulkVisibility
-          }
-        });
-      } catch (auditError) {
-        console.log('Audit log failed (non-critical):', auditError);
+      // Audit log (non-critical). admin_audit_log INSERT is RLS-restricted to admin/super_admin,
+      // so only write it for those roles — for anyone else it is always a silent 403 (Sprint 8.7.7 B2).
+      if (isAdmin) {
+        try {
+          await supabase.from('admin_audit_log').insert({
+            action: 'bulk_upload_flashcards',
+            admin_id: user.id,
+            details: {
+              count: totalCardCount,
+              filename: csvFile.name,
+              batch_description: trimmedDescription,
+              visibility: bulkVisibility
+            }
+          });
+        } catch (auditError) {
+          console.log('Audit log failed (non-critical):', auditError);
+        }
       }
 
       // Reset form
