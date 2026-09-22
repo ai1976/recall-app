@@ -1,6 +1,38 @@
 # Changelog
 
 ---
+## [23/09/2026] feat(sprint-8.7.8c): Practice Mode + StudyMode My Cards composition
+
+### Added
+- `get_practice_cards(p_user_id, p_deck_id, p_question_type)` RPC — batched Practice-card retrieval + proactive eligibility (`is_own`/`is_enrolled`/`can_add_to_my_cards`), deck-level access validated before card resolution, `concept_card` excluded unconditionally. `docs/database/sprint8.7.8c/01`–`03` (function, test 15/15 PASS, rollback).
+- `src/pages/dashboard/Study/PracticeMode.jsx` — new `/dashboard/practice` route. Per-type Practice flows (flashcard/theory reveal, mcq/mcq_multi/match_the_following/case_study_mcq, fitb) that never call `apply_review`/`submit_review`; `log_practice_attempt` write-once-per-card semantics per type; Add-to-My-Cards control with three proactive states + reactive `42501` fallback; `practice_mode` study-time logging (StudyMode's 10s-noise-floor pattern).
+- "Practice" entry point per deck tile in `ReviewFlashcards.jsx`, preserving the deck (Study Set) as Practice's scope.
+- `docs/active/blueprint.md` D-28, `docs/reference/DATABASE_SCHEMA.md` §2.4E + `study_sessions` updates.
+
+### Changed
+- `StudyMode.jsx`'s standalone-mode `fetchFlashcards()` step 1: replaced the direct `.from('flashcards')` "everything visible" query with `get_my_cards(user.id)` (own ∪ actively-enrolled). Steps 2-4 (the `get_study_queue` due/new merge) unchanged.
+- `study_sessions_source_check` widened (additive) to allow `source='practice_mode'` — Step 0 initially missed this CHECK's existence; caught live when the first Practice study-time insert failed with `23514`, fixed and live-verified before frontend closeout. `docs/database/sprint8.7.8c/00` (diagnostic), `04` (schema), `05` (rollback), `06` (live verification).
+
+### Files Changed
+- `docs/database/sprint8.7.8c/00_DIAGNOSTIC_study_sessions_source_check.sql` (new)
+- `docs/database/sprint8.7.8c/01_FUNCTIONS_get_practice_cards.sql` (new)
+- `docs/database/sprint8.7.8c/02_TEST_verify_get_practice_cards.sql` (new)
+- `docs/database/sprint8.7.8c/03_ROLLBACK_get_practice_cards.sql` (new)
+- `docs/database/sprint8.7.8c/04_SCHEMA_add_practice_mode_source.sql` (new)
+- `docs/database/sprint8.7.8c/05_SCHEMA_ROLLBACK_remove_practice_mode_source.sql` (new)
+- `docs/database/sprint8.7.8c/06_TEST_verify_practice_mode_session_live.sql` (new)
+- `docs/database/sprint8.7.8c/07_DATA_create_practice_fixture_objective_cards.sql`, `07b_DATA_fix_match_fixture_options_shape.sql`, `08_TEST_verify_practice_fixture_side_effects.sql`, `09_CLEANUP_delete_practice_fixture_cards.sql` (new — disposable browser-verification fixture, fully cleaned up, 0 residue)
+- `src/pages/dashboard/Study/PracticeMode.jsx` (new)
+- `src/pages/dashboard/Study/StudyMode.jsx` (step-1 fetch swap)
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx` (Practice entry point)
+- `src/App.jsx` (`/dashboard/practice` route)
+- `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/FILE_STRUCTURE.md`, `docs/active/now.md`, `docs/tracking/bugs.md` (docs)
+
+### Not shipped this sprint
+- Group-shared-only content still cannot be enrolled into My Cards (D-27's own documented gap, unchanged). Its Practice-only frontend state and the `42501` race-condition UI are implemented and backend-proven (synthetic SQL fixtures, all PASS) but not live-browser-exercised — no matching content existed in the test course.
+- 8.7.8d (Pause/Resume/Remove UI, dedicated My Cards page, `MyFlashcards.jsx`/`Progress.jsx` changes) not started.
+
+---
 ## [22/09/2026] feat(sprint-8.7.8b): My Cards enrollment — schema + RPC foundation
 
 ### Added

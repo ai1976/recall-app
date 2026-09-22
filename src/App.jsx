@@ -50,6 +50,7 @@ const ReviewSession = lazy(() => import('@/pages/dashboard/Study/ReviewSession')
 const MyProgress = lazy(() => import('@/pages/dashboard/Study/Progress'))
 const ReviewBySubject = lazy(() => import('@/pages/dashboard/Study/ReviewBySubject'))
 const StudyMode = lazy(() => import('@/pages/dashboard/Study/StudyMode'))
+const PracticeMode = lazy(() => import('@/pages/dashboard/Study/PracticeMode'))
 const StudyTimePage = lazy(() => import('@/pages/dashboard/Study/StudyTimePage'))
 
 // Dashboard - Profile Pages
@@ -140,6 +141,7 @@ if (!user || loading) return
             /dashboard/review-session      → pages/dashboard/Study/ReviewSession.jsx
             /dashboard/review-by-subject   → pages/dashboard/Study/ReviewBySubject.jsx
             /dashboard/study               → pages/dashboard/Study/StudyMode.jsx
+            /dashboard/practice            → pages/dashboard/Study/PracticeMode.jsx
             /dashboard/study-time          → pages/dashboard/Study/StudyTimePage.jsx
             /dashboard/progress            → pages/dashboard/Study/Progress.jsx
             /dashboard/achievements        → pages/dashboard/Profile/MyAchievements.jsx
@@ -251,6 +253,10 @@ if (!user || loading) return
           <Route
             path="/dashboard/study"
             element={user ? <StudyMode /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/dashboard/practice"
+            element={user ? <PracticeMode /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/dashboard/study-time"

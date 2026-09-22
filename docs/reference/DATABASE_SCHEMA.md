@@ -534,12 +534,31 @@ All four follow the established hardened-RPC convention: `plpgsql`, `SECURITY DE
 |-----|---------|---------------------------|-------|
 | `add_to_my_cards(p_user_id, p_flashcard_id)` | Add or re-add an external card to My Cards. | `get_study_queue`'s (own/public/accepted-friends only — no admin override, no group-share). | Atomic `INSERT ... ON CONFLICT DO UPDATE` (never SELECT-then-INSERT). Distinguishes a genuine re-add after Remove (`old_status='removed'` → calls `unsuspend_card`, preserving rung/repetition/easiness) from an already-active call (the Pause case — must NOT resume). Never calls `reset_card`. Rejects `concept_card`. |
 | `remove_from_my_cards(p_user_id, p_flashcard_id)` | Soft-remove membership (`status='removed'`), preserving SRS history. | N/A (acts only on the caller's own enrollment row). | No-op if no membership row exists for the pair. If a `reviews` row exists with `status IN ('active','mastered')`, calls `suspend_card` in the same call — never creates a bare `reviews` row for a never-graded card. |
-| `get_my_cards(p_user_id)` | Returns own ∪ actively-enrolled-and-still-visible external cards. `RETURNS SETOF public.flashcards` (not a hand-enumerated column list, so the shape always tracks the live table). | `get_study_queue`'s, re-applied at READ time per card. | Does not touch or wrap `get_study_queue` (frozen, unchanged). Replaces `StudyMode.jsx`'s step-1 "everything visible" fetch — not yet wired in (8.7.8c). |
+| `get_my_cards(p_user_id)` | Returns own ∪ actively-enrolled-and-still-visible external cards. `RETURNS SETOF public.flashcards` (not a hand-enumerated column list, so the shape always tracks the live table). | `get_study_queue`'s, re-applied at READ time per card. | Does not touch or wrap `get_study_queue` (frozen, unchanged). Wired into `StudyMode.jsx`'s step-1 fetch (Sprint 8.7.8c) — live-verified: a subject with 197 visible/0-enrolled cards now shows exactly the viewer's own card in Study Mode. |
 | `log_practice_attempt(p_user_id, p_flashcard_id, p_is_correct)` | Logs a Practice/Explore attempt. Writes only to `practice_attempts`. | Browse/Practice predicate (own/public/accepted-friends/admin override/group-shared) — matches `get_browsable_decks` v8's card-level predicate verbatim. Deliberately WIDER than `add_to_my_cards`'s (Anand's explicit decision, 22/09/2026). | Enforces question-type integrity (8.7.8a confirmed semantics): `flashcard`/`theory` require `is_correct IS NULL`; `mcq`/`mcq_multi`/`case_study_mcq`/`match_the_following` require non-NULL boolean; `fitb` allows `TRUE`/`NULL` only (D-13 — never a hard `FALSE`, unmatched wording is non-conclusive); `concept_card` is rejected outright. |
 
 **Known compatibility gap, recorded not fixed:** `add_to_my_cards`/`get_my_cards` cannot enroll a card that is visible only via a study-group share, because `get_study_queue` (frozen, out of scope for 8.7.8b) does not know about group shares. `log_practice_attempt` correctly allows practicing such a card. Once `get_study_queue`'s own visibility is ever extended to group-shared content, `add_to_my_cards`/`get_my_cards`'s predicate should be widened to match in a later sprint.
 
 **Files:** `docs/database/sprint8.7.8b/01`–`05`.
+
+---
+
+### 2.4E get_practice_cards (Sprint 8.7.8c, ✅ SQL deployed & test-verified 15/15 PASS incl. eligibility parity)
+
+**Purpose:** Batched Practice-card retrieval + proactive enrollment-eligibility RPC. Replaces the frontend's only remaining direct, narrow, eligibility-blind card fetch (`StudyMode.jsx`'s old step-1 query, now itself replaced by `get_my_cards` — see 2.4D). Chosen over extending an existing RPC because the old fetch was client-side and had the wrong (non-Practice) predicate — Step 0's own decision tree, Option B.
+
+`get_practice_cards(p_user_id uuid, p_deck_id uuid, p_question_type text DEFAULT NULL)` — `plpgsql`, `STABLE`, `SECURITY DEFINER`, `SET search_path TO public, extensions`, same self-only IDOR guard + ACL convention as every RPC in this section.
+
+| Step | Behavior |
+|------|----------|
+| 1. Deck validation | Re-checks `p_deck_id` against `get_browsable_decks` v8's exact deck-level VISIBILITY GATE + COURSE GATE (`docs/database/sprint8.7.7/11_...sql:166-196`, reproduced verbatim) **before** resolving the deck's five grouping columns. An inaccessible or nonexistent deck raises `42501` ("Study Set not accessible") — never a silently-empty result, which would let a caller distinguish "doesn't exist" from "you can't see it" by response shape alone. |
+| 2. Card selection | 5-grouping-column join (never `flashcards.deck_id`, which is NULL for bulk-uploaded cards) against the validated deck's `(user_id, subject_id, topic_id, custom_subject, custom_topic)`. `question_type = 'concept_card'` is excluded unconditionally (D-06 — concept cards are browse-only, never a Practice attempt or Add candidate, regardless of any type filter passed in `p_question_type`). |
+| 3. Practice visibility | `log_practice_attempt`'s predicate, verbatim (own/public/accepted-friends/admin override/group-shared) — re-checked per card, independent of the deck-level gate (defense in depth: a deck can contain mixed-visibility cards). |
+| 4. Returned flags | `is_own` (`user_id = p_user_id`); `is_enrolled` (active `my_cards_enrollment` row only — the signal Practice Mode uses to show "Added to My Cards" instead of re-offering Add); `can_add_to_my_cards` computed with `add_to_my_cards`'s exact predicate (own/public/accepted-friends only, no admin/group-share). A card can be Practice-visible via admin override or group-share while `can_add_to_my_cards=false` — the intended, documented gap (2.4D). |
+
+**Eligibility parity is a live-verified test, not an assumption**: `docs/database/sprint8.7.8c/02_TEST_verify_get_practice_cards.sql` proves a card `get_practice_cards` marks `can_add_to_my_cards=false` (group-share-only fixture) is *actually* rejected by `add_to_my_cards` itself, and that `is_enrolled` flips `false → true` after a real `add_to_my_cards` call on the same card, within the same test transaction.
+
+**Files:** `docs/database/sprint8.7.8c/01`–`03` (function, test, rollback).
 
 ---
 
@@ -1083,7 +1102,7 @@ Stores completed study sessions only. Incomplete/abandoned sessions are held in 
 | `ended_at` | timestamptz | NOT NULL |
 | `duration_seconds` | integer | NOT NULL, CHECK > 0 |
 | `session_date` | date | NOT NULL — stored as user's LOCAL date (YYYY-MM-DD), passed from frontend |
-| `source` | text | NOT NULL, CHECK IN ('manual', 'study_mode') |
+| `source` | text | NOT NULL, CHECK IN ('manual', 'study_mode', 'practice_mode') — widened Sprint 8.7.8c (D-28), see below |
 | `category` | text | NULLABLE, CHECK IN ('reading', 'writing_practice', 'lecture_viewing', 'paper_solving', 'mock_test') or NULL. Sprint 8.5 (D-18). Applies only to `source = 'manual'` rows — chosen by the student at stop/log time, required for a manual log to complete. No default, no backfill: every row logged before Sprint 8.5 has `category IS NULL`. `get_study_time_stats` does not reference this column (confirmed additive via `pg_get_functiondef` before adding). |
 | `created_at` | timestamptz | DEFAULT now() |
 
@@ -1091,7 +1110,9 @@ Stores completed study sessions only. Incomplete/abandoned sessions are held in 
 
 **Constraint — `study_sessions_manual_requires_category` (Sprint 8.5, D-18 addendum):** `CHECK (source <> 'manual' OR category IS NOT NULL) NOT VALID`. Added after a quality-auditor review found the frontend-only "category is required" rule was a DB integrity gap — nothing stopped a future write path from inserting `source='manual', category=NULL`. `NOT VALID` enforces this on every future INSERT (and UPDATE, though none exist) without validating pre-existing rows, so no backfill and no rewrite of history. Live-verified: a `NULL`-category manual insert is rejected (`23514`), a valid categorized one still succeeds, and pre-existing historical `NULL`-category rows read back untouched.
 
-**Constraint — `study_sessions_duration_floor` (Sprint 8.6a, re-scoped Sprint 8.7.7 / D-25, ✅ deployed & test-verified 21/09/2026):** now `CHECK (source <> 'manual' OR duration_seconds >= 600) NOT VALID`. The 10-minute floor applies to offline/manual sessions only; in-app RevisOp study (`source = 'study_mode'`) has no minimum and records its real duration (still subject to `duration_seconds > 0`). The original 8.6a version had no `source` clause and rejected every in-app session under 600s (400 / 23514, proven live 21/09/2026). `NOT VALID` = enforced on new INSERT/UPDATE, existing rows never re-validated (245 pre-existing rows under 600s untouched: 34 manual, 211 study_mode). Live sources: `manual`, `study_mode` only. Files: `docs/database/sprint8.7.7/03–06`.
+**Constraint — `study_sessions_duration_floor` (Sprint 8.6a, re-scoped Sprint 8.7.7 / D-25, ✅ deployed & test-verified 21/09/2026):** now `CHECK (source <> 'manual' OR duration_seconds >= 600) NOT VALID`. The 10-minute floor applies to offline/manual sessions only; in-app RevisOp study (`source = 'study_mode'`) has no minimum and records its real duration (still subject to `duration_seconds > 0`). The original 8.6a version had no `source` clause and rejected every in-app session under 600s (400 / 23514, proven live 21/09/2026). `NOT VALID` = enforced on new INSERT/UPDATE, existing rows never re-validated (245 pre-existing rows under 600s untouched: 34 manual, 211 study_mode). Files: `docs/database/sprint8.7.7/03–06`.
+
+**Constraint — `study_sessions_source_check` widened to add `'practice_mode'` (Sprint 8.7.8c / D-28, ✅ deployed & live-verified 23/09/2026):** `CHECK (source = ANY (ARRAY['manual','study_mode','practice_mode']))`. Sprint 8.7.8c's Step 0 initially (incorrectly) concluded `source` had no value-enum CHECK — this was wrong, caught live when Practice Mode's first study-time insert failed with `23514`. Purely additive widening (no existing row touched; 433 `manual` + 245 `study_mode` rows confirmed untouched before the change). `practice_mode` automatically inherits the same no-minimum treatment as `study_mode` from the duration-floor CHECK above (it only singles out `source='manual'`), so no further change was needed there. Files: `docs/database/sprint8.7.8c/00` (diagnostic), `04` (schema), `05` (rollback), `06` (live verification).
 
 **Index:** `idx_study_sessions_user_date` on `(user_id, session_date)` — optimises the stats RPC.
 

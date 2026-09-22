@@ -1,6 +1,22 @@
 # NOW - Current Development Status
 
-**Last Updated:** 22/09/2026
+**Last Updated:** 23/09/2026
+
+## Sprint 8.7.8c: Practice Mode + My Cards Composition (22-23/09/2026) — ✅ SQL deployed & test-verified (15/15 PASS incl. eligibility parity), frontend built, live-verified in browser. Closes the auto-enrollment bug.
+
+**Just Completed:** Step 0 traced the exact per-card Browse→Practice gap (StudyMode.jsx's old fetch was client-side, narrow-predicate, eligibility-blind) and the mcq/mcq_multi/match_the_following/case_study_mcq "wrong answer calls `submitReview`→`apply_review` immediately, before any grade button" coupling — exactly the risk this sprint exists to close. Backend: one new additive RPC, `get_practice_cards` (deck-level access validated before card resolution, per-card `is_own`/`is_enrolled`/`can_add_to_my_cards`, `concept_card` excluded unconditionally) — deployed and test-verified 15/15 PASS including eligibility parity (a card marked `can_add_to_my_cards=false` is proven to actually fail `add_to_my_cards`) and the enrollment-state transition (`is_enrolled` flips false→true after a real `add_to_my_cards` call).
+
+A genuine Step 0 miss surfaced live: `study_sessions_source_check` actually restricts `source IN ('manual','study_mode')` (Step 0 had concluded no such CHECK existed) — Practice Mode's first study-time insert failed `23514`. Fixed with a minimal additive widening (shown to Anand before deployment per project rule), live-verified after the fact.
+
+Frontend: `StudyMode.jsx`'s standalone-mode step-1 fetch now calls `get_my_cards` (own ∪ actively-enrolled) instead of "everything visible" — live-verified: a subject with 197 viewer-visible cards (196 unenrolled external) showed exactly 1 card in Study Mode; after enrolling one external card via Practice, it appeared as new. New `PracticeMode.jsx` (`/dashboard/practice`, entry point on `ReviewFlashcards.jsx`'s deck tiles): never calls `apply_review`; flashcard/theory reveal → one practice attempt (`is_correct=NULL`) → Add control; objective types → answer → verdict+WHY → one practice attempt → Add control + "Worth revisiting?" nudge on wrong, never auto-adds. Add-to-My-Cards is proactive (three server-derived states) with a reactive `42501` fallback for the race case.
+
+**Live-verified with a disposable fixture (the sprint's explicit closeout gate):** one external mcq + one external match_the_following, both answered wrong — exactly one `practice_attempts` row each, **zero** `reviews`, **zero** `review_events`, active enrollment recorded after Add. Fixture fully deleted afterward (`fixture_cards_remaining=0`, `fixture_decks_remaining=0`).
+
+Full details: blueprint.md D-28, DATABASE_SCHEMA.md §2.4E + study_sessions updates, bugs.md (auto-enrollment bug now ✅ CLOSED). Files: `docs/database/sprint8.7.8c/00`–`09`.
+
+**Not covered:** group-shared-only content's "Available for Practice only" frontend state and the `42501` race-condition UI — backend-proven (synthetic SQL fixtures, all PASS) but not live-browser-exercised, since no matching content/visibility combination existed in the test course. 8.7.8d (Pause/Resume/Remove UI, dedicated My Cards page) not started — do not begin without re-reading D-28.
+
+---
 
 ## Sprint 8.7.8b: My Cards Enrollment — Schema + RPC Foundation (22/09/2026) — ✅ SQL deployed, test-verified (44/44 PASS), live-verified (disposable-data round trip, residue confirmed 0). Backend only, NO frontend changes.
 

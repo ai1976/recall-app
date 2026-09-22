@@ -1,11 +1,15 @@
 # Bug Tracking
 
-## Sprint 8.7.8b — 22/09/2026 (My Cards Enrollment — schema + RPC foundation)
+## Sprint 8.7.8c — 22-23/09/2026 (Practice Mode + My Cards composition)
 
-### [22/09/2026] Any visible card (own or not) silently auto-enrolls into SRS on first grade — 🟡 BACKEND FOUNDATION COMPLETE, product bug NOT YET FIXED (frontend gate ships in 8.7.8c)
+### [22/09/2026] Any visible card (own or not) silently auto-enrolls into SRS on first grade — ✅ FIXED & LIVE-VERIFIED
 - **Proven (8.7.8a diagnostic):** `StudyMode.jsx`'s standalone-mode `fetchFlashcards()` queries every card the viewer may see (own/public/friends), not just their own; the first grade on any never-reviewed visible card — own or not — calls `apply_review`'s brand-new-card branch with no ownership check. This makes external-corpus auto-enrollment (e.g. ICAI's exhaustive question bank) unsustainable daily volume, not hypothetical.
-- **Backend fix shipped 22/09/2026 (Sprint 8.7.8b, D-27):** `my_cards_enrollment`/`practice_attempts` tables + `add_to_my_cards`/`remove_from_my_cards`/`get_my_cards`/`log_practice_attempt` RPCs, deployed and live-verified. `get_my_cards` is ready to replace `StudyMode.jsx`'s step-1 fetch.
-- **Still open:** `StudyMode.jsx` has NOT been changed. It still fetches "everything visible," so the actual auto-enrollment behavior a student experiences is unchanged until 8.7.8c wires the frontend to `get_my_cards` and ships a Practice Mode that doesn't call `apply_review`. Do not close this entry until 8.7.8c ships and is live-verified.
+- **Backend fix shipped 22/09/2026 (Sprint 8.7.8b, D-27):** `my_cards_enrollment`/`practice_attempts` tables + `add_to_my_cards`/`remove_from_my_cards`/`get_my_cards`/`log_practice_attempt` RPCs, deployed and live-verified.
+- **Frontend fix shipped 22-23/09/2026 (Sprint 8.7.8c, D-28):** `StudyMode.jsx`'s step-1 fetch now calls `get_my_cards` (own ∪ actively-enrolled) instead of "everything visible." A new Practice Mode (`/dashboard/practice`) lets students inspect/attempt not-own content and explicitly choose "Add to My Cards" without ever calling `apply_review`.
+- **Live-verified 23/09/2026:** a subject with 197 viewer-visible cards (196 unenrolled external, 1 own) showed exactly 1 card ("Card 1 of 1") in Study Mode; after enrolling one external card via Practice Mode, that same card correctly appeared as a new card in Study Mode. Objective-type wrong-answer path (the exact old-code risk: `apply_review` firing immediately on a wrong tap) verified with a disposable mcq + match_the_following fixture — exactly one `practice_attempts` row each, zero `reviews`, zero `review_events`; fixture fully deleted afterward, 0 residue confirmed.
+- **Status:** ✅ CLOSED. Not yet covered by this fix: group-shared-only content still cannot be added to My Cards (D-27's own documented, deliberate gap — not this bug), and the Practice-only/group-share and `42501`-race frontend states were backend-proven but not live-browser-exercised due to no matching content existing in this course.
+
+## Sprint 8.7.8b — 22/09/2026 (My Cards Enrollment — schema + RPC foundation)
 
 ## Sprint 8.7.7 — 21/09/2026 (Theory display + console diagnosis)
 

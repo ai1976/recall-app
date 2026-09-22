@@ -300,25 +300,36 @@ export default function StudyMode({
       const authorParam = searchParams.get('author');
       const deckParam = searchParams.get('deck');
 
-      // Step 1: Fetch all cards visible to this user
-      const { data, error } = await supabase
-        .from('flashcards')
-        .select(`
-          *,
-          subjects:subject_id (id, name),
-          topics:topic_id (id, name)
-        `)
-        .or(`visibility.eq.public,user_id.eq.${user.id},visibility.eq.friends`)
-        .order('created_at', { ascending: false });
+      // Step 1 (Sprint 8.7.8c): My Cards composition, not "everything visible". Standalone Study
+      // Mode must only ever admit own cards + cards the student has explicitly enrolled via
+      // Practice Mode's "Add to My Cards" — a visible-but-not-enrolled external card must never
+      // silently enter SRS just because the student could see it. get_my_cards() is the additive
+      // Sprint 8.7.8b RPC (own ∪ actively-enrolled, re-checking live visibility on every read); it
+      // returns SETOF flashcards (raw columns, no joined names), so subject/topic names are
+      // resolved client-side below to keep the existing name-based filters unchanged.
+      const { data, error } = await supabase.rpc('get_my_cards', { p_user_id: user.id });
 
       if (error) throw error;
 
-      // Clean special characters
-      let cleanedData = (data || []).map(card => ({
-        ...card,
-        front_text: card.front_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || '',
-        back_text: card.back_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || ''
-      }));
+      const [{ data: subjectRows }, { data: topicRows }] = await Promise.all([
+        supabase.from('subjects').select('id, name'),
+        supabase.from('topics').select('id, name'),
+      ]);
+      const subjectById = new Map((subjectRows || []).map(s => [s.id, s.name]));
+      const topicById = new Map((topicRows || []).map(t => [t.id, t.name]));
+
+      // Clean special characters; resolve joined subject/topic names lost by get_my_cards'
+      // SETOF flashcards shape (kept minimal, per DATABASE_SCHEMA.md, rather than hand-copying a
+      // column list into a v2 signature).
+      let cleanedData = (data || [])
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .map(card => ({
+          ...card,
+          subjects: card.subject_id ? { id: card.subject_id, name: subjectById.get(card.subject_id) } : null,
+          topics: card.topic_id ? { id: card.topic_id, name: topicById.get(card.topic_id) } : null,
+          front_text: card.front_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || '',
+          back_text: card.back_text?.replace(/[\u25C6\u2666◆]/g, '').trim() || ''
+        }));
 
       // Filter by deck_id (individual deck click) or subject/topic/author (Study All)
       if (deckParam) {

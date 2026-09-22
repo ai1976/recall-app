@@ -227,11 +227,12 @@ recall-app
 │   │       │   ├── MyReports.jsx                ← Sprint 7.3 follow-up: /dashboard/my-reports ("Report History") — status list of content_flags the student themselves filed; moved off the Dashboard
 │   │       │   └── ProfileSettings.jsx          ← /dashboard/settings (name, course, institution, push notifications, teaching areas, Daily Goal)
 │   │       └── Study
+│   │           ├── PracticeMode.jsx             ← /dashboard/practice (Sprint 8.7.8c D-28 — Practice/Explore: zero SRS side effects, log_practice_attempt, Add to My Cards, practice_mode study-time logging)
 │   │           ├── Progress.jsx                 ← /dashboard/progress (heatmap, subject mastery, due forecast, question type perf)
 │   │           ├── ReviewBySubject.jsx          ← /dashboard/review-by-subject
-│   │           ├── ReviewFlashcards.jsx         ← /dashboard/review-flashcards (deck browser; "My Cards" pinned; share button)
+│   │           ├── ReviewFlashcards.jsx         ← /dashboard/review-flashcards (deck browser; "My Cards" pinned; share button; per-deck "Practice" entry point, Sprint 8.7.8c)
 │   │           ├── ReviewSession.jsx            ← /dashboard/review-session (due cards only)
-│   │           └── StudyMode.jsx                ← /dashboard/study (SRS engine; TTS; Skip/Suspend/Reset; study time logging)
+│   │           └── StudyMode.jsx                ← /dashboard/study (SRS engine; TTS; Skip/Suspend/Reset; study time logging; step-1 fetch is get_my_cards — own ∪ enrolled, Sprint 8.7.8c D-28)
 │   ├── App.css
 │   ├── index.css
 │   └── main.jsx                                 ← registers /sw.js service worker on window load (non-blocking)
@@ -266,8 +267,9 @@ recall-app
 - `src/components/dashboard/GoalProgressWidget.jsx` — inline edit, no modal
 
 ### Study / SRS
-- `src/pages/dashboard/Study/StudyMode.jsx` — SRS engine, TTS, Skip/Suspend/Reset/Skip-Topic, study time logging, visibilitychange listener
-- `src/pages/dashboard/Study/ReviewFlashcards.jsx` — deck browser; deep-link via ?deck= param
+- `src/pages/dashboard/Study/StudyMode.jsx` — SRS engine, TTS, Skip/Suspend/Reset/Skip-Topic, study time logging, visibilitychange listener; standalone-mode fetch is `get_my_cards` (Sprint 8.7.8c D-28)
+- `src/pages/dashboard/Study/PracticeMode.jsx` — Practice/Explore (Sprint 8.7.8c D-28): never calls `apply_review`; `get_practice_cards` fetch; `log_practice_attempt` per type; Add to My Cards with proactive eligibility (`is_own`/`is_enrolled`/`can_add_to_my_cards`); `practice_mode` study-time logging
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx` — deck browser; deep-link via ?deck= param; per-deck "Practice" entry point (Sprint 8.7.8c)
 - `src/pages/dashboard/Study/ReviewSession.jsx` — due-cards-only session
 
 ### Content Creation

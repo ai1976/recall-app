@@ -394,6 +394,17 @@ export default function ReviewFlashcards() {
     navigate(`/dashboard/study?${params.toString()}`);
   };
 
+  // Sprint 8.7.8c — Practice/Explore entry point. Unlike Study Mode (own ∪ enrolled), Practice is
+  // scoped to exactly one Study Set (get_practice_cards requires a single p_deck_id) so it can
+  // preserve "practice the Study Set I just opened" rather than dumping the student into an
+  // unrelated pool. The active question-type filter carries over, same as Study Mode.
+  const startPracticeSession = (deckId) => {
+    const params = new URLSearchParams();
+    params.set('deck', deckId);
+    if (filterQuestionType !== 'all') params.set('type', filterQuestionType);
+    navigate(`/dashboard/practice?${params.toString()}`);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -692,6 +703,15 @@ export default function ReviewFlashcards() {
                                 Read Concepts
                               </button>
                             )}
+
+                            {/* Practice — inspect/attempt without entering SRS; Add to My Cards lives inside */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); startPracticeSession(deck.id); }}
+                              className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                              <Brain className="h-3.5 w-3.5" />
+                              Practice
+                            </button>
 
                             {/* Footer with badges and upvote */}
                             <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
