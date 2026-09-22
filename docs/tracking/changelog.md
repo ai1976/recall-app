@@ -1,6 +1,30 @@
 # Changelog
 
 ---
+## [22/09/2026] feat(sprint-8.7.8b): My Cards enrollment — schema + RPC foundation
+
+### Added
+- `my_cards_enrollment` table — durable (user_id, flashcard_id) membership marker, `status IN ('active','removed')`, RLS on with zero client policies/grants (matches `review_events` precedent).
+- `practice_attempts` table — append-only Practice/Explore attempt log, `is_correct` nullable, zero SRS/badge/streak side effect by design. Same RLS posture as above.
+- Four RPCs: `add_to_my_cards`, `remove_from_my_cards`, `get_my_cards`, `log_practice_attempt` — all SECURITY DEFINER, self-only IDOR guard, pinned unquoted `search_path`, explicit REVOKE/GRANT ACLs.
+- `docs/database/sprint8.7.8b/01`–`05` — schema, functions, test (44/44 PASS), rollback, live disposable-data verification (residue confirmed 0).
+- `docs/active/blueprint.md` D-27, `docs/reference/DATABASE_SCHEMA.md` §2.4B–§2.4D.
+
+### Changed
+- Nothing in existing SRS code — `apply_review`, `submit_review`, `srs_ladder_curves`, `srs_ladder_rules`, `get_study_queue`, `suspend_card`, `unsuspend_card`, `reset_card` are all unmodified. `add_to_my_cards`/`remove_from_my_cards` call `unsuspend_card`/`suspend_card` (never reimplement), never call `reset_card`.
+
+### Files Changed
+- `docs/database/sprint8.7.8b/01_SCHEMA_my_cards_enrollment_and_practice_attempts.sql` (new)
+- `docs/database/sprint8.7.8b/02_FUNCTIONS_my_cards_rpcs.sql` (new)
+- `docs/database/sprint8.7.8b/03_TEST_verify_my_cards_rpcs.sql` (new)
+- `docs/database/sprint8.7.8b/04_ROLLBACK_my_cards_rpcs.sql` (new)
+- `docs/database/sprint8.7.8b/05_LIVE_VERIFICATION_smoke_test.sql` (new)
+- `docs/active/blueprint.md`, `docs/reference/DATABASE_SCHEMA.md`, `docs/active/now.md` (docs)
+
+### Not shipped this sprint
+- No frontend changes. `StudyMode.jsx` still fetches "everything visible" for its standalone-mode step 1 — the auto-enrollment bug (docs/tracking/bugs.md) is unchanged from the user's perspective until 8.7.8c wires in `get_my_cards`.
+
+---
 ## [21/09/2026] fix(sprint-8.7.7): theory display + chunked reviews lookup
 
 ### Added

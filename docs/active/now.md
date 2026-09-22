@@ -1,6 +1,18 @@
 # NOW - Current Development Status
 
-**Last Updated:** 18/09/2026
+**Last Updated:** 22/09/2026
+
+## Sprint 8.7.8b: My Cards Enrollment — Schema + RPC Foundation (22/09/2026) — ✅ SQL deployed, test-verified (44/44 PASS), live-verified (disposable-data round trip, residue confirmed 0). Backend only, NO frontend changes.
+
+**Just Completed:** Step 0 pre-flight found a genuine visibility-predicate discrepancy between `get_study_queue` (own/public/accepted-friends) and `get_browsable_decks` v8 (adds admin override + group-shared) — flagged to Anand per the sprint's own stop condition rather than inventing a sixth model. Anand's ruling: `add_to_my_cards`/`get_my_cards` use `get_study_queue`'s narrower predicate (nothing enrolled that the frozen SRS path can't schedule); `log_practice_attempt` uses the wider Browse predicate (Practice must match what's actually browsable). Recorded as a known compatibility gap — group-shared-only content can be practiced but not yet added to My Cards.
+
+Shipped: `my_cards_enrollment` + `practice_attempts` tables (RLS on, zero client policies/grants, matching `review_events`' precedent) and four RPCs — `add_to_my_cards`, `remove_from_my_cards`, `get_my_cards`, `log_practice_attempt` — all SECURITY DEFINER with the established IDOR-guard/search_path/ACL convention. `add_to_my_cards` correctly distinguishes genuine re-add-after-Remove (resumes via `unsuspend_card`, rung/repetition/easiness preserved) from an already-active re-call (the Pause case — must not resume; tested explicitly, `[CRITICAL]`). `remove_from_my_cards` suspends the paired `reviews` row only when genuinely graded, never creates a bare row, never calls `reset_card`. Zero changes to `apply_review`/`submit_review`/`srs_ladder_*`/`get_study_queue`/`suspend_card`/`unsuspend_card`/`reset_card`.
+
+Full details: blueprint.md D-27, DATABASE_SCHEMA.md §2.4B–§2.4D. Files: `docs/database/sprint8.7.8b/01`–`05`.
+
+**Open for 8.7.8c (not started):** Practice Mode UI, `StudyMode.jsx` swap to `get_my_cards` for its step-1 fetch. The auto-enrollment product bug (docs/tracking/bugs.md) stays open until then — backend foundation is done, frontend enforcement is pending.
+
+---
 
 ## Sprint 8.7.7: Theory Display + Console Diagnosis (21/09/2026) — frontend built, NOT pushed; B1/B2/B3 partly open
 

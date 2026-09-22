@@ -1,5 +1,12 @@
 # Bug Tracking
 
+## Sprint 8.7.8b — 22/09/2026 (My Cards Enrollment — schema + RPC foundation)
+
+### [22/09/2026] Any visible card (own or not) silently auto-enrolls into SRS on first grade — 🟡 BACKEND FOUNDATION COMPLETE, product bug NOT YET FIXED (frontend gate ships in 8.7.8c)
+- **Proven (8.7.8a diagnostic):** `StudyMode.jsx`'s standalone-mode `fetchFlashcards()` queries every card the viewer may see (own/public/friends), not just their own; the first grade on any never-reviewed visible card — own or not — calls `apply_review`'s brand-new-card branch with no ownership check. This makes external-corpus auto-enrollment (e.g. ICAI's exhaustive question bank) unsustainable daily volume, not hypothetical.
+- **Backend fix shipped 22/09/2026 (Sprint 8.7.8b, D-27):** `my_cards_enrollment`/`practice_attempts` tables + `add_to_my_cards`/`remove_from_my_cards`/`get_my_cards`/`log_practice_attempt` RPCs, deployed and live-verified. `get_my_cards` is ready to replace `StudyMode.jsx`'s step-1 fetch.
+- **Still open:** `StudyMode.jsx` has NOT been changed. It still fetches "everything visible," so the actual auto-enrollment behavior a student experiences is unchanged until 8.7.8c wires the frontend to `get_my_cards` and ships a Practice Mode that doesn't call `apply_review`. Do not close this entry until 8.7.8c ships and is live-verified.
+
 ## Sprint 8.7.7 — 21/09/2026 (Theory display + console diagnosis)
 
 ### [21/09/2026] Reviewed-cards lookup returned 400 for large study sessions — ✅ FIXED (frontend push pending)

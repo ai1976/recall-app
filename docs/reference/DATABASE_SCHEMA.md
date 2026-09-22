@@ -487,6 +487,62 @@
 
 ---
 
+### 2.4B my_cards_enrollment
+
+**Purpose:** Durable "this external (not-own) card belongs to this student's My Cards" marker — the enrollment layer in front of the frozen SRS engine (My Cards Enrollment epic, Sprint 8.7.8b). Independent of `reviews.status`: a membership row survives Pause/Resume on the paired review, and Remove soft-deletes (`status='removed'`) rather than hard-deleting — the Pause-vs-Remove distinction on a `reviews.status='suspended'` row is resolved entirely by THIS table's own `status` column, never by a new `reviews.status` value (design-review/my-cards-enrollment-proposal.md §8).
+**Created:** 22/09/2026 (Sprint 8.7.8b), ✅ SQL deployed & test-verified (44/44 PASS) & live-verified (disposable-data round trip, residue confirmed 0).
+**Columns:** 5
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | uuid | NO | uuid_generate_v4() | Primary key |
+| user_id | uuid | NO | - | Foreign key to **auth.users.id**, `ON DELETE CASCADE` — matches `reviews.user_id`/`review_events.user_id` convention, not `profiles.id`. |
+| flashcard_id | uuid | NO | - | Foreign key to flashcards.id, `ON DELETE CASCADE` |
+| added_at | timestamptz | NO | now() | Last-meaningful-transition timestamp — refreshed on genuine re-add after Remove, left unchanged on a redundant re-add of an already-active row. |
+| status | text | NO | 'active' | `active` / `removed`. CHECK constrained. |
+
+**Constraints:** `UNIQUE (user_id, flashcard_id)` — exactly one row per (student, card) pair, same precedent as `reviews`' own unique constraint.
+**Access:** RLS enabled, **zero policies, zero grants** (`REVOKE ALL FROM PUBLIC, anon, authenticated`) — reproduces `review_events`' precedent exactly. All reads/writes go through `add_to_my_cards` / `remove_from_my_cards` / `get_my_cards` (SECURITY DEFINER). No client `.from('my_cards_enrollment')` call should ever exist.
+**Key Indexes:** partial index `(user_id) WHERE status = 'active'`.
+**Own content never needs a row here** — it auto-enters My Cards via `flashcards.user_id = viewer`, checked directly in `get_my_cards`. The product flow never writes an enrollment row for a student's own card (no DB-level CHECK forbidding it — enforcement is at the RPC/query layer, matching this project's general pattern).
+**Enrollment expresses intent, not access:** every read re-applies the live visibility predicate (own/public/accepted-friends — `get_study_queue`'s predicate, see below) at read time, so a card that goes private/unfriended after being added simply stops appearing, with zero enrollment-specific code.
+
+### 2.4C practice_attempts
+
+**Purpose:** Append-only log of Practice/Explore interactions — zero SRS side effect by design. Exists because `review_events` (2.4A) has ladder-derived columns (`rung_before/after`, `status_after`, `interval_days`, `next_review_date`) that have no valid value for an attempt that never touches the SRS ladder.
+**Created:** 22/09/2026 (Sprint 8.7.8b), ✅ SQL deployed & test-verified (44/44 PASS) & live-verified.
+**Columns:** 4
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | bigint | NO | GENERATED ALWAYS AS IDENTITY | Primary key — matches `review_events.id`'s convention for this schema's append-only event/log tables. |
+| user_id | uuid | NO | - | Foreign key to **auth.users.id**, `ON DELETE CASCADE`. |
+| flashcard_id | uuid | NO | - | Foreign key to flashcards.id, `ON DELETE CASCADE` |
+| attempted_at | timestamptz | NO | now() | |
+| is_correct | boolean | YES | NULL | Nullable — see `log_practice_attempt`'s question-type integrity rules below. |
+
+**Access:** RLS enabled, **zero policies, zero grants** — same posture as `my_cards_enrollment`/`review_events`. All writes go through `log_practice_attempt` (SECURITY DEFINER). No trigger exists on this table, and none may be added that writes to `reviews`/`review_events`/badge tables/streak tables/`user_stats` — this is an explicit guardrail from the sprint brief, not an oversight to "fix" later.
+**Key Indexes:** `(user_id, attempted_at DESC)`.
+
+---
+
+### 2.4D Sprint 8.7.8b RPCs (My Cards enrollment)
+
+All four follow the established hardened-RPC convention: `plpgsql`, `SECURITY DEFINER`, `SET search_path TO public, extensions` (unquoted), self-only IDOR guard (`p_user_id IS DISTINCT FROM auth.uid() AND NOT is_admin()` → RAISE), explicit `REVOKE ... FROM PUBLIC, anon` + `GRANT EXECUTE ... TO authenticated`.
+
+| RPC | Purpose | Visibility predicate used | Notes |
+|-----|---------|---------------------------|-------|
+| `add_to_my_cards(p_user_id, p_flashcard_id)` | Add or re-add an external card to My Cards. | `get_study_queue`'s (own/public/accepted-friends only — no admin override, no group-share). | Atomic `INSERT ... ON CONFLICT DO UPDATE` (never SELECT-then-INSERT). Distinguishes a genuine re-add after Remove (`old_status='removed'` → calls `unsuspend_card`, preserving rung/repetition/easiness) from an already-active call (the Pause case — must NOT resume). Never calls `reset_card`. Rejects `concept_card`. |
+| `remove_from_my_cards(p_user_id, p_flashcard_id)` | Soft-remove membership (`status='removed'`), preserving SRS history. | N/A (acts only on the caller's own enrollment row). | No-op if no membership row exists for the pair. If a `reviews` row exists with `status IN ('active','mastered')`, calls `suspend_card` in the same call — never creates a bare `reviews` row for a never-graded card. |
+| `get_my_cards(p_user_id)` | Returns own ∪ actively-enrolled-and-still-visible external cards. `RETURNS SETOF public.flashcards` (not a hand-enumerated column list, so the shape always tracks the live table). | `get_study_queue`'s, re-applied at READ time per card. | Does not touch or wrap `get_study_queue` (frozen, unchanged). Replaces `StudyMode.jsx`'s step-1 "everything visible" fetch — not yet wired in (8.7.8c). |
+| `log_practice_attempt(p_user_id, p_flashcard_id, p_is_correct)` | Logs a Practice/Explore attempt. Writes only to `practice_attempts`. | Browse/Practice predicate (own/public/accepted-friends/admin override/group-shared) — matches `get_browsable_decks` v8's card-level predicate verbatim. Deliberately WIDER than `add_to_my_cards`'s (Anand's explicit decision, 22/09/2026). | Enforces question-type integrity (8.7.8a confirmed semantics): `flashcard`/`theory` require `is_correct IS NULL`; `mcq`/`mcq_multi`/`case_study_mcq`/`match_the_following` require non-NULL boolean; `fitb` allows `TRUE`/`NULL` only (D-13 — never a hard `FALSE`, unmatched wording is non-conclusive); `concept_card` is rejected outright. |
+
+**Known compatibility gap, recorded not fixed:** `add_to_my_cards`/`get_my_cards` cannot enroll a card that is visible only via a study-group share, because `get_study_queue` (frozen, out of scope for 8.7.8b) does not know about group shares. `log_practice_attempt` correctly allows practicing such a card. Once `get_study_queue`'s own visibility is ever extended to group-shared content, `add_to_my_cards`/`get_my_cards`'s predicate should be widened to match in a later sprint.
+
+**Files:** `docs/database/sprint8.7.8b/01`–`05`.
+
+---
+
 ### 2.5 disciplines
 
 **Purpose:** Top-level course categories (CA, CMA, CS)
