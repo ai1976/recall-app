@@ -58,9 +58,17 @@ export const SITUATIONS = [
         isSignup: false,
       },
       {
+        label: 'Check what is already there to browse',
+        detail:
+          'Many courses come with material already loaded by professors or official bodies — you do not have to create anything yourself before you have something to study. Go to Browse Study Sets, open a Study Set, and tap Practice to try its cards with zero commitment. Anything worth remembering, tap "Add to My Cards" and it joins your personal review queue right away.',
+        linkLabel: 'Browse Study Sets',
+        linkTo: '/dashboard/review-flashcards',
+        isSignup: false,
+      },
+      {
         label: 'Add your first content',
         detail:
-          'Use the Create menu to Upload a Note or Create a Study Item. Content you create yourself goes straight into My Cards, your personal review collection — there is no separate "add to deck" step for your own material.',
+          'You can also create your own material any time. Use the Create menu to Upload a Note or Create a Study Item. Content you create yourself goes straight into My Cards, your personal review collection — there is no separate "add to deck" step for your own material.',
         linkLabel: 'Create Study Item',
         linkTo: '/dashboard/flashcards/new',
         isSignup: false,

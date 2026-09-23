@@ -39,8 +39,9 @@ export const HELP_TABS = [
             items: [
               'Create your account and select your course level (e.g., Intermediate, Final).',
               'Head to the Dashboard \u2014 this is your home base. You will see quick stats, due reviews, and shortcuts to create content.',
-              'Upload your first note or create a flashcard deck under the "Create" menu.',
-              'Once you have flashcards, start a review session from the Dashboard or the "Study" menu.',
+              'Check "Browse Study Sets" first \u2014 many courses already have material loaded by professors or official bodies. Practice a Study Set with zero commitment, then "Add to My Cards" anything worth reviewing.',
+              'You can also upload your own note or create a flashcard deck under the "Create" menu \u2014 your own content joins My Cards automatically.',
+              'Once you have at least one card in My Cards, start a review session from the Dashboard or the "Study" menu.',
               'Check your progress anytime from "My Progress" in the profile menu.',
             ],
           },
