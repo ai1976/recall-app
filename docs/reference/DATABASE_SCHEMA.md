@@ -558,7 +558,9 @@ All four follow the established hardened-RPC convention: `plpgsql`, `SECURITY DE
 
 **Eligibility parity is a live-verified test, not an assumption**: `docs/database/sprint8.7.8c/02_TEST_verify_get_practice_cards.sql` proves a card `get_practice_cards` marks `can_add_to_my_cards=false` (group-share-only fixture) is *actually* rejected by `add_to_my_cards` itself, and that `is_enrolled` flips `false → true` after a real `add_to_my_cards` call on the same card, within the same test transaction.
 
-**Files:** `docs/database/sprint8.7.8c/01`–`03` (function, test, rollback).
+**Hotfix (23/09/2026) — ✅ deployed, test-verified, live-verified:** `RETURNS TABLE` originally omitted `scenario`, so `case_study_mcq` cards in Practice Mode rendered with no case narrative — `PracticeMode.jsx`'s scenario display block existed but silently had nothing to show. `scenario text` (verbatim `fc.scenario`) added to the return shape; `NULL` for every non-case-study row, unaffected. `docs/database/sprint8.7.8c/10_FIX_add_scenario_to_get_practice_cards.sql` (`DROP`+`CREATE`, not `CREATE OR REPLACE`, since the return shape changed). Live browser verification used a disposable fixture card (`13_DATA_create_scenario_fixture_card.sql`) since the real live case_study_mcq content's course scope was inaccessible to the test account — fixture deleted afterward, 0 residue confirmed.
+
+**Files:** `docs/database/sprint8.7.8c/01`–`03` (function, test, rollback), `10`–`14` (scenario-column hotfix, verification, test-id diagnostic, disposable fixture + cleanup).
 
 ---
 

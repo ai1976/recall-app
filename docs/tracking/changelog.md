@@ -1,6 +1,24 @@
 # Changelog
 
 ---
+## [23/09/2026] fix(sprint-8.7.8c): add missing scenario column to get_practice_cards
+
+### Fixed
+- `get_practice_cards`'s `RETURNS TABLE` omitted `scenario`, so `case_study_mcq` questions in Practice Mode rendered with no case narrative. `PracticeMode.jsx`'s scenario display block already existed (copied verbatim from `StudyMode.jsx`) and was silently rendering nothing — no frontend change was needed, only the RPC.
+
+### Changed
+- `docs/database/sprint8.7.8c/10_FIX_add_scenario_to_get_practice_cards.sql` — `DROP FUNCTION` + `CREATE FUNCTION` (not `CREATE OR REPLACE`, since the `RETURNS TABLE` shape changed) adding `scenario text` to the return list and `fc.scenario` to the final `SELECT`. Every other column, both visibility predicates (Practice-visibility and `can_add_to_my_cards`), and the deck-level gate are byte-identical to the live 8.7.8c version. Grants (`REVOKE ALL FROM PUBLIC, anon; GRANT EXECUTE TO authenticated`) re-applied explicitly, since `DROP FUNCTION` drops them.
+- SQL-verified against a real live `case_study_mcq` deck (`matches_exactly=true` on every row; `NULL` unaffected on every non-case-study row). That deck's `target_course` (CA Final) was inaccessible to the live test student account (CA Intermediate) under the deck-level course gate, so browser verification used a disposable fixture card instead (same pattern as `07_DATA_...objective_cards.sql`): CASE SCENARIO block confirmed rendering the exact stored scenario text in Practice Mode, an ordinary flashcard confirmed unaffected, fixture deleted with 0 residue confirmed afterward.
+
+### Files Changed
+- `docs/database/sprint8.7.8c/10_FIX_add_scenario_to_get_practice_cards.sql` (new)
+- `docs/database/sprint8.7.8c/11_TEST_verify_scenario_fix.sql` (new)
+- `docs/database/sprint8.7.8c/12_DIAGNOSTIC_find_scenario_test_ids.sql` (new)
+- `docs/database/sprint8.7.8c/13_DATA_create_scenario_fixture_card.sql` (new)
+- `docs/database/sprint8.7.8c/14_CLEANUP_delete_scenario_fixture_card.sql` (new)
+- `docs/active/blueprint.md` (D-28 hotfix note), `docs/reference/DATABASE_SCHEMA.md` (2.4E), `docs/active/now.md`
+
+---
 ## [23/09/2026] feat(sprint-8.7.8d): My Cards page — Pause/Resume/Remove UI
 
 ### Added

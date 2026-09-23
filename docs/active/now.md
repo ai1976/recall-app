@@ -2,6 +2,20 @@
 
 **Last Updated:** 23/09/2026
 
+## Hotfix (sprint-8.7.8c): missing `scenario` column on `get_practice_cards` (23/09/2026) — ✅ SQL deployed, test-verified, live-verified in browser, fixture cleaned up (0 residue)
+
+**Just Completed:** `get_practice_cards`'s `RETURNS TABLE` omitted `scenario`, so `case_study_mcq` questions in Practice Mode rendered with no case narrative. `PracticeMode.jsx`'s scenario display block already existed, copied verbatim from `StudyMode.jsx` (`src/pages/dashboard/Study/PracticeMode.jsx:549-559`) — it was silently rendering nothing because the RPC never sent the field, so no frontend change was needed.
+
+Fix: `docs/database/sprint8.7.8c/10_FIX_add_scenario_to_get_practice_cards.sql` — `DROP FUNCTION` + `CREATE FUNCTION` (not `CREATE OR REPLACE`, since `RETURNS TABLE`'s shape changed) adding `scenario text` / `fc.scenario`. Every other column, both visibility predicates, and the deck-level gate are byte-identical to the live 8.7.8c version; grants re-applied explicitly since `DROP FUNCTION` drops them.
+
+**SQL-level verification** (`11_TEST_verify_scenario_fix.sql`, run against a real live `case_study_mcq` card, `075ad481-13e8-45e4-9deb-3c38907eb3e6`'s "Advanced Auditing... Related Services" deck): every `case_study_mcq` row returned `matches_exactly=true` against `flashcards.scenario` directly; every non-case-study row in the deck returned `scenario=NULL`, unaffected.
+
+**Browser verification:** that deck's `target_course` (CA Final) is inaccessible to the live test student account (CA Intermediate) — the deck-level course gate correctly blocked it, so a disposable fixture was used instead (`13_DATA_create_scenario_fixture_card.sql`, one `case_study_mcq` card under `075ad481` scoped to the test student's own `target_course`, same disposable-fixture pattern as `07_DATA_...objective_cards.sql`). Live-verified in Practice Mode: the CASE SCENARIO block rendered the exact stored scenario text above the question. Regression check: an ordinary flashcard (GST/Charge of GST) rendered normally in Practice Mode, no CASE SCENARIO block, no console errors. Fixture deleted via `14_CLEANUP_delete_scenario_fixture_card.sql`, `fixture_cards_remaining=0`, `fixture_decks_remaining=0`.
+
+Full details: blueprint.md D-28 hotfix note, DATABASE_SCHEMA.md §2.4E.
+
+---
+
 ## Sprint 8.7.8d: My Cards page — Pause/Resume/Remove UI (23/09/2026) — ✅ frontend only, no SQL, live-verified against a real student session
 
 **Just Completed:** Step 0 confirmed Option C (client-side join) via live catalog checks Anand ran (`docs/database/sprint8.7.8d/00_DIAGNOSTIC_step0_live_catalog_checks.sql`): `reviews.status` CHECK is exactly `active`/`suspended`/`mastered`; `flashcards`/`reviews` SELECT RLS already permits reading own rows client-side (same access `StudyMode.jsx` already relies on); `my_cards_enrollment`/`practice_attempts` confirmed zero client grants. No SQL needed this sprint.
