@@ -328,12 +328,25 @@ export default function MyCards() {
       <Dialog open={removeDialog.open} onOpenChange={(open) => setRemoveDialog((prev) => ({ ...prev, open }))}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Remove this item from My Cards?</DialogTitle>
-            <DialogDescription>
-              It will stop appearing in your personal review collection. Previous review history is
-              preserved if any exists. The source content remains available through Practice while
-              access remains valid, and you can add it again later.
-            </DialogDescription>
+            {removeDialog.card?.reviewStatus === 'mastered' ? (
+              <>
+                <DialogTitle>Remove this mastered card from My Cards?</DialogTitle>
+                <DialogDescription>
+                  It will stop appearing in My Cards. Your previous review history will be preserved,
+                  but if you add it again later it will return to active review rather than remain
+                  Mastered.
+                </DialogDescription>
+              </>
+            ) : (
+              <>
+                <DialogTitle>Remove this item from My Cards?</DialogTitle>
+                <DialogDescription>
+                  It will stop appearing in your personal review collection. Previous review history is
+                  preserved if any exists. The source content remains available through Practice while
+                  access remains valid, and you can add it again later.
+                </DialogDescription>
+              </>
+            )}
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRemoveDialog({ open: false, card: null })}>Cancel</Button>
