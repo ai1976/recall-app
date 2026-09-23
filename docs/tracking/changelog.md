@@ -1,6 +1,30 @@
 # Changelog
 
 ---
+## [23/09/2026] feat(sprint-8.7.8d): My Cards page — Pause/Resume/Remove UI
+
+### Added
+- `src/pages/dashboard/Study/MyCards.jsx` — new `/dashboard/my-cards` route. Calls `get_my_cards`, filters own concept cards client-side, chunk-fetches `reviews` state (reusing `StudyMode.jsx`'s `REVIEW_LOOKUP_CHUNK=100` pattern), renders the ownership × SRS-state action matrix (Pause/Resume/Remove) with confirm dialogs matching `StudyMode.jsx`/`Progress.jsx`'s existing shadcn `Dialog` pattern.
+- "My Cards" nav entry — 4th item in the desktop Study dropdown (`NavDesktop.jsx`) and in the mobile menu sheet (`NavMenuSheet.jsx`); `isStudyActive` (`src/lib/navActive.js`) extended for `/dashboard/my-cards`. Bottom-tab bar untouched.
+- `docs/database/sprint8.7.8d/00_DIAGNOSTIC_step0_live_catalog_checks.sql` — read-only Step 0 diagnostic (no schema/function changes this sprint).
+- `docs/active/blueprint.md` D-29.
+
+### Changed
+- No SQL deployed. No changes to `get_my_cards`, `suspend_card`, `unsuspend_card`, `remove_from_my_cards`, or any SRS-engine object — all called as-is.
+
+### Decided
+- Pause is never offered on a `mastered` card (own or external): `unsuspend_card`'s live body unconditionally resets to `status='active'`, losing mastered state rather than restoring it. Mastered cards show a badge only; external mastered cards may still show Remove.
+
+- Align Help/Study Guide with Browse → Practice → My Cards → Review workflow — the old copy still described "browse a card → grade it" as one step, with no distinction between Practice (no SRS commitment) and My Cards (personal review collection). Updated `src/data/helpContent.js` (new "From Browsing to Reviewing" section under Study System; rewrote Reviews vs. New Cards, Starting a Review Session, Skip/Suspend→"Skip, Pause, Remove & Reset", and the Skip/Suspend FAQ to state the Pause-not-offered-on-Mastered restriction and Remove's external-only scope in plain language) and `src/data/guideContent.js` (rewrote the "Do your first review" onboarding step, the two "no separate add to deck step" passages to scope that claim to own content only, the "Open your Review queue" step, and the group-content browsing step). No implementation details (enrollment rows, `reviews.status`, `42501`, the mastered→unsuspend technical cause) were exposed in user-facing copy — those stay in engineering docs only.
+
+### Files Changed
+- `src/pages/dashboard/Study/MyCards.jsx` (new)
+- `src/App.jsx`, `src/lib/navActive.js`, `src/components/layout/NavDesktop.jsx`, `src/components/layout/NavMenuSheet.jsx`
+- `src/data/helpContent.js`, `src/data/guideContent.js`, `src/pages/dashboard/Help.jsx` (Compass icon import)
+- `docs/database/sprint8.7.8d/00_DIAGNOSTIC_step0_live_catalog_checks.sql` (new)
+- `docs/active/blueprint.md`, `docs/active/now.md`
+
+---
 ## [23/09/2026] feat(sprint-8.7.8c): Practice Mode + StudyMode My Cards composition
 
 ### Added

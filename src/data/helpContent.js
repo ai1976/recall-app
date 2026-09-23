@@ -502,6 +502,31 @@ export const HELP_TABS = [
         ],
       },
       {
+        id: 'browse-practice-mycards',
+        title: 'From Browsing to Reviewing: Browse, Practice & My Cards',
+        icon: 'Compass',
+        content: [
+          {
+            type: 'paragraph',
+            text: 'RevisOp separates discovering content from committing to review it, so your daily reviews only ever contain material you have deliberately chosen \u2014 never everything you have simply looked at.',
+          },
+          {
+            type: 'list',
+            items: [
+              'Browse Study Sets \u2014 Explore every subject and topic available to you, including your own content and material shared by professors, official bodies, and friends. Browsing never adds anything to your review schedule.',
+              'Practice \u2014 Open any Study Set from Browse to attempt or reveal its cards without any commitment. Practice never creates a spaced-repetition obligation, even on cards you get wrong.',
+              'Add to My Cards \u2014 While practising external content, tap "Add to My Cards" on anything worth revisiting. This is the one explicit step that moves a card from "just looked at it" into your personal review collection.',
+              'My Cards \u2014 Your personal retention collection, on its own page. Cards you create yourself are included automatically. Cards created by others only appear here after you add them from Practice.',
+              'Today\u2019s Reviews \u2014 Your actual spaced-repetition queue, drawn entirely from My Cards. Grading (Hard/Medium/Easy) only ever happens here, never while browsing or practising.',
+            ],
+          },
+          {
+            type: 'tip',
+            text: 'Some shared material may be available for Practice without being available to add to My Cards yet.',
+          },
+        ],
+      },
+      {
         id: 'review-vs-new',
         title: 'Reviews vs. New Cards',
         icon: 'Layers',
@@ -513,8 +538,8 @@ export const HELP_TABS = [
           {
             type: 'list',
             items: [
-              'Reviews Due Today \u2014 Cards you have studied before that are scheduled for review. This is your primary daily activity. Completing these maintains your knowledge.',
-              'New Cards \u2014 Flashcards you have never studied before. These represent new material to learn. You can browse and start studying them whenever you are ready.',
+              'Reviews Due Today \u2014 Cards in My Cards that you have studied before and are now scheduled for review. This is your primary daily activity. Completing these maintains your knowledge.',
+              'New Cards \u2014 Cards already in My Cards that you have never graded yet \u2014 your own newly created cards, or external cards you have added from Practice. These are ready to study whenever you are ready; they are not the same as content you have merely browsed or practised.',
             ],
           },
           {
@@ -534,15 +559,19 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'There are several ways to start reviewing your flashcards:',
+            text: 'There are several ways to start reviewing the cards in My Cards:',
           },
           {
             type: 'list',
             items: [
               'Dashboard Quick Action \u2014 Click "Study Session" on the Dashboard to review all due cards.',
-              'Review by Subject \u2014 Go to "Study" \u2192 "Browse Study Sets" and select a specific subject to focus your review.',
-              'Browse & Study \u2014 Find a specific flashcard deck and click "Study" to review just that deck.',
+              'Today\u2019s Reviews \u2014 Go to "Study" \u2192 "Today\u2019s Reviews" to work through everything currently due.',
+              'My Cards \u2014 Go to "Study" \u2192 "My Cards" to see your whole personal collection and jump into studying it.',
             ],
+          },
+          {
+            type: 'paragraph',
+            text: 'To review external content that is not yet in My Cards, first open it from "Browse Study Sets" \u2192 Practice, then tap "Add to My Cards" \u2014 it will appear in your review queue from there.',
           },
           {
             type: 'steps',
@@ -583,26 +612,27 @@ export const HELP_TABS = [
       },
       {
         id: 'skip-suspend',
-        title: 'Skip, Suspend & Reset',
+        title: 'Skip, Pause, Remove & Reset',
         icon: 'Pause',
         content: [
           {
             type: 'paragraph',
-            text: 'During a review session you have several ways to manage cards. Safe snooze actions are at the top of the \u22ef menu; destructive actions are below the separator.',
+            text: 'During a review session, and from the My Cards page, you have several ways to manage cards. Skip and Pause are fully reversible; Reset is destructive.',
           },
           {
             type: 'list',
             items: [
               'Skip 24hr \u2014 Hides this card until tomorrow. Your spaced repetition schedule is completely preserved \u2014 nothing is deleted or reset.',
               'Skip Topic (24hr) \u2014 Available from the \u22ef menu when a card belongs to a topic. Hides every card in that topic until tomorrow in one tap. Useful when one topic feels too heavy for today.',
-              'Suspend Card \u2014 Removes this card from your review queue indefinitely. Unlike Skip, this does disrupt your spaced repetition schedule for that card. You can unsuspend it from the Progress page.',
-              'Suspend Topic \u2014 Removes all cards in the current topic indefinitely. Use with caution \u2014 this affects your entire review schedule for that topic. Reversible from the Progress page.',
+              'Pause (also shown as "Suspend" in some menus) \u2014 Stops a card from being scheduled until you resume it. Your progress on that card is preserved, not lost. Pause is only offered once a card has been graded at least once, and is not offered on a Mastered card, since it has already reached the top of the schedule.',
+              'Resume (also shown as "Unsuspend") \u2014 Restarts scheduling for a paused card, from the My Cards page. It becomes due again from today.',
+              'Remove from My Cards \u2014 Available only for content you added from Practice, not for your own cards. Takes it out of your personal review collection without deleting the original material or erasing your prior review history \u2014 you can add it again later from Practice.',
               'Reset Card \u2014 Deletes all review history for this card. It returns to the \u201cNew Cards\u201d pool as if never studied. This cannot be undone.',
             ],
           },
           {
             type: 'tip',
-            text: 'When you are overwhelmed, reach for Skip (24hr) or Skip Topic (24hr) first \u2014 they are fully reversible and keep your schedule intact. Only use Suspend or Reset when you genuinely want to remove a card long-term.',
+            text: 'When you are overwhelmed, reach for Skip (24hr) first \u2014 it is fully reversible and keeps your schedule intact. Use Pause to step away from a card for longer, Remove when you no longer want an added card in your collection at all, and Reset only when you genuinely want to erase a card\u2019s history.',
           },
         ],
       },
@@ -1459,8 +1489,8 @@ export const FAQ_ITEMS = [
     answer: 'By default, earned badges are public and visible on your profile and in Find People. You can toggle each badge individually from "My Achievements" to make it private. Private badges are only visible to you.',
   },
   {
-    question: 'What is the difference between Skip and Suspend?',
-    answer: 'Skip 24hr is a temporary snooze — the card comes back tomorrow and your spaced repetition schedule is fully preserved. Suspend is indefinite removal — the card disappears from your queue until you manually unsuspend it from the Progress page. Skip Topic (24hr) and Suspend Topic work the same way but apply to every card in a topic at once. Use Skip when you need a break; use Suspend when you genuinely want to remove a card or topic long-term.',
+    question: 'What is the difference between Skip, Pause, and Remove?',
+    answer: 'Skip 24hr is a temporary snooze — the card comes back tomorrow and your spaced repetition schedule is fully preserved. Pause (also called Suspend in some menus) stops a card being scheduled until you resume it from the My Cards page — your progress is preserved, not lost; it is only available once a card has been graded at least once, and is not offered on a Mastered card. Remove from My Cards is different again — it only applies to content you added from Practice (not your own cards), takes it out of your personal collection, and does not delete the source or erase prior review history; you can add it again later from Practice. Use Skip when you need a short break, Pause when you want to step away from a card for longer, and Remove when you no longer want an added card in your collection at all.',
   },
   {
     question: 'Can I edit my notes and flashcards after creating them?',

@@ -12,6 +12,7 @@ import {
   BarChart3,
   Play,
   Timer,
+  BookMarked,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -138,6 +139,12 @@ export default function NavDesktop({
                   <Link to="/dashboard/notes" className="flex items-center gap-2 cursor-pointer">
                     <FileText className="h-4 w-4" />
                     Browse Notes
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard/my-cards" className="flex items-center gap-2 cursor-pointer">
+                    <BookMarked className="h-4 w-4" />
+                    My Cards
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>

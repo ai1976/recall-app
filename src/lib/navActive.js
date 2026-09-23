@@ -45,6 +45,7 @@ export const isStudyActive = (pathname) =>
     '/dashboard/notes',       // Browse Notes + note detail/edit
     '/dashboard/flashcards',  // My Flashcards + card detail/edit
     '/dashboard/progress',
+    '/dashboard/my-cards',
   ]);
 
 /** Desktop "Manage" dropdown active-state. */

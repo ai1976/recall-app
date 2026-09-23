@@ -20,6 +20,7 @@ import {
   Rss,
   Play,
   Flag,
+  BookMarked,
 } from 'lucide-react';
 import { useCourseContext } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
@@ -209,6 +210,13 @@ export default function NavMenuSheet({
                 >
                   <FileText className="h-4 w-4 text-rv-ink-400" />
                   <span className="text-sm text-rv-ink-600">Browse Notes</span>
+                </button>
+                <button
+                  onClick={() => handleNavClick('/dashboard/my-cards')}
+                  className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
+                >
+                  <BookMarked className="h-4 w-4 text-rv-ink-400" />
+                  <span className="text-sm text-rv-ink-600">My Cards</span>
                 </button>
 
                 {/* Create Section */}

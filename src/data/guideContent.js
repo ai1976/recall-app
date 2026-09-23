@@ -60,7 +60,7 @@ export const SITUATIONS = [
       {
         label: 'Add your first content',
         detail:
-          'Use the Create menu to Upload a Note or Create a Study Item. Every item you create goes straight into your review queue. There is no separate "add to deck" step.',
+          'Use the Create menu to Upload a Note or Create a Study Item. Content you create yourself goes straight into My Cards, your personal review collection — there is no separate "add to deck" step for your own material.',
         linkLabel: 'Create Study Item',
         linkTo: '/dashboard/flashcards/new',
         isSignup: false,
@@ -68,7 +68,7 @@ export const SITUATIONS = [
       {
         label: 'Studying with a class? Check Groups',
         detail:
-          'If a professor or study group invited you, go to Groups to find and open that group. Notes and study sets shared there will appear in your account automatically. If you are studying independently, skip this step.',
+          'If a professor or study group invited you, go to Groups to find and open that group. Notes and study sets shared there become available to browse and practise automatically — add any flashcards worth reviewing to My Cards from Practice.',
         linkLabel: 'Groups',
         linkTo: '/dashboard/groups',
         isSignup: false,
@@ -76,9 +76,9 @@ export const SITUATIONS = [
       {
         label: 'Do your first review',
         detail:
-          'Once you have at least one flashcard — your own or from a group — head to Browse Study Sets and work through the queue. Even one card today starts your streak.',
-        linkLabel: 'Browse Study Sets',
-        linkTo: '/dashboard/review-flashcards',
+          'Once you have at least one card in My Cards — your own, or added from Practice — head to Today’s Reviews and work through the queue. Even one card today starts your streak.',
+        linkLabel: "Today's Reviews",
+        linkTo: '/dashboard/review-session',
         isSignup: false,
       },
     ],
@@ -92,7 +92,7 @@ export const SITUATIONS = [
       {
         label: 'Open your Review queue',
         detail:
-          'Your queue shows every card that is due today based on spaced repetition. Work through this first before adding new cards.',
+          'Your queue shows every card in My Cards that is due today based on spaced repetition. Work through this first before adding more cards to My Cards from Practice.',
         linkLabel: "Today's Reviews",
         linkTo: '/dashboard/review-session',
         isSignup: false,
@@ -188,7 +188,7 @@ export const SITUATIONS = [
       {
         label: 'Create a Study Item',
         detail:
-          'Use the Create menu → Create Study Item. Every item you create goes into your review queue automatically — there is no separate "add to deck" step.',
+          'Use the Create menu → Create Study Item. Cards you create yourself go into My Cards automatically — there is no separate "add to deck" step for your own content (that step only exists for content created by others, added via Practice).',
         linkLabel: 'Create Study Item',
         linkTo: '/dashboard/flashcards/new',
         isSignup: false,
@@ -316,7 +316,7 @@ export const SITUATIONS = [
       {
         label: 'Browse shared Notes and Study Sets',
         detail:
-          'Once you are in a group, content shared by the group admin or members appears in your Notes and Study Sets sections. You can view and study from it directly.',
+          'Once you are in a group, content shared by the group admin or members appears in your Notes and Study Sets sections. Notes can be read directly; flashcards can be practised directly, and added to My Cards when you want them in your review schedule.',
         linkLabel: 'Browse Notes',
         linkTo: '/dashboard/notes',
         isSignup: false,

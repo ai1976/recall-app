@@ -2,6 +2,26 @@
 
 **Last Updated:** 23/09/2026
 
+## Sprint 8.7.8d: My Cards page — Pause/Resume/Remove UI (23/09/2026) — ✅ frontend only, no SQL, live-verified against a real student session
+
+**Just Completed:** Step 0 confirmed Option C (client-side join) via live catalog checks Anand ran (`docs/database/sprint8.7.8d/00_DIAGNOSTIC_step0_live_catalog_checks.sql`): `reviews.status` CHECK is exactly `active`/`suspended`/`mastered`; `flashcards`/`reviews` SELECT RLS already permits reading own rows client-side (same access `StudyMode.jsx` already relies on); `my_cards_enrollment`/`practice_attempts` confirmed zero client grants. No SQL needed this sprint.
+
+Live SQL-body inspection proved `unsuspend_card` unconditionally sets `status='active', next_review_date=today` — resuming a paused **mastered** card would lose the mastered state, not restore it. Anand's call, given that proof: Pause is never offered on a mastered card (own or external); mastered shows a badge only, no Pause/Resume. `unsuspend_card` itself untouched.
+
+`get_my_cards`'s own-card branch has no `question_type` filter, so it does return own concept cards — excluded at the new page's presentation layer only (`isConceptCard` filter), the frozen RPC was not touched.
+
+Shipped: `src/pages/dashboard/Study/MyCards.jsx` (new route `/dashboard/my-cards`) — calls `get_my_cards`, chunk-fetches `reviews` state (reusing `StudyMode.jsx`'s `REVIEW_LOOKUP_CHUNK=100` pattern), renders the full ownership × state action matrix (Pause/Resume/Remove per D-29's rules), with confirm dialogs reusing the existing shadcn `Dialog` pattern from `StudyMode.jsx`/`Progress.jsx`. Nav: new "My Cards" item, 4th in the desktop Study dropdown and in the mobile menu sheet; bottom-tab bar untouched (5 fixed slots).
+
+**Live-verified (dev server → live Supabase, real student session):** own/never-graded → no actions; own/active → Pause only; external/active (a real pre-existing enrollment) → Pause+Remove. Exercised, not just inspected: Pause → Paused/Resume+Remove via `suspend_card`; Resume → back to Active via `unsuspend_card`; Remove → disappeared immediately via `remove_from_my_cards`, no reload. Desktop dropdown + mobile menu sheet both confirmed showing "My Cards"; mobile 375×812 viewport confirmed bottom tabs unchanged.
+
+**Not live-verified:** external+mastered state and the Remove→re-add round trip via Practice — this test account's one mastered card predates the enrollment gate (pre-D-27 orphaned `reviews` row, professor-authored, never enrolled) and correctly does not appear in My Cards at all; the Browse UI's topic drill-down didn't expose a Practice entry for the one available external card to re-add through. `add_to_my_cards` re-add mechanics are unchanged and already verified under D-27/D-28.
+
+**User-doc alignment pass (same sprint, before commit):** Help (`src/data/helpContent.js`) and the Student Guide (`src/data/guideContent.js`) still described the pre-8.7.8 model — "browse a card → grade it" as one step, no distinction between Practice (no SRS commitment) and My Cards (personal review collection). Inspected every passage mentioning Study Mode/Browse/flashcards/suspend/My Study Sets; rewrote the stale ones only. Help gained a new "From Browsing to Reviewing: Browse, Practice & My Cards" section under Study System, and "Reviews vs. New Cards"/"Starting a Review Session"/"Skip, Suspend & Reset" (renamed "Skip, Pause, Remove & Reset") were corrected — including stating in plain language that Pause is not offered on a Mastered card, and that Remove only applies to added external content. The Skip/Suspend FAQ was similarly updated. Guide's onboarding "Do your first review" step, both "no separate add to deck step" passages (scoped to own content only), the "Open your Review queue" step, and the group-content browsing step were corrected. No implementation detail (enrollment rows, `reviews.status`, `42501`, the mastered→unsuspend cause) was exposed in user-facing copy. Live-verified in browser: Help's new/updated sections render and expand correctly with the right icon, search surfaces the updated FAQ, Student Guide renders all corrected passages, no console errors.
+
+Full details: blueprint.md D-29. Files: `docs/database/sprint8.7.8d/00` (diagnostic only, no schema/function SQL), `src/pages/dashboard/Study/MyCards.jsx`, `src/App.jsx`, `src/lib/navActive.js`, `src/components/layout/NavDesktop.jsx`, `src/components/layout/NavMenuSheet.jsx`, `src/data/helpContent.js`, `src/data/guideContent.js`, `src/pages/dashboard/Help.jsx`.
+
+---
+
 ## Sprint 8.7.8c: Practice Mode + My Cards Composition (22-23/09/2026) — ✅ SQL deployed & test-verified (15/15 PASS incl. eligibility parity), frontend built, live-verified in browser. Closes the auto-enrollment bug.
 
 **Just Completed:** Step 0 traced the exact per-card Browse→Practice gap (StudyMode.jsx's old fetch was client-side, narrow-predicate, eligibility-blind) and the mcq/mcq_multi/match_the_following/case_study_mcq "wrong answer calls `submitReview`→`apply_review` immediately, before any grade button" coupling — exactly the risk this sprint exists to close. Backend: one new additive RPC, `get_practice_cards` (deck-level access validated before card resolution, per-card `is_own`/`is_enrolled`/`can_add_to_my_cards`, `concept_card` excluded unconditionally) — deployed and test-verified 15/15 PASS including eligibility parity (a card marked `can_add_to_my_cards=false` is proven to actually fail `add_to_my_cards`) and the enrollment-state transition (`is_enrolled` flips false→true after a real `add_to_my_cards` call).
@@ -14,7 +34,7 @@ Frontend: `StudyMode.jsx`'s standalone-mode step-1 fetch now calls `get_my_cards
 
 Full details: blueprint.md D-28, DATABASE_SCHEMA.md §2.4E + study_sessions updates, bugs.md (auto-enrollment bug now ✅ CLOSED). Files: `docs/database/sprint8.7.8c/00`–`09`.
 
-**Not covered:** group-shared-only content's "Available for Practice only" frontend state and the `42501` race-condition UI — backend-proven (synthetic SQL fixtures, all PASS) but not live-browser-exercised, since no matching content/visibility combination existed in the test course. 8.7.8d (Pause/Resume/Remove UI, dedicated My Cards page) not started — do not begin without re-reading D-28.
+**Not covered:** group-shared-only content's "Available for Practice only" frontend state and the `42501` race-condition UI — backend-proven (synthetic SQL fixtures, all PASS) but not live-browser-exercised, since no matching content/visibility combination existed in the test course. 8.7.8d (Pause/Resume/Remove UI, dedicated My Cards page) shipped — see above.
 
 ---
 

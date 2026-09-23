@@ -227,6 +227,7 @@ recall-app
 │   │       │   ├── MyReports.jsx                ← Sprint 7.3 follow-up: /dashboard/my-reports ("Report History") — status list of content_flags the student themselves filed; moved off the Dashboard
 │   │       │   └── ProfileSettings.jsx          ← /dashboard/settings (name, course, institution, push notifications, teaching areas, Daily Goal)
 │   │       └── Study
+│   │           ├── MyCards.jsx                  ← /dashboard/my-cards (Sprint 8.7.8d D-29 — dedicated My Cards page: get_my_cards + chunked reviews join, Pause/Resume/Remove action matrix, own concept cards filtered client-side)
 │   │           ├── PracticeMode.jsx             ← /dashboard/practice (Sprint 8.7.8c D-28 — Practice/Explore: zero SRS side effects, log_practice_attempt, Add to My Cards, practice_mode study-time logging)
 │   │           ├── Progress.jsx                 ← /dashboard/progress (heatmap, subject mastery, due forecast, question type perf)
 │   │           ├── ReviewBySubject.jsx          ← /dashboard/review-by-subject
