@@ -690,9 +690,11 @@ IMPORTANT:
                 flashcard.tags = [];
               }
 
-              // Normalize whitespace in front/back
-              flashcard.front = flashcard.front.replace(/[\r\n]+/g, ' ').trim();
-              flashcard.back = flashcard.back.replace(/[\r\n]+/g, ' ').trim();
+              // Trim front/back. Internal newlines are preserved (not collapsed to
+              // spaces) — the [[TABLE]] rich-content contract (D-31) and multi-line
+              // plain text both depend on them; display already uses whitespace-pre-wrap.
+              flashcard.front = flashcard.front.trim();
+              flashcard.back = flashcard.back.trim();
 
               if (flashcard.question_type === 'match_the_following') {
                 if (!matchGroups.has(flashcard.match_group)) {

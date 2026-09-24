@@ -28,6 +28,21 @@
 Stage 8 live proof (real bulk-upload → DB → rendered UI verification) has not been run yet — blocked on the DB constraint diagnostic being run and on 4 of 9 mandatory proof records' locked display text not yet being available in the repo. See `docs/active/now.md` and blueprint.md D-31 for details.
 
 ---
+## [25/09/2026] fix(sprint-8.7.9): bulk-upload newline collapse was destroying [[TABLE]] content; corpus REPORT-row defect fixed (D-31 Stage 8 complete)
+
+### Fixed
+- `BulkUploadFlashcards.jsx` was collapsing every newline in `front`/`back` to a single space before storage (a pre-existing normalization step, unrelated to this sprint's own changes). This silently destroyed `[[TABLE]]` marker structure on upload — discovered live when the first Stage 8 proof upload of theory/case-study records rendered literal `[[TABLE]]`/`|` text instead of a table. `scenario` was unaffected (trim-only), which is why the earlier Fixtures A–E proof never caught this. Fixed by trimming `front`/`back` only, matching how `scenario` is already handled — internal newlines now survive upload.
+- Corpus data defect: `Question_Master!Q142` (`Verified_Answer` for `CAFA-AUD-SM1-C07-TYK04`) had a stray `REPORT | ` row inside both `[[TABLE]]` blocks, breaking the renderer's "first row = header" invariant. Traced to a genuine spanning caption row in the source PDF that the `[[TABLE]]` grammar has no representation for. Fixed at the data level (dropped from the corpus cell) rather than the parser, on the author's decision.
+
+### Verified
+- Stage 8 live proof completed for the 4 remaining mandatory records (F/G/H/I), pulled from the live locked corpus, not reconstructed: real front-table (F) and back-table (G, two comparison tables) theory records, a real theory+scenario record (H) with no scenario duplication into `front_text`, and a real shared case-group of 4 MCQs (I) with scenario equality confirmed via strict `===` across all 4 rows.
+- Disposable proof data (7 cards, 2 provenance rows) fully cleaned up; Dashboard stats back to baseline.
+
+### Files Changed
+- `src/pages/dashboard/BulkUploadFlashcards.jsx`
+- `docs/database/sprint8.7.9/03_CLEANUP_remove_disposable_proof_fghi_provenance.sql` (new)
+
+---
 ## [24/09/2026] feat(sprint-8.7.8e): get_study_queue payload parity with get_practice_cards (D-30)
 
 ### Fixed
