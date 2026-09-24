@@ -1,6 +1,46 @@
 # NOW - Current Development Status
 
-**Last Updated:** 23/09/2026
+**Last Updated:** 24/09/2026
+
+## Sprint 8.7.9: Rich Content / Scenario Rendering (D-31) — Phase 8 (24/09/2026) — 🟡 code + automated tests + build/lint green; Stage 8 live proof NOT YET RUN (blocked, see below)
+
+**Context:** Closes the display half of the CA Final Audit bulk-import gate — the client-side renderer for the locked corpus `[[TABLE]]` rich-content contract in `front_text`/`back_text`/`scenario`, plus Decision 3 (scenario now supported on `theory` rows, stored separately from `front`, not concatenated).
+
+**Step 0 findings:** scenario gate confirmed as exactly `question_type === 'case_study_mcq' && card.scenario` in both `StudyMode.jsx`/`PracticeMode.jsx`, no other gate found. Bulk-upload path traced end to end — the parser/validator never rejected a theory-row scenario, but payload construction silently dropped it (`rowScenario` only ever set for `case_study_mcq`); fixed generically. Table-header invariant confirmed true for all fixtures. **Two Step 0 items could not be resolved in this session and remain open:** (1) no direct DB tool available — a diagnostic SQL for `flashcards.scenario`/`front_text`/`back_text` constraints was written but not run; (2) the repo fixture file is missing locked display text for 4 of 9 mandatory Stage 8 proof records (`TYK16`, `TYK04`, `-CS01-TQ01`, `-CS01-MCQ01..04`) — not reconstructed, per the sprint's own instruction.
+
+**Built:** `src/lib/parseRichText.js` (pure parser, fails closed on malformed markers), `src/components/RichText.jsx` (shared pure renderer, zero-regression plain-text path, real semantic `<table>`, no `dangerouslySetInnerHTML`), wired into both `StudyMode.jsx` and `PracticeMode.jsx` for `front_text`/`back_text`/`scenario` across every question-type branch that renders them. Theory scenario gate added (Decision 3) reusing the existing `scenarioExpanded` collapsible. Bulk-upload payload fix + CSV help-text update in `BulkUploadFlashcards.jsx`.
+
+**Test infrastructure:** project had none before this sprint — added vitest + `@testing-library/react`/`jest-dom` + jsdom, `npm test` script. 18 tests (11 parser, incl. real corpus Fixtures A/B/C verbatim from the fixture file; 6 component; 1 setup) all passing. `npx eslint .` and `npx vite build` both green, no new problems vs. the pre-existing baseline (verified by diffing against a stash).
+
+**Not done yet — Stage 8 live proof.** Needs, in order: the DB diagnostic run and pasted back; the 4 missing proof-record fixtures supplied by the corpus thread; then live verification (desktop+mobile, Study+Practice) of Fixtures A–E and real records F–I through the actual bulk-upload → DB → render path with disposable data, cleaned up after. Do not start Stage 9 corpus regeneration until this is complete and reported.
+
+**Decision Log:** D-31 (blueprint.md).
+
+**Files changed:** `src/lib/parseRichText.js` (new), `src/lib/parseRichText.test.js` (new), `src/components/RichText.jsx` (new), `src/components/RichText.test.jsx` (new), `src/test/setup.js` (new), `src/pages/dashboard/Study/StudyMode.jsx`, `src/pages/dashboard/Study/PracticeMode.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx`, `package.json`, `vite.config.js`. SQL: `docs/database/sprint8.7.9/01_DIAGNOSTIC_flashcards_scenario_front_back_constraints.sql` (written, not yet run).
+
+---
+
+## Sprint 8.7.8e: Review Queue Objective-Card Payload Parity — Phase 8 (24/09/2026) — ✅ SQL deployed, test-verified (11/12 PASS, 1 benign meta-query artifact), live-verified in browser, disposable test data cleaned up (0 residue)
+
+**Context:** Surfaced during Phase 8's CA Final Audit bulk-import diagnostic — while tracing `scenario`/`options` through every read path capable of delivering an objective-type card (in preparation for Sprint 8.7.9), found that `get_study_queue` — the RPC behind the normal "Review due cards" flow, the single most-used entry point into SRS study — never returned `options`, `correct_answer`, `explanation`, `scenario`, or `subtype`. `StudyMode.jsx` already reads the first four by name; any `mcq`, `mcq_multi`, `correct_incorrect`, `case_study_mcq`, `fitb`, or `match_the_following` card reaching Review through this path rendered with no options, no scenario, and no explanation. Same class of bug 8.7.8c fixed in `get_practice_cards` (D-28), still live in the more heavily used path. Unrelated to the CA Audit corpus itself — a pre-existing platform-wide gap the diagnostic happened to surface.
+
+**Step 0 diagnostic (reported to the Quality Auditor before any change):** confirmed the exact live 22-column return shape (matching the 8.7.4 file, not the older srs-ladder copy), grepped every `currentCard.*` reference `StudyMode.jsx` actually makes, and compared against `get_practice_cards`/`PracticeMode.jsx` (no gap on that side). Found the missing set was 4 fields by StudyMode's actual usage, not 5 — `subtype` isn't read by name anywhere today. Flagged this rather than assuming; the Quality Auditor directed it be included anyway as a deliberate 5th field, since it's an already-defined semantic classification (`pure_theory`/`descriptive_case_study`) on an already-supported type, not speculative — 8.7.9's renderer is expected to key off it explicitly rather than infer content shape from `scenario`'s presence.
+
+**Fix:** `docs/database/sprint8.7.8e/01_FUNCTIONS_get_study_queue_payload_parity.sql` — third additive touch to this function (baseline → SRS Ladder Epic's `rung` → 8.7.4's `batch_id` → this sprint's five). Due-eligibility, course filter, visibility guard, `concept_card` exclusion, ordering, and the IDOR guard are byte-identical to the prior live version. `ReviewSession.jsx`'s `cleanedCards` mapping gained the same five fields, passed through unmodified.
+
+**SQL verification:** `docs/database/sprint8.7.8e/02_TEST_verify_get_study_queue_payload_parity.sql`, SELECT-grid checks. Caught and fixed two real bugs in the test script itself before a clean run: the regression-baseline call to `get_study_queue()` was placed before impersonation was set (correctly rejected by the IDOR guard, not a function defect), and the fixture inserts were missing values for `flashcards.back_text` and `reviews.quality`, both `NOT NULL` with no default (confirmed against `DATABASE_SCHEMA.md`, not assumed — avoided a third failed run). Final run: 11/12 PASS, including byte-for-byte parity on all five new fields against the source `flashcards` row for two fixture shapes, `NULL` scenario preserved as `NULL`, `batch_id`/`rung` unregressed, IDOR intact, and an independently-written due-count predicate matching `get_study_queue()`'s own count exactly. The one nominal FAIL (`information_schema.parameters`-based column-count check) is a defect in that one meta-query — the data-parity checks are stronger, more direct proof the return shape is correct.
+
+**Live verification:** no due `mcq`/`case_study_mcq` card existed in the available student account's real due set (My Cards enrollment is opt-in, so most due queues are still theory-heavy) — all 9 of that account's real due cards (5 in one subject, 1 each in four others) were graded through the app with zero console errors, confirming no regression for the types already working. Then created one real `mcq` card as a professor (UI correctly gated `mcq`/`case_study_mcq`/etc. to professor/admin per D-10 — a student account's Create form only offered Flashcard/Theory/Concept Card), added a disposable `reviews` row to make it due, and confirmed live: question, all 3 options, correct-answer marking, "WHY" explanation, and the provenance badge all rendered correctly through the real `get_study_queue` → `ReviewSession.jsx` → `StudyMode.jsx` path, clean grade round-trip, zero new console errors. One incidental finding caught and fixed mid-verification, not a code defect: the test card's `target_course='CA Final'` didn't match the reviewing professor's own `profiles.course_level`, so the pre-existing (unchanged) course-level gate correctly filtered it out — confirmed the in-app course-context switcher is session-display-only and doesn't affect `profiles.course_level`, then cleared `target_course` to `NULL` on just the disposable test row to route around it without touching the gate itself.
+
+**Cleanup:** all disposable data (SQL fixture rows, rolled back; the live test card + its `reviews`/`flashcard_batch_provenance` rows, deleted) removed and reverified at 0. A first draft of the cleanup script included an overly broad "delete empty flashcard_decks" step that would have matched unrelated empty decks anywhere in the database — caught and removed before running; the test card's deck needed no cleanup since it was added to the professor's real, pre-existing Quality Control deck (16 real cards before, 16 after).
+
+**Decision Log:** D-30 (blueprint.md).
+
+**Status: D-30 SHIPPED. Unblocks Sprint 8.7.9** (case-study scenario table rendering — needs `subtype`/`scenario` reliably present on the Review path, not just Practice). Sprint 8.7.9 itself remains **on hold**, waiting on the extraction thread to add and populate `Verified_Case_Text` on the 14 `TEXT_TABLE` cases in `Integrated_Cases` (per the blank-line-delimited pipe-table format specified 24/09/2026).
+
+**Files changed:** `src/pages/dashboard/Study/ReviewSession.jsx`. SQL: `docs/database/sprint8.7.8e/01`–`04`.
+
+---
 
 ## Hotfix (sprint-8.7.8c): missing `scenario` column on `get_practice_cards` (23/09/2026) — ✅ SQL deployed, test-verified, live-verified in browser, fixture cleaned up (0 residue)
 

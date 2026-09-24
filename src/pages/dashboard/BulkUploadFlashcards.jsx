@@ -250,7 +250,7 @@ COLUMNS:
 - correct_option (required for mcq/mcq_multi/correct_incorrect/case_study_mcq) - which option number is correct: 1-4 for mcq/case_study_mcq, 1-2 for correct_incorrect ("Correct"=1, "Incorrect"=2). For mcq_multi, list every correct option number separated by semicolons, e.g. "1;3" — at least one required, order doesn't matter. Not used for fitb/match_the_following/concept_card.
 - explanation (optional, mcq/mcq_multi/correct_incorrect/case_study_mcq/fitb/match_the_following only) - shown to the student after they answer. For match_the_following, only needs to be filled on one row of the group (any row left blank is ignored).
 - subtype (required for question_type=theory only) - "pure_theory" or "descriptive_case_study"
-- scenario (required for question_type=case_study_mcq only) - the shared case narrative. Repeat the EXACT SAME text on every row belonging to the same case.
+- scenario (required for question_type=case_study_mcq; optional for question_type=theory) - the shared case narrative. For case_study_mcq, repeat the EXACT SAME text on every row belonging to the same case. For theory, a scenario is stored separately from front/back and shown as a collapsible case scenario -- do not also include it in the front text.
 - case_group (required for question_type=case_study_mcq only) - any label you choose (e.g. "xyz-inventory-case") linking this row to its case's other questions. Must be unique per case within this file, identical across every row in that case. Each row still becomes its own card, sharing a batch with the rest of the case.
 - fitb_answers (required for question_type=fitb only) - every phrasing you'd accept as correct, separated by semicolons (e.g. "Rs 2.5 lakhs;2.5 lakhs;250000"). Quote the whole cell if any answer itself contains a comma. front must contain a blank marker (______, at least 3 underscores).
 - match_group (required for question_type=match_the_following only) - any label you choose (e.g. "tax-section-map") linking this row to its card's other pairs. Unlike case_group, all rows sharing a match_group combine into ONE card — 2-8 rows per group.
@@ -925,6 +925,10 @@ IMPORTANT:
           }
           rowBatchId = caseGroupBatchIds.get(card.case_group);
           rowScenario = card.scenario;
+        } else if (card.question_type === 'theory' && card.scenario && card.scenario.trim()) {
+          // D-31 (Sprint 8.7.9): scenario is optional/supported for theory rows too —
+          // stored separately, never concatenated into front (superseded Stage 7B rule).
+          rowScenario = card.scenario.trim();
         }
 
         return {

@@ -60,6 +60,19 @@ export default function ReviewSession() {
         question_type: row.question_type,
         batch_id: row.batch_id, // Sprint 8.7.4 — drives StudyMode's provenance badge
         rung: row.rung, // current SRS ladder position — drives StudyMode's local grade-button preview
+        // Sprint 8.7.8e — Review-queue objective-card payload parity with get_practice_cards.
+        // options/correct_answer/explanation/scenario are read by StudyMode.jsx today (mcq,
+        // mcq_multi, correct_incorrect, case_study_mcq, fitb, match_the_following all need them);
+        // subtype is not yet read by StudyMode.jsx but is carried through so the full semantic
+        // payload (question_type + subtype + scenario) survives this path for 8.7.9's renderer.
+        // No text-artifact stripping applied here (unlike front_text/back_text above) — these are
+        // new fields with no legacy diamond-bullet history to clean up, matching how
+        // PracticeMode.jsx already consumes the same columns unmodified from get_practice_cards.
+        options: row.options,
+        correct_answer: row.correct_answer,
+        explanation: row.explanation,
+        scenario: row.scenario,
+        subtype: row.subtype,
         subject_name: row.subject_name,
         topic_name: row.topic_name,
         subjects: row.subject_name ? { id: row.subject_id, name: row.subject_name } : null,

@@ -1,5 +1,23 @@
 # Bug Tracking
 
+## Sprint 8.7.9 — 24/09/2026 (Rich Content / Scenario Rendering)
+
+### [24/09/2026] Bulk-upload silently dropped `scenario` on `theory` rows — 🟡 FIXED, not yet live-verified
+- **Found:** Step 0.3 diagnostic, tracing `scenario` for `question_type=theory` through the full client bulk-upload path per the sprint brief (CSV → parser → normalized row → validation → payload construction → `create_flashcard_batches` input), ahead of Decision 3 (scenario support extended to theory).
+- **Root cause:** `BulkUploadFlashcards.jsx`'s theory-row parser/validator (~line 557) never read or rejected `flashcard.scenario`, so a CSV author supplying one for a theory row saw no error. The value was silently discarded one step later, at payload construction (~line 921): `rowScenario` started `null` and was only ever set `if (card.question_type === 'case_study_mcq')`. A theory row's scenario never reached `create_flashcard_batches`.
+- **Impact:** any theory-with-shared-scenario CSV row (the CA Final Audit corpus's 16 theory-with-Case_ID rows, per the sprint brief) would have imported with the scenario silently lost, not an error the uploader would see.
+- **Fix:** `rowScenario` now also populated for `theory` when `card.scenario` is present/trimmed, mirroring the case_study_mcq path. Downloadable CSV help text updated (previously documented scenario as case_study_mcq-only).
+- **Status:** 🟡 Fixed and covered by the automated test suite's zero-regression guarantees on the renderer side; the bulk-upload payload fix itself has not yet been live-verified through the real upload path (pending Stage 8 live proof, blocked on missing fixtures — see blueprint.md D-31).
+
+## Sprint 8.7.8e — 24/09/2026 (Review Queue Objective-Card Payload Parity)
+
+### [24/09/2026] get_study_queue never returned options/correct_answer/explanation/scenario/subtype — ✅ FIXED & LIVE-VERIFIED
+- **Found:** while tracing `scenario`/`options` through every read path capable of delivering an objective-type card, in preparation for Sprint 8.7.9's table-rendering work. `get_study_queue` — the RPC behind the normal "Review due cards" flow (`ReviewSession.jsx` → `StudyMode.jsx`), the single most-used entry point into SRS study — had never returned these five fields (22-column shape unchanged since the SRS Ladder Epic/8.7.4). `StudyMode.jsx` already reads `options`/`correct_answer`/`explanation`/`scenario` by name.
+- **Impact:** any `mcq`, `mcq_multi`, `correct_incorrect`, `case_study_mcq`, `fitb`, or `match_the_following` card reaching Review through the normal due-queue path rendered with no options, no scenario, and no explanation — the exact class of bug 8.7.8c fixed in `get_practice_cards` (D-28), still live in this more heavily used path. Cards studied via a direct deck-browse click (`SELECT *`) or Practice Mode were unaffected — only the due-queue path was broken.
+- **Fix (Sprint 8.7.8e, D-30):** additive `RETURNS TABLE` amendment — `docs/database/sprint8.7.8e/01_FUNCTIONS_get_study_queue_payload_parity.sql`. Due-eligibility/ordering/course-filter/IDOR all unchanged and regression-tested. `ReviewSession.jsx` mapping updated to pass the five fields through.
+- **Live-verified 24/09/2026:** all 9 of a real student's due cards (theory/fitb — this account had no due objective-type cards, since My Cards enrollment is opt-in) graded with zero regressions; a real professor-authored `mcq` card rendered options/correct-answer/explanation/provenance correctly through the actual due-queue path after a disposable `reviews` fixture made it due; cleaned up afterward, 0 residue confirmed.
+- **Status:** ✅ CLOSED.
+
 ## Sprint 8.7.8c — 22-23/09/2026 (Practice Mode + My Cards composition)
 
 ### [22/09/2026] Any visible card (own or not) silently auto-enrolls into SRS on first grade — ✅ FIXED & LIVE-VERIFIED

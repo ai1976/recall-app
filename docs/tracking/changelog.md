@@ -1,6 +1,54 @@
 # Changelog
 
 ---
+## [24/09/2026] feat(sprint-8.7.9): rich [[TABLE]] rendering + scenario support for theory cards (D-31)
+
+### Added
+- `src/lib/parseRichText.js` — pure parser for the locked `[[TABLE]]...[[/TABLE]]` rich-content contract (pipe-delimited cells, `\|` escape, blank-line-separated prose). Malformed marker sequences fail closed to the original plain text — a card can never blank or crash on bad input.
+- `src/components/RichText.jsx` — shared pure renderer used by both Study and Practice modes for `front_text`, `back_text`, and `scenario`. Plain text (the vast majority of existing cards) renders exactly as before; rich content renders real semantic `<table>` with a local horizontal-scroll wrapper for wide tables on mobile. No `dangerouslySetInnerHTML`.
+- Test infrastructure: vitest + React Testing Library (project had none before). 18 new tests covering the parser and component, including real locked corpus fixtures.
+
+### Changed
+- Scenario display (the collapsible "CASE SCENARIO" block) now also appears for `theory` cards with a `scenario`, not just `case_study_mcq` — reuses the existing collapsible UI. The scenario is stored and shown separately from the question text, never duplicated into it.
+- `BulkUploadFlashcards.jsx` — fixed a bug where a `scenario` value on a `theory` CSV row was silently dropped when building the upload payload (parser accepted it, but payload construction only ever forwarded `scenario` for `case_study_mcq`). Also updated the downloadable CSV help text, which incorrectly documented `scenario` as case_study_mcq-only.
+
+### Files Changed
+- `src/lib/parseRichText.js` (new)
+- `src/lib/parseRichText.test.js` (new)
+- `src/components/RichText.jsx` (new)
+- `src/components/RichText.test.jsx` (new)
+- `src/test/setup.js` (new)
+- `src/pages/dashboard/Study/StudyMode.jsx`
+- `src/pages/dashboard/Study/PracticeMode.jsx`
+- `src/pages/dashboard/BulkUploadFlashcards.jsx`
+- `package.json`, `vite.config.js`
+- `docs/database/sprint8.7.9/01_DIAGNOSTIC_flashcards_scenario_front_back_constraints.sql` (new, not yet run)
+
+### Note
+Stage 8 live proof (real bulk-upload → DB → rendered UI verification) has not been run yet — blocked on the DB constraint diagnostic being run and on 4 of 9 mandatory proof records' locked display text not yet being available in the repo. See `docs/active/now.md` and blueprint.md D-31 for details.
+
+---
+## [24/09/2026] feat(sprint-8.7.8e): get_study_queue payload parity with get_practice_cards (D-30)
+
+### Fixed
+- `get_study_queue` — the RPC behind the normal "Review due cards" flow (`ReviewSession.jsx` → `StudyMode.jsx`), the single most-used entry point into SRS study — never returned `options`, `correct_answer`, `explanation`, `scenario`, or `subtype`. `StudyMode.jsx` already reads the first four by name, so any `mcq`, `mcq_multi`, `correct_incorrect`, `case_study_mcq`, `fitb`, or `match_the_following` card reaching Review through this path rendered with no options, no scenario, and no explanation. Same class of bug 8.7.8c fixed in `get_practice_cards`, still live in the more heavily used path. Found while tracing read paths for Sprint 8.7.9, unrelated to the CA Audit corpus itself.
+
+### Changed
+- `docs/database/sprint8.7.8e/01_FUNCTIONS_get_study_queue_payload_parity.sql` — `DROP FUNCTION` + `CREATE FUNCTION` (return-shape change) adding `options jsonb, correct_answer text, explanation jsonb, scenario text, subtype text` to the return list and the final `SELECT`. Due-eligibility, course filter, visibility guard, `concept_card` exclusion, ordering, and the IDOR guard are byte-identical to the prior live version. `subtype` included on the Quality Auditor's direction though not yet consumed by `StudyMode.jsx` — an already-defined classification on an already-supported type, needed by 8.7.9's renderer. Grants re-applied explicitly.
+- `src/pages/dashboard/Study/ReviewSession.jsx` — `cleanedCards` mapping gained the same five fields, passed through unmodified.
+- SQL-verified: 11/12 checks PASS (independently-written due-count predicate matches exactly; byte-for-byte field parity on two fixture shapes; `batch_id`/`rung` unregressed; IDOR intact). One nominal FAIL is a defect in the test's own `information_schema.parameters` column-count query, not the deployed function.
+- Live-verified: all 9 of a real student's due cards graded with zero regressions; a real professor-authored `mcq` card (UI-gated to professor/admin per D-10) rendered options/correct-answer/explanation/provenance correctly through the actual due-queue path; disposable test data fully cleaned up afterward.
+
+### Files Changed
+- `docs/database/sprint8.7.8e/01_FUNCTIONS_get_study_queue_payload_parity.sql` (new)
+- `docs/database/sprint8.7.8e/02_TEST_verify_get_study_queue_payload_parity.sql` (new)
+- `docs/database/sprint8.7.8e/03_DATA_make_test_mcq_due.sql` (new)
+- `docs/database/sprint8.7.8e/03b_FIX_test_card_course_filter.sql` (new)
+- `docs/database/sprint8.7.8e/04_CLEANUP_remove_test_mcq.sql` (new)
+- `src/pages/dashboard/Study/ReviewSession.jsx`
+- `docs/active/blueprint.md` (D-30), `docs/reference/DATABASE_SCHEMA.md` (§4.0), `docs/active/now.md`
+
+---
 ## [23/09/2026] fix(sprint-8.7.8c): add missing scenario column to get_practice_cards
 
 ### Fixed

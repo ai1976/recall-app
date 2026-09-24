@@ -10,7 +10,7 @@
 --
 -- Replace :test_user_id below with a real profiles.id before running (any
 -- authenticated user works for T1-T3; T4-T6 are more informative against a
--- user who actually has some flashcards/notes with provenance rows).
+-- user who actually has some flashcards/notes with provenance rows).26507dc7-5ceb-4940-878e-f4cdd2f6eab3
 
 BEGIN;
 
@@ -30,7 +30,7 @@ WHERE tablename = 'flashcard_batch_provenance' AND cmd = 'SELECT';
 -- NoteDetail.jsx's client-side .from('flashcard_batch_provenance') calls
 -- depend on this working, not just the RPCs which bypass RLS anyway).
 SET LOCAL ROLE authenticated;
-SET LOCAL request.jwt.claims = '{"sub": "REPLACE_WITH_test_user_id", "role": "authenticated"}';
+SET LOCAL request.jwt.claims = '{"sub": "26507dc7-5ceb-4940-878e-f4cdd2f6eab3", "role": "authenticated"}';
 
 DO $$
 DECLARE

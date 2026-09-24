@@ -47,6 +47,7 @@ import { parseMultiAnswer } from '@/lib/mcq';
 import { useToast } from '@/hooks/use-toast';
 import { useSpeech } from '@/hooks/useSpeech';
 import SpeakButton from '@/components/flashcards/SpeakButton';
+import RichText from '@/components/RichText';
 import SpeechSettings from '@/components/flashcards/SpeechSettings';
 import ProvenanceBadge from '@/components/content/ProvenanceBadge';
 import { fetchBatchProvenanceMap } from '@/lib/provenance';
@@ -1286,9 +1287,10 @@ export default function StudyMode({
                     )}
                   </div>
 
-                  <p className="text-xl md:text-2xl font-semibold text-rv-ink-900 mb-6 whitespace-pre-wrap text-center">
-                    {currentCard.front_text}
-                  </p>
+                  <RichText
+                    className="text-xl md:text-2xl font-semibold text-rv-ink-900 mb-6 whitespace-pre-wrap text-center"
+                    text={currentCard.front_text}
+                  />
 
                   <MatchZone
                     left={currentCard.options?.left || []}
@@ -1370,9 +1372,10 @@ export default function StudyMode({
                     )}
                   </div>
 
-                  <p className="text-xl md:text-2xl font-semibold text-rv-ink-900 mb-2 whitespace-pre-wrap text-center">
-                    {currentCard.front_text}
-                  </p>
+                  <RichText
+                    className="text-xl md:text-2xl font-semibold text-rv-ink-900 mb-2 whitespace-pre-wrap text-center"
+                    text={currentCard.front_text}
+                  />
                   <p className="text-center text-xs text-rv-ink-400 mb-6">Select all that apply</p>
 
                   <div className="flex flex-col gap-2.5 mb-2">
@@ -1472,9 +1475,10 @@ export default function StudyMode({
                         )}
                       </button>
                       {scenarioExpanded && (
-                        <p className="font-literata text-[15px] leading-relaxed text-rv-ink-900 px-4 pb-4 whitespace-pre-wrap max-h-[40vh] overflow-y-auto">
-                          {currentCard.scenario}
-                        </p>
+                        <RichText
+                          className="font-literata text-[15px] leading-relaxed text-rv-ink-900 px-4 pb-4 whitespace-pre-wrap max-h-[40vh] overflow-y-auto"
+                          text={currentCard.scenario}
+                        />
                       )}
                     </div>
                   )}
@@ -1500,14 +1504,13 @@ export default function StudyMode({
                     />
                   )}
 
-                  <p
+                  <RichText
                     className={cn(
                       'text-xl md:text-2xl font-semibold text-rv-ink-900 mb-6 whitespace-pre-wrap text-center',
                       currentCard.question_type === 'case_study_mcq' && 'text-lg md:text-xl text-left',
                     )}
-                  >
-                    {currentCard.front_text}
-                  </p>
+                    text={currentCard.front_text}
+                  />
 
                   <div className="flex flex-col gap-2.5 mb-2">
                     {(currentCard.options || []).map((optionText, optIndex) => {
@@ -1582,6 +1585,29 @@ export default function StudyMode({
                 </div>
               ) : !showAnswer ? (
                 <div className={cn('w-full', !isTheory(currentCard) && 'text-center')}>
+                  {isTheory(currentCard) && currentCard.scenario && (
+                    <div className="w-full mb-6 rounded-rec border border-rv-border bg-rv-bg-1 text-left">
+                      <button
+                        type="button"
+                        onClick={() => setScenarioExpanded((v) => !v)}
+                        className="w-full flex items-center justify-between gap-2 px-4 py-3"
+                      >
+                        <span className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400">CASE SCENARIO</span>
+                        {scenarioExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-rv-ink-400 shrink-0" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-rv-ink-400 shrink-0" />
+                        )}
+                      </button>
+                      {scenarioExpanded && (
+                        <RichText
+                          className="font-literata text-[15px] leading-relaxed text-rv-ink-900 px-4 pb-4 whitespace-pre-wrap max-h-[40vh] overflow-y-auto"
+                          text={currentCard.scenario}
+                        />
+                      )}
+                    </div>
+                  )}
+
                   <div className={cn('mb-6 flex items-center gap-2', isTheory(currentCard) ? 'justify-start' : 'justify-center')}>
                     <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
                       QUESTION
@@ -1611,15 +1637,14 @@ export default function StudyMode({
                     />
                   )}
 
-                  <p
+                  <RichText
                     className={cn(
                       'text-2xl md:text-3xl font-semibold text-rv-ink-900 mb-8 whitespace-pre-wrap',
                       isTheory(currentCard) &&
                         'text-base md:text-lg font-normal leading-relaxed text-left',
                     )}
-                  >
-                    {currentCard.front_text}
-                  </p>
+                    text={currentCard.front_text}
+                  />
 
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     <Button
@@ -1690,6 +1715,28 @@ export default function StudyMode({
                 </div>
               ) : (
                 <div className="w-full">
+                  {isTheory(currentCard) && currentCard.scenario && (
+                    <div className="w-full mb-6 rounded-rec border border-rv-border bg-rv-bg-1 text-left">
+                      <button
+                        type="button"
+                        onClick={() => setScenarioExpanded((v) => !v)}
+                        className="w-full flex items-center justify-between gap-2 px-4 py-3"
+                      >
+                        <span className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400">CASE SCENARIO</span>
+                        {scenarioExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-rv-ink-400 shrink-0" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-rv-ink-400 shrink-0" />
+                        )}
+                      </button>
+                      {scenarioExpanded && (
+                        <RichText
+                          className="font-literata text-[15px] leading-relaxed text-rv-ink-900 px-4 pb-4 whitespace-pre-wrap max-h-[40vh] overflow-y-auto"
+                          text={currentCard.scenario}
+                        />
+                      )}
+                    </div>
+                  )}
                   <div className="mb-6 pb-6 border-b border-rv-border">
                     <div className="flex items-center gap-2 mb-3">
                       <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">
@@ -1703,9 +1750,7 @@ export default function StudyMode({
                         />
                       )}
                     </div>
-                    <p className="text-lg text-rv-ink-600 whitespace-pre-wrap">
-                      {currentCard.front_text}
-                    </p>
+                    <RichText className="text-lg text-rv-ink-600 whitespace-pre-wrap" text={currentCard.front_text} />
                   </div>
 
                   <div className="mb-8">
@@ -1731,7 +1776,7 @@ export default function StudyMode({
                     )}
 
                     {currentCard.back_text ? (
-                      <p
+                      <RichText
                         className={cn(
                           'text-xl md:text-2xl font-semibold text-rv-ink-900 whitespace-pre-wrap',
                           isReadingBody(currentCard.back_text) &&
@@ -1739,9 +1784,8 @@ export default function StudyMode({
                           isTheory(currentCard) &&
                             'text-base md:text-lg font-normal leading-relaxed text-left',
                         )}
-                      >
-                        {currentCard.back_text}
-                      </p>
+                        text={currentCard.back_text}
+                      />
                     ) : (
                       <p className="text-lg text-rv-ink-400 italic">
                         No written answer - refer to image

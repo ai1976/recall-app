@@ -11,6 +11,7 @@ import { isFitbMatch, splitFitbSentence } from '@/lib/fitb';
 import { parseMultiAnswer } from '@/lib/mcq';
 import { useToast } from '@/hooks/use-toast';
 import { Brain, ArrowLeft, SkipForward, Check, ChevronUp, ChevronDown } from 'lucide-react';
+import RichText from '@/components/RichText';
 
 // Sprint 8.7.8c — theory cards render as left-aligned, normal-weight prose (matches StudyMode.jsx).
 const isTheory = (card) => card?.question_type === 'theory';
@@ -461,7 +462,7 @@ export default function PracticeMode() {
                     <div className="mb-6 flex items-center justify-center gap-2">
                       <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">QUESTION</span>
                     </div>
-                    <p className="text-xl md:text-2xl font-semibold text-rv-ink-900 mb-6 whitespace-pre-wrap text-center">{card.front_text}</p>
+                    <RichText className="text-xl md:text-2xl font-semibold text-rv-ink-900 mb-6 whitespace-pre-wrap text-center" text={card.front_text} />
                     <MatchZone
                       left={card.options?.left || []}
                       right={card.options?.right || []}
@@ -504,7 +505,7 @@ export default function PracticeMode() {
                     <div className="mb-6 flex items-center justify-center gap-2">
                       <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">QUESTION</span>
                     </div>
-                    <p className="text-xl md:text-2xl font-semibold text-rv-ink-900 mb-2 whitespace-pre-wrap text-center">{card.front_text}</p>
+                    <RichText className="text-xl md:text-2xl font-semibold text-rv-ink-900 mb-2 whitespace-pre-wrap text-center" text={card.front_text} />
                     <p className="text-center text-xs text-rv-ink-400 mb-6">Select all that apply</p>
                     <div className="flex flex-col gap-2.5 mb-2">
                       {(card.options || []).map((optionText, optIndex) => {
@@ -553,16 +554,14 @@ export default function PracticeMode() {
                           {scenarioExpanded ? <ChevronUp className="h-4 w-4 text-rv-ink-400 shrink-0" /> : <ChevronDown className="h-4 w-4 text-rv-ink-400 shrink-0" />}
                         </button>
                         {scenarioExpanded && (
-                          <p className="font-literata text-[15px] leading-relaxed text-rv-ink-900 px-4 pb-4 whitespace-pre-wrap max-h-[40vh] overflow-y-auto">{card.scenario}</p>
+                          <RichText className="font-literata text-[15px] leading-relaxed text-rv-ink-900 px-4 pb-4 whitespace-pre-wrap max-h-[40vh] overflow-y-auto" text={card.scenario} />
                         )}
                       </div>
                     )}
                     <div className={cn('mb-6 flex items-center gap-2', card.question_type === 'case_study_mcq' ? 'justify-start' : 'justify-center')}>
                       <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">QUESTION</span>
                     </div>
-                    <p className={cn('text-xl md:text-2xl font-semibold text-rv-ink-900 mb-6 whitespace-pre-wrap text-center', card.question_type === 'case_study_mcq' && 'text-lg md:text-xl text-left')}>
-                      {card.front_text}
-                    </p>
+                    <RichText className={cn('text-xl md:text-2xl font-semibold text-rv-ink-900 mb-6 whitespace-pre-wrap text-center', card.question_type === 'case_study_mcq' && 'text-lg md:text-xl text-left')} text={card.front_text} />
                     <div className="flex flex-col gap-2.5 mb-2">
                       {(card.options || []).map((optionText, optIndex) => {
                         const correctIndex = parseInt(card.correct_answer, 10);
@@ -598,12 +597,21 @@ export default function PracticeMode() {
                   </div>
                 ) : !showAnswer ? (
                   <div className={cn('w-full', !isTheory(card) && 'text-center')}>
+                    {isTheory(card) && card.scenario && (
+                      <div className="w-full mb-6 rounded-rec border border-rv-border bg-rv-bg-1 text-left">
+                        <button type="button" onClick={() => setScenarioExpanded((v) => !v)} className="w-full flex items-center justify-between gap-2 px-4 py-3">
+                          <span className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400">CASE SCENARIO</span>
+                          {scenarioExpanded ? <ChevronUp className="h-4 w-4 text-rv-ink-400 shrink-0" /> : <ChevronDown className="h-4 w-4 text-rv-ink-400 shrink-0" />}
+                        </button>
+                        {scenarioExpanded && (
+                          <RichText className="font-literata text-[15px] leading-relaxed text-rv-ink-900 px-4 pb-4 whitespace-pre-wrap max-h-[40vh] overflow-y-auto" text={card.scenario} />
+                        )}
+                      </div>
+                    )}
                     <div className={cn('mb-6 flex items-center gap-2', isTheory(card) ? 'justify-start' : 'justify-center')}>
                       <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">QUESTION</span>
                     </div>
-                    <p className={cn('text-2xl md:text-3xl font-semibold text-rv-ink-900 mb-8 whitespace-pre-wrap', isTheory(card) && 'text-base md:text-lg font-normal leading-relaxed text-left')}>
-                      {card.front_text}
-                    </p>
+                    <RichText className={cn('text-2xl md:text-3xl font-semibold text-rv-ink-900 mb-8 whitespace-pre-wrap', isTheory(card) && 'text-base md:text-lg font-normal leading-relaxed text-left')} text={card.front_text} />
                     <div className="flex flex-wrap items-center justify-center gap-3">
                       <Button onClick={handleReveal} size="lg" className="gap-2 px-6 sm:px-8 min-h-[48px]">
                         <Brain className="h-5 w-5" />
@@ -613,20 +621,29 @@ export default function PracticeMode() {
                   </div>
                 ) : (
                   <div className="w-full">
+                    {isTheory(card) && card.scenario && (
+                      <div className="w-full mb-6 rounded-rec border border-rv-border bg-rv-bg-1 text-left">
+                        <button type="button" onClick={() => setScenarioExpanded((v) => !v)} className="w-full flex items-center justify-between gap-2 px-4 py-3">
+                          <span className="font-plex-mono text-[11px] tracking-wide text-rv-ink-400">CASE SCENARIO</span>
+                          {scenarioExpanded ? <ChevronUp className="h-4 w-4 text-rv-ink-400 shrink-0" /> : <ChevronDown className="h-4 w-4 text-rv-ink-400 shrink-0" />}
+                        </button>
+                        {scenarioExpanded && (
+                          <RichText className="font-literata text-[15px] leading-relaxed text-rv-ink-900 px-4 pb-4 whitespace-pre-wrap max-h-[40vh] overflow-y-auto" text={card.scenario} />
+                        )}
+                      </div>
+                    )}
                     <div className="mb-6 pb-6 border-b border-rv-border">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="inline-block px-3 py-1 bg-rv-bg-2 text-rv-ink-600 text-xs font-semibold tracking-wide rounded-rec">QUESTION</span>
                       </div>
-                      <p className="text-lg text-rv-ink-600 whitespace-pre-wrap">{card.front_text}</p>
+                      <RichText className="text-lg text-rv-ink-600 whitespace-pre-wrap" text={card.front_text} />
                     </div>
                     <div className="mb-8">
                       <div className="flex items-center justify-start gap-2 mb-4">
                         <span className="inline-block px-3 py-1 bg-rv-navy-50 text-rv-navy text-xs font-semibold tracking-wide rounded-rec">ANSWER</span>
                       </div>
                       {card.back_text ? (
-                        <p className={cn('text-xl md:text-2xl font-semibold text-rv-ink-900 whitespace-pre-wrap', isTheory(card) && 'text-base md:text-lg font-normal leading-relaxed text-left')}>
-                          {card.back_text}
-                        </p>
+                        <RichText className={cn('text-xl md:text-2xl font-semibold text-rv-ink-900 whitespace-pre-wrap', isTheory(card) && 'text-base md:text-lg font-normal leading-relaxed text-left')} text={card.back_text} />
                       ) : (
                         <p className="text-lg text-rv-ink-400 italic">No written answer</p>
                       )}
