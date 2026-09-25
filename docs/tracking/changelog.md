@@ -1,6 +1,31 @@
 # Changelog
 
 ---
+## [25/09/2026] feat(sprint-8.7.10): explicit My Study enrollment on card creation + bulk upload
+
+### Added
+- `add_batch_to_my_cards` RPC — atomic, set-based, idempotent enrollment for however many cards a single create/upload just produced. Avoids looping the existing single-card `add_to_my_cards` RPC hundreds of times for bulk uploads.
+- Explicit two-action choice on both card-creation surfaces: `FlashcardCreate.jsx` (Save only / Save & Add to My Study) and `BulkUploadFlashcards.jsx` (Upload only / Upload & Add to My Study, the latter gated by a confirmation showing the real parsed row count). Authorship no longer implies enrollment — matches the standard already set for external content by `my_cards_enrollment` (8.7.8b).
+- Recoverable enrollment failure path on both pages: if creation succeeds but enrollment fails, the UI says so explicitly and offers a Retry that only re-runs the (idempotent) enrollment call — never risks re-creating or duplicating cards.
+
+### Changed
+- `get_my_cards()` — own cards now require an active `my_cards_enrollment` row, same as external content (previously unconditional `f.user_id = p_user_id`).
+- `apply_review()` — added a defense-in-depth guard requiring active enrollment and rejecting a suspended card. `apply_review` has exactly one live caller (`StudyMode.jsx`), which only ever grades cards already sourced from `get_my_cards`, so this closes a theoretical gap without changing any real user flow.
+- One-time backfill: own-authored cards with a genuine prior `reviews` row (1084 of 2805, after excluding 103 `skip_card`/`suspend_card` bare rows with no real grading evidence — see Fixed below) got an active `my_cards_enrollment` row so existing study history is preserved. Cards with no reviews row stay outside My Study.
+
+### Fixed
+- `add_batch_to_my_cards` initially shipped with an ambiguous-column bug (`RETURNS TABLE(flashcard_id, ...)` collided with the unqualified `flashcard_id` in its own `ON CONFLICT` target list — `42702`), caught during live acceptance testing before the release closed out. Fixed by renaming the output column; required `DROP FUNCTION` since Postgres won't `CREATE OR REPLACE` a changed `RETURNS TABLE` shape.
+- Migration correction: the initial backfill used "has a `reviews` row" as its sole evidence rule, which turned out to also match cards that were only ever skipped/paused (`skip_card`/`suspend_card` write a bare `reviews` row with no `rung`, independent of real grading). Caught via a targeted diagnostic before the release closed, corrected by removing exactly those 103 rows from `my_cards_enrollment`.
+
+### Files Changed
+- `src/pages/dashboard/Content/FlashcardCreate.jsx`
+- `src/pages/dashboard/BulkUploadFlashcards.jsx`
+- `docs/database/sprint8.7.10/00_DIAGNOSTIC_step0_migration_control_totals.sql` through `11b_HOTFIX_add_batch_to_my_cards_drop_first.sql` (new — diagnostics, backfill, cleanup, `get_my_cards` v2, `apply_review` guard, `add_batch_to_my_cards` + hotfix)
+
+### Note
+Scope C (Practice All — subject-wide `get_practice_cards`) and Scope D (My Study page redesign) are not part of this entry — not yet built. See `docs/active/now.md`.
+
+---
 ## [24/09/2026] feat(sprint-8.7.9): rich [[TABLE]] rendering + scenario support for theory cards (D-31)
 
 ### Added

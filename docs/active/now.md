@@ -1,6 +1,26 @@
 # NOW - Current Development Status
 
-**Last Updated:** 24/09/2026
+**Last Updated:** 25/09/2026
+
+## Sprint 8.7.10: My Study Semantic Cleanup — in progress (25/09/2026) — 🟡 Scope A (SQL) + Scope B (explicit enrollment on creation/bulk upload) deployed + live-verified; Scope C (Practice All) and Scope D (My Study page redesign) not started
+
+**Context:** Own-authored cards previously auto-entered SRS the moment they were graded (`get_my_cards`'s own-card branch had no enrollment check, `apply_review` had no enrollment gate at all), conflating authorship with deliberate study enrollment — the exact gap `my_cards_enrollment` (8.7.8a-d) already closed for external content. This sprint makes the rule uniform: content enters My Study only through an explicit enrollment decision, own or not.
+
+**Step 0 + migration (Scope A) — ✅ deployed 25/09/2026:** Live control totals: 2805 own cards total (excl. concept cards), 1187 with a `reviews` row, 1618 never reviewed. Backfill rule (confirmed with the user): a `reviews` row is evidence of a genuine prior study relationship — but **not all `reviews` rows are equal**. Found live during verification (`05_TEST` query 7) that `skip_card`/`suspend_card` also write a bare `reviews` row (no `rung` ever set) independent of any real grading — 103 of the 1187 were this "bare row" pattern (timestamps clustered 14–21 Sept 2026, matching recent Skip/Pause usage), not genuine grading. The other 1084 (6 with a `review_events` row, 1078 with populated `rung` but no `review_events` — legacy grading that predates that table, timestamps Jan–Aug 2026, varied rung distribution 0–4) are real. Corrected via `08_CLEANUP` — removed exactly the 103 bare-row enrollments, reconciled to 1084 final. `02_FUNCTIONS_get_my_cards_v2.sql` (own cards now require active enrollment, same as external) and `03_FUNCTIONS_apply_review_enrollment_guard.sql` (adds an enrollment-required guard + a not-suspended guard, both defense-in-depth — confirmed via full codebase grep that `apply_review` has exactly one caller, `StudyMode.jsx`, which only ever grades cards already sourced from `get_my_cards`) are deployed.
+
+**Scope B (explicit enrollment on creation) — ✅ deployed + live-verified 25/09/2026:** `FlashcardCreate.jsx` and `BulkUploadFlashcards.jsx` replace the single Save/Upload action with an explicit pair (Save only / Save & Add to My Study; Upload only / Upload & Add to My Study, the latter confirmed via the real parsed row count before committing). New RPC `add_batch_to_my_cards` (atomic, set-based, idempotent) avoids looping the single-card `add_to_my_cards` hundreds of times for bulk uploads. Enrollment is a separate, recoverable step after creation succeeds — a failed enrollment shows "Saved, but not added to My Study" with a Retry that never risks duplicate card creation, since it only re-runs the idempotent enrollment call.
+
+**Bug found + fixed during live testing:** `add_batch_to_my_cards`'s `RETURNS TABLE(flashcard_id uuid, ...)` implicitly declared `flashcard_id` as a PL/pgSQL variable, colliding with the unqualified `flashcard_id` inside its own `ON CONFLICT (user_id, flashcard_id)` target list — `42702 ambiguous column`. Exact same class of gotcha `get_practice_cards` already documents. Fixed by renaming the output column (`out_flashcard_id`); required `DROP FUNCTION` first since Postgres won't `CREATE OR REPLACE` a changed `RETURNS TABLE` shape (`docs/database/sprint8.7.10/11b_HOTFIX...sql`).
+
+**Live acceptance testing — ✅ all passed 25/09/2026** (test cards created, verified, then fully deleted — 0 residue, flashcard count back to 992/exact baseline): Save only → My Contributions yes, My Study no, Study Mode no. Save & Add to My Study → enrolled, shows New, zero `reviews` row until first grade. First grade of that New card → `reviews` row created normally via `apply_review`. Bulk Upload only → zero enrollment rows. Bulk Upload & Add to My Study → confirmation dialog showed the real count ("Upload 3 cards and add all 3 to My Study?"), all 3 enrolled as New, zero `reviews` rows from enrollment alone. Paused card → disappeared from Study Mode entirely (upstream `get_study_queue` filter, confirms the `apply_review` suspension guard is genuinely unreachable via any live UI path, not just theoretically blocked).
+
+**Not yet started:** Scope C (Practice All — `get_practice_cards` is still single-deck only, no subject-wide aggregation; "Study All"'s current Browse-count-vs-Study-pool mismatch not yet fixed), Scope D (My Study page redesign — Subject/Topic grouping, New/Active/Paused counts, Mastered/Removed moved to a History tab). Out of scope entirely: Library, Marketplace, Billing, Purchases, 100-Day Challenge.
+
+**Decision Log:** none yet recorded in blueprint.md for this sprint — pending.
+
+**Files changed:** `src/pages/dashboard/Content/FlashcardCreate.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx`. SQL: `docs/database/sprint8.7.10/00` through `11b` (diagnostics, backfill, cleanup, `get_my_cards` v2, `apply_review` guard, `add_batch_to_my_cards` + hotfix) — all deployed and live-verified except the two Scope C/D items above, which are not yet built.
+
+---
 
 ## Sprint 8.7.9: Rich Content / Scenario Rendering (D-31) — Phase 8 (24/09/2026) — 🟡 code + automated tests + build/lint green; Stage 8 live proof NOT YET RUN (blocked, see below)
 
