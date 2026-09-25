@@ -135,6 +135,10 @@ export default function BulkUploadFlashcards() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResults, setUploadResults] = useState(null);
   const [errors, setErrors] = useState([]);
+  // Sprint 8.7.10: set only when upload succeeded but the follow-up My Study enrollment call
+  // failed — same recoverable pattern as FlashcardCreate.jsx (add_batch_to_my_cards is
+  // idempotent; retrying never re-uploads or duplicates cards).
+  const [pendingEnrollment, setPendingEnrollment] = useState(null); // { batchIds, cardCount } | null
 
   // ─── Step completeness (visual only, not gates) ───
   const step1Complete = templateDownloaded && validEntriesDownloaded;
@@ -794,7 +798,42 @@ IMPORTANT:
   }
 
   // ─── Upload flashcards ───
-  async function uploadFlashcards() {
+  // Sprint 8.7.10: same idempotent enrollment step as FlashcardCreate.jsx — never touches
+  // public.flashcards, safe to retry on its own with zero risk of a duplicate upload.
+  async function enrollNewlyCreatedCards(userId, batchIds) {
+    const { data: createdCards, error: fetchError } = await supabase
+      .from('flashcards')
+      .select('id')
+      .eq('user_id', userId)
+      .in('batch_id', batchIds);
+    if (fetchError) throw fetchError;
+
+    const cardIds = (createdCards || []).map(c => c.id);
+    if (cardIds.length === 0) return;
+
+    const { error: enrollError } = await supabase.rpc('add_batch_to_my_cards', {
+      p_user_id: userId,
+      p_flashcard_ids: cardIds,
+    });
+    if (enrollError) throw enrollError;
+  }
+
+  async function retryEnrollment() {
+    if (!pendingEnrollment) return;
+    setIsUploading(true);
+    try {
+      await enrollNewlyCreatedCards(user.id, pendingEnrollment.batchIds);
+      setPendingEnrollment(null);
+      setUploadResults(prev => prev ? { ...prev, enrolled: true } : prev);
+    } catch (enrollError) {
+      console.error('Retry enrollment error:', enrollError);
+      setErrors([`Still could not add to My Study: ${enrollError.message || 'please try again'}`]);
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  async function uploadFlashcards(shouldEnroll) {
     if (!csvFile) {
       alert('Please select a CSV file first');
       return;
@@ -880,6 +919,18 @@ IMPORTANT:
         ]);
         setIsUploading(false);
         return;
+      }
+
+      // Sprint 8.7.10: explicit batch-level confirmation with the real parsed count before
+      // committing to enrollment — never infer bulk enrollment merely from having uploaded.
+      if (shouldEnroll) {
+        const confirmed = window.confirm(
+          `Upload ${flashcards.length} card${flashcards.length !== 1 ? 's' : ''} and add all ${flashcards.length} to My Study?`
+        );
+        if (!confirmed) {
+          setIsUploading(false);
+          return;
+        }
       }
 
       const batchId = crypto.randomUUID();
@@ -978,6 +1029,9 @@ IMPORTANT:
       if (error) throw error;
 
       const totalCardCount = (data || []).reduce((sum, b) => sum + b.card_count, 0);
+      // Creation succeeded past this point — an enrollment failure below must never be reported
+      // as "upload failed"; the cards are already safely created.
+      const createdBatchIds = batches.map(b => b.batch_id);
 
       // ── Name any decks that the trigger just created (trigger sets name=NULL) ─
       // Only updates rows where name IS NULL — never overwrites an existing name.
@@ -1001,9 +1055,24 @@ IMPORTANT:
         await query;
       }
 
+      // Sprint 8.7.10: explicit "Upload & Add to My Study" enrollment step. Never creates a
+      // reviews row — enrolled cards start as New and only acquire SRS history on first grade.
+      let enrollmentFailed = false;
+      if (shouldEnroll) {
+        try {
+          await enrollNewlyCreatedCards(user.id, createdBatchIds);
+        } catch (enrollError) {
+          console.error('Enrollment error:', enrollError);
+          enrollmentFailed = true;
+          setPendingEnrollment({ batchIds: createdBatchIds, cardCount: totalCardCount });
+        }
+      }
+
       setUploadResults({
         success: true,
         count: totalCardCount,
+        enrolled: shouldEnroll && !enrollmentFailed,
+        enrollmentFailed,
       });
 
       // Audit log (non-critical). admin_audit_log INSERT is RLS-restricted to admin/super_admin,
@@ -1048,6 +1117,7 @@ IMPORTANT:
   // ─── Reset for another upload ───
   function resetAll() {
     setUploadResults(null);
+    setPendingEnrollment(null);
     setErrors([]);
     setCsvFile(null);
     setBatchDescription('');
@@ -1093,6 +1163,19 @@ IMPORTANT:
             <p className="text-gray-600 mb-1">
               Successfully uploaded <strong>{uploadResults.count}</strong> study item{uploadResults.count !== 1 ? 's' : ''}
             </p>
+            {uploadResults.enrolled && (
+              <p className="text-sm text-green-700 mb-1">All {uploadResults.count} added to My Study.</p>
+            )}
+            {uploadResults.enrollmentFailed && (
+              <div className="bg-amber-50 border border-amber-300 rounded-md p-4 my-3 text-left">
+                <p className="text-sm text-[#1e1b4b] mb-2">
+                  Items were uploaded, but couldn't be added to My Study.
+                </p>
+                <Button type="button" size="sm" disabled={isUploading} onClick={retryEnrollment}>
+                  {isUploading ? 'Retrying...' : 'Retry adding to My Study'}
+                </Button>
+              </div>
+            )}
             {batchDescription.trim() && (
               <p className="text-sm text-gray-500 mb-1">
                 Batch: {batchDescription.trim()}
@@ -1371,25 +1454,39 @@ IMPORTANT:
                   )}
                 </div>
 
-                {/* Upload button */}
-                <Button
-                  onClick={uploadFlashcards}
-                  disabled={!csvFile || isUploading}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isUploading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Study Items
-                    </>
-                  )}
-                </Button>
+                {/* Sprint 8.7.10: two explicit actions — uploading never implies My Study
+                    enrollment. "Upload only" is the default-safe primary action; the enrolling
+                    action is explicit and secondary, with its own confirmation showing the real
+                    count before committing. */}
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={() => uploadFlashcards(false)}
+                    disabled={!csvFile || isUploading}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {isUploading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload only
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => uploadFlashcards(true)}
+                    disabled={!csvFile || isUploading}
+                    className="w-full"
+                    size="lg"
+                  >
+                    Upload & Add to My Study
+                  </Button>
+                </div>
               </>
             )}
 

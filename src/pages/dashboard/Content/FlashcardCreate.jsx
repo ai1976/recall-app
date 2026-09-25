@@ -133,6 +133,10 @@ export default function FlashcardCreate() {
   ]);
 
   const [loading, setLoading] = useState(false);
+  // Sprint 8.7.10: set only when creation succeeded but the follow-up My Study enrollment call
+  // failed — lets the UI say "saved, but not added to My Study" and offer a Retry that re-runs
+  // only the enrollment step (add_batch_to_my_cards is idempotent; this never re-creates cards).
+  const [pendingEnrollment, setPendingEnrollment] = useState(null); // { userId, batchIds, cardCount } | null
   const [uploadingImage, setUploadingImage] = useState(null); // { index, side } | null
   const [subjectOpen, setSubjectOpen] = useState(false);
   const [topicOpen, setTopicOpen] = useState(false);
@@ -644,7 +648,51 @@ export default function FlashcardCreate() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  // Sprint 8.7.10: enrollment is a separate, idempotent step from creation (add_batch_to_my_cards
+  // upserts via ON CONFLICT, never touches public.flashcards) — safe to retry on its own without
+  // any risk of creating a duplicate card. Only ever called with ids the caller just created.
+  const enrollNewlyCreatedCards = async (userId, batchIds) => {
+    const { data: createdCards, error: fetchError } = await supabase
+      .from('flashcards')
+      .select('id')
+      .eq('user_id', userId)
+      .in('batch_id', batchIds);
+    if (fetchError) throw fetchError;
+
+    const cardIds = (createdCards || []).map(c => c.id);
+    if (cardIds.length === 0) return;
+
+    const { error: enrollError } = await supabase.rpc('add_batch_to_my_cards', {
+      p_user_id: userId,
+      p_flashcard_ids: cardIds,
+    });
+    if (enrollError) throw enrollError;
+  };
+
+  const retryEnrollment = async () => {
+    if (!pendingEnrollment) return;
+    setLoading(true);
+    try {
+      await enrollNewlyCreatedCards(pendingEnrollment.userId, pendingEnrollment.batchIds);
+      setPendingEnrollment(null);
+      toast({
+        title: 'Added to My Study',
+        description: `${pendingEnrollment.cardCount} item(s) added to My Study.`,
+      });
+      navigate('/dashboard');
+    } catch (enrollError) {
+      console.error('Retry enrollment error:', enrollError);
+      toast({
+        title: 'Still could not add to My Study',
+        description: enrollError.message || 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e, shouldEnroll) => {
     e.preventDefault();
     setLoading(true);
 
@@ -941,6 +989,10 @@ export default function FlashcardCreate() {
 
       if (insertError) throw insertError;
 
+      // Creation succeeded past this point — a failure in anything below (group share,
+      // enrollment) must never be reported to the user as "study items failed to create."
+      const createdBatchIds = batches.map(b => b.batch_id);
+
       // Share deck with selected study groups
       if (visibility === 'study_groups' && selectedGroupIds.length > 0 && deckId) {
         const { error: shareError } = await supabase.rpc('share_content_with_groups', {
@@ -951,8 +1003,30 @@ export default function FlashcardCreate() {
         if (shareError) console.error('Error sharing with groups:', shareError);
       }
 
-      // Clear saved draft on successful save
+      // Clear saved draft on successful save — creation itself is done and committed regardless
+      // of whether enrollment (below) succeeds.
       localStorage.removeItem(DRAFT_KEY);
+
+      // Sprint 8.7.10: explicit "Save & Add to My Study" enrollment step. Never creates a
+      // reviews row — enrolled cards start as New and only acquire SRS history on first grade.
+      if (shouldEnroll) {
+        try {
+          await enrollNewlyCreatedCards(user.id, createdBatchIds);
+        } catch (enrollError) {
+          console.error('Enrollment error:', enrollError);
+          setPendingEnrollment({
+            userId: user.id,
+            batchIds: createdBatchIds,
+            cardCount: flashcardsToInsert.length,
+          });
+          toast({
+            title: 'Saved, but not added to My Study',
+            description: 'Your item(s) were created successfully, but adding them to My Study failed. Use Retry below — this will not create duplicate items.',
+            variant: 'destructive',
+          });
+          return; // stay on page so the Retry banner is reachable — do not navigate away
+        }
+      }
 
       toast({
         title: 'Success!',
@@ -1088,7 +1162,24 @@ export default function FlashcardCreate() {
           </Card>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {pendingEnrollment && (
+          <Card className="bg-amber-50 border-amber-300">
+            <CardContent className="pt-6 flex items-center justify-between gap-4 flex-wrap">
+              <p className="text-sm text-[#1e1b4b]">
+                {pendingEnrollment.cardCount} item(s) saved, but couldn't be added to My Study.
+              </p>
+              <Button type="button" size="sm" disabled={loading} onClick={retryEnrollment}>
+                {loading ? 'Retrying...' : 'Retry'}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Sprint 8.7.10: two explicit actions replace the single submit — authorship never
+            implies My Study enrollment. Buttons call handleSubmit directly (not native form
+            submit) so the choice is unambiguous; onSubmit below only guards against Enter-key
+            submission picking a default. */}
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
 
           <Card>
             <CardHeader>
@@ -2069,21 +2160,31 @@ export default function FlashcardCreate() {
             Add Another Item
           </Button>
 
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={handleBack}
-              className="flex-1"
+              className="sm:flex-1"
             >
               Cancel
             </Button>
             <Button
-              type="submit"
+              type="button"
+              variant="outline"
               disabled={loading}
-              className="flex-1"
+              onClick={(e) => handleSubmit(e, false)}
+              className="sm:flex-1"
             >
-              {loading ? 'Creating...' : `Create ${flashcards.length} Item${flashcards.length > 1 ? 's' : ''}`}
+              {loading ? 'Saving...' : 'Save only'}
+            </Button>
+            <Button
+              type="button"
+              disabled={loading}
+              onClick={(e) => handleSubmit(e, true)}
+              className="sm:flex-1"
+            >
+              {loading ? 'Saving...' : 'Save & Add to My Study'}
             </Button>
           </div>
         </form>
