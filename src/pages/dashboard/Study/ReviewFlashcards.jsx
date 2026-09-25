@@ -394,13 +394,26 @@ export default function ReviewFlashcards() {
     navigate(`/dashboard/study?${params.toString()}`);
   };
 
-  // Sprint 8.7.8c — Practice/Explore entry point. Unlike Study Mode (own ∪ enrolled), Practice is
-  // scoped to exactly one Study Set (get_practice_cards requires a single p_deck_id) so it can
-  // preserve "practice the Study Set I just opened" rather than dumping the student into an
-  // unrelated pool. The active question-type filter carries over, same as Study Mode.
+  // Sprint 8.7.8c — Practice/Explore entry point. Scoped to exactly one Study Set. The active
+  // question-type filter carries over, same as Study Mode.
   const startPracticeSession = (deckId) => {
     const params = new URLSearchParams();
     params.set('deck', deckId);
+    if (filterQuestionType !== 'all') params.set('type', filterQuestionType);
+    navigate(`/dashboard/practice?${params.toString()}`);
+  };
+
+  // Sprint 8.7.10 Scope C — "Practice All (N)" for a subject. N is subject.totalCards, the exact
+  // same sum get_browsable_decks already computes for the tile — passing every deck id in the
+  // subject to get_practice_cards (now array-accepting) guarantees the opened population matches
+  // that displayed count, by construction (same deck list, same per-card visibility predicate).
+  // Replaces the old "Study All" button, which showed the Browse-visible count but opened the
+  // unrelated, usually much smaller get_my_cards() My Study pool — never enrolls anything.
+  const startPracticeAllSession = (subject) => {
+    const deckIds = subject.decks.map(d => d.id);
+    if (deckIds.length === 0) return;
+    const params = new URLSearchParams();
+    params.set('decks', deckIds.join(','));
     if (filterQuestionType !== 'all') params.set('type', filterQuestionType);
     navigate(`/dashboard/practice?${params.toString()}`);
   };
@@ -641,11 +654,11 @@ export default function ReviewFlashcards() {
                         </div>
                       </div>
                       <Button
-                        onClick={(e) => { e.stopPropagation(); startStudySession(subject.name); }}
+                        onClick={(e) => { e.stopPropagation(); startPracticeAllSession(subject); }}
                         className="gap-2"
                       >
                         <Play className="h-4 w-4" />
-                        Study All ({subject.totalCards})
+                        Practice All ({subject.totalCards})
                       </Button>
                     </div>
                   </CardHeader>

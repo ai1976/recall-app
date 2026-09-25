@@ -2,7 +2,11 @@
 
 **Last Updated:** 25/09/2026
 
-## Sprint 8.7.10: My Study Semantic Cleanup — in progress (25/09/2026) — 🟡 Scope A (SQL) + Scope B (explicit enrollment on creation/bulk upload) deployed + live-verified; Scope C (Practice All) and Scope D (My Study page redesign) not started
+## Sprint 8.7.10: My Study Semantic Cleanup — in progress (25/09/2026) — 🟡 Scope A + B + C deployed + live-verified; Scope D (My Study page redesign) not started
+
+**Scope C (Study All → Practice All) — ✅ deployed + live-verified 25/09/2026:** `get_practice_cards`'s "Study All (N)" mismatch — N was the Browse-visible subject count (`get_browsable_decks`), but the button opened the unrelated, usually much smaller `get_my_cards()` Study Mode pool — is fixed. Button renamed "Practice All (N)", now opens Practice Mode over every deck in the subject via a new `get_practice_cards(p_user_id, p_deck_ids uuid[], p_question_type)` signature (was `p_deck_id uuid` — DROP FUNCTION required, different arg identity to Postgres, same lesson this codebase already learned with `apply_review`'s Sprint 8.6c overload). N and the opened population now come from literally the same deck list and the same per-card visibility predicate as `get_browsable_decks` — correct by construction, not by convention. Single-deck behavior byte-identical to before (a 1-element array that fails the gate still raises `42501`); a multi-deck call only errors if every deck fails validation, otherwise silently practices whatever's still accessible (graceful degradation for a stale-visibility race). `PracticeMode.jsx` accepts both the existing `?deck=` (single) and new `?decks=` (comma-separated) params. Never enrolls — same invariant as before. Live-verified: multi-deck subject (11 decks, 197 cards) correctly unions cards across at least 2 sampled decks with zero console errors; My Study count unchanged (34→34) after browsing; single-deck Practice (existing entry point) and per-deck Study (unrelated `get_my_cards` path) both unaffected; single-deck-subject Practice All (1-element array) also confirmed working.
+
+**Scope A + B recap (previously deployed):**
 
 **Context:** Own-authored cards previously auto-entered SRS the moment they were graded (`get_my_cards`'s own-card branch had no enrollment check, `apply_review` had no enrollment gate at all), conflating authorship with deliberate study enrollment — the exact gap `my_cards_enrollment` (8.7.8a-d) already closed for external content. This sprint makes the rule uniform: content enters My Study only through an explicit enrollment decision, own or not.
 
@@ -14,11 +18,11 @@
 
 **Live acceptance testing — ✅ all passed 25/09/2026** (test cards created, verified, then fully deleted — 0 residue, flashcard count back to 992/exact baseline): Save only → My Contributions yes, My Study no, Study Mode no. Save & Add to My Study → enrolled, shows New, zero `reviews` row until first grade. First grade of that New card → `reviews` row created normally via `apply_review`. Bulk Upload only → zero enrollment rows. Bulk Upload & Add to My Study → confirmation dialog showed the real count ("Upload 3 cards and add all 3 to My Study?"), all 3 enrolled as New, zero `reviews` rows from enrollment alone. Paused card → disappeared from Study Mode entirely (upstream `get_study_queue` filter, confirms the `apply_review` suspension guard is genuinely unreachable via any live UI path, not just theoretically blocked).
 
-**Not yet started:** Scope C (Practice All — `get_practice_cards` is still single-deck only, no subject-wide aggregation; "Study All"'s current Browse-count-vs-Study-pool mismatch not yet fixed), Scope D (My Study page redesign — Subject/Topic grouping, New/Active/Paused counts, Mastered/Removed moved to a History tab). Out of scope entirely: Library, Marketplace, Billing, Purchases, 100-Day Challenge.
+**Not yet started:** Scope D (My Study page redesign — Subject/Topic grouping, New/Active/Paused counts, Mastered/Removed moved to a History tab). Out of scope entirely: Library, Marketplace, Billing, Purchases, 100-Day Challenge.
 
-**Decision Log:** none yet recorded in blueprint.md for this sprint — pending.
+**Decision Log:** D-32 (blueprint.md) — covers Scope A + B; Scope C addendum pending a blueprint.md update in the same entry.
 
-**Files changed:** `src/pages/dashboard/Content/FlashcardCreate.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx`. SQL: `docs/database/sprint8.7.10/00` through `11b` (diagnostics, backfill, cleanup, `get_my_cards` v2, `apply_review` guard, `add_batch_to_my_cards` + hotfix) — all deployed and live-verified except the two Scope C/D items above, which are not yet built.
+**Files changed:** `src/pages/dashboard/Content/FlashcardCreate.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx`, `src/pages/dashboard/Study/PracticeMode.jsx`, `src/pages/dashboard/Study/ReviewFlashcards.jsx`. SQL: `docs/database/sprint8.7.10/00` through `12` (diagnostics, backfill, cleanup, `get_my_cards` v2, `apply_review` guard, `add_batch_to_my_cards` + hotfix, `get_practice_cards` multi-deck) — all deployed and live-verified. Scope D not yet built.
 
 ---
 

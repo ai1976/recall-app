@@ -1,6 +1,27 @@
 # Changelog
 
 ---
+## [25/09/2026] feat(sprint-8.7.10): Practice All — subject-wide practice with a correct count
+
+### Added
+- `get_practice_cards` extended to accept multiple deck ids in one call (`p_deck_ids uuid[]`, was `p_deck_id uuid`), enabling subject-wide Practice over every deck in a subject rather than one deck at a time. Reuses the exact same deck-level and card-level visibility predicates as before — no new visibility model, just evaluated across a validated-decks set.
+
+### Changed
+- `ReviewFlashcards.jsx` — "Study All (N)" renamed **"Practice All (N)"** and now opens Practice Mode (not Study Mode) over the subject's full deck list. N was previously the Browse-visible count while the button opened the unrelated, usually much smaller My Study pool; now both the count and the opened population come from the same deck list and predicate, correct by construction.
+- `PracticeMode.jsx` — accepts a new `?decks=` (comma-separated) param alongside the existing `?deck=` single-id param; both resolve to the array shape the RPC now requires.
+
+### Fixed
+Nothing — this shipped clean on the first live test, no bugs found during acceptance testing.
+
+### Files Changed
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+- `src/pages/dashboard/Study/PracticeMode.jsx`
+- `docs/database/sprint8.7.10/12_FUNCTIONS_get_practice_cards_multi_deck.sql` (new)
+
+### Note
+Practice never enrolls, same invariant as the single-deck case. Scope D (My Study page redesign) is not part of this entry — not yet built. See `docs/active/now.md`.
+
+---
 ## [25/09/2026] feat(sprint-8.7.10): explicit My Study enrollment on card creation + bulk upload
 
 ### Added

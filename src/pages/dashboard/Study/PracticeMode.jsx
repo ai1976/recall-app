@@ -33,6 +33,11 @@ export default function PracticeMode() {
   const { setInStudySession } = useStudySession();
   const [searchParams] = useSearchParams();
   const deckId = searchParams.get('deck');
+  // Sprint 8.7.10 Scope C — subject-wide "Practice All" passes every deck id in the subject as a
+  // comma-separated list; the single-deck entry point (per-deck "Practice" button) keeps passing
+  // just `deck`. Both resolve to the same array shape get_practice_cards(p_deck_ids) now requires.
+  const deckIdsParam = searchParams.get('decks');
+  const deckIds = deckIdsParam ? deckIdsParam.split(',').filter(Boolean) : (deckId ? [deckId] : []);
   const typeParam = searchParams.get('type');
 
   useEffect(() => {
@@ -86,13 +91,13 @@ export default function PracticeMode() {
     setLoading(true);
     setLoadError(null);
     try {
-      if (!user || !deckId) {
+      if (!user || deckIds.length === 0) {
         setLoadError('No Study Set was specified.');
         return;
       }
       const { data, error } = await supabase.rpc('get_practice_cards', {
         p_user_id: user.id,
-        p_deck_id: deckId,
+        p_deck_ids: deckIds,
         p_question_type: typeParam || null,
       });
       if (error) {
@@ -113,8 +118,10 @@ export default function PracticeMode() {
 
   useEffect(() => {
     fetchCards();
+    // deckIds is recomputed fresh every render — depend on the raw search-param strings instead so
+    // this doesn't re-fetch on every render from a new array reference.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckId, typeParam, user?.id]);
+  }, [deckId, deckIdsParam, typeParam, user?.id]);
 
   // Practice study-time logging — reuses StudyMode's exact timer/noise-floor pattern (10s noise
   // floor, single INSERT on exit/backgrounding) with source='practice_mode'. study_sessions.source
