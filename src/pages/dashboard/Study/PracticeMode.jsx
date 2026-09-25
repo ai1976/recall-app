@@ -209,7 +209,7 @@ export default function PracticeMode() {
       toast({
         title: 'Could not add',
         description: isAccessError(err)
-          ? "This item is no longer available to add to My Cards."
+          ? "This item is no longer available to add to My Study."
           : 'Something went wrong — please try again.',
         variant: 'destructive',
       });
@@ -285,11 +285,18 @@ export default function PracticeMode() {
   // live-verified in docs/database/sprint8.7.8c/02_TEST_verify_get_practice_cards.sql).
   // ─────────────────────────────────────────────────────────────────────────────────────────
   const renderAddControl = (card, showNudge) => {
-    if (card.is_own || card.is_enrolled) {
+    // Sprint 8.7.10 (D-32): own cards no longer imply enrollment (get_my_cards requires an active
+    // my_cards_enrollment row for own content too, same as external) — gating on is_enrolled alone
+    // fixes a real bug this redesign surfaced: a "Save only"-created own card was previously shown
+    // as "Already in My Cards" here (is_own short-circuited the check) with no way to actually
+    // enroll it. can_add_to_my_cards is always true for an own card (fc.user_id = p_user_id
+    // satisfies its predicate trivially), so an unenrolled own card now correctly falls through to
+    // the Add button below.
+    if (card.is_enrolled) {
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-rec bg-rv-bg-2 text-rv-ink-600 text-sm font-medium">
           <Check className="h-4 w-4" />
-          {card.is_own ? 'Already in My Cards' : 'Added to My Cards'}
+          {card.is_own ? 'Already in My Study' : 'Added to My Study'}
         </span>
       );
     }
@@ -300,7 +307,7 @@ export default function PracticeMode() {
             Available for Practice only
           </span>
           <p className="text-xs text-rv-ink-400 mt-1.5 max-w-sm mx-auto">
-            This shared item can be practised here but can&apos;t yet be added to My Cards.
+            This shared item can be practised here but can&apos;t yet be added to My Study.
           </p>
         </div>
       );
@@ -308,7 +315,7 @@ export default function PracticeMode() {
     return (
       <div className="flex flex-col items-center gap-1.5">
         <Button onClick={() => handleAdd(card)} disabled={addingId === card.id} size="lg" className="gap-2 px-6">
-          {addingId === card.id ? 'Adding…' : 'Add to My Cards'}
+          {addingId === card.id ? 'Adding…' : 'Add to My Study'}
         </Button>
         {showNudge && <p className="text-xs text-rv-ink-400">Worth revisiting?</p>}
       </div>

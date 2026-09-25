@@ -1,6 +1,31 @@
 # Changelog
 
 ---
+## [25/09/2026] feat(sprint-8.7.10): My Study page redesign — grouped, with History tab (Sprint complete)
+
+### Added
+- `get_removed_my_cards` RPC — Removed cards weren't exposed to the client at all before this (`get_my_cards` only ever returns active enrollment). Mirrors `get_my_cards`' visibility logic, filtered to `status='removed'`, lazy-loaded only when the History tab is first opened.
+- `MyCards.jsx` rebuilt around Subject → Topic grouping with New/Active/Paused counts at both levels. Individual card rows only appear once a topic is opened.
+- History tab: Mastered and Removed moved out of the default working view. Removed cards get an "Add to My Study" re-add action (reuses the unchanged `add_to_my_cards` RPC, already own-card-safe).
+
+### Changed
+- "Remove from My Study" is now available on own content too (previously blocked — a pre-Scope-A leftover from when own content couldn't be un-enrolled at all, since it wasn't enrollment-based yet). Removing no longer deletes anything — content stays in My Contributions, only the study relationship ends.
+- Nav labels ("My Cards" → "My Study") and Practice Mode's enrollment badges/copy updated for consistent terminology.
+
+### Fixed
+- `PracticeMode.jsx`'s Add-to-My-Study control treated `is_own` as equivalent to "already enrolled" — true before Scope A's changes, false after. A "Save only"-created own card was showing "Already in My Cards" with no way to actually enroll it. Fixed by gating on `is_enrolled` alone.
+
+### Files Changed
+- `src/pages/dashboard/Study/MyCards.jsx` (rewritten)
+- `src/pages/dashboard/Study/PracticeMode.jsx`
+- `src/components/layout/NavDesktop.jsx`
+- `src/components/layout/NavMenuSheet.jsx`
+- `docs/database/sprint8.7.10/13_FUNCTIONS_get_removed_my_cards.sql` (new)
+
+### Note
+**Sprint 8.7.10 (My Study Semantic Cleanup) is now fully complete** — Scope A (enrollment backfill + guards), B (explicit enrollment on creation), C (Practice All), and D (this entry) all shipped and live-verified.
+
+---
 ## [25/09/2026] feat(sprint-8.7.10): Practice All — subject-wide practice with a correct count
 
 ### Added

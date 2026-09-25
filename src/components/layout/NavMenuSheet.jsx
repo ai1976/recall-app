@@ -216,7 +216,7 @@ export default function NavMenuSheet({
                   className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
                 >
                   <BookMarked className="h-4 w-4 text-rv-ink-400" />
-                  <span className="text-sm text-rv-ink-600">My Cards</span>
+                  <span className="text-sm text-rv-ink-600">My Study</span>
                 </button>
 
                 {/* Create Section */}

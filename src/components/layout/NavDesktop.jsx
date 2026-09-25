@@ -144,7 +144,7 @@ export default function NavDesktop({
                 <DropdownMenuItem asChild>
                   <Link to="/dashboard/my-cards" className="flex items-center gap-2 cursor-pointer">
                     <BookMarked className="h-4 w-4" />
-                    My Cards
+                    My Study
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
