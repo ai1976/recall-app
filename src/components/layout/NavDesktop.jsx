@@ -36,6 +36,7 @@ import {
   isGroupsActive,
 } from '@/lib/navActive';
 import { Wordmark } from '@/components/revisop';
+import { useStudyTimer } from '@/contexts/StudyTimerContext';
 import NotificationCenter from './NotificationCenter';
 import ProfileDropdown from './ProfileDropdown';
 import CourseSwitcher from './CourseSwitcher';
@@ -165,6 +166,10 @@ export default function NavDesktop({
 }) {
   const { pathname } = useLocation();
   const showManageSection = isProfessor || isAdmin || isSuperAdmin;
+  // Gates the dedicated "Active Session" block below — presentational only,
+  // reads StudyTimerContext's existing isRunning flag. Does not touch the
+  // timer/recovery/stop semantics that live in StudyTimerContext.jsx.
+  const { isRunning: timerRunning } = useStudyTimer();
 
   return (
     <nav
@@ -318,6 +323,24 @@ export default function NavDesktop({
         </>
       )}
 
+      {/* Active Session — dedicated block for the manual study timer, only
+          while running. Deliberately separate from both the Tier-3 nav above
+          (its own border-t) and the account/course utility footer below (the
+          footer's existing border-t becomes this block's bottom boundary) —
+          per feedback that the timer lost glanceability when it shared a row
+          with CourseSwitcher/ExamDateChip. Not Tier 1/2: it's not a route and
+          carries no active-state styling, same as before. StudyTimerChip's
+          own timer/recovery/stop logic (StudyTimerContext.jsx) is untouched —
+          this only changes where the already-self-gating chip is mounted. */}
+      {timerRunning && (
+        <div className="flex-shrink-0 border-t border-rv-border bg-rv-bg-2 py-2">
+          <SectionLabel>Active Session</SectionLabel>
+          <div className="px-3 pb-1">
+            <StudyTimerChip />
+          </div>
+        </div>
+      )}
+
       {/* Utility footer — non-route desktop chrome, unchanged components,
           relocated from the old top bar's right-hand side. */}
       <div className="flex flex-shrink-0 flex-col gap-2 border-t border-rv-border px-3 py-3">
@@ -325,8 +348,6 @@ export default function NavDesktop({
         <CourseSwitcher />
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Manual study-timer indicator — hidden when not running */}
-          <StudyTimerChip />
           {/* Exam date indicator — student-only, self-gates */}
           <ExamDateChip />
         </div>
