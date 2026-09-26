@@ -8,6 +8,8 @@ Phase 8.8 Navigation IA is locked in `blueprint.md` §3.1 Decision Log, entries 
 
 **Post-approval sequencing correction (26/09/2026):** D-33/D-34 as first approved had 8.8.3/8.8.4's platform assignments reversed (called 8.8.3 the mobile rebuild). Corrected in place, before 8.8.3 started, to match the master plan: **8.8.3 = Desktop Left Rail Rebuild, 8.8.4 = Mobile Bottom Bar Rebuild.** A Discover-dependency guardrail was also made explicit — neither sprint may link to the not-yet-built Discover route; Browse Study Sets/Browse Notes stay live until 8.8.5 ships it. See the dated note in `blueprint.md` §3.1 immediately above D-33. No IA decision changed.
 
+**Second pre-8.8.3 correction (26/09/2026):** D-33's Community bullet wrongly told the *desktop* rail to preserve `Following.jsx`'s second entry point via `NavMenuSheet.jsx` — that file is mounted only inside `NavMobile.jsx` (verified against the component tree; `NavDesktop.jsx` never references it), so that path is mobile-only and desktop never had it. Corrected in place: desktop Tier-3 Community needs no Following-specific action (bell only, unchanged); preserving the `NavMenuSheet.jsx` path is Sprint 8.8.4's job. No IA decision changed — Following's "retain both entry points" decision still stands, just correctly attributed per platform.
+
 ---
 
 ## Sprint 8.7.10: My Study Semantic Cleanup — ✅ COMPLETE (25/09/2026) — Scope A + B + C + D all deployed + live-verified
