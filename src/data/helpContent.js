@@ -39,9 +39,9 @@ export const HELP_TABS = [
             items: [
               'Create your account and select your course level (e.g., Intermediate, Final).',
               'Head to the Dashboard \u2014 this is your home base. You will see quick stats, due reviews, and shortcuts to create content.',
-              'Check "Browse Study Sets" first \u2014 many courses already have material loaded by professors or official bodies. Practice a Study Set with zero commitment, then "Add to My Cards" anything worth reviewing.',
-              'You can also upload your own note or create a flashcard deck under the "Create" menu \u2014 your own content joins My Cards automatically.',
-              'Once you have at least one card in My Cards, start a review session from the Dashboard or the "Study" menu.',
+              'Check "Browse Study Sets" first \u2014 many courses already have material loaded by professors or official bodies. Practice a Study Set with zero commitment, then "Add to My Study" anything worth reviewing.',
+              'You can also upload your own note or create a flashcard deck under the "Create" menu \u2014 choose "Save & Add to My Study" (instead of "Save only") to also put it straight into your review queue.',
+              'Once you have at least one card in My Study, start a review session from the Dashboard or the "Study" menu.',
               'Check your progress anytime from "My Progress" in the profile menu.',
             ],
           },
@@ -231,7 +231,7 @@ export const HELP_TABS = [
               'Choose the Question Type.',
               'Fill in the front/back (or Concept Name / Summary / Key Terms for a concept card).',
               'Set the visibility and optional difficulty tag (Easy, Medium, Hard).',
-              'Click "Create" to save.',
+              'Click "Save only" to just create it, or "Save & Add to My Study" to also put it straight into your review queue.',
             ],
           },
           {
@@ -289,7 +289,8 @@ export const HELP_TABS = [
             'Download the Template — a ready-made CSV with example rows and full column instructions built in.',
             'Fill in your rows, matching the course/subject/topic spelling exactly from Valid Entries, and save as a UTF-8 CSV.',
             'Back on the page, optionally label the batch, choose a visibility (Private, Friends Only, or Public — there is no Study Groups option here), and select your CSV file.',
-            'Click "Upload" and review the results — any row with an error is skipped and listed; valid rows are created.',
+            'Click "Upload only" to just create the items, or "Upload & Add to My Study" to also put every row straight into your review queue — the button shows the exact row count and asks you to confirm before it enrolls anything.',
+            'Review the results — any row with an error is skipped and listed; valid rows are created.',
           ]},
           { type: 'list', items: [
             'Course, subject, and topic are supplied in the CSV file itself, not chosen on screen — visibility and the optional batch label are the only settings you pick on the page.',
@@ -300,7 +301,7 @@ export const HELP_TABS = [
             'Concept Card can be created via CSV by anyone — see "Bulk CSV Upload — Grouped-Row Types" below.',
             'Multiple Choice, Multi-select MCQ, Correct/Incorrect, Case study MCQ, Match the following, and Fill in the Blank rows need a professor or admin account — a student’s rows of these types are rejected on upload (see "Bulk CSV Upload — Professor & Admin Types" and "Bulk CSV Upload — Grouped-Row Types" if you have that role).',
             'Quote a cell that contains a comma, e.g. "#ITR,#basics". Double up a quote mark inside a quoted cell, e.g. "she said ""exempt""" — that is standard CSV escaping, not a RevisOp rule.',
-            'Blank cells are fine for anything optional. Text inside a quoted cell can span multiple lines, but line breaks inside front/back are collapsed into a single space either way.',
+            'Blank cells are fine for anything optional. Text inside a quoted cell can span multiple lines, and line breaks inside front/back are preserved.',
           ]},
           { type: 'list', items: [
             `Flashcard row: CA Intermediate, Taxation, Income Tax Basics, What is the basic exemption limit for individuals below 60 years?, ₹2.5 lakhs, "#ITR, #basics", easy, , , , , , , , , , , `,
@@ -504,26 +505,28 @@ export const HELP_TABS = [
       },
       {
         id: 'browse-practice-mycards',
-        title: 'From Browsing to Reviewing: Browse, Practice & My Cards',
+        title: 'From Browsing to Reviewing: Browse, Practice & My Study',
         icon: 'Compass',
         content: [
           {
             type: 'paragraph',
-            text: 'RevisOp separates discovering content from committing to review it, so your daily reviews only ever contain material you have deliberately chosen \u2014 never everything you have simply looked at.',
+            text: 'RevisOp separates discovering content from committing to review it, so your daily reviews only ever contain material you have deliberately chosen \u2014 never everything you have simply looked at or created. This applies equally to your own content and content made by others: authoring or uploading a card no longer puts it in your review queue by itself.',
           },
           {
             type: 'list',
             items: [
               'Browse Study Sets \u2014 Explore every subject and topic available to you, including your own content and material shared by professors, official bodies, and friends. Browsing never adds anything to your review schedule.',
-              'Practice \u2014 Open any Study Set from Browse to attempt or reveal its cards without any commitment. Practice never creates a spaced-repetition obligation, even on cards you get wrong.',
-              'Add to My Cards \u2014 While practising external content, tap "Add to My Cards" on anything worth revisiting. This is the one explicit step that moves a card from "just looked at it" into your personal review collection.',
-              'My Cards \u2014 Your personal retention collection, on its own page. Cards you create yourself are included automatically. Cards created by others only appear here after you add them from Practice.',
-              'Today\u2019s Reviews \u2014 Your actual spaced-repetition queue, drawn entirely from My Cards. Grading (Hard/Medium/Easy) only ever happens here, never while browsing or practising.',
+              'Practice All \u2014 From Browse, open every Study Set in a subject at once to attempt or reveal its cards without any commitment. The number shown is exactly how many cards you will see, whether they are your own, your professor\u2019s, or anyone else\u2019s. Like Practice, it never creates a spaced-repetition obligation.',
+              'Practice \u2014 Open any single Study Set from Browse to attempt or reveal its cards without any commitment. Practice never creates a spaced-repetition obligation, even on cards you get wrong.',
+              'Add to My Study \u2014 While practising content, tap "Add to My Study" on anything worth revisiting \u2014 your own or someone else\u2019s. This is the one explicit step that moves a card from "just looked at it" into your personal review collection.',
+              'Save & Add to My Study \u2014 When creating or bulk-uploading your own cards, choose "Save & Add to My Study" instead of "Save only" (or "Upload & Add to My Study" instead of "Upload only") to put them straight into your review queue at creation time, skipping the Practice step.',
+              'My Study \u2014 Your personal review collection, on its own page (Study \u2192 My Study), grouped by subject and topic. Nothing lands here automatically anymore, including your own cards \u2014 every card in My Study got there because you explicitly added it, either at creation or from Practice.',
+              'Today\u2019s Reviews \u2014 Your actual spaced-repetition queue, drawn entirely from My Study. Grading (Hard/Medium/Easy) only ever happens here, never while browsing or practising.',
             ],
           },
           {
             type: 'tip',
-            text: 'Some shared material may be available for Practice without being available to add to My Cards yet.',
+            text: 'Some shared material may be available for Practice without being available to add to My Study yet.',
           },
         ],
       },
@@ -539,8 +542,8 @@ export const HELP_TABS = [
           {
             type: 'list',
             items: [
-              'Reviews Due Today \u2014 Cards in My Cards that you have studied before and are now scheduled for review. This is your primary daily activity. Completing these maintains your knowledge.',
-              'New Cards \u2014 Cards already in My Cards that you have never graded yet \u2014 your own newly created cards, or external cards you have added from Practice. These are ready to study whenever you are ready; they are not the same as content you have merely browsed or practised.',
+              'Reviews Due Today \u2014 Cards in My Study that you have studied before and are now scheduled for review. This is your primary daily activity. Completing these maintains your knowledge.',
+              'New Cards \u2014 Cards already in My Study that you have never graded yet \u2014 whether your own cards added via "Save & Add to My Study", or cards you added from Practice. These are ready to study whenever you are ready; they are not the same as content you have merely browsed, practised, or created but never added.',
             ],
           },
           {
@@ -560,19 +563,19 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'There are several ways to start reviewing the cards in My Cards:',
+            text: 'There are several ways to start reviewing the cards in My Study:',
           },
           {
             type: 'list',
             items: [
               'Dashboard Quick Action \u2014 Click "Study Session" on the Dashboard to review all due cards.',
               'Today\u2019s Reviews \u2014 Go to "Study" \u2192 "Today\u2019s Reviews" to work through everything currently due.',
-              'My Cards \u2014 Go to "Study" \u2192 "My Cards" to see your whole personal collection and jump into studying it.',
+              'My Study \u2014 Go to "Study" \u2192 "My Study" to see your whole personal collection, grouped by subject and topic, and jump into studying it.',
             ],
           },
           {
             type: 'paragraph',
-            text: 'To review external content that is not yet in My Cards, first open it from "Browse Study Sets" \u2192 Practice, then tap "Add to My Cards" \u2014 it will appear in your review queue from there.',
+            text: 'To review content that is not yet in My Study \u2014 including your own cards saved with "Save only" \u2014 open it from "Browse Study Sets" \u2192 Practice, then tap "Add to My Study": it will appear in your review queue from there. Or choose "Save & Add to My Study" at the moment you create a card to skip this step entirely.',
           },
           {
             type: 'steps',
@@ -618,7 +621,7 @@ export const HELP_TABS = [
         content: [
           {
             type: 'paragraph',
-            text: 'During a review session, and from the My Cards page, you have several ways to manage cards. Skip and Pause are fully reversible; Reset is destructive.',
+            text: 'During a review session, and from the My Study page, you have several ways to manage cards. Skip, Pause, and Remove are all fully reversible; Reset is destructive.',
           },
           {
             type: 'list',
@@ -626,8 +629,8 @@ export const HELP_TABS = [
               'Skip 24hr \u2014 Hides this card until tomorrow. Your spaced repetition schedule is completely preserved \u2014 nothing is deleted or reset.',
               'Skip Topic (24hr) \u2014 Available from the \u22ef menu when a card belongs to a topic. Hides every card in that topic until tomorrow in one tap. Useful when one topic feels too heavy for today.',
               'Pause (also shown as "Suspend" in some menus) \u2014 Stops a card from being scheduled until you resume it. Your progress on that card is preserved, not lost. Pause is only offered once a card has been graded at least once, and is not offered on a Mastered card, since it has already reached the top of the schedule.',
-              'Resume (also shown as "Unsuspend") \u2014 Restarts scheduling for a paused card, from the My Cards page. It becomes due again from today.',
-              'Remove from My Cards \u2014 Available only for content you added from Practice, not for your own cards. Takes it out of your personal review collection without deleting the original material or erasing your prior review history \u2014 you can add it again later from Practice.',
+              'Resume (also shown as "Unsuspend") \u2014 Restarts scheduling for a paused card, from the My Study page. It becomes due again from today.',
+              'Remove from My Study \u2014 Available on any card in your collection, your own or added from Practice. Ends the study relationship only \u2014 it never deletes the underlying card, and never touches your prior review history. A removed card moves to My Study\u2019s History tab, where you can add it back anytime. For your own content, removing it here does not affect it in My Contributions at all; deleting the content itself is a separate, explicit action there.',
               'Reset Card \u2014 Deletes all review history for this card. It returns to the \u201cNew Cards\u201d pool as if never studied. This cannot be undone.',
             ],
           },
@@ -1491,7 +1494,7 @@ export const FAQ_ITEMS = [
   },
   {
     question: 'What is the difference between Skip, Pause, and Remove?',
-    answer: 'Skip 24hr is a temporary snooze — the card comes back tomorrow and your spaced repetition schedule is fully preserved. Pause (also called Suspend in some menus) stops a card being scheduled until you resume it from the My Cards page — your progress is preserved, not lost; it is only available once a card has been graded at least once, and is not offered on a Mastered card. Remove from My Cards is different again — it only applies to content you added from Practice (not your own cards), takes it out of your personal collection, and does not delete the source or erase prior review history; you can add it again later from Practice. Use Skip when you need a short break, Pause when you want to step away from a card for longer, and Remove when you no longer want an added card in your collection at all.',
+    answer: 'Skip 24hr is a temporary snooze — the card comes back tomorrow and your spaced repetition schedule is fully preserved. Pause (also called Suspend in some menus) stops a card being scheduled until you resume it from the My Study page — your progress is preserved, not lost; it is only available once a card has been graded at least once, and is not offered on a Mastered card. Remove from My Study is different again — it works on any card in your collection, your own or added from Practice, takes it out of your working list, and does not delete the source or erase prior review history; it moves to the History tab, where you can add it back anytime. Use Skip when you need a short break, Pause when you want to step away from a card for longer, and Remove when you no longer want a card in your active study list at all.',
   },
   {
     question: 'Can I edit my notes and flashcards after creating them?',
