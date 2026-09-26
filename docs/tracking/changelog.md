@@ -1,6 +1,15 @@
 # Changelog
 
 ---
+## [26/09/2026] fix(sprint-8.8.4): relabel mobile "My Achievements" to "Achievements"
+
+### Fixed
+- `NavMenuSheet.jsx` — the mobile Menu's Achievements entry read "My Achievements" while the desktop rail's equivalent item (Sprint 8.8.3) already reads "Achievements." Same route (`/dashboard/achievements`), cosmetic label mismatch only — caught at gate review, not one of D-37's enumerated duplicate rows. Relabeled to match.
+
+### Files Changed
+- `src/components/layout/NavMenuSheet.jsx`
+
+---
 ## [26/09/2026] fix(sprint-8.8.3a): desktop utility strip — status chrome separated from the rail
 
 ### Added

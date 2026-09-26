@@ -298,7 +298,7 @@ export default function NavMenuSheet({
                   className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-rv-bg-2"
                 >
                   <Trophy className="h-5 w-5 text-rv-ink-400" />
-                  <span className="text-sm font-medium text-rv-ink-900">My Achievements</span>
+                  <span className="text-sm font-medium text-rv-ink-900">Achievements</span>
                 </button>
                 <button
                   onClick={() => handleNavClick('/dashboard/my-reports')}
