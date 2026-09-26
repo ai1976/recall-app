@@ -2,6 +2,12 @@
 
 **Last Updated:** 25/09/2026
 
+## Sprint 8.8.2: Navigation IA Decision Spec — ✅ APPROVED, GATE RELEASED (26/09/2026, decision/spec only, nothing implemented)
+
+Phase 8.8 Navigation IA is locked in `blueprint.md` §3.1 Decision Log, entries **D-33 through D-38** (destination/action model + mobile/desktop nav, global action-control architecture, Home vs Review contract, Discover V1 contract, duplicate/orphan-route dispositions, role-scoped nav + 8.7.10 semantic-boundary confirmation). Two operator audit rounds against the actual text surfaced 8 corrections total (all applied same-day before approval — see D-33/D-34/D-36/D-37 for the corrected wording). **Approved 26/09/2026 — Sprint 8.8.3 may begin**, implementing only its assigned slice against D-33–D-38 as SSOT.
+
+---
+
 ## Sprint 8.7.10: My Study Semantic Cleanup — ✅ COMPLETE (25/09/2026) — Scope A + B + C + D all deployed + live-verified
 
 **Scope D (My Study page redesign) — ✅ deployed + live-verified 25/09/2026:** `MyCards.jsx` rebuilt around Subject → Topic grouping with New/Active/Paused counts at both levels; individual card rows only appear once a topic is opened (subjects default open showing topic counts, topics default closed). Mastered and Removed moved out of the default "Working" view into a "History" tab. Removed cards weren't exposed to the client at all before this — `get_my_cards` only ever returns active enrollment — so a new RPC, `get_removed_my_cards`, was added (mirrors `get_my_cards`' own-card-requires-enrollment-too logic, filtered to `status='removed'`), lazy-loaded only on first History tab open so the default page load pays no extra cost. Vocabulary made consistent: "Remove from My Study" is now universal (own or external — Scope A made own content enrollment-based too, so blocking Remove for own cards no longer made sense; the old restriction was a pre-Scope-A leftover), "Add to My Study" is the History re-add action (reuses the unchanged `add_to_my_cards` RPC). Nav labels ("My Cards" → "My Study") and Practice Mode's enrollment badges updated to match.
