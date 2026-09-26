@@ -12,6 +12,9 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import imageCompression from 'browser-image-compression';
+import { useRole } from '@/contexts/NavDataContext'; // shared nav-data context, not a per-mount fetch
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const COMPRESSION_OPTIONS = {
   maxSizeMB: 0.3,
@@ -43,6 +46,7 @@ function isImagePath(path) {
 }
 
 export default function MigrateNoteImages() {
+  const { isAdmin, isSuperAdmin, isLoading: roleLoading } = useRole();
   const [status, setStatus] = useState('idle'); // idle | running | done
   const [log, setLog] = useState([]);
   const [stats, setStats] = useState({
@@ -188,6 +192,27 @@ export default function MigrateNoteImages() {
     );
   };
 
+  // ── Guards ────────────────────────────────────────────────────────────────
+  if (roleLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b]" />
+      </div>
+    );
+  }
+
+  if (!isAdmin && !isSuperAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Access Denied. Administrators only.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-3xl mx-auto space-y-6">
