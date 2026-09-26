@@ -36,12 +36,8 @@ import {
   isGroupsActive,
 } from '@/lib/navActive';
 import { Wordmark } from '@/components/revisop';
-import { useStudyTimer } from '@/contexts/StudyTimerContext';
-import NotificationCenter from './NotificationCenter';
 import ProfileDropdown from './ProfileDropdown';
 import CourseSwitcher from './CourseSwitcher';
-import StudyTimerChip from './StudyTimerChip';
-import ExamDateChip from './ExamDateChip';
 
 /**
  * NavDesktop.jsx — desktop LEFT RAIL (Sprint 8.8.3, D-33 through D-38).
@@ -59,9 +55,11 @@ import ExamDateChip from './ExamDateChip';
  *            / Browse Notes — retired when Discover ships, 8.8.5/D-36), then
  *            Personal, Community, and a role-conditional "Manage" group
  *
- * Non-route desktop chrome (Wordmark, NotificationCenter, ProfileDropdown,
- * CourseSwitcher, StudyTimerChip, ExamDateChip) all keep their existing
- * components/behavior — only their position moved, into the rail header/footer.
+ * Sprint 8.8.3a (D-39): status chrome (NotificationCenter, ExamDateChip,
+ * StudyTimerChip) moved out of this rail into the new NavUtilityStrip.jsx,
+ * mounted as this rail's sibling in Navigation.jsx. The rail footer now holds
+ * only the non-route account/course chrome: Wordmark (header) and
+ * CourseSwitcher/ProfileDropdown (footer) — all unchanged components.
  */
 
 const RAIL_LINK_BASE =
@@ -155,21 +153,11 @@ export default function NavDesktop({
   isAdmin,
   isProfessor,
   isLoading,
-  notifications,
-  unreadCount,
-  markAllRead,
-  deleteNotification,
-  refetchNotifications,
-  pendingCount,
   dueToday,
   handleSignOut,
 }) {
   const { pathname } = useLocation();
   const showManageSection = isProfessor || isAdmin || isSuperAdmin;
-  // Gates the dedicated "Active Session" block below — presentational only,
-  // reads StudyTimerContext's existing isRunning flag. Does not touch the
-  // timer/recovery/stop semantics that live in StudyTimerContext.jsx.
-  const { isRunning: timerRunning } = useStudyTimer();
 
   return (
     <nav
@@ -323,46 +311,15 @@ export default function NavDesktop({
         </>
       )}
 
-      {/* Active Session — dedicated block for the manual study timer, only
-          while running. Deliberately separate from both the Tier-3 nav above
-          (its own border-t) and the account/course utility footer below (the
-          footer's existing border-t becomes this block's bottom boundary) —
-          per feedback that the timer lost glanceability when it shared a row
-          with CourseSwitcher/ExamDateChip. Not Tier 1/2: it's not a route and
-          carries no active-state styling, same as before. StudyTimerChip's
-          own timer/recovery/stop logic (StudyTimerContext.jsx) is untouched —
-          this only changes where the already-self-gating chip is mounted. */}
-      {timerRunning && (
-        <div className="flex-shrink-0 border-t border-rv-border bg-rv-bg-2 py-2">
-          <SectionLabel>Active Session</SectionLabel>
-          <div className="px-3 pb-1">
-            <StudyTimerChip />
-          </div>
-        </div>
-      )}
-
-      {/* Utility footer — non-route desktop chrome, unchanged components,
-          relocated from the old top bar's right-hand side. */}
+      {/* Utility footer — non-route account/course chrome. Status chrome
+          (NotificationCenter/ExamDateChip/StudyTimerChip) moved to
+          NavUtilityStrip.jsx (Sprint 8.8.3a, D-39) — this footer now holds
+          only CourseSwitcher and ProfileDropdown. */}
       <div className="flex flex-shrink-0 flex-col gap-2 border-t border-rv-border px-3 py-3">
         {/* Course Context Switcher — professors/admins with 2+ courses only, self-gates */}
         <CourseSwitcher />
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Exam date indicator — student-only, self-gates */}
-          <ExamDateChip />
-        </div>
-
-        <div className="flex items-center justify-between">
-          {/* Unified notification center — friend requests + content notifications */}
-          <NotificationCenter
-            notifications={notifications}
-            unreadCount={unreadCount}
-            markAllRead={markAllRead}
-            deleteNotification={deleteNotification}
-            refetch={refetchNotifications}
-            pendingCount={pendingCount}
-          />
-
+        <div className="flex items-center justify-end">
           {/* Profile Dropdown — Profile Settings / Help & Guide live here, unchanged */}
           <ProfileDropdown user={user} role={role} isLoading={isLoading} handleSignOut={handleSignOut} />
         </div>

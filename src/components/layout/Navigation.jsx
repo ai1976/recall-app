@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavData } from '@/contexts/NavDataContext';
 import NavDesktop from './NavDesktop';
+import NavUtilityStrip from './NavUtilityStrip';
 import NavMobile from './NavMobile';
 import NavBottomTabs from './NavBottomTabs';
 
@@ -63,6 +64,13 @@ export default function Navigation() {
       {/* Desktop-only left rail (Sprint 8.8.3, D-33) — fixed position, hidden
           below md. App.jsx pads authenticated content to match its width. */}
       <NavDesktop {...navProps} />
+
+      {/* Desktop-only utility strip (Sprint 8.8.3a, D-39) — status chrome
+          (bell/exam chip/active timer), separate from the rail's
+          destinations. Fixed position, spans from the rail's right edge to
+          the viewport edge, hidden below md. App.jsx pads authenticated
+          content to match its height. */}
+      <NavUtilityStrip {...navProps} />
 
       {/* Mobile bottom-tab bar (Sprint 7.1) — sibling of <nav> so it renders
           full-width outside the max-w-7xl container. md:hidden; self-gates on

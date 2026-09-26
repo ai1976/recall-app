@@ -2,6 +2,26 @@
 
 **Last Updated:** 26/09/2026
 
+## Sprint 8.8.3a: Desktop Utility Strip Refinement — ✅ COMPLETE (26/09/2026) — code, build/lint, responsive QA green; live-verified for one role (super_admin) per this sprint's own gate
+
+Shell-presentation refinement only, not a navigation IA change — D-33's Tier 1/2/3 rail hierarchy, membership, and active-route predicates are byte-identical to 8.8.3's shipped state. Moves `NotificationCenter`, `ExamDateChip`, and the conditionally-rendered active `StudyTimerChip` out of `NavDesktop.jsx`'s rail footer into a new fixed desktop status strip, `NavUtilityStrip.jsx` — separating "where can I go" (rail) from "what's happening right now" (strip), matching the split `NavMobile.jsx` already has. Full decision record and implementation note in `blueprint.md` under D-39, per this project's convention.
+
+**New file:** `src/components/layout/NavUtilityStrip.jsx` — `hidden md:fixed md:top-0 md:left-60 md:right-0 md:z-40 md:h-12`, mounted as `NavDesktop`'s sibling in `Navigation.jsx`. Right-aligned cluster, DOM order NotificationCenter → ExamDateChip → StudyTimerChip (conditional on `isRunning`, same gate 8.8.3 already had). All three render in their existing non-compact props — a pure relocation, zero changes to any of the three chip/bell components.
+
+**Changed:** `NavDesktop.jsx` — "Active Session" block and the footer's `ExamDateChip`/`NotificationCenter` row removed; footer now holds only `CourseSwitcher` + `ProfileDropdown`; six now-unused props and four now-unused imports removed. `App.jsx` — authenticated wrapper gained `md:pt-12` alongside `md:pl-60` to clear the strip's height.
+
+**Step 0 finding, fixed as a direct corollary:** a full `sticky|fixed` grep across `src/pages` found two authenticated pages with their own page-level sticky header/sidebar (outside `PageContainer.jsx`) that would have had their top ~44–48px covered by the new strip once scrolled — `NoteDetail.jsx` (`sticky top-0` header) and `Help.jsx` (`sticky top-6` desktop sidebar nav). Fixed with a minimal top-offset bump on each: `NoteDetail.jsx` gained `md:top-12` (mobile `top-0` untouched); `Help.jsx`'s already-desktop-only sidebar changed `top-6` → `top-[4.5rem]`. No other authenticated page had a colliding element — remaining grep matches were public pages the strip never mounts on, `z-50` modals already above the strip's `z-40`, a bottom-anchored button, or comment-text false positives.
+
+**Live verification (browser, localhost dev server, super_admin account — the only account available this session):** Bell popover opens unclipped from the strip, full list renders, identical behavior to pre-move. Started a real offline study timer via the launcher — confirmed the amber pill renders correctly in the strip beside the bell (full-label "0m"), stopped it with the existing single-tap interaction, which correctly fired the unchanged "Session too short to log" toast (sub-10-minute session, no DB row) — `StudyTimerContext.jsx` has zero diff, confirming timer/recovery/stop semantics are untouched. `ExamDateChip` not live-testable this session (student-only, self-gates for super_admin) — per this sprint's own verification gate, one role is sufficient since the strip has no role-conditional content, and `ExamDateChip.jsx` itself has zero diff. Measured via `getBoundingClientRect()`: rail right edge `x=240`, strip `left=240` (flush), content wrapper `padding-top: 48px` / `padding-left: 240px` (exact). Responsive re-check at 1024×768, 1366×768, 1440×900 — strip un-clipped, no seam/overlap with the rail, rail's own Tier-3 scroll unaffected, bell popover not clipped. `NoteDetail.jsx`/`Help.jsx` fixes re-verified live by scrolling — both sticky elements now stick flush below the strip. Mobile 390px — `scrollWidth === clientWidth`, top bar/bottom tabs pixel-identical to pre-8.8.3a. Zero console errors throughout.
+
+**Build/lint gates — ✅ all green:** `npm run build` succeeds. Targeted `npx eslint` on `App.jsx`/`NavDesktop.jsx`/`Navigation.jsx`/`NavUtilityStrip.jsx`/`NoteDetail.jsx` clean. `Help.jsx` shows one pre-existing `react-hooks/set-state-in-effect` error (line 257) confirmed via `git stash` to predate this sprint — unrelated to its one-line sticky-offset edit. `git diff --stat` confirms zero changes to `NavBottomTabs.jsx`, `NavMenuSheet.jsx`, `NavMobile.jsx`, `StudyTimerContext.jsx`, `navActive.js`, `ExamDateChip.jsx`, `StudyTimerChip.jsx`, `ProfileDropdown.jsx`.
+
+**Not tested this session:** professor/admin/student role variants of the strip (no other test accounts available) — low risk, since the strip renders no role-conditional content at all.
+
+Sprint 8.8.3a is now fully complete. Do not begin Sprint 8.8.5 (Discover) from this session.
+
+---
+
 ## Sprint 8.8.4: Mobile Bottom Bar Rebuild — ✅ COMPLETE (26/09/2026) — code, build/lint, responsive QA, and all-four-roles live verification all green
 
 Implements D-33 through D-38's locked mobile spec (`blueprint.md` §3.1) against the existing mobile shell — this was a membership/organization change, not a shell migration (the mobile top bar, bottom bar, `+` sheet, and Menu sheet all already existed from Sprint 7.1–7.3). Full implementation note (exact bottom-bar/`+`/Menu composition, judgment calls, timer UX verification) recorded in-place under D-33 in `blueprint.md`, per this sprint's own instruction not to duplicate it here.

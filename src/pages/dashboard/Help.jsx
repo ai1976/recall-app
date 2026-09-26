@@ -406,7 +406,10 @@ export default function Help() {
 
           {/* ── Desktop sidebar nav ── */}
           <nav className="hidden md:block w-44 shrink-0">
-            <div className="sticky top-6 space-y-0.5">
+            {/* top-[4.5rem] = NavUtilityStrip's 48px strip (Sprint 8.8.3a,
+                D-39) + this nav's original 24px (top-6) breathing room —
+                this nav is already md-only, so no responsive prefix needed. */}
+            <div className="sticky top-[4.5rem] space-y-0.5">
               {visibleTabs.map(tab => (
                 <button
                   key={tab.key}

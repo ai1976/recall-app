@@ -122,7 +122,8 @@ recall-app
 │   │   │   ├── Navigation.jsx                   ← orchestrator; renders NavDesktop + NavMobile (top) + NavBottomTabs (bottom sibling)
 │   │   │   ├── NavMenuSheet.jsx                 ← mobile "Menu" drawer (Sprint 7.1): the former NavMobile hamburger Sheet, content verbatim
 │   │   │   ├── NavMobile.jsx                    ← mobile TOP bar (Sprint 7.2-B: Wordmark + single NotificationCenter bell + 7.3-C StudyTimerChip)
-│   │   │   ├── NotificationCenter.jsx           ← Sprint 7.2-B: unified bell dropdown (merges former ActivityDropdown + FriendsDropdown) — friend requests (inline accept/decline) + notifications, one badge; shared by NavDesktop + NavMobile
+│   │   │   ├── NavUtilityStrip.jsx              ← Sprint 8.8.3a (D-39): desktop-only fixed status strip (48px, left-60→viewport edge, md+ only) — NotificationCenter/ExamDateChip/StudyTimerChip, moved out of NavDesktop's rail footer; Navigation.jsx renders it as NavDesktop's sibling
+│   │   │   ├── NotificationCenter.jsx           ← Sprint 7.2-B: unified bell dropdown (merges former ActivityDropdown + FriendsDropdown) — friend requests (inline accept/decline) + notifications, one badge; shared by NavDesktop + NavMobile + NavUtilityStrip (8.8.3a)
 │   │   │   ├── PageContainer.jsx                ← wrapper with width prop (full/medium/narrow); bottom-bar safe-area clearance
 │   │   │   ├── ProfileDropdown.jsx              ← avatar dropdown (My Progress, My Contributions, My Achievements, Report History [7.3 follow-up], Help, Settings, Sign Out)
 │   │   │   ├── StudyTimerChip.jsx               ← Sprint 7.3-C: nav-bar pill beside the bell, hidden unless a manual timer is running; tap-to-stop/navigate
@@ -258,7 +259,8 @@ recall-app
 - `src/components/layout/NavMobile.jsx` — mobile top bar (Wordmark + single `NotificationCenter` bell; Sprint 7.2-B, was Wordmark + Friends + Bell since 7.1)
 - `src/components/layout/NavBottomTabs.jsx` — mobile bottom-tab bar (Sprint 7.1, due-badge 7.2-F); consumes `navProps`, no own fetch
 - `src/components/layout/NavMenuSheet.jsx` — mobile "Menu" drawer (Sprint 7.1); the former NavMobile hamburger Sheet
-- `src/components/layout/NotificationCenter.jsx` — Sprint 7.2-B: unified bell dropdown (merged `ActivityDropdown` + `FriendsDropdown`, both deleted); shared by `NavDesktop` + `NavMobile`
+- `src/components/layout/NotificationCenter.jsx` — Sprint 7.2-B: unified bell dropdown (merged `ActivityDropdown` + `FriendsDropdown`, both deleted); shared by `NavDesktop` + `NavMobile` + `NavUtilityStrip` (8.8.3a)
+- `src/components/layout/NavUtilityStrip.jsx` — Sprint 8.8.3a (D-39): desktop-only fixed status strip housing `NotificationCenter`/`ExamDateChip`/`StudyTimerChip`, separate from `NavDesktop`'s rail
 - `src/lib/navActive.js` — shared active-route predicates for NavDesktop + NavBottomTabs (Sprint 7.1)
 
 ### Dashboard

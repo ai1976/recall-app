@@ -1,6 +1,31 @@
 # Changelog
 
 ---
+## [26/09/2026] fix(sprint-8.8.3a): desktop utility strip — status chrome separated from the rail
+
+### Added
+- `src/components/layout/NavUtilityStrip.jsx` — new fixed desktop status strip (48px, spans from the rail's right edge to the viewport edge, hidden below `md`), holding `NotificationCenter`, `ExamDateChip`, and the conditionally-rendered active `StudyTimerChip`. Mounted as `NavDesktop`'s sibling in `Navigation.jsx`.
+
+### Changed
+- `NavDesktop.jsx` — removed the "Active Session" block and the footer's `ExamDateChip`/`NotificationCenter` row (moved to the new strip); footer now holds only `CourseSwitcher` and `ProfileDropdown`.
+- `App.jsx` — authenticated-content wrapper gained `md:pt-12` alongside the existing `md:pl-60` to clear the new strip's height.
+- `NoteDetail.jsx`/`Help.jsx` — minimal top-offset bump on each page's own sticky header/sidebar (`NoteDetail.jsx` gained `md:top-12`; `Help.jsx`'s sidebar `top-6` → `top-[4.5rem]`) so they clear the new strip instead of being covered by it once scrolled — found during this sprint's own Step 0 pre-flight, not a pre-existing bug.
+
+### Fixed
+- Desktop study timer's glanceability, flagged during 8.8.3 live testing as weaker in the rail footer than the old top bar — resolved architecturally by giving status chrome its own strip, matching the "where can I go" (rail) vs. "what's happening right now" (strip) split `NavMobile.jsx` already had.
+
+### Files Changed
+- `src/components/layout/NavUtilityStrip.jsx` (new)
+- `src/components/layout/NavDesktop.jsx`
+- `src/components/layout/Navigation.jsx`
+- `src/App.jsx`
+- `src/pages/dashboard/Content/NoteDetail.jsx`
+- `src/pages/dashboard/Help.jsx`
+
+### Note
+`NavBottomTabs.jsx`, `NavMenuSheet.jsx`, `NavMobile.jsx`, `StudyTimerContext.jsx`, `src/lib/navActive.js`, `ExamDateChip.jsx`, `StudyTimerChip.jsx`, `ProfileDropdown.jsx` all confirmed byte-identical (`git diff` empty) — this is a shell-presentation refinement only, not a navigation IA change. Full decision record (D-39) and implementation note in `blueprint.md`.
+
+---
 ## [26/09/2026] feat(sprint-8.8.4): mobile bottom bar rebuild — membership + Menu reorganization
 
 ### Added

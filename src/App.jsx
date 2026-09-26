@@ -126,9 +126,11 @@ if (!user || loading) return
       {/* Sprint 8.8.3 — desktop authenticated shell: NavDesktop is now a fixed
           left rail (md:w-60) rather than an in-flow top bar, so authenticated
           content needs matching left padding at md+ to avoid sitting under it.
-          Unauthenticated/public routes (`!user`) get no wrapper padding at all;
-          mobile is unaffected (`md:` prefix only). */}
-      <div className={user ? 'md:pl-60' : undefined}>
+          Sprint 8.8.3a (D-39) — NavUtilityStrip adds a fixed 48px status strip
+          above the content region, so content also needs matching top padding
+          at md+ (md:pt-12). Unauthenticated/public routes (`!user`) get no
+          wrapper padding at all; mobile is unaffected (`md:` prefix only). */}
+      <div className={user ? 'md:pl-60 md:pt-12' : undefined}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
           {/*
