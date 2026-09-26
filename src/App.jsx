@@ -123,8 +123,14 @@ if (!user || loading) return
   return (
     <>
       {user && <Navigation />}
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
+      {/* Sprint 8.8.3 — desktop authenticated shell: NavDesktop is now a fixed
+          left rail (md:w-60) rather than an in-flow top bar, so authenticated
+          content needs matching left padding at md+ to avoid sitting under it.
+          Unauthenticated/public routes (`!user`) get no wrapper padding at all;
+          mobile is unaffected (`md:` prefix only). */}
+      <div className={user ? 'md:pl-60' : undefined}>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
           {/*
             Route → File Mapping (for quick reference):
             /                              → pages/Home.jsx
@@ -386,7 +392,8 @@ if (!user || loading) return
             element={<Navigate to="/" replace />}
           />
         </Routes>
-      </Suspense>
+        </Suspense>
+      </div>
 
       <Toaster />
     </>

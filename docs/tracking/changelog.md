@@ -1,6 +1,31 @@
 # Changelog
 
 ---
+## [26/09/2026] feat(sprint-8.8.3): desktop left rail — replaces horizontal top bar
+
+### Added
+- Desktop authenticated shell rebuilt around a fixed left rail (`NavDesktop.jsx`, `md:w-60`) instead of a horizontal top bar — three tiers per the locked D-33 IA spec: Tier 1 persistent destinations (Home, Review, My Study), Tier 2 a pinned icon-only "+" global action control (real `<button>`, never a route, never active-styled — D-34), Tier 3 secondary sections (a temporary "Browse" group for Browse Study Sets/Browse Notes pending Discover in 8.8.5, Personal, Community, a role-conditional Manage group).
+- `src/lib/navActive.js` — new active-route predicates for the rail's Tier-1/Tier-3 items (`isReviewRailActive`, `isMyStudyActive`, `isBrowseStudySetsActive`, `isBrowseNotesActive`, `isProgressActive`, `isMyContributionsActive`, `isReportHistoryActive`, `isAchievementsActive`), additive — none of the existing mobile-consumed exports changed behavior.
+
+### Changed
+- `Navigation.jsx` — now renders the mobile top bar (`md:hidden`-wrapped, `NavMobile.jsx` unchanged), the new desktop rail, and the unchanged `NavBottomTabs.jsx` as three siblings instead of one shared top `<nav>`.
+- `App.jsx` — authenticated route content gets `md:pl-60` (a wrapper `<div>` around `<Suspense><Routes>`, conditioned on `user`) to sit beside the fixed rail instead of underneath a top bar. Public/unauthenticated routes are unaffected.
+- Non-route desktop chrome (Wordmark, CourseSwitcher, StudyTimerChip, ExamDateChip, NotificationCenter, ProfileDropdown) relocated from the old top bar into the rail's header/footer — same components, same behavior, new position.
+- `navActive.js` — removed `isStudyActive` (dead code once the old "Study" dropdown it served was replaced).
+
+### Fixed
+Nothing — this is new shell structure, not a bug fix. One correctness improvement over the pre-8.8.3 dropdown: Review and Browse Study Sets are no longer both highlighted when viewing `/dashboard/review-flashcards` (the old shared `isStudyActive`/`isReviewTabActive` cluster included both; the new rail gives Browse Study Sets its own predicate, excluded from Review's).
+
+### Files Changed
+- `src/components/layout/NavDesktop.jsx` (rewritten — desktop rail, was the horizontal nav's link/dropdown content)
+- `src/components/layout/Navigation.jsx`
+- `src/App.jsx`
+- `src/lib/navActive.js`
+
+### Note
+Mobile (`NavBottomTabs.jsx`, `NavMenuSheet.jsx`, `NavMobile.jsx`) not touched — clean git diff, confirmed. Temporary Browse Study Sets/Browse Notes placement (Tier-3 "Browse" subheading) is retired by Sprint 8.8.5 when Discover ships into Tier 1 — see the dated implementation note under D-33 in `blueprint.md`.
+
+---
 ## [25/09/2026] feat(sprint-8.7.10): My Study page redesign — grouped, with History tab (Sprint complete)
 
 ### Added

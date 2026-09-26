@@ -48,17 +48,21 @@ export default function Navigation() {
 
   return (
     <>
-      <nav className="bg-rv-bg-1 border-b border-rv-border sticky top-0 z-50 font-plex">
+      {/* Mobile-only top bar (unchanged content/behavior) — md:hidden on the
+          wrapper itself (not just NavMobile's own internal classes) so no
+          empty horizontal bar is left behind on desktop, where NavDesktop
+          below is a fixed left rail instead. */}
+      <nav className="md:hidden bg-rv-bg-1 border-b border-rv-border sticky top-0 z-50 font-plex">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            {/* Desktop Navigation - hidden on mobile */}
-            <NavDesktop {...navProps} />
-
-            {/* Mobile top bar - hidden on desktop */}
+          <div className="flex h-16 items-center">
             <NavMobile {...navProps} />
           </div>
         </div>
       </nav>
+
+      {/* Desktop-only left rail (Sprint 8.8.3, D-33) — fixed position, hidden
+          below md. App.jsx pads authenticated content to match its width. */}
+      <NavDesktop {...navProps} />
 
       {/* Mobile bottom-tab bar (Sprint 7.1) — sibling of <nav> so it renders
           full-width outside the max-w-7xl container. md:hidden; self-gates on

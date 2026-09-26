@@ -34,19 +34,63 @@ export const isCreateActive = (pathname) =>
     '/dashboard/bulk-upload',
   ]);
 
-/** Desktop "Study" dropdown active-state. Unchanged from NavDesktop's Sprint 6.0/6.2 logic. */
-export const isStudyActive = (pathname) =>
-  !isCreateActive(pathname) &&
+/**
+ * Desktop rail Tier-1 "Review" active-state (Sprint 8.8.3).
+ *
+ * Deliberately narrower than the old isStudyActive/isReviewTabActive clusters:
+ * Browse Study Sets (`/dashboard/review-flashcards`) is now its own Tier-3 rail
+ * row (temporary, pending Discover — D-36), so it must NOT also light up Review,
+ * or two rail rows would show active at once. Review lights only for the actual
+ * review/study-session cluster.
+ */
+export const isReviewRailActive = (pathname) =>
   underAny(pathname, [
-    '/dashboard/review-flashcards',
     '/dashboard/review-session',
     '/dashboard/review-by-subject',
     '/dashboard/study',
-    '/dashboard/notes',       // Browse Notes + note detail/edit
-    '/dashboard/flashcards',  // My Flashcards + card detail/edit
-    '/dashboard/progress',
-    '/dashboard/my-cards',
   ]);
+
+/** Desktop rail Tier-1 "My Study" active-state. */
+export const isMyStudyActive = (pathname) =>
+  underAny(pathname, ['/dashboard/my-cards']);
+
+/** Desktop rail Tier-3 temporary "Browse Study Sets" active-state (pre-Discover, D-36). */
+export const isBrowseStudySetsActive = (pathname) =>
+  underAny(pathname, ['/dashboard/review-flashcards']);
+
+/**
+ * Desktop rail Tier-3 temporary "Browse Notes" active-state (pre-Discover, D-36).
+ * Guarded against Create the same way the old isStudyActive was — Upload Note
+ * lives under /dashboard/notes/new, which Create must win the tie for.
+ */
+export const isBrowseNotesActive = (pathname) =>
+  !isCreateActive(pathname) && underAny(pathname, ['/dashboard/notes']);
+
+/** Desktop rail Tier-3 "Progress" active-state. Same rule as the mobile bottom tab's inline check. */
+export const isProgressActive = (pathname) =>
+  underAny(pathname, ['/dashboard/progress']);
+
+/**
+ * Desktop rail Tier-3 "My Contributions" active-state — the parent plus its two
+ * drill-downs (My Notes, My Study Sets/MyFlashcards — D-37 row 7). Guarded
+ * against Create the same way the old isStudyActive was, since /dashboard/flashcards
+ * is a prefix of /dashboard/flashcards/new.
+ */
+export const isMyContributionsActive = (pathname) =>
+  !isCreateActive(pathname) &&
+  underAny(pathname, [
+    '/dashboard/my-contributions',
+    '/dashboard/my-notes',
+    '/dashboard/flashcards',
+  ]);
+
+/** Desktop rail Tier-3 "Report History" active-state. */
+export const isReportHistoryActive = (pathname) =>
+  underAny(pathname, ['/dashboard/my-reports']);
+
+/** Desktop rail Tier-3 "Achievements" active-state. */
+export const isAchievementsActive = (pathname) =>
+  underAny(pathname, ['/dashboard/achievements']);
 
 /** Desktop "Manage" dropdown active-state. */
 export const isManageActive = (pathname) =>

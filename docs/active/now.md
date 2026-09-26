@@ -1,6 +1,26 @@
 # NOW - Current Development Status
 
-**Last Updated:** 25/09/2026
+**Last Updated:** 26/09/2026
+
+## Sprint 8.8.3: Desktop Left Rail Rebuild — ✅ COMPLETE (26/09/2026) — code, build/lint, responsive QA, and all-four-roles live verification all green
+
+Implements D-33 through D-38's locked desktop rail spec (`blueprint.md` §3.1) — replaces the horizontal top bar with a fixed left rail. Full implementation note (exact structural change, exact temporary Browse Study Sets/Browse Notes placement, `navActive.js` changes) recorded in-place under D-33 in `blueprint.md`, per the sprint's own instruction not to duplicate it here.
+
+**Step 0 pre-flight findings:** `Navigation.jsx` mounted `NavDesktop`/`NavMobile` as two self-gating (`hidden md:flex` / `md:hidden`) children of one shared sticky `<nav>`; `NavBottomTabs.jsx` was already an independent `md:hidden` sibling. Authenticated page content had no shared wrapper below `Navigation` — each page owns its own `min-h-screen` div, composed via `PageContainer.jsx` in most cases but not all (e.g. `ReviewSession.jsx` manages its own container). Breakpoint is Tailwind's default `md` (768px), unmodified. Desktop chrome beyond route links: Wordmark/logo, `StudyTimerChip`, `ExamDateChip`, `NotificationCenter`, `ProfileDropdown`, `CourseSwitcher` — all self-gating components requiring no prop changes, only relocation. `StudyMode.jsx`/`ReviewSession.jsx` confirmed the desktop nav has never hidden itself during a study session (only `NavBottomTabs.jsx` does, via `StudySessionContext`) — this sprint preserves that (no new full-screen-nav-hiding policy invented, per the brief's Study/focus-routes instruction).
+
+**Build/lint/mobile-diff gates — ✅ all green:** `npm run build` succeeds; targeted `npx eslint` on all 4 changed files clean; full-project `npm run lint` shows only pre-existing errors in files this sprint didn't touch (`Home.jsx`, `FlashcardCreate.jsx`, `NoteUpload.jsx`, `Following.jsx`, `Help.jsx`, `AuthorProfile.jsx`, `ReviewFlashcards.jsx`, `tailwind.config.js`, `vite.config.js`). `git diff` on `NavBottomTabs.jsx`/`NavMenuSheet.jsx`/`NavMobile.jsx` — empty, confirmed.
+
+**Live verification (browser, localhost dev server) — student role ✅ complete:** Home/Review/My Study/Browse Study Sets/Browse Notes active-highlighting confirmed mutually exclusive (Review no longer co-highlights with Browse Study Sets, the bug the old shared-cluster predicate would have caused); "+" launcher confirmed real `<button>`, `aria-current` null, static (non-route-reactive) class, correct membership (Upload Note/Create Study Item/Bulk Upload/Log Study Time, Create Group absent), does not highlight when on an action target route (e.g. `/dashboard/notes/new`); ProfileDropdown/NotificationCenter/ExamDateChip all functional from the rail footer, dropdowns not clipped by rail overflow; desktop 1024/1280/1440px — no overlap, no overflow; mobile 390px — top bar/bottom tabs/Menu sheet/Create sheet all pixel-identical to pre-8.8.3, zero horizontal overflow (`scrollWidth === clientWidth`, confirmed via script). Professor/admin/super_admin role checks in progress — see below.
+
+**Live verification — professor ✅, admin ✅:** professor confirmed showing only "Analytics" (Professor Analytics) in Manage, no Admin/Super Admin items; `/dashboard/professor-analytics` loads, highlights correctly, zero console errors. CourseSwitcher correctly visible (2+ teaching courses) and Review's due-count badge working. Admin confirmed showing Admin Dashboard/Admin Analytics/Manage Topics in Manage, no Professor Analytics or Super Admin items; `/admin` loads, highlights correctly, notification badge (3) working.
+
+**Live verification — super_admin ✅ (all four roles now complete):** Manage section correctly shows all 5 role-conditional items (Admin Dashboard, Admin Analytics, Manage Topics, Super Admin, SA Analytics) — the longest Tier-3 list, confirming the rail's independent `overflow-y-auto` scroll works and the footer (bell/avatar) stays pinned rather than scrolling away. `/super-admin` and `/super-admin/analytics` both load, both highlight correctly, zero console errors attributable to 8.8.3 (one stale `AuthApiError: Invalid login credentials` console entry seen during this role — confirmed pre-existing from an earlier failed login attempt during account-switching in this same browser tab, not caused by any navigation click).
+
+**Role verification — ✅ ALL FOUR ROLES LIVE VERIFIED:** student, professor, admin, super_admin all confirmed correct Tier-3/Manage visibility per the D-38 matrix, each tested by the user logging into a real account in this session's browser pane. Also spot-checked: My Contributions loads + highlights correctly with real data; "+" launcher keyboard interaction confirmed (Down arrow moves focus into the menu, standard Radix dropdown behavior).
+
+Sprint 8.8.3 is now fully complete. Do not begin Sprint 8.8.4 (mobile bottom bar rebuild) from this session.
+
+---
 
 ## Sprint 8.8.2: Navigation IA Decision Spec — ✅ APPROVED, GATE RELEASED (26/09/2026, decision/spec only, nothing implemented)
 
