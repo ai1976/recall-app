@@ -1,6 +1,30 @@
 # Changelog
 
 ---
+## [26/09/2026] feat(sprint-8.8.4): mobile bottom bar rebuild — membership + Menu reorganization
+
+### Added
+- Mobile `NavMenuSheet.jsx` gained a "Personal" heading (Progress, My Contributions, My Achievements, Report History) and a single consolidated "Manage" heading replacing three separate role-conditional sections — mirrors the desktop rail's Tier-3 Manage grouping (8.8.3), each item still individually gated by its existing role flag (`isProfessor` / `isAdmin||isSuperAdmin` / `isSuperAdmin`).
+
+### Changed
+- Mobile bottom bar (`NavBottomTabs.jsx`) membership: Dashboard → **Home** (relabel only, same route); **Progress removed** from the persistent bar; **My Study** (`/dashboard/my-cards`) promoted into its place — reuses the existing `isMyStudyActive` predicate from `navActive.js` unchanged, no new predicate added.
+- Mobile `[+]` action control: dropped its visible "Create" text label (icon-only, D-34) and its accessible name changed from "Create" to "Add or log study activity"; its sheet gained "Create"/"Log" subheadings matching the desktop launcher. Membership unchanged (Upload Note, Create Study Item, Create Group, Log Study Time — Bulk Upload still excluded from mobile).
+- `NavMenuSheet.jsx` — "Study" section renamed **"Browse"** (Browse Study Sets/Browse Notes only — temporary, retired when Discover ships in 8.8.5); Today's Reviews and My Study entries removed (now-redundant, both are persistent bottom-bar tabs); "Groups" section renamed **"Community"** ("Study Groups" relabeled "Groups"; Following's mobile-specific second entry point preserved, D-33); "My Progress" relabeled **"Progress"**; Admin's and Super Admin's "Dashboard" items relabeled "Admin Dashboard"/"Super Admin" to disambiguate now that they share one flat Manage list.
+
+- Mobile `StudyTimerChip` Stop control's tappable hit area increased to ~44×44 CSS px (`min-h-11 min-w-11`, confirmed 53.8×44px) — the visible pill is unchanged, only the invisible tap target grew. Post-report correction: the first pass judged this out of scope as a pre-existing pattern shared with `ExamDateChip`; operator review correctly pointed out the sprint's UX contract binds the ~44px floor specifically to the running timer's Stop control. `ExamDateChip.jsx` and the desktop (non-`compact`) rendering of `StudyTimerChip` were deliberately left untouched.
+
+### Fixed
+Nothing — this is navigation membership/organization, not a bug fix.
+
+### Files Changed
+- `src/components/layout/NavBottomTabs.jsx`
+- `src/components/layout/NavMenuSheet.jsx`
+- `src/components/layout/StudyTimerChip.jsx`
+
+### Note
+`NavMobile.jsx`, `src/lib/navActive.js`, and `ExamDateChip.jsx` were inspected (per this sprint's file-scope requirement) and left untouched — mobile's new "My Study" tab reused an existing desktop predicate rather than needing a new one, and `ExamDateChip` isn't the live control the timer UX contract governs. `NavDesktop.jsx`/`Navigation.jsx`/`App.jsx`/`ProfileDropdown.jsx` untouched — no desktop regression; `StudyTimerChip.jsx`'s desktop branch is a separate, byte-identical return path unaffected by the mobile touch-target fix. Live-verified against all four roles (student/professor/admin/super_admin) and the active-timer UX contract, including the corrected touch target — see the dated implementation note under D-33 in `blueprint.md`.
+
+---
 ## [26/09/2026] feat(sprint-8.8.3): desktop left rail — replaces horizontal top bar
 
 ### Added

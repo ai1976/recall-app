@@ -2,6 +2,32 @@
 
 **Last Updated:** 26/09/2026
 
+## Sprint 8.8.4: Mobile Bottom Bar Rebuild — ✅ COMPLETE (26/09/2026) — code, build/lint, responsive QA, and all-four-roles live verification all green
+
+Implements D-33 through D-38's locked mobile spec (`blueprint.md` §3.1) against the existing mobile shell — this was a membership/organization change, not a shell migration (the mobile top bar, bottom bar, `+` sheet, and Menu sheet all already existed from Sprint 7.1–7.3). Full implementation note (exact bottom-bar/`+`/Menu composition, judgment calls, timer UX verification) recorded in-place under D-33 in `blueprint.md`, per this sprint's own instruction not to duplicate it here.
+
+**Files changed: three** — `src/components/layout/NavBottomTabs.jsx`, `src/components/layout/NavMenuSheet.jsx`, and (post-report correction, see below) `src/components/layout/StudyTimerChip.jsx`. `NavMobile.jsx`, `src/lib/navActive.js`, and `ExamDateChip.jsx` were all inspected and left untouched: `NavMobile.jsx` already displayed the running `StudyTimerChip` correctly (self-gating, persistent in the sticky top bar), the new mobile "My Study" tab reused the existing desktop predicate `isMyStudyActive` from `navActive.js` verbatim, and `ExamDateChip.jsx` isn't the live control this sprint's timer UX contract governs.
+
+**Post-report correction (before commit):** the first pass left `StudyTimerChip`'s mobile tap target at its visual pill size (~54×26px), reasoning it was a pre-existing pattern shared with `ExamDateChip` and out of scope. Operator review correctly rejected that — the sprint's UX contract binds the ~44×44px floor specifically to the running timer's Stop control, not to nav chips generally. Fixed narrowly: `StudyTimerChip.jsx`'s mobile (`compact`) branch now wraps the same, visually unchanged pill in a `<button className="flex min-h-11 min-w-11 items-center justify-center">` — hit box confirmed 53.8×44 CSS px via `getBoundingClientRect`, visible chip pixel-identical. Desktop's branch is a separate, untouched return path (byte-identical, confirmed 53.8×26px, same "Active Session" rail rendering as before). Re-verified live at 375px/390px: no collision with `ExamDateChip`/notification bell, no overflow, one-tap stop still fires the unchanged "too short to log" toast, zero console errors.
+
+**Bottom bar:** Home · Review · [Add] · My Study · Menu (Progress demoted out, reachable via Menu's new Personal section). `[Add]` lost its visible "Create" text label and gained the accessible name "Add or log study activity" (D-34); its sheet now shows "Create"/"Log" subheadings matching the desktop launcher.
+
+**Menu (`NavMenuSheet.jsx`):** Today's Reviews and My Study entries removed (now-redundant persistent tabs); "Study" section renamed "Browse" (Browse Study Sets/Browse Notes only, temporary pending Discover in 8.8.5); "Groups" section renamed "Community" (Groups relabeled from "Study Groups", Following's mobile-specific second entry point preserved per D-33's exception); new "Personal" heading added over Progress (relabeled from "My Progress")/My Contributions/My Achievements/Report History; three separate role sections (Professor/Admin/Super Admin) consolidated into one "Manage" heading mirroring the 8.8.3 desktop rail, each item still individually gated by its existing role flag — Admin's and Super Admin's "Dashboard" labels were changed to "Admin Dashboard"/"Super Admin" to avoid ambiguity once merged into one flat list.
+
+**Build/lint gates — ✅ all green:** `npm run build` succeeds; targeted `npx eslint` on both changed files clean; full-project `npm run lint` shows only pre-existing errors in files this sprint didn't touch. `git status` confirms `NavDesktop.jsx`/`Navigation.jsx`/`App.jsx`/`ProfileDropdown.jsx` are all untouched — no desktop regression risk from this sprint's edits.
+
+**Live verification (browser, localhost dev server) — all four roles ✅ complete, user logged into each real account in this session's browser pane:** student — bottom bar exact 5-slot order confirmed, `aria-current="page"` correctly only on Home, `+` sheet shows Create (Upload Note/Create Study Item/Create Group) + Log (Log Study Time) with no Bulk Upload, Menu shows Browse/Create/Community/Personal with no Manage section, zero console errors. Professor — Manage section shows only "Analytics", zero console errors. Admin — Manage section shows Admin Dashboard/Admin Analytics/Manage Topics only, zero console errors. Super_admin — Manage section shows all five items (Admin Dashboard/Admin Analytics/Manage Topics/Super Admin/SA Analytics), zero console errors.
+
+**Active Offline Study Timer UX — ✅ PASS, live-verified:** started an offline session via `+` → Log Study Time; confirmed the `StudyTimerChip` remained visible and running while navigating to Home, Review, My Study, and Progress (a Menu-owned page); confirmed opening/closing both the `+` sheet and the Menu sheet never interrupted it (chip reappears immediately on close, elapsed time continuous throughout); stopped it with the existing single-tap interaction, which correctly fired the unchanged "Session too short to log" toast (sub-10-minute session, confirming the 10-minute floor and stop logic are untouched).
+
+**Desktop regression — ✅ none found:** rail spot-checked at 1280px post-implementation, Tier 1/2/3 unchanged, matches 8.8.3's shipped state exactly, zero console errors. No horizontal overflow at 375px or 390px (`scrollWidth === clientWidth`, confirmed via script).
+
+**8.8.6 carry-forward (documented, not fixed here):** desktop `ProfileDropdown.jsx` still duplicates Progress/My Contributions/My Achievements/Report History against the desktop rail's Tier-3 Personal section (found post-8.8.3, tracked in `blueprint.md`'s D-33 8.8.3 note) — out of scope for this mobile sprint, flagged again for 8.8.6.
+
+Sprint 8.8.4 is now fully complete. Do not begin Sprint 8.8.5 (Discover) from this session.
+
+---
+
 ## Sprint 8.8.3: Desktop Left Rail Rebuild — ✅ COMPLETE (26/09/2026) — code, build/lint, responsive QA, and all-four-roles live verification all green
 
 Implements D-33 through D-38's locked desktop rail spec (`blueprint.md` §3.1) — replaces the horizontal top bar with a fixed left rail. Full implementation note (exact structural change, exact temporary Browse Study Sets/Browse Notes placement, `navActive.js` changes) recorded in-place under D-33 in `blueprint.md`, per the sprint's own instruction not to duplicate it here.

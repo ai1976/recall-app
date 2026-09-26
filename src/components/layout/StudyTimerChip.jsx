@@ -74,6 +74,27 @@ export default function StudyTimerChip({ compact = false }) {
     }
   };
 
+  if (compact) {
+    // Mobile top bar (8.8.4 Active Offline Study Timer UX contract): the
+    // visible chip stays its existing size, but the tappable button grows to
+    // ~44x44 CSS px so the one-tap Stop control is comfortably usable — the
+    // pill is centered inside a larger, otherwise invisible hit area. Desktop
+    // (below) is untouched — same single-element button as before.
+    return (
+      <button
+        type="button"
+        onClick={handleTap}
+        aria-label={`Stop study timer — running ${formatFull(elapsedMs)}`}
+        className="flex min-h-11 min-w-11 items-center justify-center"
+      >
+        <span className="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100">
+          <Timer className="h-3.5 w-3.5" />
+          <span>{formatCompact(elapsedMs)}</span>
+        </span>
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -82,7 +103,7 @@ export default function StudyTimerChip({ compact = false }) {
       className="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100"
     >
       <Timer className="h-3.5 w-3.5" />
-      <span>{compact ? formatCompact(elapsedMs) : formatFull(elapsedMs)}</span>
+      <span>{formatFull(elapsedMs)}</span>
     </button>
   );
 }

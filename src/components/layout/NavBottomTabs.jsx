@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Play,
-  BarChart3,
+  BookMarked,
   Plus,
   FileText,
   CreditCard,
@@ -20,13 +20,13 @@ import {
 import { useStudySession } from '@/contexts/StudySessionContext';
 import {
   isExact,
-  underAny,
   isReviewTabActive,
+  isMyStudyActive,
 } from '@/lib/navActive';
 import NavMenuSheet from './NavMenuSheet';
 
 /**
- * NavBottomTabs — mobile bottom-tab bar (Sprint 7.1, Layout A).
+ * NavBottomTabs — mobile bottom-tab bar (Sprint 8.8.4, D-33/D-34).
  *
  * `md:hidden`, fixed to the bottom edge, full-width (rendered by Navigation.jsx
  * as a SIBLING of the top <nav>, so it is NOT inside the max-w-7xl container).
@@ -36,8 +36,10 @@ import NavMenuSheet from './NavMenuSheet';
  * useNotifications / useFriendRequestCount (that would re-introduce the Sprint
  * 7.0 over-fetch). It adds no data fetching of its own.
  *
- * Slots (exactly 5): Dashboard · Review · ＋ (create action-sheet, not a route) ·
- * Progress · Menu (opens the existing NavMobile drawer, verbatim).
+ * Slots (exactly 5, locked D-33): Home · Review · [Add] (action sheet, not a
+ * route — never aria-current, never route-active-styled) · My Study · Menu
+ * (opens the existing NavMobile drawer, verbatim). Progress was demoted out of
+ * this bar in 8.8.4 — it remains reachable via Menu.
  *
  * The tab list is data-driven — a later top-level destination (e.g. an exam
  * anchor / a new question-type route) is a one-line addition to TABS.
@@ -51,8 +53,8 @@ const ROUTE_TAB_CLASS =
 const TABS = [
   {
     type: 'route',
-    key: 'dashboard',
-    label: 'Dashboard',
+    key: 'home',
+    label: 'Home',
     Icon: LayoutDashboard,
     to: '/dashboard',
     isActive: (p) => isExact(p, '/dashboard'),
@@ -68,22 +70,28 @@ const TABS = [
   { type: 'create', key: 'create' },
   {
     type: 'route',
-    key: 'progress',
-    label: 'Progress',
-    Icon: BarChart3,
-    to: '/dashboard/progress',
-    isActive: (p) => underAny(p, ['/dashboard/progress']),
+    key: 'my-study',
+    label: 'My Study',
+    Icon: BookMarked,
+    to: '/dashboard/my-cards',
+    isActive: isMyStudyActive,
   },
   { type: 'menu', key: 'menu' },
 ];
 
 /**
- * Centre ＋ — opens a small bottom action-sheet: content-creation actions
- * (Upload Note / Create Study Item / Create Group), then a divider, then
- * "Log Study Time" — which isn't content creation, so it's visually separated
- * (Sprint 7.3-C). Bulk Upload is deliberately absent here for ALL roles
- * (Sprint 7.3-D) — CSV import isn't a phone workflow; it stays on the desktop
- * Create dropdown only.
+ * Centre [Add] — action trigger, not a destination (D-34). Opens a small
+ * bottom action-sheet grouped under the same two subheadings as the desktop
+ * global action control: "Create" (Upload Note / Create Study Item / Create
+ * Group) and "Log" (Log Study Time). Bulk Upload is deliberately absent here
+ * for ALL roles (locked, D-34) — CSV import isn't a phone workflow; it stays
+ * reachable via NavMenuSheet.jsx.
+ *
+ * Icon-only control, no visible text label (D-34 — no single verb honestly
+ * covers all four members). Accessible name: "Add or log study activity".
+ * Never a <Link>/<NavLink>, never aria-current, never route-active styled —
+ * the border/text state below reflects only the sheet's own open/closed
+ * state, not the current route.
  */
 function CreateAction() {
   const [open, setOpen] = useState(false);
@@ -105,7 +113,7 @@ function CreateAction() {
       <SheetTrigger asChild>
         <button
           type="button"
-          aria-label="Create"
+          aria-label="Add or log study activity"
           className={`${ROUTE_TAB_CLASS} ${
             open ? 'border-rv-navy text-rv-navy' : 'border-transparent text-rv-ink-400'
           }`}
@@ -113,7 +121,6 @@ function CreateAction() {
           <span className="flex h-7 w-7 items-center justify-center rounded-rec bg-rv-navy text-white">
             <Plus className="h-5 w-5" />
           </span>
-          <span>Create</span>
         </button>
       </SheetTrigger>
 
@@ -121,13 +128,14 @@ function CreateAction() {
         side="bottom"
         className="rounded-t-obj border-rv-border bg-rv-bg-1 p-0 font-plex text-rv-ink-900 pb-[env(safe-area-inset-bottom)]"
       >
-        <SheetTitle className="px-5 pt-5 pb-2 text-sm font-semibold text-rv-ink-900">
-          Create
-        </SheetTitle>
+        <SheetTitle className="sr-only">Add or log study activity</SheetTitle>
         <SheetDescription className="sr-only">
           Choose what to create: a note, a flashcard, a study group, or log study time.
         </SheetDescription>
         <div className="pb-3">
+          <p className="px-5 pt-5 pb-1 text-xs font-semibold uppercase tracking-wide text-rv-ink-400">
+            Create
+          </p>
           {createItems.map((item) => {
             const ItemIcon = item.Icon;
             return (
@@ -141,7 +149,9 @@ function CreateAction() {
               </button>
             );
           })}
-          <div className="my-1 border-t border-rv-border" />
+          <p className="px-5 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-rv-ink-400">
+            Log
+          </p>
           <button
             onClick={() => go('/dashboard/study-time')}
             className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-rv-bg-2"

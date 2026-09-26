@@ -18,9 +18,7 @@ import {
   Settings,
   GraduationCap,
   Rss,
-  Play,
   Flag,
-  BookMarked,
 } from 'lucide-react';
 import { useCourseContext } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
@@ -35,13 +33,21 @@ import {
 /**
  * NavMenuSheet — the mobile "everything else" drawer.
  *
- * Sprint 7.1: this is the SAME slide-in drawer that used to live inside
- * NavMobile.jsx (hamburger). Layout A moves its trigger out of the top bar and
- * into the bottom-tab bar's 5th slot ("Menu"). The drawer *contents* are
- * unchanged — only the trigger location moved. NavBottomTabs renders this.
+ * Sprint 8.8.4 (D-33/D-37/D-38) rebuilt this drawer's contents: Today's
+ * Reviews and My Study were removed (both are now persistent bottom-bar
+ * destinations — Review, My Study); Browse Study Sets/Browse Notes moved into
+ * a temporary "Browse" group (D-36, retired when Discover ships in 8.8.5);
+ * the Groups section was renamed "Community" and keeps Following's
+ * mobile-specific second entry point (D-33's Following exception) alongside
+ * Groups; Progress/My Contributions/Achievements/Report History gained an
+ * explicit "Personal" heading; the three separate role-conditional sections
+ * were consolidated into one "Manage" heading, mirroring the desktop rail
+ * (8.8.3), each item still individually gated by its existing role flag.
  *
  * The trigger renders as a bottom-bar tab (icon + label, ≥48px target); it shows
- * the active treatment while the sheet is open.
+ * the active treatment while the sheet is open. Per D-33, it does not receive
+ * aria-current — its accessible state is the button/sheet relationship
+ * (Radix Dialog.Trigger already wires aria-expanded/aria-controls).
  */
 export default function NavMenuSheet({
   user,
@@ -183,20 +189,16 @@ export default function NavMenuSheet({
                   </>
                 )}
 
-                {/* Study Section */}
+                {/* Browse Section — temporary, Discover-dependency (D-36).
+                    Today's Reviews and My Study were removed here in 8.8.4:
+                    both are now persistent bottom-bar destinations (Review,
+                    My Study), so the Menu copies were redundant (D-33). */}
                 <div className="px-4 py-2 mt-2">
                   <p className="text-xs font-semibold text-rv-ink-400 uppercase tracking-wider flex items-center gap-2">
                     <BookOpen className="h-4 w-4" />
-                    Study
+                    Browse
                   </p>
                 </div>
-                <button
-                  onClick={() => handleNavClick('/dashboard/review-session')}
-                  className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
-                >
-                  <Play className="h-4 w-4 text-rv-ink-400" />
-                  <span className="text-sm text-rv-ink-600">Today's Reviews</span>
-                </button>
                 <button
                   onClick={() => handleNavClick('/dashboard/review-flashcards')}
                   className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
@@ -210,13 +212,6 @@ export default function NavMenuSheet({
                 >
                   <FileText className="h-4 w-4 text-rv-ink-400" />
                   <span className="text-sm text-rv-ink-600">Browse Notes</span>
-                </button>
-                <button
-                  onClick={() => handleNavClick('/dashboard/my-cards')}
-                  className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
-                >
-                  <BookMarked className="h-4 w-4 text-rv-ink-400" />
-                  <span className="text-sm text-rv-ink-600">My Study</span>
                 </button>
 
                 {/* Create Section */}
@@ -248,11 +243,15 @@ export default function NavMenuSheet({
                   <span className="text-sm text-rv-ink-600">Bulk Upload</span>
                 </button>
 
-                {/* Groups Section */}
+                {/* Community Section — renamed from "Groups" in 8.8.4 (D-33).
+                    Following keeps its mobile-specific second entry point
+                    here (alongside NotificationCenter's bell) — the D-33
+                    exception is explicit that this is not a duplicate to
+                    remove, unlike the Groups/Study Groups label collision. */}
                 <div className="px-4 py-2 mt-2">
                   <p className="text-xs font-semibold text-rv-ink-400 uppercase tracking-wider flex items-center gap-2">
                     <Network className="h-4 w-4" />
-                    Groups
+                    Community
                   </p>
                 </div>
                 <button
@@ -260,7 +259,7 @@ export default function NavMenuSheet({
                   className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
                 >
                   <Network className="h-4 w-4 text-rv-ink-400" />
-                  <span className="text-sm text-rv-ink-600">Study Groups</span>
+                  <span className="text-sm text-rv-ink-600">Groups</span>
                 </button>
                 <button
                   onClick={() => handleNavClick('/dashboard/following')}
@@ -273,13 +272,19 @@ export default function NavMenuSheet({
                 {/* Divider */}
                 <div className="my-2 border-t border-rv-border" />
 
-                {/* Profile Links */}
+                {/* Personal Section */}
+                <div className="px-4 py-2">
+                  <p className="text-xs font-semibold text-rv-ink-400 uppercase tracking-wider flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Personal
+                  </p>
+                </div>
                 <button
                   onClick={() => handleNavClick('/dashboard/progress')}
                   className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-rv-bg-2"
                 >
                   <BarChart3 className="h-5 w-5 text-rv-ink-400" />
-                  <span className="text-sm font-medium text-rv-ink-900">My Progress</span>
+                  <span className="text-sm font-medium text-rv-ink-900">Progress</span>
                 </button>
                 <button
                   onClick={() => handleNavClick('/dashboard/my-contributions')}
@@ -317,49 +322,51 @@ export default function NavMenuSheet({
                   <span className="text-sm font-medium text-rv-ink-900">Settings</span>
                 </button>
 
-                {/* Professor Analytics — professor role only */}
-                {isProfessor && (
+                {/* Manage — one consolidated role-conditional section (8.8.4,
+                    D-33/D-38), mirroring the desktop rail's single "Manage"
+                    Tier-3 grouping (8.8.3) instead of three separate headed
+                    sections. Visibility only — each item still individually
+                    gated by its existing role flag; no change to route
+                    guards, RLS, or in-component access checks. Labels match
+                    the desktop rail's exactly (e.g. "Admin Dashboard" /
+                    "Super Admin" rather than a bare "Dashboard" repeated
+                    across roles) since two items sharing one label would be
+                    ambiguous once merged into a single flat section. */}
+                {(isProfessor || isAdmin || isSuperAdmin) && (
                   <>
                     <div className="my-2 border-t border-rv-border" />
                     <div className="px-4 py-2">
                       <p className="text-xs font-semibold text-rv-ink-400 uppercase tracking-wider flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4" />
-                        Professor
+                        <Shield className="h-4 w-4" />
+                        Manage
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleNavClick('/dashboard/professor-analytics')}
-                      className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
-                    >
-                      <BarChart3 className="h-4 w-4 text-rv-ink-400" />
-                      <span className="text-sm text-rv-ink-600">Analytics</span>
-                    </button>
                   </>
                 )}
-
-                {/* Admin: Analytics + Manage Topics */}
+                {isProfessor && (
+                  <button
+                    onClick={() => handleNavClick('/dashboard/professor-analytics')}
+                    className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
+                  >
+                    <BarChart3 className="h-4 w-4 text-rv-ink-400" />
+                    <span className="text-sm text-rv-ink-600">Analytics</span>
+                  </button>
+                )}
                 {(isAdmin || isSuperAdmin) && (
                   <>
-                    <div className="my-2 border-t border-rv-border" />
-                    <div className="px-4 py-2">
-                      <p className="text-xs font-semibold text-rv-ink-400 uppercase tracking-wider flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4" />
-                        Admin
-                      </p>
-                    </div>
                     <button
                       onClick={() => handleNavClick('/admin')}
                       className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
                     >
                       <Shield className="h-4 w-4 text-rv-ink-400" />
-                      <span className="text-sm text-rv-ink-600">Dashboard</span>
+                      <span className="text-sm text-rv-ink-600">Admin Dashboard</span>
                     </button>
                     <button
                       onClick={() => handleNavClick('/admin/analytics')}
                       className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
                     >
                       <BarChart3 className="h-4 w-4 text-rv-ink-400" />
-                      <span className="text-sm text-rv-ink-600">Analytics</span>
+                      <span className="text-sm text-rv-ink-600">Admin Analytics</span>
                     </button>
                     <button
                       onClick={() => handleNavClick('/admin/bulk-upload-topics')}
@@ -370,23 +377,14 @@ export default function NavMenuSheet({
                     </button>
                   </>
                 )}
-
-                {/* Super Admin */}
                 {isSuperAdmin && (
                   <>
-                    <div className="my-2 border-t border-rv-border" />
-                    <div className="px-4 py-2">
-                      <p className="text-xs font-semibold text-rv-ink-400 uppercase tracking-wider flex items-center gap-2">
-                        <Shield className="h-4 w-4" />
-                        Super Admin
-                      </p>
-                    </div>
                     <button
                       onClick={() => handleNavClick('/super-admin')}
                       className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
                     >
                       <Shield className="h-4 w-4 text-rv-amber" />
-                      <span className="text-sm text-rv-ink-600">Dashboard</span>
+                      <span className="text-sm text-rv-ink-600">Super Admin</span>
                     </button>
                     <button
                       onClick={() => handleNavClick('/super-admin/analytics')}
