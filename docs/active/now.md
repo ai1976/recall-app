@@ -1,6 +1,16 @@
 # NOW - Current Development Status
 
-**Last Updated:** 26/09/2026
+**Last Updated:** 27/09/2026
+
+## Sprint 8.8.4a: Review-save production hotfix — 🟡 IN PROGRESS (27/09/2026) — code fixed + SQL migration prepared, NEITHER deployed yet
+
+Student-reported production bug (Sarang Gore): grading a due card via the everyday Review flow threw "Failed to save progress" on every attempt. Root cause and fix are two independent parts — full detail in `docs/tracking/bugs.md` under this sprint and `docs/active/blueprint.md` D-32's correction note. Do not begin Sprint 8.8.5 until both parts below are deployed and verified.
+
+**Part 1 — SQL (not yet run):** `ReviewSession.jsx` sources due cards from `get_study_queue`, which has never checked `my_cards_enrollment`; Sprint 8.7.10's `apply_review()` enrollment guard started rejecting grades for any not-own card whose backfill never ran (8.7.10's backfill only covered own-authored cards). Live-confirmed: 5,813 currently-due not-own review rows across 103 of ~161 active students affected. Fix: `docs/database/sprint8.8.4a/01_DIAGNOSTIC_pre_migration_control_totals.sql` → `02_DATA_backfill_all_cards_enrollment.sql` → `03_TEST_post_migration_verify.sql`, widening 8.7.10's own already-agreed genuine-review predicate to all cards regardless of authorship. **Run this in Supabase before relying on the frontend fix being sufficient on its own** — the frontend fix stops silent advancement on failure, but students still can't save until the enrollment gap itself is closed.
+
+**Part 2 — Frontend (code changed, lint/build clean, NOT live-verified):** `src/pages/dashboard/Study/StudyMode.jsx` — `handleRating` and the three MCQ/match/mcq_multi wrong-answer "Continue" buttons previously advanced to the next card unconditionally, even when `apply_review` failed (the exact bug the student's screenshot caught — error toast for the previous card, next card already showing). `submitReview` now returns a success boolean; advancing is gated on it; a failed auto-submitted wrong-answer grade now shows "Retry Save" instead of a silently-advancing "Continue".
+
+**Still needed before this sprint can close:** run the SQL migration and its post-checks; regrade one of Sarang's actual due cards through the live Review flow and confirm via a fresh query; live-verify the frontend retry behavior in a browser against both a real server rejection and a network failure.
 
 ## Sprint 8.8.3a: Desktop Utility Strip Refinement — ✅ COMPLETE (26/09/2026) — code, build/lint, responsive QA green; live-verified for one role (super_admin) per this sprint's own gate
 

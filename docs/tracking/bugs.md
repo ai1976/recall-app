@@ -1,5 +1,17 @@
 # Bug Tracking
 
+## Sprint 8.8.4a — 26-27/09/2026 (Review-save production hotfix)
+
+### [26/09/2026] Grading any not-own due card via the Review flow rejected with "Failed to save progress" — 🟡 CODE FIXED, SQL migration prepared, NOT YET DEPLOYED
+- **Reported:** student Sarang Gore (uuid `e34acf2c-883d-41fa-a0e3-1d4a6704725e`) — "Whenever I review flashcards and click on easy, medium or hard option, it is showing this error." Screenshot showed the error toast attributed to the *previous* card while the *next* card was already on screen.
+- **Root cause (two independent bugs, confirmed live, not assumed):**
+  1. **Backend gap.** `ReviewSession.jsx` (the everyday Review flow) fetches due cards from `get_study_queue` alone — that function has never checked `my_cards_enrollment`, only an active/due `reviews` row. Sprint 8.7.10 added an enrollment requirement inside `apply_review()` (the grading write path) but its backfill only covered own-authored cards. Every not-own card with genuine pre-8.7.10 review history was left without an enrollment row, so grading it via Review has been rejected since 25/09/2026. Live-confirmed scope: 5,813 currently-due not-own `reviews` rows across 103 of ~161 active students missing enrollment (see `docs/active/blueprint.md` D-32 correction note).
+  2. **Frontend bug, independent of #1.** `StudyMode.jsx`'s `handleRating` (and the three MCQ/match/mcq_multi wrong-answer "Continue" buttons) called `advanceCard()` unconditionally after `submitReview`, which swallowed its own errors and never reported success/failure. A rejected or network-failed `apply_review` call still advanced past the card, with only a toast as evidence — this is exactly what the student's screenshot caught.
+- **Fix:**
+  - SQL: `docs/database/sprint8.8.4a/01_DIAGNOSTIC_pre_migration_control_totals.sql` → `02_DATA_backfill_all_cards_enrollment.sql` → `03_TEST_post_migration_verify.sql`. Widens 8.7.10's own already-agreed backfill predicate (`rung IS NOT NULL OR EXISTS review_events`, i.e. its final state after `08_CLEANUP`) to all cards regardless of authorship. Insert-only, `ON CONFLICT DO NOTHING` — never touches `reviews`, never reactivates an existing (e.g. deliberately removed) enrollment row.
+  - Frontend: `src/pages/dashboard/Study/StudyMode.jsx` — `submitReview` now returns `true`/`false` instead of swallowing the outcome; `handleRating` only calls `advanceCard()` on success (plus a re-entrancy guard against a double-tap firing two concurrent grades); the three wrong-answer "Continue" buttons now check a new `gradeSaveFailed` state and render "Retry Save" instead of advancing when the auto-submitted 'hard' grade failed to persist.
+- **Status:** Code change lint/build-clean, NOT live-browser-verified yet. SQL migration written, NOT yet run in Supabase. Do not consider this closed until: (a) the SQL is run and `03_TEST` shows zero remaining gaps, (b) Sarang's actual due card is regraded through the live Review flow and a fresh query confirms the persisted rung/next_review_date change, (c) the frontend fix is live-verified in a browser against both an intentional server rejection and a real network failure.
+
 ## Sprint 8.7.9 — 24/09/2026 (Rich Content / Scenario Rendering)
 
 ### [24/09/2026] Bulk-upload silently dropped `scenario` on `theory` rows — 🟡 FIXED, not yet live-verified

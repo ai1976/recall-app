@@ -1,6 +1,21 @@
 # Changelog
 
 ---
+## [27/09/2026] fix(sprint-8.8.4a): review-save "Failed to save progress" — code fixed, SQL migration prepared (NEITHER deployed yet)
+
+### Fixed
+- `StudyMode.jsx` — grading a card no longer advances to the next card unless the save actually succeeded. `submitReview` now returns a success boolean instead of swallowing the RPC outcome; `handleRating` (the main flashcard/theory/MCQ-correct grading path) only calls `advanceCard()` when `submitReview` returns true, and gains a re-entrancy guard against a double-tap firing two concurrent `apply_review` calls. The three wrong-answer auto-grade paths (mcq/match/mcq_multi "Continue" after a miss) now await their `submitReview` call and swap "Continue" for "Retry Save" if it failed, instead of always advancing regardless of outcome. This was the direct cause of a student-reported bug where an error toast named the card that had just been "answered" while the next card was already showing.
+
+### Prepared, not yet run
+- `docs/database/sprint8.8.4a/01_DIAGNOSTIC_pre_migration_control_totals.sql`, `02_DATA_backfill_all_cards_enrollment.sql`, `03_TEST_post_migration_verify.sql` — widens Sprint 8.7.10's own-card-only `my_cards_enrollment` backfill to all cards regardless of authorship (same genuine-review predicate 8.7.10 already settled on: `rung IS NOT NULL OR EXISTS review_events`). Root cause: `ReviewSession.jsx`'s due-card fetch (`get_study_queue`) has never checked enrollment, but 8.7.10's `apply_review()` guard started requiring it — every not-own card's pre-existing review history was left unenrolled, rejecting every grade of it since 25/09/2026. Live-confirmed: 5,813 currently-due not-own review rows across 103 of ~161 active students affected. See `docs/tracking/bugs.md` and `docs/active/blueprint.md` D-32's correction note for full detail.
+
+### Files Changed
+- `src/pages/dashboard/Study/StudyMode.jsx`
+- `docs/database/sprint8.8.4a/01_DIAGNOSTIC_pre_migration_control_totals.sql` (new)
+- `docs/database/sprint8.8.4a/02_DATA_backfill_all_cards_enrollment.sql` (new)
+- `docs/database/sprint8.8.4a/03_TEST_post_migration_verify.sql` (new)
+
+---
 ## [26/09/2026] fix(sprint-8.8.4): relabel mobile "My Achievements" to "Achievements"
 
 ### Fixed

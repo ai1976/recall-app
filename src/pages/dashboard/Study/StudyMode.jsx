@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -109,6 +109,15 @@ export default function StudyMode({
   const [mcqMultiSelected, setMcqMultiSelected] = useState([]);
   const [mcqMultiRevealed, setMcqMultiRevealed] = useState(false);
   const [mcqMultiIsCorrect, setMcqMultiIsCorrect] = useState(null);
+  // Sprint 8.8.4a — true once an auto-submitted 'hard' grade (the wrong-answer
+  // reveal path: mcq/match/mcq_multi) has failed to save. Continue renders as
+  // Retry Save instead of advancing while this is true, so a rejected write can
+  // never be silently skipped past. Reset on every card change, same as the
+  // other per-card interaction state above.
+  const [gradeSaveFailed, setGradeSaveFailed] = useState(false);
+  // Guards against a double-tap firing two concurrent apply_review calls for
+  // the same grade — no visual disabled state needed, just a re-entrancy lock.
+  const isSubmittingGradeRef = useRef(false);
   useEffect(() => {
     setMcqSelectedIndex(null);
     setMcqIsCorrect(null);
@@ -122,6 +131,7 @@ export default function StudyMode({
     setMcqMultiSelected([]);
     setMcqMultiRevealed(false);
     setMcqMultiIsCorrect(null);
+    setGradeSaveFailed(false);
   }, [currentIndex]);
   const [loading, setLoading] = useState(true);
   // Post-forward animation gate — true briefly between a grade submit and the
@@ -450,6 +460,10 @@ export default function StudyMode({
   // selectedAnswer (Sprint 8.6c) is attempt evidence — only mcq_multi ever
   // passes a non-null value here; every other question_type leaves it null,
   // and apply_review stores whatever it's given in review_events.selected_answer.
+  //
+  // Sprint 8.8.4a — returns true/false instead of swallowing the outcome.
+  // Every caller must gate advancing the card on this: a failed/rejected
+  // apply_review must never present as if the grade went through.
   const submitReview = async (quality, isCorrect = null, selectedAnswer = null) => {
     const currentCard = flashcards[currentIndex];
 
@@ -460,7 +474,7 @@ export default function StudyMode({
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) return false;
 
       // The SRS ladder governs every transition server-side. No client-side
       // interval math, no direct reviews write — apply_review does the
@@ -489,6 +503,7 @@ export default function StudyMode({
               ? `Next review in ${intervalDays} day${intervalDays === 1 ? '' : 's'}`
               : "Review scheduled."),
       });
+      return true;
 
     } catch (error) {
       console.error('Error saving review:', error);
@@ -497,6 +512,7 @@ export default function StudyMode({
         description: "Failed to save progress.",
         variant: "destructive"
       });
+      return false;
     }
   };
 
@@ -524,18 +540,37 @@ export default function StudyMode({
 
   // Flashcard path (unchanged) + MCQ-correct path: the grade tap is both the
   // apply_review call and the forward-advance trigger.
+  //
+  // Sprint 8.8.4a — advanceCard() only fires when submitReview actually
+  // succeeded (previously it always ran, so a rejected/failed apply_review
+  // still advanced past the card with only a toast to show for it — the exact
+  // bug a student's screenshot caught: the error toast named the card that had
+  // just been "answered" while the next card was already on screen). The ref
+  // guard blocks a second concurrent apply_review call if the grade buttons
+  // are tapped again before the first request resolves.
   const handleRating = async (quality, isCorrect = null, selectedAnswer = null) => {
-    await submitReview(quality, isCorrect, selectedAnswer);
-    advanceCard();
+    if (isSubmittingGradeRef.current) return;
+    isSubmittingGradeRef.current = true;
+    try {
+      const saved = await submitReview(quality, isCorrect, selectedAnswer);
+      if (saved) advanceCard();
+    } finally {
+      isSubmittingGradeRef.current = false;
+    }
   };
 
   // MCQ wrong-answer path: the verdict is already determined (no student
   // input needed for the rating), so apply_review fires immediately on
   // reveal — advancing waits for the student to tap Continue.
-  const handleMcqWrong = (tappedIndex) => {
+  //
+  // Sprint 8.8.4a — awaited now (was fire-and-forget) so a failed save can
+  // set gradeSaveFailed and swap Continue for Retry Save instead of letting
+  // the student tap past a grade that was never persisted.
+  const handleMcqWrong = async (tappedIndex) => {
     setMcqSelectedIndex(tappedIndex);
     setMcqIsCorrect(false);
-    submitReview('hard', false);
+    const saved = await submitReview('hard', false);
+    setGradeSaveFailed(!saved);
   };
 
   const handleMcqSelect = (optIndex) => {
@@ -555,7 +590,7 @@ export default function StudyMode({
   // the verdict — an explicit Submit reveals every row's correctness at once.
   // Overall verdict is all-or-nothing (every row must match); a wrong set
   // submits 'hard' immediately on reveal, same hybrid-grading moment as MCQ.
-  const handleMatchSubmit = () => {
+  const handleMatchSubmit = async () => {
     const currentCard = flashcards[currentIndex];
     const correctMap = currentCard.options?.correct || {};
     const left = currentCard.options?.left || [];
@@ -563,7 +598,8 @@ export default function StudyMode({
     setMatchRevealed(true);
     setMatchIsCorrect(allCorrect);
     if (!allCorrect) {
-      submitReview('hard', false);
+      const saved = await submitReview('hard', false);
+      setGradeSaveFailed(!saved);
     }
   };
 
@@ -585,7 +621,7 @@ export default function StudyMode({
   // as raw strings), same reasoning as match_the_following's all-or-nothing
   // verdict. The student's raw selection is passed through as attempt
   // evidence regardless of verdict (review_events.selected_answer).
-  const handleMcqMultiSubmit = () => {
+  const handleMcqMultiSubmit = async () => {
     const currentCard = flashcards[currentIndex];
     const correctSet = new Set(parseMultiAnswer(currentCard.correct_answer));
     const selectedSet = new Set(mcqMultiSelected);
@@ -595,7 +631,8 @@ export default function StudyMode({
     setMcqMultiRevealed(true);
     setMcqMultiIsCorrect(isCorrect);
     if (!isCorrect) {
-      submitReview('hard', false, mcqMultiSelected);
+      const saved = await submitReview('hard', false, mcqMultiSelected);
+      setGradeSaveFailed(!saved);
     }
   };
 
@@ -1336,16 +1373,34 @@ export default function StudyMode({
                     </div>
                   ) : matchIsCorrect === false ? (
                     <div className="mt-6 border-t border-rv-border pt-6 text-center">
-                      <Button
-                        onClick={advanceCard}
-                        size="lg"
-                        className="gap-2 px-6 sm:px-8 min-h-[48px]"
-                      >
-                        Continue
-                      </Button>
-                      <p className="text-sm text-rv-ink-400 mt-3">
-                        Marked as Hard — you'll see this again soon
-                      </p>
+                      {gradeSaveFailed ? (
+                        <>
+                          <Button
+                            onClick={handleMatchSubmit}
+                            size="lg"
+                            variant="destructive"
+                            className="gap-2 px-6 sm:px-8 min-h-[48px]"
+                          >
+                            Retry Save
+                          </Button>
+                          <p className="text-sm text-rv-danger mt-3">
+                            Couldn't save your progress — tap to retry
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            onClick={advanceCard}
+                            size="lg"
+                            className="gap-2 px-6 sm:px-8 min-h-[48px]"
+                          >
+                            Continue
+                          </Button>
+                          <p className="text-sm text-rv-ink-400 mt-3">
+                            Marked as Hard — you'll see this again soon
+                          </p>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="mt-6 border-t border-rv-border pt-6">
@@ -1437,16 +1492,34 @@ export default function StudyMode({
                     </div>
                   ) : mcqMultiIsCorrect === false ? (
                     <div className="mt-6 border-t border-rv-border pt-6 text-center">
-                      <Button
-                        onClick={advanceCard}
-                        size="lg"
-                        className="gap-2 px-6 sm:px-8 min-h-[48px]"
-                      >
-                        Continue
-                      </Button>
-                      <p className="text-sm text-rv-ink-400 mt-3">
-                        Marked as Hard — you'll see this again soon
-                      </p>
+                      {gradeSaveFailed ? (
+                        <>
+                          <Button
+                            onClick={handleMcqMultiSubmit}
+                            size="lg"
+                            variant="destructive"
+                            className="gap-2 px-6 sm:px-8 min-h-[48px]"
+                          >
+                            Retry Save
+                          </Button>
+                          <p className="text-sm text-rv-danger mt-3">
+                            Couldn't save your progress — tap to retry
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            onClick={advanceCard}
+                            size="lg"
+                            className="gap-2 px-6 sm:px-8 min-h-[48px]"
+                          >
+                            Continue
+                          </Button>
+                          <p className="text-sm text-rv-ink-400 mt-3">
+                            Marked as Hard — you'll see this again soon
+                          </p>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="mt-6 border-t border-rv-border pt-6">
@@ -1562,16 +1635,34 @@ export default function StudyMode({
                     </div>
                   ) : mcqIsCorrect === false ? (
                     <div className="mt-6 border-t border-rv-border pt-6 text-center">
-                      <Button
-                        onClick={advanceCard}
-                        size="lg"
-                        className="gap-2 px-6 sm:px-8 min-h-[48px]"
-                      >
-                        Continue
-                      </Button>
-                      <p className="text-sm text-rv-ink-400 mt-3">
-                        Marked as Hard — you'll see this again soon
-                      </p>
+                      {gradeSaveFailed ? (
+                        <>
+                          <Button
+                            onClick={() => handleMcqWrong(mcqSelectedIndex)}
+                            size="lg"
+                            variant="destructive"
+                            className="gap-2 px-6 sm:px-8 min-h-[48px]"
+                          >
+                            Retry Save
+                          </Button>
+                          <p className="text-sm text-rv-danger mt-3">
+                            Couldn't save your progress — tap to retry
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            onClick={advanceCard}
+                            size="lg"
+                            className="gap-2 px-6 sm:px-8 min-h-[48px]"
+                          >
+                            Continue
+                          </Button>
+                          <p className="text-sm text-rv-ink-400 mt-3">
+                            Marked as Hard — you'll see this again soon
+                          </p>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="mt-6 border-t border-rv-border pt-6">
