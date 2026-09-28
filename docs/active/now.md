@@ -2,6 +2,34 @@
 
 **Last Updated:** 28/09/2026
 
+## Sprint 8.8.5a: Browse / My Study / Review State Consistency — ✅ COMPLETE (28/09/2026) — decision-gated, SQL-first, build/lint/test green, substantially live-verified with three items carried forward as explicit verification debt
+
+Full decision record under new **D-41** (workflow) and **D-42** (mobile nav, supersedes D-33's five-slot lock) in `blueprint.md`, including the Step 0 correction to `StudyMode.jsx`'s real New-card algorithm and the `subject`/`topic` param-by-name (not id) confirmation caught before it shipped.
+
+**Browse/Practice unification (D-41 Area A):** the entire non-control Browse/Discover deck-tile surface and the explicit Practice button both open Practice Mode (`role="button"`/keyboard-activatable, guarded so nested controls' own key handling isn't double-fired); the old Browse entry into Study Mode is retired. Tier-B's now-inaccurate "Preview: first 10 of N" copy was removed rather than left stale.
+
+**Enrollment-aware Browse counts (Areas B–E):** `get_browsable_decks` v9 (additive, `added_count` scoped to the same type-filtered universe as `matching_card_count`) — SQL-first, deployed and confirmed before frontend wiring. Deck tiles now show "N added · M remaining". `PracticeMode.jsx` filters to remaining-only candidates at fetch time (existing enrolled-badge UI kept live for the mid-session add case); zero-remaining state distinguishes "genuinely empty" from "everything already added."
+
+**My Study made actionable (Area F):** "Study"/"Study All" buttons on Topic/Subject headers, reusing `StudyMode.jsx`'s existing own-fetch mechanism (`get_my_cards` narrowed by params, then due-or-never-reviewed) — zero new RPC, zero new grading logic. Stale empty-state CTA retargeted to `/dashboard/discover`.
+
+**Review enrollment-consistency fix (Area G, new mid-approval addition):** `ReviewSession.jsx` now fetches `get_my_cards` in parallel with `get_study_queue` and filters the due-queue result to the enrolled-or-own id set before display — closes the gap where a card removed from My Study could still surface in Review and fail only at grade time. `get_study_queue` and `apply_review` both left byte-identical.
+
+**Desktop/mobile nav (Areas H, D-42):** desktop rail reordered Home→Discover→My Study→Review. Mobile bottom bar restructured to a six-control bar — Home | Discover | My Study | + | Review | Menu — superseding D-33's five-slot lock at the operator's explicit direction; icon-only with real `aria-label`s, live-measured at 63×56px (375px) / 65×56px (390px), both clearing the 44×44 floor.
+
+**Post-approval polish (operator requests mid-session):** Discover's icon changed from Compass to a plain magnifying glass everywhere it represents that destination; the desktop rail-footer's profile trigger now shows the user's name next to the avatar instead of leaving that space blank.
+
+**SQL verification:** Phase 2 diagnostic passed on all 22 real decks tested (`docs/database/sprint8.8.5a/00_DIAGNOSTIC_practice_cards_completeness.sql`) — `get_practice_cards` confirmed to return the complete candidate set, non-trivially. Phase 3 `get_browsable_decks` v9 deployed and confirmed.
+
+**Live verification:** whole-tile→Practice, added/remaining counts (live 0→1/16→15 on a real deck), Practice excluding a just-enrolled card, and — the critical proof — a genuinely never-before-graded real card taken end to end: Practice → Add to My Study → My Study "1 New" → Study → StudyMode surfaced it → graded → `apply_review` succeeded live → count flipped to Active. Desktop rail order and mobile six-control measurements both confirmed live.
+
+**Carried forward as explicit verification debt, not blockers (auditor-confirmed):** removed-historical-due-card → Review exclusion is SOURCE-VERIFIED only (no due-then-removed card was available this session, and fabricating one would mean mutating production SRS timestamps); skip-return is SOURCE/DB-CONTRACT VERIFIED only (no live time control); student/professor/admin role sweep was NOT live-verified this session (only the operator's own super_admin session was available).
+
+**Build/lint/test — ✅ all green:** `npm run build` clean; targeted `npx eslint` on all 11 changed source files clean (one pre-existing, unrelated `Help.jsx` warning confirmed via `git stash`); `npm test` 18/18 pre-existing tests pass.
+
+Commit/push gate RELEASED by the operator. Do not begin Sprint 8.8.6 until this commit is pushed.
+
+---
+
 ## Sprint 8.8.5: Discover / Search Consolidation + Community Navigation Decision — ✅ PARTS A + B COMPLETE (28/09/2026) — code, build/lint, responsive QA, and all-four-roles live verification all green
 
 Part A (Discover) and Part B (Community navigation) are both code-complete, built, linted, and live-verified across all four roles (student, professor, admin, super_admin — each via the operator logging into a real account in-session). Part B revises D-33's earlier "no promotion" Community disposition — proposed, operator-approved, and implemented in this same session; full record under new D-40 in `blueprint.md`. Full Discover implementation note under D-36.

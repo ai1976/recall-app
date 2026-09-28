@@ -37,7 +37,6 @@ import {
   Flag,
   AlertTriangle,
   Timer,
-  Compass,
 } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
 import { useRole } from '@/hooks/useRole';
@@ -51,7 +50,7 @@ const ICON_MAP = {
   FileText, CreditCard, Eye, Folder, ThumbsUp, Layers, BarChart3, Pause,
   UserPlus, User, Lock, Plus, Share2, Settings, Trophy, Bell, Search,
   HelpCircle, ChevronDown, ChevronRight,
-  GraduationCap, Shield, Flag, AlertTriangle, Timer, Compass,
+  GraduationCap, Shield, Flag, AlertTriangle, Timer,
 };
 
 function DynamicIcon({ name, className }) {

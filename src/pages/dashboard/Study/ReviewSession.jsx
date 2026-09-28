@@ -36,13 +36,30 @@ export default function ReviewSession() {
       // Single source of truth for the due queue -- get_study_queue RPC.
       // Course-aware, concept-cards excluded, status / skip_until / next_review_date
       // are all resolved server-side in the user's timezone. No client-side date math.
-      const { data: queue, error: queueError } = await supabase
-        .rpc('get_study_queue', { p_user_id: user.id });
+      //
+      // Sprint 8.8.5a, D-41 Area G: get_study_queue is enrollment-blind by design (frozen contract,
+      // unmodified here) -- it can return a card that carries a historical due `reviews` row but no
+      // longer has an active My Study enrollment (e.g. Removed). Previously that card reached
+      // StudyMode via propFlashcards with no enrollment check at all, failing only at grade time
+      // with a generic "Failed to save progress" toast (apply_review's enrollment guard, D-32).
+      // Fix: get_my_cards (own u2229 actively-enrolled) is fetched in parallel and applied here as a
+      // separate eligibility boundary -- get_study_queue remains the sole due/scheduling SSOT; this
+      // never changes its contract, never touches apply_review, and is the identical pattern
+      // StudyMode.jsx's own fetch path already uses today (StudyMode.jsx:321,431), just applied one
+      // level up so it also covers the Review entry point.
+      const [{ data: queue, error: queueError }, { data: myCards, error: myCardsError }] = await Promise.all([
+        supabase.rpc('get_study_queue', { p_user_id: user.id }),
+        supabase.rpc('get_my_cards', { p_user_id: user.id }),
+      ]);
 
       if (queueError) throw queueError;
+      if (myCardsError) throw myCardsError;
+
+      const enrolledOrOwnIds = new Set((myCards || []).map(card => card.id));
+      const eligibleQueue = (queue || []).filter(row => enrolledOrOwnIds.has(row.flashcard_id));
 
       // Map RPC rows to the card shape StudyMode + groupCardsBySubject expect.
-      const cleanedCards = (queue || []).map(row => ({
+      const cleanedCards = eligibleQueue.map(row => ({
         id: row.flashcard_id,
         user_id: row.card_user_id,
         contributed_by: row.contributed_by,

@@ -163,13 +163,15 @@ export default function ReviewFlashcards() {
     fetchFilteredAuthors();
   }, [fetchFilteredAuthors]);
 
-  // Deep-link from DeckPreview: if ?deck=:id is present, auto-launch study session
-  // once decks are loaded. Falls through silently if deck not found (private/inaccessible).
+  // Deep-link from DeckPreview: if ?deck=:id is present, auto-launch Practice (Sprint 8.8.5a,
+  // D-41 Area A — this is the same Browse-deck-entry path as the tile click/button below, and
+  // retires the same way: it used to auto-launch a StudyMode session, now opens Practice).
+  // Falls through silently if deck not found (private/inaccessible).
   useEffect(() => {
     if (!targetDeckId || allDecksFlat.length === 0) return;
     const deck = allDecksFlat.find(d => d.id === targetDeckId);
     if (deck) {
-      startStudySession(deck.subjectName, deck.topicName, deck.id, deck.owner?.role === 'professor');
+      startPracticeSession(deck.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetDeckId, allDecksFlat]);
@@ -208,7 +210,12 @@ export default function ReviewFlashcards() {
         // Sprint 8.7.7 (v8): the ONE count every tile/total/preview label uses. matching_card_count is the
         // viewer-visible cards of the active type filter (= card_count when no filter); falls back to
         // card_count for a response without the column (pre-v8 function).
-        displayCount: deck.matching_card_count ?? deck.card_count
+        displayCount: deck.matching_card_count ?? deck.card_count,
+        // Sprint 8.8.5a (v9, D-41 Area B/C): added = actively My-Study-enrolled cards within the SAME
+        // type-filtered universe displayCount covers; remaining = the rest (Practice candidates).
+        // added_count is absent on a pre-v9 response — falls back to 0 rather than hiding the line.
+        addedCount: deck.added_count ?? 0,
+        remainingCount: (deck.matching_card_count ?? deck.card_count) - (deck.added_count ?? 0)
       }));
 
       // Store flat decks for topic filtering
@@ -371,29 +378,6 @@ export default function ReviewFlashcards() {
     setFilterAuthor('all');
   };
 
-  const startStudySession = (subjectName, topicName = null, deckId = null, isProfessorContent = false) => {
-    const params = new URLSearchParams();
-    if (deckId) {
-      // Individual deck: filter precisely by deck ID (immune to null/fallback topic names)
-      params.set('deck', deckId);
-    } else {
-      // Study All: filter by subject (+ optional author)
-      params.set('subject', subjectName);
-      if (topicName) params.set('topic', topicName);
-      if (filterAuthor !== 'all') params.set('author', filterAuthor);
-    }
-    // Sprint 8.7.7 — carry the Question Type filter into Study Mode so the session matches the filtered browse view
-    if (filterQuestionType !== 'all') params.set('type', filterQuestionType);
-    // Tier B users get preview mode for professor content
-    if (isProfessorContent && userProfile?.account_type === 'self_registered') {
-      params.set('previewMode', 'true');
-      // Pass deck's total card count so progress bar shows proportional fill
-      const deck = allDecksFlat.find(d => d.id === deckId);
-      if (deck?.displayCount) params.set('totalCards', deck.displayCount);
-    }
-    navigate(`/dashboard/study?${params.toString()}`);
-  };
-
   // Sprint 8.7.8c — Practice/Explore entry point. Scoped to exactly one Study Set. The active
   // question-type filter carries over, same as Study Mode.
   const startPracticeSession = (deckId) => {
@@ -427,7 +411,6 @@ export default function ReviewFlashcards() {
   }
 
   const isStudent = userProfile?.role === 'student';
-  const isTierB = userProfile?.account_type === 'self_registered';
   const totalCards = flashcardSets.reduce((sum, subject) => sum + subject.totalCards, 0);
   // Course filter is locked for students, so don't count it as an "active" user filter
   const hasActiveFilters = searchQuery || (!isStudent && filterCourse !== 'all') || filterSubject !== 'all' || filterTopic !== 'all' || filterRole !== 'all' || filterAuthor !== 'all' || filterQuestionType !== 'all';
@@ -670,27 +653,42 @@ export default function ReviewFlashcards() {
                         {subject.decks.map((deck) => (
                           <div
                             key={deck.id}
-                            className="text-left p-4 border border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-colors group"
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Practice ${deck.topicName}`}
+                            onClick={() => startPracticeSession(deck.id)}
+                            onKeyDown={(e) => {
+                              // Sprint 8.8.5a, D-41 Area A: only act when the div ITSELF is the
+                              // event target — a nested control (Practice button, author link,
+                              // etc.) handles its own Enter/Space natively, and would otherwise
+                              // double-fire this handler too since keydown bubbles regardless of
+                              // stopPropagation() on the nested control's click handler.
+                              if (e.target !== e.currentTarget) return;
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                startPracticeSession(deck.id);
+                              }
+                            }}
+                            className="text-left p-4 border border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-colors group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                           >
-                            {/* Clickable Study Area */}
-                            <button
-                              onClick={() => startStudySession(subject.name, deck.topicName, deck.id, deck.owner?.role === 'professor')}
-                              className="w-full text-left"
-                            >
+                            {/* Whole-tile Practice entry (Sprint 8.8.5a, D-41 Area A) — this content
+                                block is purely presentational now; the parent div is the real control. */}
+                            <div className="w-full text-left">
                               <div className="flex items-start justify-between mb-2">
                                 <div className="flex-1">
                                   <h4 className="font-medium text-gray-900 group-hover:text-amber-700">
                                     {deck.topicName}
                                   </h4>
                                   <p className="text-sm text-gray-600 mt-1">
-                                    {isTierB && deck.owner?.role === 'professor'
-                                      ? `Preview: first 10 of ${deck.displayCount} items`
-                                      : `${deck.displayCount} cards`}
+                                    {deck.displayCount} cards
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-0.5">
+                                    {deck.addedCount} added &middot; {deck.remainingCount} remaining
                                   </p>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-amber-600 flex-shrink-0" />
                               </div>
-                            </button>
+                            </div>
 
                             {/* Author name (clickable) */}
                             {deck.owner && (

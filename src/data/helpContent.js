@@ -506,7 +506,7 @@ export const HELP_TABS = [
       {
         id: 'browse-practice-mycards',
         title: 'From Browsing to Reviewing: Browse, Practice & My Study',
-        icon: 'Compass',
+        icon: 'Search',
         content: [
           {
             type: 'paragraph',

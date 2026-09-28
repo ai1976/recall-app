@@ -64,11 +64,14 @@ export default function ProfileDropdown({ user, role, isLoading, handleSignOut }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="flex items-center gap-2 px-2">
-          <div className="h-8 w-8 rounded-full bg-rv-navy flex items-center justify-center text-rv-bg-1 font-bold text-sm">
+        <Button variant="ghost" className="flex w-full items-center gap-2 px-2">
+          <div className="h-8 w-8 shrink-0 rounded-full bg-rv-navy flex items-center justify-center text-rv-bg-1 font-bold text-sm">
             {getInitials()}
           </div>
-          <ChevronDown className="h-4 w-4 text-rv-ink-400" />
+          <span className="min-w-0 flex-1 truncate text-left text-sm font-medium text-rv-ink-900">
+            {userName || user?.email}
+          </span>
+          <ChevronDown className="h-4 w-4 shrink-0 text-rv-ink-400" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">

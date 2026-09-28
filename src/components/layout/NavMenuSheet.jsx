@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Compass,
+  Search,
   PenTool,
   Shield,
   Menu,
@@ -119,7 +119,8 @@ export default function NavMenuSheet({
           }`}
         >
           <Menu className="h-5 w-5" />
-          <span>Menu</span>
+          {/* Sprint 8.8.5a, D-42 — icon-only visually; label kept sr-only. */}
+          <span className="sr-only">Menu</span>
         </button>
       </SheetTrigger>
 
@@ -170,7 +171,7 @@ export default function NavMenuSheet({
                   onClick={() => handleNavClick('/dashboard/discover')}
                   className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-rv-bg-2"
                 >
-                  <Compass className="h-5 w-5 text-rv-ink-400" />
+                  <Search className="h-5 w-5 text-rv-ink-400" />
                   <span className="text-sm font-medium text-rv-ink-900">Discover</span>
                 </button>
 

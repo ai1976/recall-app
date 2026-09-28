@@ -16,7 +16,7 @@ import {
 import { Card as RvCard } from '@/components/revisop';
 import { formatQuestionType } from '@/lib/questionTypes';
 import {
-  PauseCircle, PlayCircle, X, Plus, Compass, ChevronDown, ChevronRight, Award, Undo2,
+  PauseCircle, PlayCircle, X, Plus, Search, ChevronDown, ChevronRight, Award, Undo2,
 } from 'lucide-react';
 
 // Same chunk size/pattern StudyMode.jsx established in Sprint 8.7.7 to avoid oversized
@@ -328,45 +328,80 @@ export default function MyCards() {
 
   // Shared Subject → Topic renderer. `badge`/`actions` are per-card render functions so Working
   // and History can share the exact same grouping/collapse behavior with different card chrome.
-  const renderGroups = (groups, { showCounts, badge, actions }) => (
+  // Sprint 8.8.5a, D-41 Area F — "Study"/"Study All" route to StudyMode's existing own-fetch path
+  // (get_my_cards narrowed by subject/topic, unioned with due-or-never-reviewed via get_study_queue
+  // — see StudyMode.jsx:304-434). StudyMode matches subject/topic params by NAME, not id (it
+  // compares against card.subjects?.name / card.custom_subject client-side), so these pass the
+  // group's display name, matching the exact param shape Browse's old "Study All" already used.
+  const goStudy = (subjectName, topicName) => {
+    const params = new URLSearchParams();
+    params.set('subject', subjectName);
+    if (topicName) params.set('topic', topicName);
+    navigate(`/dashboard/study?${params.toString()}`);
+  };
+
+  const renderGroups = (groups, { showCounts, badge, actions, showStudyActions }) => (
     <div className="space-y-3">
       {groups.map((subject) => {
         const isClosed = !!closedSubjects[subject.key];
         const totalCards = subject.topics.reduce((sum, t) => sum + t.cards.length, 0);
         return (
           <RvCard key={subject.key} className="overflow-hidden">
-            <button
-              type="button"
-              onClick={() => toggleSubject(subject.key)}
-              className="w-full flex items-center justify-between gap-3 p-4 text-left hover:bg-rv-bg-2 transition-colors"
-            >
-              <div className="flex items-center gap-2 min-w-0">
+            <div className="w-full flex items-center justify-between gap-3 p-4 hover:bg-rv-bg-2 transition-colors">
+              <button
+                type="button"
+                onClick={() => toggleSubject(subject.key)}
+                className="flex items-center gap-2 min-w-0 flex-1 text-left"
+              >
                 {isClosed ? <ChevronRight className="h-4 w-4 text-rv-ink-400 shrink-0" /> : <ChevronDown className="h-4 w-4 text-rv-ink-400 shrink-0" />}
                 <span className="font-semibold text-rv-ink-900 truncate">{subject.name}</span>
+              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {showCounts ? <CountBadges counts={subject.counts} /> : (
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-rec bg-rv-bg-2 text-rv-ink-600 shrink-0">{totalCards} item{totalCards === 1 ? '' : 's'}</span>
+                )}
+                {showStudyActions && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); goStudy(subject.name, null); }}
+                  >
+                    Study All
+                  </Button>
+                )}
               </div>
-              {showCounts ? <CountBadges counts={subject.counts} /> : (
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded-rec bg-rv-bg-2 text-rv-ink-600 shrink-0">{totalCards} item{totalCards === 1 ? '' : 's'}</span>
-              )}
-            </button>
+            </div>
             {!isClosed && (
               <div className="border-t border-rv-bg-2 divide-y divide-rv-bg-2">
                 {subject.topics.map((topic) => {
                   const topicOpen = !!openTopics[topic.key];
                   return (
                     <div key={topic.key}>
-                      <button
-                        type="button"
-                        onClick={() => toggleTopic(topic.key)}
-                        className="w-full flex items-center justify-between gap-3 px-4 py-3 pl-9 text-left hover:bg-rv-bg-2 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-full flex items-center justify-between gap-3 px-4 py-3 pl-9 hover:bg-rv-bg-2 transition-colors">
+                        <button
+                          type="button"
+                          onClick={() => toggleTopic(topic.key)}
+                          className="flex items-center gap-2 min-w-0 flex-1 text-left"
+                        >
                           {topicOpen ? <ChevronDown className="h-3.5 w-3.5 text-rv-ink-400 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-rv-ink-400 shrink-0" />}
                           <span className="text-sm text-rv-ink-900 truncate">{topic.name}</span>
+                        </button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {showCounts ? <CountBadges counts={topic.counts} /> : (
+                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-rec bg-rv-bg-2 text-rv-ink-600 shrink-0">{topic.cards.length}</span>
+                          )}
+                          {showStudyActions && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => { e.stopPropagation(); goStudy(subject.name, topic.name); }}
+                            >
+                              Study
+                            </Button>
+                          )}
                         </div>
-                        {showCounts ? <CountBadges counts={topic.counts} /> : (
-                          <span className="text-[11px] font-medium px-2 py-0.5 rounded-rec bg-rv-bg-2 text-rv-ink-600 shrink-0">{topic.cards.length}</span>
-                        )}
-                      </button>
+                      </div>
                       {topicOpen && (
                         <div className="bg-rv-bg-0 px-4 pb-3 pl-9 space-y-2">
                           {topic.cards.map((card) => (
@@ -442,7 +477,7 @@ export default function MyCards() {
       ) : tab === 'working' ? (
         workingCards.length === 0 ? (
           <RvCard className="p-10 text-center">
-            <Compass className="h-14 w-14 text-rv-ink-400 mx-auto mb-4" />
+            <Search className="h-14 w-14 text-rv-ink-400 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-rv-ink-900 mb-2">Nothing in My Study yet</h2>
             <p className="text-rv-ink-600 mb-6 max-w-md mx-auto">
               Choose "Save &amp; Add to My Study" when you create a card, or add cards created by
@@ -453,14 +488,14 @@ export default function MyCards() {
                 <Plus className="h-4 w-4" />
                 Create a card
               </Button>
-              <Button variant="outline" onClick={() => navigate('/dashboard/review-flashcards')} className="gap-2">
-                <Compass className="h-4 w-4" />
-                Browse & Practice
+              <Button variant="outline" onClick={() => navigate('/dashboard/discover')} className="gap-2">
+                <Search className="h-4 w-4" />
+                Discover
               </Button>
             </div>
           </RvCard>
         ) : (
-          renderGroups(groupedWorking, { showCounts: true, badge: statusBadge, actions: renderActions })
+          renderGroups(groupedWorking, { showCounts: true, badge: statusBadge, actions: renderActions, showStudyActions: true })
         )
       ) : (
         // History tab

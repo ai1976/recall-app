@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Play,
   BookMarked,
+  Search,
   Plus,
   FileText,
   CreditCard,
@@ -22,6 +23,7 @@ import {
   isExact,
   isReviewTabActive,
   isMyStudyActive,
+  isDiscoverActive,
 } from '@/lib/navActive';
 import NavMenuSheet from './NavMenuSheet';
 
@@ -36,10 +38,12 @@ import NavMenuSheet from './NavMenuSheet';
  * useNotifications / useFriendRequestCount (that would re-introduce the Sprint
  * 7.0 over-fetch). It adds no data fetching of its own.
  *
- * Slots (exactly 5, locked D-33): Home · Review · [Add] (action sheet, not a
- * route — never aria-current, never route-active-styled) · My Study · Menu
- * (opens the existing NavMobile drawer, verbatim). Progress was demoted out of
- * this bar in 8.8.4 — it remains reachable via Menu.
+ * Slots (SIX, D-42 — supersedes D-33's five-slot lock): Home · Discover ·
+ * My Study · [Add] (action sheet, not a route — never aria-current, never
+ * route-active-styled) · Review · Menu (opens the existing NavMobile drawer,
+ * verbatim). Icon-only visually (D-42) — every route control still carries a
+ * real aria-label as its accessible name. Progress was demoted out of this
+ * bar in 8.8.4 — it remains reachable via Menu.
  *
  * The tab list is data-driven — a later top-level destination (e.g. an exam
  * anchor / a new question-type route) is a one-line addition to TABS.
@@ -61,13 +65,12 @@ const TABS = [
   },
   {
     type: 'route',
-    key: 'review',
-    label: 'Review',
-    Icon: Play,
-    to: '/dashboard/review-session',
-    isActive: isReviewTabActive,
+    key: 'discover',
+    label: 'Discover',
+    Icon: Search,
+    to: '/dashboard/discover',
+    isActive: isDiscoverActive,
   },
-  { type: 'create', key: 'create' },
   {
     type: 'route',
     key: 'my-study',
@@ -75,6 +78,15 @@ const TABS = [
     Icon: BookMarked,
     to: '/dashboard/my-cards',
     isActive: isMyStudyActive,
+  },
+  { type: 'create', key: 'create' },
+  {
+    type: 'route',
+    key: 'review',
+    label: 'Review',
+    Icon: Play,
+    to: '/dashboard/review-session',
+    isActive: isReviewTabActive,
   },
   { type: 'menu', key: 'menu' },
 ];
@@ -216,6 +228,7 @@ export default function NavBottomTabs({
             <Link
               key={key}
               to={to}
+              aria-label={label}
               aria-current={active ? 'page' : undefined}
               className={`${ROUTE_TAB_CLASS} ${
                 active
@@ -236,7 +249,9 @@ export default function NavBottomTabs({
                   </span>
                 )}
               </span>
-              <span>{label}</span>
+              {/* D-42 — icon-only visually; label kept in the DOM as sr-only so
+                  the accessible name isn't solely dependent on aria-label. */}
+              <span className="sr-only">{label}</span>
             </Link>
           );
         })}

@@ -1,6 +1,48 @@
 # Changelog
 
 ---
+## [28/09/2026] feat(sprint-8.8.5a): Browse/My Study/Review state consistency + six-control mobile nav (D-41/D-42)
+
+### Added
+- `docs/database/sprint8.8.5a/01_FUNCTIONS_get_browsable_decks_v9_added_count.sql` — additive `added_count` column, scoped through the same `p_question_type` filter as `matching_card_count`. Deployed and confirmed.
+- "Study"/"Study All" buttons on `MyCards.jsx`'s Topic/Subject headers, routing to `/dashboard/study?subject=<name>[&topic=<name>]` (by display name, matching `StudyMode.jsx`'s own filter — not id).
+- Added/remaining count display on Browse/Discover deck tiles (`ReviewFlashcards.jsx`).
+- Six-control mobile bottom bar (`NavBottomTabs.jsx`) — Home | Discover | My Study | + | Review | Menu, icon-only with `aria-label`s — supersedes D-33's five-slot lock (D-42).
+
+### Changed
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx` — whole non-control deck-tile surface and the explicit Practice button both open Practice Mode (keyboard-activatable); the dead `startStudySession` helper and its DeckPreview deep-link call site removed (both routed to Study Mode, now retired from Browse); Tier-B's stale "Preview: first 10 of N" copy removed.
+- `src/pages/dashboard/Study/PracticeMode.jsx` — candidates filtered to `is_enrolled === false` once at fetch time; zero-remaining state distinguishes "genuinely empty" from "everything already added" with a dedicated CTA to My Study.
+- `src/pages/dashboard/Study/MyCards.jsx` — empty-state "Browse & Practice" CTA retargeted from the retired `/dashboard/review-flashcards` to `/dashboard/discover`.
+- `src/pages/dashboard/Study/ReviewSession.jsx` — now fetches `get_my_cards` in parallel with `get_study_queue` and filters the due queue to the enrolled-or-own id set before display, closing the gap where a card removed from My Study could still surface in Review and fail only at grade time (`get_study_queue`/`apply_review` both untouched).
+- `src/components/layout/NavDesktop.jsx` — Tier-1 reordered Home/Discover/My Study/Review.
+- Discover's icon changed from `Compass` to `Search` everywhere it represents that destination (`NavDesktop.jsx`, `NavBottomTabs.jsx`, `NavMenuSheet.jsx`, `MyCards.jsx`, `helpContent.js`; now-unused `Compass` import removed from `Help.jsx`) — operator request.
+- `src/components/layout/ProfileDropdown.jsx` — rail-footer trigger now shows the user's name next to the avatar instead of leaving that space blank (`NavDesktop.jsx`'s now-redundant `justify-end` wrapper simplified) — operator request.
+
+### Decision Log
+- New **D-41** in `blueprint.md`: Browse/Practice unification, enrollment-aware Browse counts, actionable My Study, and the Review enrollment-eligibility fix — stays within D-38, no SRS/Study Queue redesign.
+- New **D-42**: six-control mobile nav, supersedes only D-33's five-slot mobile composition clause.
+
+### Verification debt carried forward (not blockers, per operator/auditor)
+- Removed-historical-due-card → Review exclusion: SOURCE-VERIFIED, not live-tested (no due-then-removed card available this session).
+- Skip-return: SOURCE/DB-CONTRACT VERIFIED, not time-live-tested.
+- Student/professor/admin role sweep: not live-verified this session (only super_admin available).
+
+### Files Changed
+- `src/pages/dashboard/Study/ReviewFlashcards.jsx`
+- `src/pages/dashboard/Study/PracticeMode.jsx`
+- `src/pages/dashboard/Study/MyCards.jsx`
+- `src/pages/dashboard/Study/ReviewSession.jsx`
+- `src/components/layout/NavDesktop.jsx`
+- `src/components/layout/NavBottomTabs.jsx`
+- `src/components/layout/NavMenuSheet.jsx`
+- `src/components/layout/ProfileDropdown.jsx`
+- `src/data/helpContent.js`
+- `src/pages/dashboard/Help.jsx`
+- `docs/database/sprint8.8.5a/00_DIAGNOSTIC_practice_cards_completeness.sql` (new)
+- `docs/database/sprint8.8.5a/01_FUNCTIONS_get_browsable_decks_v9_added_count.sql` (new)
+- `docs/database/sprint8.8.5a/02_TEST_verify_get_browsable_decks_v9.sql` (new)
+
+---
 ## [28/09/2026] feat(sprint-8.8.5): Discover route (Part A) + Community navigation promotion (Part B, D-40)
 
 ### Added

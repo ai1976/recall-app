@@ -50,6 +50,10 @@ export default function PracticeMode() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [addingId, setAddingId] = useState(null);
+  // Sprint 8.8.5a, D-41 Area C — distinguishes "this selection has zero practiceable cards" from
+  // "every practiceable card here is already added to My Study" (allAlreadyAdded), so the empty
+  // state can tell a student the truthful reason instead of a generic dead end.
+  const [allAlreadyAdded, setAllAlreadyAdded] = useState(false);
 
   // Per-card interaction state — same shape as StudyMode.jsx, reset on every card change.
   const [showAnswer, setShowAnswer] = useState(false);
@@ -104,7 +108,14 @@ export default function PracticeMode() {
         setLoadError(isAccessError(error) ? 'This Study Set is not available to practice.' : 'Could not load this Study Set.');
         return;
       }
-      const cleaned = (data || []).map(card => ({
+      const allCards = data || [];
+      // Sprint 8.8.5a, D-41 Area B/E — Practice candidates are REMAINING cards only (no active
+      // My Study enrollment). Filtered here, once, at fetch time — not re-filtered reactively —
+      // so a card the student enrolls mid-session (handleAdd below) stays visible with its
+      // "Already in My Study" state rather than vanishing out from under them.
+      const remaining = allCards.filter(card => !card.is_enrolled);
+      setAllAlreadyAdded(allCards.length > 0 && remaining.length === 0);
+      const cleaned = remaining.map(card => ({
         ...card,
         front_text: card.front_text?.replace(/[◆♦◆]/g, '').trim() || '',
         back_text: card.back_text?.replace(/[◆♦◆]/g, '').trim() || '',
@@ -344,13 +355,25 @@ export default function PracticeMode() {
   }
 
   if (cards.length === 0) {
+    // Sprint 8.8.5a, D-41 Area C — truthful zero-remaining state. Never falls back to showing
+    // already-enrolled cards; tells the student WHY nothing is here rather than a generic dead end.
     return (
       <div className="min-h-screen bg-rv-bg-0 font-plex flex items-center justify-center">
         <div className="text-center">
           <Brain className="h-16 w-16 text-rv-ink-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-rv-ink-900 mb-2">Nothing to practice here</h2>
-          <p className="text-rv-ink-600 mb-6">No practiceable cards were found for this selection.</p>
-          <Button onClick={() => navigate('/dashboard/review-flashcards')}>Back to Study Sets</Button>
+          <h2 className="text-2xl font-semibold text-rv-ink-900 mb-2">
+            {allAlreadyAdded ? 'Everything here is already in My Study' : 'Nothing to practice here'}
+          </h2>
+          <p className="text-rv-ink-600 mb-6">
+            {allAlreadyAdded
+              ? 'Every card in this selection has already been added — study them from My Study instead.'
+              : 'No practiceable cards were found for this selection.'}
+          </p>
+          {allAlreadyAdded ? (
+            <Button onClick={() => navigate('/dashboard/my-cards')}>Go to My Study</Button>
+          ) : (
+            <Button onClick={() => navigate('/dashboard/review-flashcards')}>Back to Study Sets</Button>
+          )}
         </div>
       </div>
     );

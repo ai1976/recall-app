@@ -3,7 +3,7 @@ import {
   LayoutDashboard,
   Play,
   BookMarked,
-  Compass,
+  Search,
   Plus,
   FileText,
   CreditCard,
@@ -186,10 +186,20 @@ export default function NavDesktop({
             <GlobalActionControl />
           </div>
 
-          {/* Tier 1 — persistent primary destinations */}
+          {/* Tier 1 — persistent primary destinations.
+              Sprint 8.8.5a, D-41: reordered Home/Review/My Study/Discover -> Home/Discover/My
+              Study/Review once Areas A-H's Browse-> My Study -> Review workflow was implemented
+              and live-verified -- membership, active-state predicates, and D-34's global-action
+              control above are unchanged. */}
           <div className="flex flex-shrink-0 flex-col gap-0.5 px-3 pt-3">
             <RailLink to="/dashboard" active={isExact(pathname, '/dashboard')} icon={LayoutDashboard}>
               Home
+            </RailLink>
+            <RailLink to="/dashboard/discover" active={isDiscoverActive(pathname)} icon={Search}>
+              Discover
+            </RailLink>
+            <RailLink to="/dashboard/my-cards" active={isMyStudyActive(pathname)} icon={BookMarked}>
+              My Study
             </RailLink>
             <RailLink
               to="/dashboard/review-session"
@@ -204,12 +214,6 @@ export default function NavDesktop({
               }
             >
               Review
-            </RailLink>
-            <RailLink to="/dashboard/my-cards" active={isMyStudyActive(pathname)} icon={BookMarked}>
-              My Study
-            </RailLink>
-            <RailLink to="/dashboard/discover" active={isDiscoverActive(pathname)} icon={Compass}>
-              Discover
             </RailLink>
           </div>
 
@@ -321,8 +325,12 @@ export default function NavDesktop({
         {/* Course Context Switcher — professors/admins with 2+ courses only, self-gates */}
         <CourseSwitcher />
 
-        <div className="flex items-center justify-end">
-          {/* Profile Dropdown — Profile Settings / Help & Guide live here, unchanged */}
+        <div>
+          {/* Profile Dropdown — Profile Settings / Help & Guide live here.
+              Sprint 8.8.5a (operator request): trigger now spans the row and
+              shows the user's name (userName, already computed inside
+              ProfileDropdown) next to the avatar, filling the blank space a
+              right-aligned icon-only trigger used to leave to its left. */}
           <ProfileDropdown user={user} role={role} isLoading={isLoading} handleSignOut={handleSignOut} />
         </div>
       </div>
