@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Play,
   BookMarked,
+  Compass,
   Plus,
   FileText,
   CreditCard,
@@ -14,6 +15,8 @@ import {
   Trophy,
   Flag,
   Shield,
+  UserPlus,
+  Clock,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -27,13 +30,14 @@ import {
   isExact,
   isReviewRailActive,
   isMyStudyActive,
-  isBrowseStudySetsActive,
-  isBrowseNotesActive,
+  isDiscoverActive,
   isProgressActive,
   isMyContributionsActive,
   isReportHistoryActive,
   isAchievementsActive,
   isGroupsActive,
+  isFindFriendsActive,
+  isFriendRequestsActive,
 } from '@/lib/navActive';
 import { Wordmark } from '@/components/revisop';
 import ProfileDropdown from './ProfileDropdown';
@@ -48,12 +52,15 @@ import CourseSwitcher from './CourseSwitcher';
  * content with `md:pl-60` (rail width) to match.
  *
  * Three tiers, per D-33:
- *   Tier 1 — Home / Review / My Study (real routes, normal active styling)
+ *   Tier 1 — Home / Review / My Study / Discover (real routes, normal active
+ *            styling). Discover joined this tier in Sprint 8.8.5 (D-33/D-36)
+ *            once it shipped — the temporary Tier-3 "Browse" group (Browse
+ *            Study Sets / Browse Notes) it replaces is retired in this sprint.
  *   Tier 2 — the pinned "+" global action control (D-34): a <button>, never a
  *            route, never active-styled — see GlobalActionControl below
- *   Tier 3 — secondary sections: a temporary "Browse" group (Browse Study Sets
- *            / Browse Notes — retired when Discover ships, 8.8.5/D-36), then
- *            Personal, Community, and a role-conditional "Manage" group
+ *   Tier 3 — secondary sections: Personal, Community (Groups/Find People/
+ *            Friend Requests — Sprint 8.8.5 Part B, revises D-33), and a
+ *            role-conditional "Manage" group
  *
  * Sprint 8.8.3a (D-39): status chrome (NotificationCenter, ExamDateChip,
  * StudyTimerChip) moved out of this rail into the new NavUtilityStrip.jsx,
@@ -201,29 +208,14 @@ export default function NavDesktop({
             <RailLink to="/dashboard/my-cards" active={isMyStudyActive(pathname)} icon={BookMarked}>
               My Study
             </RailLink>
+            <RailLink to="/dashboard/discover" active={isDiscoverActive(pathname)} icon={Compass}>
+              Discover
+            </RailLink>
           </div>
 
           {/* Tier 3 — secondary sections, independently scrollable so a long
               Manage grouping never pushes the footer utilities off-screen. */}
           <div className="flex-1 overflow-y-auto pb-3">
-            {/* Temporary Discover-dependency placement (D-36, sequencing
-                correction): Browse Study Sets / Browse Notes stay live and
-                reachable under their existing labels/routes/behavior until
-                Sprint 8.8.5 ships Discover and retires this group. */}
-            <SectionLabel>Browse</SectionLabel>
-            <div className="flex flex-col gap-0.5 px-3">
-              <RailLink
-                to="/dashboard/review-flashcards"
-                active={isBrowseStudySetsActive(pathname)}
-                icon={CreditCard}
-              >
-                Browse Study Sets
-              </RailLink>
-              <RailLink to="/dashboard/notes" active={isBrowseNotesActive(pathname)} icon={FileText}>
-                Browse Notes
-              </RailLink>
-            </div>
-
             <SectionLabel>Personal</SectionLabel>
             <div className="flex flex-col gap-0.5 px-3">
               <RailLink to="/dashboard/progress" active={isProgressActive(pathname)} icon={BarChart3}>
@@ -248,6 +240,16 @@ export default function NavDesktop({
             <div className="flex flex-col gap-0.5 px-3">
               <RailLink to="/dashboard/groups" active={isGroupsActive(pathname)} icon={Network}>
                 Groups
+              </RailLink>
+              <RailLink to="/dashboard/find-friends" active={isFindFriendsActive(pathname)} icon={UserPlus}>
+                Find People
+              </RailLink>
+              <RailLink
+                to="/dashboard/friend-requests"
+                active={isFriendRequestsActive(pathname)}
+                icon={Clock}
+              >
+                Friend Requests
               </RailLink>
             </div>
 

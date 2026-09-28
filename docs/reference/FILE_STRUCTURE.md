@@ -265,6 +265,7 @@ recall-app
 
 ### Dashboard
 - `src/pages/Dashboard.jsx` — 4-way role conditional (student / professor / admin / super_admin)
+- `src/pages/dashboard/Discover.jsx` — canonical Discover destination (Sprint 8.8.5, D-36): composes `ReviewFlashcards.jsx`/`BrowseNotes.jsx` unmodified beneath a URL-addressable tab switcher (`?tab=study-sets|notes`); no internals of either child touched
 - `src/components/dashboard/StudyTimerWidget.jsx` — clock via DOM ref, not React state (zero re-renders/tick)
 - `src/components/dashboard/LeaderboardWidget.jsx` — isolated; Following tab lazy-fetched
 - `src/components/dashboard/GoalProgressWidget.jsx` — inline edit, no modal

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
-  BookOpen,
+  Compass,
   PenTool,
   Shield,
   Menu,
@@ -19,6 +19,8 @@ import {
   GraduationCap,
   Rss,
   Flag,
+  UserPlus,
+  Clock,
 } from 'lucide-react';
 import { useCourseContext } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
@@ -43,6 +45,22 @@ import {
  * explicit "Personal" heading; the three separate role-conditional sections
  * were consolidated into one "Manage" heading, mirroring the desktop rail
  * (8.8.3), each item still individually gated by its existing role flag.
+ *
+ * Sprint 8.8.5 (D-33/D-36): the temporary "Browse" group (Browse Study Sets/
+ * Browse Notes) is retired now that Discover has shipped. D-33 places Discover
+ * on mobile as "an ordinary secondary-style entry, exactly like Progress" —
+ * not a new heading for a single item. Judgment call: rather than folding it
+ * into "Personal" (reflection/self surfaces — Discover is other people's
+ * content) or "Community" (people/social, not content browsing), Discover is
+ * placed as a second unheaded top-level entry directly under "Dashboard",
+ * mirroring the existing unheaded-Dashboard precedent and echoing its Tier-1
+ * status on the desktop rail without inventing a one-item heading.
+ *
+ * Sprint 8.8.5 Part B (operator-approved, revises D-33's Community
+ * disposition — see blueprint.md new Decision Log entry): "Find People" and
+ * "Friend Requests" were added to the Community section alongside Groups/
+ * Following. My Friends stays bell-only — not promoted. NotificationCenter's
+ * own quick links are unchanged; this is additive, not a replacement.
  *
  * The trigger renders as a bottom-bar tab (icon + label, ≥48px target); it shows
  * the active treatment while the sheet is open. Per D-33, it does not receive
@@ -146,6 +164,16 @@ export default function NavMenuSheet({
                   <span className="text-sm font-medium text-rv-ink-900">Dashboard</span>
                 </button>
 
+                {/* Discover — unheaded top-level entry, Sprint 8.8.5 (D-33).
+                    See file-header judgment-call note above. */}
+                <button
+                  onClick={() => handleNavClick('/dashboard/discover')}
+                  className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-rv-bg-2"
+                >
+                  <Compass className="h-5 w-5 text-rv-ink-400" />
+                  <span className="text-sm font-medium text-rv-ink-900">Discover</span>
+                </button>
+
                 {/* Course Context Switcher — professors/admins with 2+ courses */}
                 {isContentCreator && teachingCourses.length > 1 && (
                   <>
@@ -188,31 +216,6 @@ export default function NavMenuSheet({
                     })}
                   </>
                 )}
-
-                {/* Browse Section — temporary, Discover-dependency (D-36).
-                    Today's Reviews and My Study were removed here in 8.8.4:
-                    both are now persistent bottom-bar destinations (Review,
-                    My Study), so the Menu copies were redundant (D-33). */}
-                <div className="px-4 py-2 mt-2">
-                  <p className="text-xs font-semibold text-rv-ink-400 uppercase tracking-wider flex items-center gap-2">
-                    <BookOpen className="h-4 w-4" />
-                    Browse
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleNavClick('/dashboard/review-flashcards')}
-                  className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
-                >
-                  <CreditCard className="h-4 w-4 text-rv-ink-400" />
-                  <span className="text-sm text-rv-ink-600">Browse Study Sets</span>
-                </button>
-                <button
-                  onClick={() => handleNavClick('/dashboard/notes')}
-                  className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
-                >
-                  <FileText className="h-4 w-4 text-rv-ink-400" />
-                  <span className="text-sm text-rv-ink-600">Browse Notes</span>
-                </button>
 
                 {/* Create Section */}
                 <div className="px-4 py-2 mt-2">
@@ -267,6 +270,20 @@ export default function NavMenuSheet({
                 >
                   <Rss className="h-4 w-4 text-rv-ink-400" />
                   <span className="text-sm text-rv-ink-600">Following</span>
+                </button>
+                <button
+                  onClick={() => handleNavClick('/dashboard/find-friends')}
+                  className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
+                >
+                  <UserPlus className="h-4 w-4 text-rv-ink-400" />
+                  <span className="text-sm text-rv-ink-600">Find People</span>
+                </button>
+                <button
+                  onClick={() => handleNavClick('/dashboard/friend-requests')}
+                  className="w-full px-6 py-2 text-left flex items-center gap-3 hover:bg-rv-bg-2"
+                >
+                  <Clock className="h-4 w-4 text-rv-ink-400" />
+                  <span className="text-sm text-rv-ink-600">Friend Requests</span>
                 </button>
 
                 {/* Divider */}

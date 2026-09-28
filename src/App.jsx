@@ -44,6 +44,9 @@ const NoteEdit = lazy(() => import('@/pages/dashboard/Content/NoteEdit'))
 const FlashcardCreate = lazy(() => import('@/pages/dashboard/Content/FlashcardCreate'))
 const MyFlashcards = lazy(() => import('@/pages/dashboard/Content/MyFlashcards'))
 
+// Dashboard - Discover (Sprint 8.8.5, D-36) — composes ReviewFlashcards/BrowseNotes
+const Discover = lazy(() => import('@/pages/dashboard/Discover'))
+
 // Dashboard - Study Pages
 const ReviewFlashcards = lazy(() => import('@/pages/dashboard/Study/ReviewFlashcards'))
 const ReviewSession = lazy(() => import('@/pages/dashboard/Study/ReviewSession'))
@@ -146,6 +149,7 @@ if (!user || loading) return
             /dashboard/my-contributions    → pages/dashboard/Content/MyContributions.jsx
             /dashboard/flashcards          → pages/dashboard/Content/MyFlashcards.jsx
             /dashboard/flashcards/new      → pages/dashboard/Content/FlashcardCreate.jsx
+            /dashboard/discover             → pages/dashboard/Discover.jsx (Sprint 8.8.5, D-36)
             /dashboard/review-flashcards   → pages/dashboard/Study/ReviewFlashcards.jsx
             /dashboard/review-session      → pages/dashboard/Study/ReviewSession.jsx
             /dashboard/review-by-subject   → pages/dashboard/Study/ReviewBySubject.jsx
@@ -279,6 +283,15 @@ if (!user || loading) return
           <Route
             path="/dashboard/review-by-subject"
             element={<ReviewBySubject />}
+          />
+
+          {/* Discover Route (Sprint 8.8.5, D-36) — composes ReviewFlashcards
+              ("Study Sets" tab) and BrowseNotes ("Notes" tab) unmodified under
+              one canonical route. Old Browse routes below stay registered and
+              directly routable (D-36/A5) — not redirected by this sprint. */}
+          <Route
+            path="/dashboard/discover"
+            element={user ? <Discover /> : <Navigate to="/login" replace />}
           />
 
           {/* Progress & Contributions Routes */}

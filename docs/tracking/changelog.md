@@ -1,6 +1,31 @@
 # Changelog
 
 ---
+## [28/09/2026] feat(sprint-8.8.5): Discover route (Part A) + Community navigation promotion (Part B, D-40)
+
+### Added
+- `src/pages/dashboard/Discover.jsx` — new canonical Discover destination (D-36). Composes `ReviewFlashcards.jsx`/`BrowseNotes.jsx` unmodified beneath a tab switcher ("Study Sets"/"Notes"); tab state is URL-addressable (`?tab=study-sets|notes`, default Study Sets, invalid falls back safely); tab clicks use history `push` so Back/Forward step through prior tab views; switching tabs preserves unrelated existing search params.
+- `isDiscoverActive`, `isFindFriendsActive`, `isFriendRequestsActive` in `src/lib/navActive.js`.
+
+### Changed
+- `src/App.jsx` — new route `/dashboard/discover` (`user ? <Discover /> : <Navigate to="/login" replace />`), registered between `/dashboard/review-by-subject` and the Progress & Contributions block. Old routes `/dashboard/review-flashcards`/`/dashboard/notes` kept live and directly routable, not redirected.
+- `src/components/layout/NavDesktop.jsx` — Discover added to rail Tier 1 (Home/Review/My Study/**Discover**), per D-33; temporary Tier-3 "Browse" section (Browse Study Sets/Browse Notes) deleted. Tier-3 Community section (Part B, D-40, operator-approved) gained "Find People" and "Friend Requests" after Groups.
+- `src/components/layout/NavMenuSheet.jsx` — temporary "Browse" Menu heading deleted; Discover added as a second unheaded top-level entry under "Dashboard" (judgment call, documented in-file and in `blueprint.md`). Community section (Part B) gained "Find People" and "Friend Requests" after Groups/Following.
+
+### Removed
+- `isBrowseStudySetsActive`/`isBrowseNotesActive` from `src/lib/navActive.js` — confirmed zero remaining references anywhere in `src/` before deletion.
+
+### Decision Log
+- New D-40 in `blueprint.md`: revises D-33's Community disposition for `FindFriends.jsx`/`FriendRequests.jsx` only (promoted to persistent Community nav on both platforms) — `MyFriends.jsx`/`Following.jsx` reachability unchanged, `NotificationCenter.jsx` untouched (additive).
+
+### Files Changed
+- `src/pages/dashboard/Discover.jsx` (new)
+- `src/App.jsx`
+- `src/lib/navActive.js`
+- `src/components/layout/NavDesktop.jsx`
+- `src/components/layout/NavMenuSheet.jsx`
+
+---
 ## [27/09/2026] fix(sprint-8.8.4a): review-save "Failed to save progress" — code fixed, SQL migration prepared (NEITHER deployed yet)
 
 ### Fixed

@@ -1,6 +1,30 @@
 # NOW - Current Development Status
 
-**Last Updated:** 27/09/2026
+**Last Updated:** 28/09/2026
+
+## Sprint 8.8.5: Discover / Search Consolidation + Community Navigation Decision — ✅ PARTS A + B COMPLETE (28/09/2026) — code, build/lint, responsive QA, and all-four-roles live verification all green
+
+Part A (Discover) and Part B (Community navigation) are both code-complete, built, linted, and live-verified across all four roles (student, professor, admin, super_admin — each via the operator logging into a real account in-session). Part B revises D-33's earlier "no promotion" Community disposition — proposed, operator-approved, and implemented in this same session; full record under new D-40 in `blueprint.md`. Full Discover implementation note under D-36.
+
+**Discover (Part A) — new route `/dashboard/discover`, new file `src/pages/dashboard/Discover.jsx`:** composes `ReviewFlashcards.jsx`("Study Sets" tab)/`BrowseNotes.jsx` ("Notes" tab) unmodified beneath a thin tab-switcher bar; tab state is URL-addressable (`?tab=study-sets|notes`, default Study Sets, invalid falls back safely); tab clicks use history `push` (not `replace`) so Back/Forward step through prior tab views, live-verified. Old routes (`/dashboard/review-flashcards`, `/dashboard/notes`) kept live, not redirected. Desktop: Discover joined the rail's **Tier 1** (Home/Review/My Study/**Discover**) per D-33; the temporary Tier-3 "Browse" section was deleted. Mobile: the temporary "Browse" Menu heading was deleted; Discover placed as a second unheaded top-level entry under "Dashboard" (judgment call — see blueprint.md). `isBrowseStudySetsActive`/`isBrowseNotesActive` deleted from `navActive.js` (confirmed zero remaining references); new `isDiscoverActive` added.
+
+**Files changed:** `src/pages/dashboard/Discover.jsx` (new), `src/App.jsx`, `src/lib/navActive.js`, `src/components/layout/NavDesktop.jsx`, `src/components/layout/NavMenuSheet.jsx`.
+
+**Build/lint — ✅ all green:** `npm run build` succeeds (Discover ships as its own lazy chunk); targeted `npx eslint` on all five changed/new files clean; full-project `npm run lint` shows only pre-existing failures in untouched files.
+
+**Live verification (browser, localhost):** route loads, both tabs render/filter correctly, invalid `?tab=` falls back safely, Back/Forward confirmed, deep-link filter-param preservation confirmed (`?tab=notes&subject=Auditing%20%26%20Ethics`), old Browse routes load standalone, zero console errors throughout. Responsive 375px/390px/1024px/1280px all confirmed no horizontal overflow. **All four roles live-verified** (student "TestOutlook", professor "CA Anand More", admin "Shailaja More", super_admin "Anand More"): Discover present in Tier 1 for every role, Manage section membership matched D-38 exactly per role (student: absent; professor: Analytics only; admin: Admin Dashboard/Admin Analytics/Manage Topics; super_admin: all five items), zero console errors on any role.
+
+**Distinguished, not touched:** `Dashboard.jsx`'s "Get Started"/caught-up quick-action buttons, `OnboardingModal.jsx`'s tour step, and `guideContent.js`/`helpContent.js`'s Guide/Help copy still say "Browse Study Sets"/"Browse Notes" with their own direct `navigate()`/link to the old routes — self-contained, unaffected by this sprint (old routes stay live), out of this sprint's explicit A6/A7 scope (`NavDesktop.jsx`/`NavMenuSheet.jsx` only). Flagged, not silently changed.
+
+**Part B — Community navigation (D-40, operator-approved and implemented):** promoted exactly two of the four social pages — **"Find People"** (`/dashboard/find-friends`) and **"Friend Requests"** (`/dashboard/friend-requests`) — into the existing Community section on both platforms (desktop rail Tier-3 Community: Groups → Find People → Friend Requests; mobile Menu Community: Groups → Following → Find People → Friend Requests). My Friends and Following's existing reachability are unchanged — not promoted, bell/Menu paths untouched. `NotificationCenter.jsx` untouched (additive, not a replacement). New predicates `isFindFriendsActive`/`isFriendRequestsActive` in `navActive.js`.
+
+**Files changed (Part B):** `src/lib/navActive.js`, `src/components/layout/NavDesktop.jsx`, `src/components/layout/NavMenuSheet.jsx` — same files Part A already touched, no new files.
+
+**Build/lint — ✅ green:** `npm run build` succeeds; targeted `npx eslint` on all three clean. **All four roles live-verified:** both new desktop rail entries present after Groups with correct active-state highlighting on `/dashboard/find-friends`/`/dashboard/friend-requests` for every role; both new mobile Menu entries present after Groups/Following and navigate correctly for every role; zero console errors on any role, any check.
+
+**Do not begin Sprint 8.8.6** until the operator has confirmed the commit/push for this sprint (both parts).
+
+---
 
 ## Sprint 8.8.4a: Review-save production hotfix — 🟡 IN PROGRESS (27/09/2026) — code fixed + SQL migration prepared, NEITHER deployed yet
 

@@ -54,17 +54,18 @@ export const isReviewRailActive = (pathname) =>
 export const isMyStudyActive = (pathname) =>
   underAny(pathname, ['/dashboard/my-cards']);
 
-/** Desktop rail Tier-3 temporary "Browse Study Sets" active-state (pre-Discover, D-36). */
-export const isBrowseStudySetsActive = (pathname) =>
-  underAny(pathname, ['/dashboard/review-flashcards']);
-
 /**
- * Desktop rail Tier-3 temporary "Browse Notes" active-state (pre-Discover, D-36).
- * Guarded against Create the same way the old isStudyActive was — Upload Note
- * lives under /dashboard/notes/new, which Create must win the tie for.
+ * Desktop rail Tier-1 "Discover" active-state (Sprint 8.8.5, D-33/D-36).
+ *
+ * Its own route identity, not a combined alias over the retired
+ * isBrowseStudySetsActive/isBrowseNotesActive predicates — D-36 explicitly
+ * made Discover its own route, and the old Browse routes it composes
+ * (/dashboard/review-flashcards, /dashboard/notes) stay directly routable
+ * without lighting up this nav item (D-37 rows 3/4: they retire as separate
+ * nav labels, the routes/components survive underneath).
  */
-export const isBrowseNotesActive = (pathname) =>
-  !isCreateActive(pathname) && underAny(pathname, ['/dashboard/notes']);
+export const isDiscoverActive = (pathname) =>
+  underAny(pathname, ['/dashboard/discover']);
 
 /** Desktop rail Tier-3 "Progress" active-state. Same rule as the mobile bottom tab's inline check. */
 export const isProgressActive = (pathname) =>
@@ -99,6 +100,18 @@ export const isManageActive = (pathname) =>
 /** Desktop "Groups" link active-state. */
 export const isGroupsActive = (pathname) =>
   isExact(pathname, '/dashboard/groups') || pathname.startsWith('/dashboard/groups/');
+
+/**
+ * "Find People" Community nav-entry active-state (Sprint 8.8.5 Part B —
+ * revises D-33's Community disposition, see blueprint.md new Decision Log
+ * entry). Shared by NavDesktop.jsx (Tier-3 Community) and NavMenuSheet.jsx.
+ */
+export const isFindFriendsActive = (pathname) =>
+  underAny(pathname, ['/dashboard/find-friends']);
+
+/** "Friend Requests" Community nav-entry active-state (Sprint 8.8.5 Part B). */
+export const isFriendRequestsActive = (pathname) =>
+  underAny(pathname, ['/dashboard/friend-requests']);
 
 /**
  * Mobile bottom-bar "Review" tab active-state (Sprint 7.1).
