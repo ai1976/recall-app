@@ -1,7 +1,11 @@
 -- Name: [SCHEMA] DRAFT - revoke direct client writes on reviews   *** DO NOT DEPLOY YET ***
--- Status: DRAFT and CONDITIONAL. Deploy only if 22 block E1 shows every writer of `reviews` is a SECURITY
---   DEFINER function (so revoking client privileges cannot break it), 22 block E2 shows the triggers on
---   reviews do not depend on the caller's own privileges, AND 23 probe R1 shows the write really succeeds.
+-- Status: DRAFT, CONDITIONS NOW MET (29/09/2026): 22 block E1 = all eight writers of `reviews`
+--   (admin_delete_user_data, apply_review, reset_card, skip_card, skip_topic_cards, suspend_card,
+--   suspend_topic_cards, unsuspend_card) are SECURITY DEFINER owned by postgres; 22 block E2 = both triggers on
+--   reviews (fn_update_reviews_counter, fn_badge_check_reviews) are SECURITY DEFINER; 23 probe R1 = the direct
+--   client write really succeeds; the two edge functions (cron-daily-study-summary, cron-review-reminders) only
+--   read `reviews` (and run as service_role, which this REVOKE does not touch). Awaiting operator approval.
+--   Original conditions, for the record: E1 all-definer, E2 caller-independent triggers, R1 confirmed.
 --   The client code search (src/) found NO direct write to reviews - every `.from('reviews')` is a SELECT -
 --   all writes go through RPCs (apply_review, skip_card, suspend_card, unsuspend_card, reset_card, ...).
 -- Description: `reviews` is the single source of truth for SRS progress, streak inputs and badge counters,

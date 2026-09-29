@@ -2,15 +2,15 @@
 
 **Last Updated:** 29/09/2026
 
-## Security hotfix: `profiles` protected-columns guard — ✅ DEPLOYED & TEST-VERIFIED 18/18 (29/09/2026), docs updated, NOT yet committed
+## Security hardening (29/09/2026) — ✅ FOUR FIXES DEPLOYED & TEST-VERIFIED; `profile_courses` open (low); note-upload live check not done
 
-Decision record: **D-45** in `blueprint.md`. Guard `trg_guard_profiles_protected_columns` deployed (`security/19`), verified as the client role (`security/20`); exposure check found no past misuse (`security/18`). Rollback ready (`security/21`).
+Decision record: **D-45** in `blueprint.md` (includes a correction: the first self-featuring proof was inconclusive). All verified with rollback-only client-role tests; SQL in `docs/database/security/` (`18`–`31`; `24`, `25`, `26`, `27`, `28`, `30`, `31` keep their `DRAFT` filenames but are DEPLOYED).
+- `profiles` protected columns — `trg_guard_profiles_protected_columns` (`19`; `20` 18/18).
+- `friendships` — `trg_guard_friendships_client_writes` (`24`; `26` 11/11): no self-accept / accepted-insert / row retarget.
+- `reviews` — direct client writes revoked (`25`); live grading verified as TestOutlook; undo = one `GRANT`.
+- `notes`/`flashcard_decks`/`flashcards`/`user_badges` privileged columns (`28`; `30` 14/14); live: badge toggle + deck creation verified.
 
-**Next (in order agreed with operator):**
-1. Commit the security SQL files + docs (awaiting operator go-ahead).
-2. Run `security/22_DIAGNOSTIC` and `23_TEST` (own-row UPDATE audit: friendships / reviews / profile_courses) and paste results; drafts `24`–`27` only after that.
-3. Run `sprint8.8.5c/02_DIAGNOSTIC_pre_sql_checks.sql` (NULL-course users, live reader predicates, approved backfill population = 23 users / 1,882 enrolments expected) and report; then 8.8.5c SQL per D-44.
-4. Still open: Rujuta Auth-log / Site URL / redirect allow-list / reset template check (auth track).
+**Still open:** (a) upload one Private note as TestOutlook (last client path; then delete it) and delete the test card "GUARD TEST - delete me" (Strategic Management / Case Scenarios); (b) `profile_courses` self-insert — read `get_author_profile` before deciding; (c) Rujuta Auth-log / Site URL / redirect allow-list / reset template check (auth track); (d) 8.8.5c SQL — pre-SQL checks done (24 users / 1,903 enrolments incl. Sairaj Kandhare, approved), SQL package being written.
 
 ## Sprint 8.8.5b: Student-facing stabilization — 🟡 SQL DEPLOYED & VERIFIED, frontend built/linted, NOT yet committed/pushed or live-verified (29/09/2026)
 

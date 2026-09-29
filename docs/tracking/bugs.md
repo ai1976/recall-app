@@ -7,7 +7,7 @@
 - **Impact:** privilege escalation to admin/super_admin, self-granting paid-content access (`account_type`), self-un-suspension (`status`).
 - **Evidence of past misuse:** none found (`security/18_DIAGNOSTIC`: only 5 known staff above student, all explained by the audit trail; no suspended users). Caveat: a transient escalation that was later reverted would not show.
 - **Fix:** `trg_guard_profiles_protected_columns` — see D-45 in `blueprint.md`. Files: `docs/database/security/18`, `18b`, `19`, `20`, `21`.
-- **Still open (audit only, nothing deployed):** same policy pattern on `friendships` (suspected self-accept of own friend request), `reviews` (direct SRS writes), `profile_courses`, and owner-writable counters on content tables — `security/22`–`27`.
+- **Same pattern elsewhere — audited 29/09/2026 with rollback-only client-role probes:** `friendships` (sender could accept own request / insert accepted row / retarget a row) FIXED (`security/24`, `26` 11/11); `reviews` direct client writes FIXED (`security/25`, live grading verified); owner-writable `upvote_count`/`view_count`/`featured_*`/`is_verified`/`user_badges.badge_id` FIXED (`security/28`, `30` 14/14). Correction: the first self-featuring proof (`29` C2/C3) was inconclusive (autoclear trigger neutralised it on non-public content). NOT fixed: `profile_courses` self-insert (low; `get_author_profile` definition unread). Details: D-45 in `blueprint.md`.
 
 ## Sprint 8.8.5b — 29/09/2026 (Student-facing stabilization)
 

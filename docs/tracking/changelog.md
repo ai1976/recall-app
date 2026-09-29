@@ -6,7 +6,7 @@
 ### Added
 - `docs/database/security/19_SCHEMA_profiles_protected_columns_guard.sql` — `fn_guard_profiles_protected_columns()` + `trg_guard_profiles_protected_columns` (BEFORE UPDATE on `profiles`). **Deployed 29/09/2026.** `20_TEST_verify_…` 18/18 PASS (client-role impersonation incl. the real definer workflows). `21_ROLLBACK_…` kept ready.
 - Diagnostics: `18_DIAGNOSTIC_profiles_escalation_exposure_check.sql`, `18b_DIAGNOSTIC_functions_writing_protected_profile_columns.sql`.
-- Audit, NOT yet run/deployed: `22_DIAGNOSTIC_own_row_update_audit_step0.sql`, `23_TEST_prove_own_row_update_suspicions.sql`, drafts `24_SCHEMA_DRAFT_friendships_guard.sql`, `25_SCHEMA_DRAFT_reviews_revoke_client_writes.sql`, `26_TEST_DRAFT_verify_own_row_fixes.sql`, `27_ROLLBACK_DRAFT_own_row_fixes.sql`.
+- Audit + fixes, all DEPLOYED and test-verified 29/09/2026: `22_DIAGNOSTIC_own_row_update_audit_step0.sql`, `23_TEST_prove_own_row_update_suspicions.sql`, `29_TEST_prove_content_column_suspicions.sql`; fixes `24_SCHEMA_DRAFT_friendships_guard.sql` (`trg_guard_friendships_client_writes`), `25_SCHEMA_DRAFT_reviews_revoke_client_writes.sql` (revoke direct client writes on `reviews`), `28_SCHEMA_DRAFT_content_privileged_columns_guard.sql` (notes/decks featured+counters, `flashcards.is_verified`, `user_badges` immutable columns); verification `26_TEST_DRAFT_…` (11/11 after 25), `30_TEST_DRAFT_…` (14/14); rollbacks `27_ROLLBACK_DRAFT_…`, `31_ROLLBACK_DRAFT_…`. Files keep their `DRAFT` names (they were written as drafts); they are deployed.
 - 8.8.5c pre-SQL diagnostics: `docs/database/sprint8.8.5c/01_DIAGNOSTIC_step0_missing_blocks_and_profiles_write_safety.sql`, `02_DIAGNOSTIC_pre_sql_checks.sql`.
 
 ### Changed
