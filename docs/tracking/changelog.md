@@ -1,6 +1,22 @@
 # Changelog
 
 ---
+## [30/09/2026] feat(sprint-8.8.5c): course-change archival + restoration, approved backfill, My Study bulk actions (D-44)
+
+### Added
+- `docs/database/sprint8.8.5c/` `03`-`12` + `README_RUN_ORDER.md`: `course_archived` enrollment state (+ `archived_course`, `archived_at`, consistency CHECK, clean-up trigger), shared `course_change_affected()`, `preview_course_change()`, `trg_course_change_archive_restore`, `get_course_archived_my_cards()`, bulk `bulk_pause_my_cards` / `bulk_resume_my_cards` / `bulk_remove_from_my_cards`, regression tests (`08` 27/27, `09` 7/7), the approved backfill (`10`: 24 students / 1,903 enrollments) and its verification (`11` 7/7), emergency rollback (`12`). All deployed 30/09/2026.
+- `ProfileSettings.jsx`: mandatory course-change confirmation dialog (archive + restore counts); Cancel saves nothing.
+- `MyCards.jsx`: History -> "Archived - course change" section; Pause all / Resume all / Remove all on Subject and Topic headers with confirmation.
+
+### Changed
+- `ProfileSettings.jsx` Save is now: validate -> (student course change only) non-mutating preview -> confirm -> one save; the app-wide course cache is refetched after a course change.
+- `MyCards.jsx` empty state points to History for cards from a previous course.
+
+### Files Changed
+- `src/pages/dashboard/Profile/ProfileSettings.jsx`
+- `src/pages/dashboard/Study/MyCards.jsx`
+
+---
 ## [29/09/2026] fix(security): profiles protected-columns guard (D-45) + own-row UPDATE audit scaffolding
 
 ### Added

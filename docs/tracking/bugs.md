@@ -1,5 +1,13 @@
 # Bug Tracking
 
+## Sprint 8.8.5c - 30/09/2026 (course change left old-course cards in My Study)
+
+### [29/09/2026] Students who changed course kept their old-course cards in My Study, with no way to clear them - SQL DEPLOYED & VERIFIED, frontend built, not yet live-verified
+- **Reported:** Shriya Sundaram (`c920165b-...`) and Rujuta Bhatawadekar (`d4dc60d2-...`), both CA Foundation -> CA Intermediate; My Study still listed their old cards.
+- **Root cause (confirmed live, not assumed):** `get_my_cards` has no course filter and nothing reacted to a `profiles.course_level` change; the Sprint 8.8.4a "enroll every card" backfill had enrolled everything the cohort had ever reviewed. Review already hid old-course cards (`get_study_queue` filters by `target_course`), so only My Study was affected. The same pattern hit ~24 students (1,903 enrollments).
+- **Fix:** `course_archived` state + course-change trigger + approved one-time backfill (D-44). Shriya (37) and Rujuta (69) archived and restorable. Also new: bulk Pause/Resume/Remove per Subject/Topic.
+- **Open:** live verification of the two UI flows with TestOutlook; Sairaj Kandhare's course change happened between the sweep and the fix and was included in the backfill after approval.
+
 ## Security — 29/09/2026
 
 ### [29/09/2026] Signed-in users could edit their own `profiles.role` / `account_type` / `status` / `email` — ✅ GUARD DEPLOYED & TEST-VERIFIED (18/18)

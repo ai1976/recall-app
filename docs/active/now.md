@@ -1,6 +1,14 @@
 # NOW - Current Development Status
 
-**Last Updated:** 29/09/2026
+**Last Updated:** 30/09/2026
+
+## Sprint 8.8.5c: course-change archival, backfill, bulk actions - SQL DEPLOYED & VERIFIED (30/09/2026); frontend BUILT, not yet pushed or live-verified
+
+Decision record: **D-44** (status paragraph added) in `blueprint.md`. Package + exact run order: `docs/database/sprint8.8.5c/README_RUN_ORDER.md` (steps 1-10 all run: `08` 27/27, `10` = 24 users / 1,903 rows, `11` 7/7, `09` 7/7).
+
+**Frontend built (lint/build green):** `ProfileSettings.jsx` (student course change -> preview -> confirm; Cancel saves nothing), `MyCards.jsx` (History -> Archived section; bulk Pause/Resume/Remove menus).
+
+**Next:** (1) commit + push the frontend (SQL already live, so the deployment order is satisfied); (2) live-verify with TestOutlook: preview counts in the dialog, a course change both ways, History section, one bulk action; (3) Shriya / Rujuta / Sairaj check their My Study; (4) docs/help text for the new History section if wanted.
 
 ## Security hardening (29/09/2026) — ✅ FOUR FIXES DEPLOYED & TEST-VERIFIED; `profile_courses` open (low); note-upload live check not done
 

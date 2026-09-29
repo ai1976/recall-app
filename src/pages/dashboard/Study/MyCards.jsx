@@ -16,7 +16,13 @@ import {
 import { Card as RvCard } from '@/components/revisop';
 import { formatQuestionType } from '@/lib/questionTypes';
 import {
-  PauseCircle, PlayCircle, X, Plus, Search, ChevronDown, ChevronRight, Award, Undo2,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  PauseCircle, PlayCircle, X, Plus, Search, ChevronDown, ChevronRight, Award, Undo2, Archive, MoreHorizontal,
 } from 'lucide-react';
 
 // Same chunk size/pattern StudyMode.jsx established in Sprint 8.7.7 to avoid oversized
@@ -102,6 +108,16 @@ export default function MyCards() {
   const [removedCards, setRemovedCards] = useState(null); // null = not yet fetched
   const [removedLoading, setRemovedLoading] = useState(false);
   const [removedError, setRemovedError] = useState(null);
+
+  // Sprint 8.8.5c - cards archived because the student changed course (read-only, lazy-loaded with History).
+  // They return automatically when the student switches back to that course; no per-card restore.
+  const [archivedCards, setArchivedCards] = useState(null); // null = not yet fetched
+  const [archivedLoading, setArchivedLoading] = useState(false);
+  const [archivedError, setArchivedError] = useState(null);
+
+  // Sprint 8.8.5c - bulk Pause / Resume / Remove for a whole Subject or Topic group.
+  const [bulkDialog, setBulkDialog] = useState({ open: false, action: null, scopeName: '', ids: [] });
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   // Subjects default open (shows topic-level counts immediately); topics default closed —
   // "individual-card rows only after opening a topic."
@@ -190,11 +206,110 @@ export default function MyCards() {
     }
   };
 
+  const fetchArchivedCards = async () => {
+    setArchivedLoading(true);
+    setArchivedError(null);
+    try {
+      const { data, error } = await supabase.rpc('get_course_archived_my_cards', { p_user_id: user.id });
+      if (error) throw error;
+      const enriched = (data || [])
+        .filter((c) => !isConceptCard(c))
+        .map((c) => ({ ...c, is_own: c.user_id === user.id }));
+      setArchivedCards(enriched);
+      await loadNames(enriched, setSubjectNames, setTopicNames);
+    } catch (err) {
+      console.error('Failed to load archived items:', err);
+      setArchivedError('Could not load your archived items. Please try again.');
+    } finally {
+      setArchivedLoading(false);
+    }
+  };
+
   const handleTabChange = (nextTab) => {
     setTab(nextTab);
-    if (nextTab === 'history' && removedCards === null && !removedLoading) {
-      fetchRemovedCards();
+    if (nextTab === 'history') {
+      if (removedCards === null && !removedLoading) fetchRemovedCards();
+      if (archivedCards === null && !archivedLoading) fetchArchivedCards();
     }
+  };
+
+  // ── Bulk actions (Sprint 8.8.5c) ───────────────────────────────────────────
+  const BULK_RPC = { pause: 'bulk_pause_my_cards', resume: 'bulk_resume_my_cards', remove: 'bulk_remove_from_my_cards' };
+  const BULK_CHUNK = 500; // server cap per call
+
+  const openBulk = (action, scopeName, ids) => setBulkDialog({ open: true, action, scopeName, ids });
+
+  const handleBulkConfirm = async () => {
+    const { action, ids } = bulkDialog;
+    if (!action || ids.length === 0) return;
+    setBulkBusy(true);
+    try {
+      let processed = 0;
+      let skipped = 0;
+      for (let i = 0; i < ids.length; i += BULK_CHUNK) {
+        const { data, error } = await supabase.rpc(BULK_RPC[action], {
+          p_user_id: user.id,
+          p_flashcard_ids: ids.slice(i, i + BULK_CHUNK),
+        });
+        if (error) throw error;
+        processed += data?.processed ?? 0;
+        skipped += data?.skipped ?? 0;
+      }
+      const verb = { pause: 'paused', resume: 'resumed', remove: 'removed from My Study' }[action];
+      toast({
+        title: `${processed} item${processed === 1 ? '' : 's'} ${verb}`,
+        description: skipped > 0 ? `${skipped} skipped - not applicable to their current state.` : undefined,
+      });
+      // Removed items move into History - invalidate the lazy caches so they refetch fresh.
+      if (action === 'remove') setRemovedCards(null);
+      await fetchMyCards();
+    } catch (err) {
+      console.error('Bulk action failed:', err);
+      toast({ title: 'Could not complete that action', description: 'Nothing was partially applied. Please try again.', variant: 'destructive' });
+    } finally {
+      setBulkBusy(false);
+      setBulkDialog({ open: false, action: null, scopeName: '', ids: [] });
+    }
+  };
+
+  const renderBulkMenu = (scopeName, groupCards) => {
+    const activeIds = groupCards.filter((c) => deriveState(c, c.reviewStatus).key === 'active').map((c) => c.id);
+    const pausedIds = groupCards.filter((c) => deriveState(c, c.reviewStatus).key === 'suspended').map((c) => c.id);
+    const allIds = groupCards.map((c) => c.id);
+    if (allIds.length === 0) return null;
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            aria-label={`More actions for ${scopeName}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+          {activeIds.length > 0 && (
+            <DropdownMenuItem onSelect={() => openBulk('pause', scopeName, activeIds)}>
+              <PauseCircle className="h-4 w-4 mr-2" />
+              Pause all active ({activeIds.length})
+            </DropdownMenuItem>
+          )}
+          {pausedIds.length > 0 && (
+            <DropdownMenuItem onSelect={() => openBulk('resume', scopeName, pausedIds)}>
+              <PlayCircle className="h-4 w-4 mr-2" />
+              Resume all paused ({pausedIds.length})
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onSelect={() => openBulk('remove', scopeName, allIds)}>
+            <X className="h-4 w-4 mr-2" />
+            Remove all from My Study ({allIds.length})
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
   };
 
   const toggleSubject = (key) => setClosedSubjects((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -360,6 +475,7 @@ export default function MyCards() {
                 {showCounts ? <CountBadges counts={subject.counts} /> : (
                   <span className="text-[11px] font-medium px-2 py-0.5 rounded-rec bg-rv-bg-2 text-rv-ink-600 shrink-0">{totalCards} item{totalCards === 1 ? '' : 's'}</span>
                 )}
+                {showStudyActions && renderBulkMenu(subject.name, subject.topics.flatMap((t) => t.cards))}
                 {showStudyActions && (
                   <Button
                     type="button"
@@ -390,6 +506,7 @@ export default function MyCards() {
                           {showCounts ? <CountBadges counts={topic.counts} /> : (
                             <span className="text-[11px] font-medium px-2 py-0.5 rounded-rec bg-rv-bg-2 text-rv-ink-600 shrink-0">{topic.cards.length}</span>
                           )}
+                          {showStudyActions && renderBulkMenu(topic.name, topic.cards)}
                           {showStudyActions && (
                             <Button
                               type="button"
@@ -445,6 +562,11 @@ export default function MyCards() {
   const groupedWorking = groupCards(workingCards, subjectNames, topicNames);
   const groupedMastered = groupCards(masteredCards, subjectNames, topicNames);
   const groupedRemoved = removedCards ? groupCards(removedCards, subjectNames, topicNames) : [];
+  // Archived cards are grouped by the course they were archived FROM, then Subject -> Topic.
+  const archivedByCourse = {};
+  (archivedCards || []).forEach((c) => {
+    (archivedByCourse[c.archived_course] = archivedByCourse[c.archived_course] || []).push(c);
+  });
 
   return (
     <PageContainer width="medium">
@@ -482,6 +604,9 @@ export default function MyCards() {
             <p className="text-rv-ink-600 mb-6 max-w-md mx-auto">
               Choose "Save &amp; Add to My Study" when you create a card, or add cards created by
               others from Practice.
+            </p>
+            <p className="text-sm text-rv-ink-400 mb-6 max-w-md mx-auto">
+              Changed your course recently? Cards from your previous course are kept under History.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button onClick={() => navigate('/dashboard/flashcards/new')} className="gap-2">
@@ -539,8 +664,72 @@ export default function MyCards() {
               ), actions: (card) => renderHistoryActions(card, 'removed') })
             )}
           </div>
+
+          <div>
+            <h2 className="text-sm font-semibold text-rv-ink-600 mb-1 flex items-center gap-1.5">
+              <Archive className="h-4 w-4" />
+              Archived &mdash; course change ({(archivedCards || []).length})
+            </h2>
+            <p className="text-xs text-rv-ink-400 mb-2">
+              Cards from a course you switched away from. They return to My Study automatically if you switch
+              back to that course, with their review history intact.
+            </p>
+            {archivedLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rv-navy"></div>
+              </div>
+            ) : archivedError ? (
+              <RvCard className="p-6 text-center">
+                <p className="text-rv-ink-600 mb-3">{archivedError}</p>
+                <Button onClick={fetchArchivedCards}>Try again</Button>
+              </RvCard>
+            ) : Object.keys(archivedByCourse).length === 0 ? (
+              <p className="text-sm text-rv-ink-400">Nothing archived.</p>
+            ) : (
+              <div className="space-y-6">
+                {Object.entries(archivedByCourse).map(([course, list]) => (
+                  <div key={course}>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-rv-ink-400 mb-2">
+                      From {course} ({list.length})
+                    </h3>
+                    {renderGroups(groupCards(list, subjectNames, topicNames), { showCounts: false, badge: () => (
+                      <span className="inline-block px-2 py-0.5 rounded-rec bg-rv-bg-2 text-rv-ink-400 text-[11px] font-semibold">Archived</span>
+                    ), actions: () => null })}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
+
+      {/* Bulk action confirmation (Sprint 8.8.5c) */}
+      <Dialog open={bulkDialog.open} onOpenChange={(open) => { if (!open && !bulkBusy) setBulkDialog({ open: false, action: null, scopeName: '', ids: [] }); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {bulkDialog.action === 'pause' && `Pause ${bulkDialog.ids.length} item${bulkDialog.ids.length === 1 ? '' : 's'} in ${bulkDialog.scopeName}?`}
+              {bulkDialog.action === 'resume' && `Resume ${bulkDialog.ids.length} item${bulkDialog.ids.length === 1 ? '' : 's'} in ${bulkDialog.scopeName}?`}
+              {bulkDialog.action === 'remove' && `Remove ${bulkDialog.ids.length} item${bulkDialog.ids.length === 1 ? '' : 's'} in ${bulkDialog.scopeName} from My Study?`}
+            </DialogTitle>
+            <DialogDescription>
+              {bulkDialog.action === 'pause' && 'They stay in My Study and keep their review history, but scheduled reviews stop until you resume them.'}
+              {bulkDialog.action === 'resume' && 'Review scheduling resumes - they will be due for review today.'}
+              {bulkDialog.action === 'remove' && 'They move to History, Removed. Your own content stays in My Contributions, review history is preserved, and you can add them back anytime.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" disabled={bulkBusy} onClick={() => setBulkDialog({ open: false, action: null, scopeName: '', ids: [] })}>Cancel</Button>
+            <Button
+              variant={bulkDialog.action === 'remove' ? 'destructive' : 'default'}
+              disabled={bulkBusy}
+              onClick={handleBulkConfirm}
+            >
+              {bulkBusy ? 'Working...' : (bulkDialog.action === 'pause' ? 'Pause' : bulkDialog.action === 'resume' ? 'Resume' : 'Remove')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Pause confirmation */}
       <Dialog open={pauseDialog.open} onOpenChange={(open) => setPauseDialog((prev) => ({ ...prev, open }))}>

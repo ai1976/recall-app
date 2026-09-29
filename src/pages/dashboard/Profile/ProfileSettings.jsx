@@ -8,6 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Save, Loader2, Plus, X, Star, GraduationCap, Bell, BellOff, Smartphone, Target, CalendarClock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import PageContainer from '@/components/layout/PageContainer';
@@ -71,6 +79,7 @@ export default function ProfileSettings() {
     addCourse,
     removeCourse,
     setPrimaryCourse,
+    refetchTeachingCourses,
     loading: courseLoading,
   } = useCourseContext();
 
@@ -78,6 +87,12 @@ export default function ProfileSettings() {
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState('');
   const [courseLevel, setCourseLevel] = useState('');
+  // Sprint 8.8.5c - course-change confirmation. `originalCourse` is the course as last saved; the form's
+  // `courseLevel` may differ until the student confirms. Nothing is written until confirmation.
+  const [originalCourse, setOriginalCourse] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [coursePreview, setCoursePreview] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [institutionSelect, setInstitutionSelect] = useState('');
   const [customInstitution, setCustomInstitution] = useState('');
   const [email, setEmail] = useState('');
@@ -157,6 +172,7 @@ export default function ProfileSettings() {
       setFullName(data.full_name || '');
       setEmail(data.email || '');
       setCourseLevel(data.course_level || '');
+      setOriginalCourse(data.course_level || '');
 
       setDailyReviewGoal(data.daily_review_goal ?? null);
       setDailyStudyGoalMinutes(data.daily_study_goal_minutes ?? null);
@@ -188,8 +204,8 @@ export default function ProfileSettings() {
     }
   };
 
-  const handleSave = async () => {
-    // Determine final institution value
+  // Validates the form and returns the values to persist, or null (after toasting) if invalid.
+  const collectProfileValues = () => {
     let finalInstitution = '';
     if (institutionSelect === 'Other') {
       const trimmed = customInstitution.trim();
@@ -205,26 +221,40 @@ export default function ProfileSettings() {
         description: 'Please enter your full name.',
         variant: 'destructive',
       });
-      return;
+      return null;
     }
+    return { trimmedName, finalInstitution };
+  };
+
+  const persistProfile = async () => {
+    const values = collectProfileValues();
+    if (!values) return;
 
     setSaving(true);
     try {
       const { error } = await supabase
         .from('profiles')
         .update({
-          full_name: trimmedName,
+          full_name: values.trimmedName,
           course_level: courseLevel || null,
-          institution: finalInstitution || null,
+          institution: values.finalInstitution || null,
         })
         .eq('id', user.id);
 
       if (error) throw error;
 
+      const courseChanged = (courseLevel || '') !== originalCourse;
+      setOriginalCourse(courseLevel || '');
+
       toast({
         title: 'Profile updated',
-        description: 'Your changes have been saved.',
+        description: courseChanged && !isContentCreator
+          ? 'Your changes have been saved. Cards from your previous course have moved out of My Study - see My Study, History.'
+          : 'Your changes have been saved.',
       });
+
+      // The course is cached app-wide (nav, filters) - refresh it so nothing keeps showing the old one.
+      if (courseChanged) refetchTeachingCourses();
     } catch (error) {
       console.error('Error saving profile:', error);
       toast({
@@ -235,6 +265,51 @@ export default function ProfileSettings() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Sprint 8.8.5c (D-44): select -> Save -> NON-MUTATING preview -> explicit confirmation -> save.
+  // A student changing their course must first see what moves out of / returns to My Study. Cancel leaves the
+  // WHOLE form unsaved (no partial save of the unrelated fields) and puts the course dropdown back.
+  // Professors/admins manage teaching courses separately (profile_courses) and are not affected by archival.
+  const handleSave = async () => {
+    if (!collectProfileValues()) return;
+
+    const needsConfirm = !isContentCreator && originalCourse && (courseLevel || '') !== originalCourse;
+    if (!needsConfirm) {
+      await persistProfile();
+      return;
+    }
+
+    setPreviewLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('preview_course_change', { p_new_course: courseLevel });
+      if (error) throw error;
+      setCoursePreview(data);
+      setConfirmOpen(true);
+    } catch (error) {
+      console.error('Error previewing course change:', error);
+      toast({
+        title: 'Could not check what this change affects',
+        description: 'Nothing was saved. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const confirmCourseChange = async () => {
+    setConfirmOpen(false);
+    await persistProfile();
+  };
+
+  const cancelCourseChange = () => {
+    setConfirmOpen(false);
+    setCourseLevel(originalCourse);
+    toast({
+      title: 'Course change cancelled',
+      description: 'Nothing was saved. Any other edits are still in the form - press Save Changes to save them.',
+    });
   };
 
   // ── Daily Goal handlers ──────────────────────────────────────────────────
@@ -438,6 +513,12 @@ export default function ProfileSettings() {
                 ))}
               </SelectContent>
             </Select>
+            {!isContentCreator && (
+              <p className="text-xs text-gray-500">
+                Changing your course moves cards from your previous course out of My Study and Review.
+                You will be asked to confirm first, and your review history is always kept.
+              </p>
+            )}
           </div>
 
           {/* Institution */}
@@ -463,13 +544,13 @@ export default function ProfileSettings() {
           </div>
 
           {/* Save Button */}
-          <Button onClick={handleSave} disabled={saving} className="w-full">
-            {saving ? (
+          <Button onClick={handleSave} disabled={saving || previewLoading} className="w-full">
+            {saving || previewLoading ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? 'Saving...' : previewLoading ? 'Checking...' : 'Save Changes'}
           </Button>
         </CardContent>
       </Card>
@@ -834,6 +915,46 @@ export default function ProfileSettings() {
         </CardContent>
       </Card>
 
+          {/* Sprint 8.8.5c - mandatory course-change confirmation (shows BOTH effects; Cancel saves nothing) */}
+      <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open) cancelCourseChange(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change your course to {courseLevel}?</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-2 text-sm text-gray-600">
+                {coursePreview?.archive_count > 0 ? (
+                  <p>
+                    <strong>{coursePreview.archive_count}</strong> {originalCourse} card{coursePreview.archive_count === 1 ? '' : 's'}{' '}
+                    will move out of My Study and Review.
+                    {(coursePreview.archive_paused > 0 || coursePreview.archive_mastered > 0) && (
+                      <> ({[
+                        coursePreview.archive_paused > 0 ? `${coursePreview.archive_paused} paused` : null,
+                        coursePreview.archive_mastered > 0 ? `${coursePreview.archive_mastered} mastered` : null,
+                      ].filter(Boolean).join(', ')} - their state is kept.)</>
+                    )}
+                  </p>
+                ) : (
+                  <p>None of your My Study cards belong to {originalCourse}, so nothing will move out.</p>
+                )}
+                {coursePreview?.restore_count > 0 && (
+                  <p>
+                    <strong>{coursePreview.restore_count}</strong> previously archived {courseLevel} card{coursePreview.restore_count === 1 ? '' : 's'}{' '}
+                    will return to My Study.
+                  </p>
+                )}
+                <p>
+                  Your review history is preserved. Cards that move out come back automatically if you switch
+                  back to {originalCourse}, and you can see them under My Study, History.
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelCourseChange}>Cancel</Button>
+            <Button onClick={confirmCourseChange}>Change course and save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }
