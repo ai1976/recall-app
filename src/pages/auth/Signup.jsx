@@ -12,6 +12,7 @@ export default function Signup() {
   const [allCourses, setAllCourses] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -94,6 +95,7 @@ export default function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setAlreadyRegistered(false);
 
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
@@ -115,8 +117,17 @@ export default function Signup() {
     try {
       const finalCourseLevel = courseLevel === 'Other' ? customCourse : courseLevel;
       
-      await signUp(email, password, fullName, finalCourseLevel);
-      
+      const result = await signUp(email, password, fullName, finalCourseLevel);
+
+      // Supabase deliberately returns a success-shaped response for an email that is already
+      // registered (anti-enumeration) and sends NO email — the only tell is an empty
+      // `identities` array. Without this check the student is told to wait for a mail that
+      // will never arrive (Sairaj Kandhare, 29/09/2026).
+      if (result?.user && Array.isArray(result.user.identities) && result.user.identities.length === 0) {
+        setAlreadyRegistered(true);
+        return;
+      }
+
       alert(
         '🎉 Account Created Successfully!\n\n' +
         '📧 Verification Email Sent\n\n' +
@@ -290,6 +301,18 @@ export default function Signup() {
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
               {error}
+            </div>
+          )}
+
+          {alreadyRegistered && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-lg text-sm">
+              <p className="font-semibold mb-1">This email is already registered.</p>
+              <p>
+                No new email was sent because an account already exists for {email}.{' '}
+                <Link to="/login" className="font-semibold underline">Log in</Link>
+                {' '}or{' '}
+                <Link to="/forgot-password" className="font-semibold underline">reset your password</Link>.
+              </p>
             </div>
           )}
 

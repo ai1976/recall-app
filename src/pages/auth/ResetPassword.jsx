@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +11,7 @@ import { Eye, EyeOff, CheckCircle, Lock } from 'lucide-react';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const { clearRecoveryMode } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -53,7 +55,12 @@ export default function ResetPassword() {
       if (error) throw error;
 
       setSuccess(true);
-      
+
+      // End the recovery session so the student logs in with the password they just chose —
+      // otherwise they stay signed in via the emailed link and /login bounces to /dashboard.
+      clearRecoveryMode();
+      await supabase.auth.signOut();
+
       setTimeout(() => {
         navigate('/login');
       }, 2000);
@@ -161,6 +168,18 @@ export default function ResetPassword() {
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Resetting Password...' : 'Reset Password'}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              onClick={async () => {
+                clearRecoveryMode();
+                await supabase.auth.signOut();
+                navigate('/login');
+              }}
+            >
+              Cancel and go to login
             </Button>
           </form>
         </CardContent>

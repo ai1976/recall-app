@@ -11,12 +11,45 @@ const AuthContext = createContext({})
 // one profiles read per session. Reset on a hard reload (module re-eval).
 let tzSyncedThisSession = false
 
+// Sprint 8.8.5b (bug #4) — password-recovery guard. Opening a Supabase recovery link signs
+// the user IN before they have chosen a new password. If that lands anywhere other than
+// /reset-password (e.g. the Site URL "/", which redirects an authed user to /dashboard), the
+// student sees the full logged-in app without ever resetting — and then can't log in with
+// the "new" password they never set (Rujuta Bhatwadekar, 29/09/2026). The flag below marks
+// the session as recovery-only until ResetPassword completes or abandons it. It is set from
+// the URL synchronously (so there is no dashboard flash) and from the PASSWORD_RECOVERY
+// event (covers any flow that does not leave type=recovery in the URL). sessionStorage, not
+// localStorage: it must survive a reload of the same tab but not leak into a later visit.
+const RECOVERY_KEY = 'revisop_password_recovery'
+
+const readRecoveryFlag = () => {
+  try {
+    if (sessionStorage.getItem(RECOVERY_KEY) === '1') return true
+    const fromUrl = /[#&?]type=recovery(&|$)/.test(window.location.hash + window.location.search)
+    if (fromUrl) sessionStorage.setItem(RECOVERY_KEY, '1')
+    return fromUrl
+  } catch {
+    return false
+  }
+}
+
+// Evaluated once at module load — synchronously, in the same task that creates the Supabase
+// client — so the URL is read BEFORE supabase-js finishes processing and strips the hash.
+// Reading it lazily inside React's first render can lose that race.
+readRecoveryFlag()
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext)
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [recoveryMode, setRecoveryMode] = useState(readRecoveryFlag)
+
+  const clearRecoveryMode = () => {
+    try { sessionStorage.removeItem(RECOVERY_KEY) } catch { /* storage unavailable */ }
+    setRecoveryMode(false)
+  }
 
   // ============================================================
   // HELPER: Update user's timezone in profiles table
@@ -102,7 +135,16 @@ export const AuthProvider = ({ children }) => {
 
     // Listen for auth changes. applySession no-ops the state update when the user
     // id is unchanged, so TOKEN_REFRESHED / repeat SIGNED_IN events cost nothing.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        try { sessionStorage.setItem(RECOVERY_KEY, '1') } catch { /* storage unavailable */ }
+        setRecoveryMode(true)
+      }
+      // A signed-out session can never still be "in recovery".
+      if (event === 'SIGNED_OUT') {
+        try { sessionStorage.removeItem(RECOVERY_KEY) } catch { /* storage unavailable */ }
+        setRecoveryMode(false)
+      }
       applySession(session)
     })
 
@@ -112,12 +154,18 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     loading,
+    recoveryMode,
+    clearRecoveryMode,
     // 🆕 ENHANCED: Sign in with AUDIT LOGGING for admin/super_admin
    signIn: async (email, password) => {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) throw error;
+
+    // A deliberate password login can never be a recovery session — drop any stale flag
+    // left by an abandoned reset link in this tab.
+    clearRecoveryMode();
 
     // Log admin/super_admin logins for security audit
     if (data.user) {

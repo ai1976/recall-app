@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { CourseContextProvider } from '@/contexts/CourseContext'
@@ -107,8 +107,9 @@ function LegacyNoteEditRedirect() {
 // Routing lives inside AuthProvider so it can read auth state via useAuth()
 // This eliminates the duplicate getSession() call that was in the old App component
 function AppContent() {
-  const { user, loading } = useAuth()
+  const { user, loading, recoveryMode } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
 
   // Handles postAuthRedirect for ALL auth paths: direct login, email confirmation link,
   // or any other flow that results in user becoming authenticated.
@@ -123,9 +124,16 @@ if (!user || loading) return
 
   if (loading) return <PageLoader />
 
+  // Sprint 8.8.5b (bug #4) — a recovery-link session is NOT a normal login. Until the student
+  // has set a new password, every route resolves to /reset-password; no nav, no dashboard.
+  if (user && recoveryMode && pathname !== '/reset-password') {
+    return <Navigate to="/reset-password" replace />
+  }
+  const showAppShell = user && !recoveryMode
+
   return (
     <>
-      {user && <Navigation />}
+      {showAppShell && <Navigation />}
       {/* Sprint 8.8.3 — desktop authenticated shell: NavDesktop is now a fixed
           left rail (md:w-60) rather than an in-flow top bar, so authenticated
           content needs matching left padding at md+ to avoid sitting under it.
@@ -133,7 +141,7 @@ if (!user || loading) return
           above the content region, so content also needs matching top padding
           at md+ (md:pt-12). Unauthenticated/public routes (`!user`) get no
           wrapper padding at all; mobile is unaffected (`md:` prefix only). */}
-      <div className={user ? 'md:pl-60 md:pt-12' : undefined}>
+      <div className={showAppShell ? 'md:pl-60 md:pt-12' : undefined}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
           {/*

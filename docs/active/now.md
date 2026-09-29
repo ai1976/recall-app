@@ -1,6 +1,23 @@
 # NOW - Current Development Status
 
-**Last Updated:** 28/09/2026
+**Last Updated:** 29/09/2026
+
+## Sprint 8.8.5b: Student-facing stabilization — 🟡 SQL DEPLOYED & VERIFIED, frontend built/linted, NOT yet committed/pushed or live-verified (29/09/2026)
+
+Decision record: **D-43** (this sprint) and **D-44** (locked, not implemented: 8.8.5c course-change archival + backfill + My Study bulk actions; 8.8.5d professor↔batch assignment) in `blueprint.md`.
+
+**Just completed:**
+- **#1 Heatmap:** `get_study_heatmap` v2 deployed (`docs/database/sprint8.8.5b/03`), `04_TEST` 5/5 PASS — Aarya's two study-only days now return 15,933 s. `StudyHeatmap.jsx` shades by max(review level, study-time level).
+- **#3 Signup:** `Signup.jsx` detects empty `identities` (already registered) — Sairaj's account has existed since 06/03/2026.
+- **#4 Recovery:** `recoveryMode` quarantine in `AuthContext`/`App.jsx`/`ResetPassword.jsx`. Redirect root cause still unconfirmed.
+
+**Still open / next:**
+1. Commit + push 8.8.5b frontend (SQL already live, so order is satisfied), then live-verify: heatmap as Aarya-like data, signup with a registered email, a recovery link with a throwaway account.
+2. Operator: check Supabase Auth logs + URL Configuration (Site URL, redirect allow-list, Reset Password template) for Rujuta's 29/09 session.
+3. Operator: run `docs/database/sprint8.8.5c/00_DIAGNOSTIC_step0_course_change_catalog_and_sweep.sql` and paste results — gates the 8.8.5c design (RPC vs trigger, enrollment-state representation, `target_course` reconciliation, all-user affected list).
+4. Deferred (do not block 8.8.6): batch bulk-approve (#5), email change (#6), group rename (#7).
+
+**Session notes:** heatmap "best streak" label now spans review-or-study days while `get_user_streak` stays review-based — product decision pending.
 
 ## Sprint 8.8.5a: Browse / My Study / Review State Consistency — ✅ COMPLETE (28/09/2026) — decision-gated, SQL-first, build/lint/test green, substantially live-verified with three items carried forward as explicit verification debt
 

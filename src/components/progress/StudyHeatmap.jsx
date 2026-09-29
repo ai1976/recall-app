@@ -4,18 +4,55 @@ import { supabase } from '@/lib/supabase';
 // ─── Color scale ────────────────────────────────────────────────────────────
 // Single-hue navy ramp — magnitude encoding, not a status colour (green now
 // carries the "mastered" semantic elsewhere on this page). Sprint 6.5.
-const getColor = (count) => {
-  if (count < 0)  return 'bg-transparent';             // future date
-  if (count === 0) return 'bg-rv-bg-2';
-  if (count <= 3)  return 'bg-rv-navy/20';
-  if (count <= 7)  return 'bg-rv-navy/40';
-  if (count <= 14) return 'bg-rv-navy/70';
-  return 'bg-rv-navy';
+//
+// Sprint 8.8.5b (bug #1): a day is shaded by whichever of its two signals is stronger —
+// card reviews OR logged study time (manual / study-mode / practice sessions). Offline study
+// with zero card reviews used to leave the cell grey. Each signal is mapped to a 0–4 level on
+// its own scale, then the higher level wins, so the two units never get added together.
+// level: -1 = future, 0 = no activity, 1–4 = increasing intensity.
+const LEVEL_CLASS = ['bg-rv-bg-2', 'bg-rv-navy/20', 'bg-rv-navy/40', 'bg-rv-navy/70', 'bg-rv-navy'];
+const getColor = (level) => (level < 0 ? 'bg-transparent' : LEVEL_CLASS[level]);
+
+const reviewLevel = (count) => {
+  if (count <= 0)  return 0;
+  if (count <= 3)  return 1;
+  if (count <= 7)  return 2;
+  if (count <= 14) return 3;
+  return 4;
+};
+
+const studyLevel = (seconds) => {
+  const min = seconds / 60;
+  if (min <= 0)   return 0;
+  if (min <= 30)  return 1;
+  if (min <= 60)  return 2;
+  if (min <= 120) return 3;
+  return 4;
+};
+
+const formatStudyTime = (seconds) => {
+  const totalMin = Math.round(seconds / 60);
+  if (totalMin < 60) return `${totalMin}m`;
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+};
+
+const dayTitle = (day) => {
+  if (day.level < 0) return '';
+  const parts = [];
+  if (day.reviews > 0) parts.push(`${day.reviews} review${day.reviews !== 1 ? 's' : ''}`);
+  if (day.seconds > 0) parts.push(`${formatStudyTime(day.seconds)} study time`);
+  return `${day.dateStr}: ${parts.length ? parts.join(' · ') : 'no activity'}`;
 };
 
 // ─── Build 13-week grid (Sun→Sat columns, today in last column) ─────────────
 const buildGrid = (heatmapData) => {
-  const countMap = new Map(heatmapData.map((d) => [d.review_date, d.review_count]));
+  // study_seconds is absent if the v1 RPC is still deployed — treat as 0, never crash.
+  const dayMap = new Map(heatmapData.map((d) => [d.review_date, {
+    reviews: d.review_count ?? 0,
+    seconds: d.study_seconds ?? 0,
+  }]));
 
   const today = new Date();
   // Start of the first column = Sunday 12 weeks before last Sunday
@@ -32,7 +69,13 @@ const buildGrid = (heatmapData) => {
       date.setDate(firstSunday.getDate() + w * 7 + d);
       const isFuture = date > today;
       const dateStr  = date.toLocaleDateString('en-CA'); // YYYY-MM-DD
-      days.push({ dateStr, count: isFuture ? -1 : (countMap.get(dateStr) ?? 0) });
+      const activity = dayMap.get(dateStr) ?? { reviews: 0, seconds: 0 };
+      days.push({
+        dateStr,
+        reviews: activity.reviews,
+        seconds: activity.seconds,
+        level: isFuture ? -1 : Math.max(reviewLevel(activity.reviews), studyLevel(activity.seconds)),
+      });
     }
     weeks.push(days);
   }
@@ -43,11 +86,11 @@ const buildGrid = (heatmapData) => {
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const buildMonthLabels = (weeks) => {
   return weeks.map((week) => {
-    const firstReal = week.find((d) => d.count >= 0);
+    const firstReal = week.find((d) => d.level >= 0);
     if (!firstReal) return null;
     const d = new Date(firstReal.dateStr);
     // Show month label only on the first week that contains the 1st of the month
-    const weekDates = week.filter((x) => x.count >= 0).map((x) => new Date(x.dateStr));
+    const weekDates = week.filter((x) => x.level >= 0).map((x) => new Date(x.dateStr));
     const hasFirst  = weekDates.some((x) => x.getDate() === 1);
     return hasFirst ? MONTHS[d.getMonth()] : null;
   });
@@ -98,7 +141,7 @@ export default function StudyHeatmap({ userId }) {
 
   const weeks        = buildGrid(heatmapData);
   const monthLabels  = buildMonthLabels(weeks);
-  const totalDays    = heatmapData.length;           // days with ≥1 review
+  const totalDays    = heatmapData.length;           // days with ≥1 review or logged study session
   const longestStreak = (() => {
     // compute longest streak from heatmap data for the summary line
     if (!heatmapData.length) return 0;
@@ -121,7 +164,7 @@ export default function StudyHeatmap({ userId }) {
   return (
     <div className="bg-rv-bg-1 rounded-lg border border-rv-border p-4 sm:p-5">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-rv-ink-600">Study Activity — Last 90 Days</h3>
+        <h3 className="text-sm font-semibold text-rv-ink-600" title="Shaded by card reviews or logged study time, whichever is higher">Study Activity — Last 90 Days</h3>
         <span className="text-xs text-rv-ink-400">
           {totalDays} active {totalDays === 1 ? 'day' : 'days'}
           {longestStreak > 1 && ` · ${longestStreak}-day best streak`}
@@ -157,8 +200,8 @@ export default function StudyHeatmap({ userId }) {
             {week.map((day, di) => (
               <div
                 key={di}
-                title={day.count >= 0 ? `${day.dateStr}: ${day.count} review${day.count !== 1 ? 's' : ''}` : ''}
-                className={`h-3 w-3 rounded-[2px] ${getColor(day.count)}`}
+                title={dayTitle(day)}
+                className={`h-3 w-3 rounded-[2px] ${getColor(day.level)}`}
               />
             ))}
           </div>
@@ -168,7 +211,7 @@ export default function StudyHeatmap({ userId }) {
       {/* Legend */}
       <div className="flex items-center gap-1.5 mt-3 justify-end">
         <span className="text-[10px] text-rv-ink-400">Less</span>
-        {[0, 2, 5, 10, 15].map((n) => (
+        {[0, 1, 2, 3, 4].map((n) => (
           <div key={n} className={`h-3 w-3 rounded-[2px] ${getColor(n)}`} />
         ))}
         <span className="text-[10px] text-rv-ink-400">More</span>

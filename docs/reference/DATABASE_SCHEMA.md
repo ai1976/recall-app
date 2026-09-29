@@ -1406,6 +1406,19 @@ All three `SECURITY DEFINER`, `SET search_path TO public, extensions`.
 
 ---
 
+## get_study_heatmap (Sprint 8.8.5b, v2 — 29/09/2026)
+
+```sql
+get_study_heatmap(p_user_id uuid, p_days integer DEFAULT 90)
+RETURNS TABLE (review_date date, review_count integer, study_seconds integer)
+SECURITY DEFINER, plpgsql, SET search_path TO public, extensions
+```
+- **v2 (D-43):** one row per date that has EITHER a `user_activity_log` `'review'` row OR at least one `study_sessions` row within `p_days`. `review_count` = tz-adjusted count of `status='active'` reviews that day (0 if none — same as v1). `study_seconds` = `SUM(study_sessions.duration_seconds)` for that `session_date`, all sources (`manual`/`study_mode`/`practice_mode`); `session_date` is already the student's local date, so no tz conversion.
+- Trailing column added, so deployed via DROP + CREATE; the v1 frontend shape (`review_date`, `review_count`) is unchanged. Guard unchanged: `p_user_id = auth.uid()` or `is_admin()`, else `Access denied`. ACL: `authenticated` (+ `service_role`, `postgres`); no anon/PUBLIC.
+- Files: `docs/database/sprint8.8.5b/03_FUNCTIONS_get_study_heatmap_v2_study_seconds.sql` (deploy), `04_TEST_...` (5/5 PASS 29/09/2026), `05_ROLLBACK_...` (restores v1).
+
+---
+
 ## get_study_time_stats (Sprint 3.1, split by source Sprint 7.3-C)
 
 ```sql

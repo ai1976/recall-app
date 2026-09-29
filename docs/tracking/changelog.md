@@ -1,6 +1,31 @@
 # Changelog
 
 ---
+## [29/09/2026] fix(sprint-8.8.5b): student-facing stabilization — heatmap study time, signup already-registered detection, recovery-session guard (D-43)
+
+### Added
+- `docs/database/sprint8.8.5b/` — `00_DIAGNOSTIC_reported_bugs_triage.sql`, `01_DIAGNOSTIC_my_study_by_course.sql`, `02_DIAGNOSTIC_get_study_heatmap_live_state.sql`, `03_FUNCTIONS_get_study_heatmap_v2_study_seconds.sql`, `04_TEST_verify_get_study_heatmap_v2.sql`, `05_ROLLBACK_restore_get_study_heatmap_v1.sql`. 03 deployed and 04 verified 29/09/2026 (5/5 PASS).
+- `get_study_heatmap` v2 — additive trailing `study_seconds integer`; review days ∪ study-session days.
+- `AuthContext` — `recoveryMode` / `clearRecoveryMode()`; module-load URL detection of `type=recovery` plus `PASSWORD_RECOVERY` event, sessionStorage-backed.
+- `docs/database/sprint8.8.5c/00_DIAGNOSTIC_step0_course_change_catalog_and_sweep.sql` and `docs/active/design-review/course-change-archival-and-batch-professors-design.md` — design/Step 0 only, nothing deployed.
+
+### Changed
+- `src/components/progress/StudyHeatmap.jsx` — day shading = max(review level, study-time level); tooltip shows both; tolerates v1 RPC shape.
+- `src/pages/auth/Signup.jsx` — `identities.length === 0` shows "already registered" with Log in / Reset password instead of the false success alert.
+- `src/App.jsx` — while `recoveryMode`, every route resolves to `/reset-password` and the nav shell is hidden.
+- `src/pages/auth/ResetPassword.jsx` — signs out the recovery session on success; added "Cancel and go to login".
+
+### Decision Log
+- **D-43** (this sprint) and **D-44** (locked design decisions for 8.8.5c / 8.8.5d, not implemented) in `blueprint.md`.
+
+### Files Changed
+- `src/components/progress/StudyHeatmap.jsx`
+- `src/pages/auth/Signup.jsx`
+- `src/pages/auth/ResetPassword.jsx`
+- `src/contexts/AuthContext.jsx`
+- `src/App.jsx`
+
+---
 ## [28/09/2026] feat(sprint-8.8.5a): Browse/My Study/Review state consistency + six-control mobile nav (D-41/D-42)
 
 ### Added

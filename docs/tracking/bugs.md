@@ -1,5 +1,23 @@
 # Bug Tracking
 
+## Sprint 8.8.5b — 29/09/2026 (Student-facing stabilization)
+
+### [29/09/2026] Logged offline study time never appeared on the Progress heatmap — 🟡 SQL DEPLOYED & TEST-VERIFIED, frontend not yet pushed
+- **Reported:** student Aarya Bapat (`bf13ff54-fb3e-44b8-beb1-8ad55376faf6`) — 3h of offline study logged, not on the heatmap "or anywhere else".
+- **Root cause (confirmed live):** her sessions ARE in `study_sessions` (manual, 28–29/09, 15,933 s total). `get_study_heatmap` read only `user_activity_log` `activity_type='review'` rows, and nothing writes that log from `study_sessions` (no trigger on the table), so a study-only day could never be shaded. Not a lost log.
+- **Fix:** `get_study_heatmap` v2 (review days ∪ study days, `study_seconds` column) + `StudyHeatmap.jsx`. Verified 5/5 via `04_TEST`.
+- **Open:** "anywhere else" not separately investigated (study-time stats RPC does read `study_sessions`); ask the student what she still sees missing after deploy.
+
+### [29/09/2026] Signup said "check your email" for an already-registered address — 🟡 CODE FIXED, not live-verified
+- **Reported:** student Sairaj Kandhare, `sai.kandhare107@gmail.com`, no email in inbox or spam after several attempts.
+- **Root cause (confirmed live):** an `auth.users` row already exists (created 06/03/2026, confirmed 09/03/2026). Supabase `signUp()` returns a success-shaped response with empty `identities` and sends no mail; the UI showed a success alert unconditionally.
+- **Fix:** `Signup.jsx` detects empty `identities` and shows "already registered" with Log in / Reset password.
+
+### [29/09/2026] Password-recovery link opened the full logged-in app before a password was set — 🟡 GUARD ADDED, root-cause trigger UNCONFIRMED, not live-verified
+- **Reported:** student Rujuta Bhatwadekar (`d4dc60d2-66af-4caf-bbff-6b160665addd`); after logout her "new" password was invalid; a second Forgot-Password round worked.
+- **What is known:** a recovery link signs the user in on open. Whether it landed on `/` (Site URL / redirect allow-list mismatch, per `infra_supabase_settings`) is NOT confirmed — Supabase Auth logs and URL Configuration still to be checked.
+- **Fix:** recovery-session quarantine (`recoveryMode` in `AuthContext`, route lock in `App.jsx`, sign-out on success in `ResetPassword.jsx`) — makes the outcome independent of the redirect cause.
+
 ## Sprint 8.8.4a — 26-27/09/2026 (Review-save production hotfix)
 
 ### [26/09/2026] Grading any not-own due card via the Review flow rejected with "Failed to save progress" — 🟡 CODE FIXED, SQL migration prepared, NOT YET DEPLOYED
