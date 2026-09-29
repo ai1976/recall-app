@@ -1,5 +1,14 @@
 # Bug Tracking
 
+## Security — 29/09/2026
+
+### [29/09/2026] Signed-in users could edit their own `profiles.role` / `account_type` / `status` / `email` — ✅ GUARD DEPLOYED & TEST-VERIFIED (18/18)
+- **Found:** catalog checks while designing Sprint 8.8.5c. Table-level UPDATE for `authenticated` + own-row UPDATE policy without `WITH CHECK` + no UPDATE trigger + `is_admin()` trusting `profiles.role`. Not exploit-tested on production; derived from grants/policies/triggers.
+- **Impact:** privilege escalation to admin/super_admin, self-granting paid-content access (`account_type`), self-un-suspension (`status`).
+- **Evidence of past misuse:** none found (`security/18_DIAGNOSTIC`: only 5 known staff above student, all explained by the audit trail; no suspended users). Caveat: a transient escalation that was later reverted would not show.
+- **Fix:** `trg_guard_profiles_protected_columns` — see D-45 in `blueprint.md`. Files: `docs/database/security/18`, `18b`, `19`, `20`, `21`.
+- **Still open (audit only, nothing deployed):** same policy pattern on `friendships` (suspected self-accept of own friend request), `reviews` (direct SRS writes), `profile_courses`, and owner-writable counters on content tables — `security/22`–`27`.
+
 ## Sprint 8.8.5b — 29/09/2026 (Student-facing stabilization)
 
 ### [29/09/2026] Logged offline study time never appeared on the Progress heatmap — 🟡 SQL DEPLOYED & TEST-VERIFIED, frontend not yet pushed

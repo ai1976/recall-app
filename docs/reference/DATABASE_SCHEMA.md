@@ -121,6 +121,8 @@
 - `status` allows suspending users without deletion
 - `has_seen_onboarding` prevents repeat display of first-login modal
 
+**Write guard (29/09/2026, D-45):** trigger `trg_guard_profiles_protected_columns` — `BEFORE UPDATE`, `FOR EACH ROW`, `WHEN` any of `id`/`role`/`account_type`/`status`/`email`/`access_request_ref` changes — runs `fn_guard_profiles_protected_columns()` (SECURITY INVOKER, `search_path = public, extensions`). For DIRECT client writes only (`current_user IN ('authenticated','anon')`): `role` change requires `is_super_admin()`; `account_type`/`status`/`email`/`access_request_ref` change requires `is_admin()`; `id` change is refused. SECURITY DEFINER RPCs (`approve_educator_application`, `link_access_request`, `update_daily_goal`), `service_role` and the SQL editor are not constrained. Everything a student legitimately edits (`full_name`, `course_level`, `institution`, `timezone`, goals, exam fields, dismissed/onboarding flags) is untouched. INSERT is not covered (signup trigger `trg_create_profile_on_signup`). Note `profiles.updated_at` has no maintaining trigger — it is not a reliable "last modified" signal. Files: `docs/database/security/19_…`–`21_…`. The `UPDATE` policies are still "Users can update their own profile" (own row, no `WITH CHECK`) and "Super admins can update any profile"; the guard, not the policy, is what protects these columns.
+
 **Profile creation:** Handled by `handle_new_user()` SECURITY DEFINER trigger on `auth.users`. Never via direct client INSERT (would fail when email confirmation is ON and session is null).
 
 **Related Tables:** notes, flashcards, reviews, admin_audit_log  
