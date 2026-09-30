@@ -2,6 +2,13 @@
 
 ## Sprint 8.8.5b4 - 30/09/2026 (Admin Dashboard access)
 
+### [30/09/2026] Deleting a user's data failed if they had created upload batches - SQL FIXED & VERIFIED (`13`, `09` U4), pre-existing
+- **Cause (confirmed):** `flashcard_batch_provenance.created_by` -> `profiles(id)` has no delete rule and is the only such link (12 diagnostic). 2 students (5 rows) and 1 professor (166 rows) were undeletable. Found because test 09 U4 picked a user who owns provenance rows; earlier deletions were students with none.
+- **Fix:** `admin_delete_user_data` sets `created_by` to NULL first (history kept, count in the audit entry). Also: the function now refuses yourself and admin / super admin accounts.
+
+### [30/09/2026] Admin audit history could be forged, edited or deleted from the browser - FIXED in stages (D-48)
+- Every admin action now writes its own entry server-side (`08`); audit log append-only for all roles (`10`, verified 7/7); the browser's direct INSERT is closed by `14` **after** the new frontend is live (pending).
+
 ### [30/09/2026] Grant Access / Suspend silently did nothing for a plain admin, yet showed success, logged it and notified the student - SQL DEPLOYED & VERIFIED, frontend built, not yet pushed
 - **Cause (confirmed from live policies):** direct `profiles.update()`; only super admins have an UPDATE policy on other users' profiles, so RLS returned no error and 0 rows. Only one plain admin exists (Shailaja More). No harm found in the audit log (all 29 grants point at enrolled students).
 - **Fix:** server-authorized `admin_grant_access` / `admin_suspend_user` / `admin_reactivate_user` (D-48); audit log made append-only for clients with un-forgeable authorship.

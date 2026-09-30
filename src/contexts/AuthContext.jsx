@@ -176,18 +176,15 @@ export const AuthProvider = ({ children }) => {
         .single();
 
       if (!profileError && profile && ['admin', 'super_admin'].includes(profile.role)) {
-        const { error: logError } = await supabase
-          .from('admin_audit_log')
-          .insert({
-            action: 'admin_login',
-            admin_id: data.user.id,
-            target_user_id: null,
-            details: {
-              role: profile.role,
-              login_time: new Date().toISOString(),
-              email: data.user.email
-            }
-          });
+        // Server-authored audit entry (log_admin_event forces admin_id = the caller) — Sprint 8.8.5b4, D-48.
+        const { error: logError } = await supabase.rpc('log_admin_event', {
+          p_action: 'admin_login',
+          p_details: {
+            role: profile.role,
+            login_time: new Date().toISOString(),
+            email: data.user.email
+          }
+        });
 
         if (logError) {
           console.error('⚠️ Failed to log admin login:', logError);

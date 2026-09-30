@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRole } from '@/contexts/NavDataContext'; // Sprint 7.0: shared nav-data context, not a per-mount fetch
-import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent } from '@/components/ui/card';
@@ -92,7 +91,6 @@ function Step({ number, title, subtitle, isOpen, isComplete, onToggle, children 
 
 export default function BulkUploadTopics() {
   const { isAdmin, isSuperAdmin, isLoading: roleLoading } = useRole();
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   // Stepper
@@ -242,10 +240,10 @@ export default function BulkUploadTopics() {
 
       // Audit log
       try {
-        await supabase.from('admin_audit_log').insert({
-          action: 'create_discipline',
-          admin_id: user.id,
-          details: { discipline_id: data.id, name: data.name }
+        // Server-authored audit entry (log_admin_event forces admin_id = the caller) — Sprint 8.8.5b4, D-48.
+        await supabase.rpc('log_admin_event', {
+          p_action: 'create_discipline',
+          p_details: { discipline_id: data.id, name: data.name }
         });
       } catch (auditErr) {
         console.log('Audit log failed (non-critical):', auditErr);
@@ -717,10 +715,9 @@ DATA HYGIENE:
 
       // Audit log
       try {
-        await supabase.from('admin_audit_log').insert({
-          action: 'bulk_upload_topics',
-          admin_id: user.id,
-          details: {
+        await supabase.rpc('log_admin_event', {
+          p_action: 'bulk_upload_topics',
+          p_details: {
             course_id: selectedCourse,
             course_name: courses.find(c => c.id === selectedCourse)?.name,
             filename: csvFile.name,

@@ -353,18 +353,16 @@ export default function AdminDashboard() {
   async function deleteNote(noteId) {
     if (!confirm('Delete this note? This cannot be undone.')) return;
     try {
-      const noteToDelete = notes.find(n => n.id === noteId);
-
-      const { error } = await supabase.from('notes').delete().eq('id', noteId);
+      // Sprint 8.8.5b4 (D-48): server-side delete that writes its own audit entry in the same transaction and
+      // hands back the image path for the storage cleanup (which only the browser can do).
+      const { data, error } = await supabase.rpc('admin_delete_note', { p_note_id: noteId });
       if (error) throw error;
 
-      await deleteNoteStorageImage(noteToDelete?.image_url);
-
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('admin_audit_log').insert({
-        action: 'delete_note', admin_id: user.id, details: { note_id: noteId },
-      });
+      if (data && data.deleted && data.image_url) {
+        await deleteNoteStorageImage(data.image_url);
+      }
       setNotes(prev => prev.filter(n => n.id !== noteId));
+      if (data && data.deleted === false) alert('This note was already deleted.');
     } catch (err) {
       console.error('deleteNote:', err);
       alert('Failed to delete note');
@@ -373,6 +371,8 @@ export default function AdminDashboard() {
 
   // PARKED (Sprint 8.8.5b4, D-48): no UI calls this any more. Kept until the Study Set lifecycle design replaces it,
   // in case anything else depends on it; the database delete policy (decks_delete_admin) is untouched.
+  // NOTE: its direct admin_audit_log insert stops working once clients lose INSERT on that table (D-48 closeout) - do NOT
+  // revive this function as is; the Study Set lifecycle design replaces it with an audited server function.
   // eslint-disable-next-line no-unused-vars
   async function deleteDeck(deckId) {
     if (!confirm('Delete this study set and ALL its cards? This cannot be undone.')) return;
@@ -447,13 +447,9 @@ export default function AdminDashboard() {
   async function approveEducatorApplication(requestId) {
     if (!confirm('Approve this educator application? This grants the Professor (Educator) role.')) return;
     try {
-      const { data, error } = await supabase.rpc('approve_educator_application', { p_request_id: requestId });
+      // The server function writes its own audit entry (target = the applicant) in the same transaction (D-48).
+      const { error } = await supabase.rpc('approve_educator_application', { p_request_id: requestId });
       if (error) throw error;
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('admin_audit_log').insert({
-        action: 'approve_educator_application', admin_id: user.id, target_user_id: null,
-        details: { access_request_id: requestId, result: data },
-      });
       await fetchAccessRequests();
     } catch (err) {
       console.error('approveEducatorApplication:', err);
@@ -464,13 +460,9 @@ export default function AdminDashboard() {
   async function rejectEducatorApplication(requestId) {
     if (!confirm('Reject this educator application?')) return;
     try {
+      // The server function writes its own audit entry in the same transaction (D-48).
       const { error } = await supabase.rpc('reject_educator_application', { p_request_id: requestId });
       if (error) throw error;
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('admin_audit_log').insert({
-        action: 'reject_educator_application', admin_id: user.id, target_user_id: null,
-        details: { access_request_id: requestId },
-      });
       await fetchAccessRequests();
     } catch (err) {
       console.error('rejectEducatorApplication:', err);

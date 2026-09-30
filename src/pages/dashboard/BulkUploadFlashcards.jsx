@@ -1079,10 +1079,10 @@ IMPORTANT:
       // so only write it for those roles — for anyone else it is always a silent 403 (Sprint 8.7.7 B2).
       if (isAdmin) {
         try {
-          await supabase.from('admin_audit_log').insert({
-            action: 'bulk_upload_flashcards',
-            admin_id: user.id,
-            details: {
+          // Server-authored audit entry (log_admin_event forces admin_id = the caller) — Sprint 8.8.5b4, D-48.
+          await supabase.rpc('log_admin_event', {
+            p_action: 'bulk_upload_flashcards',
+            p_details: {
               count: totalCardCount,
               filename: csvFile.name,
               batch_description: trimmedDescription,

@@ -1,6 +1,22 @@
 # Changelog
 
 ---
+## [30/09/2026] fix(sprint-8.8.5b4): admin-security closeout - every admin action writes its own audit entry; immutable audit log; user-delete fix (D-48)
+
+### Added
+- `docs/database/sprint8.8.5b4/` `07`-`16`: `admin_change_role`, `admin_delete_note`, `log_admin_event`; educator approve/reject and `admin_delete_user_data` now write their own audit entries; append-only trigger on `admin_audit_log`; provenance detach fix for user deletion; tests (`09`, `11`, `15`), diagnostics (`07`, `12`), combined rollback `16`; `14` (close direct client writes, run after the frontend is live).
+
+### Changed
+- `SuperAdminDashboard.jsx`: role change via `admin_change_role`; user delete no longer logs from the browser; Delete hidden on admin rows. `AdminDashboard.jsx`: note delete via `admin_delete_note`; educator approve/reject no longer log from the browser. `BulkUploadFlashcards.jsx`, `BulkUploadTopics.jsx`, `AuthContext.jsx`: audit events via `log_admin_event`.
+- `admin_delete_user_data` now refuses yourself and admin / super admin accounts.
+
+### Fixed
+- Deleting a user whose upload batches had provenance rows failed on a foreign key with no delete rule (`flashcard_batch_provenance.created_by`); such users can now be deleted.
+
+### Files Changed
+- `src/pages/admin/SuperAdminDashboard.jsx`, `src/pages/admin/AdminDashboard.jsx`, `src/pages/admin/BulkUploadTopics.jsx`, `src/pages/dashboard/BulkUploadFlashcards.jsx`, `src/contexts/AuthContext.jsx`
+
+---
 ## [30/09/2026] fix(sprint-8.8.5b4): Admin Dashboard - server-authorized grant/suspend/reactivate + append-only audit log (D-48)
 
 ### Added

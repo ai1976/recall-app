@@ -357,6 +357,9 @@ export default function SuperAdminDashboard() {
     }
   }
 
+  // Sprint 8.8.5b4 (D-48) — the role change, role_change_log row and audit entry are written by ONE server function
+  // (admin_change_role) in one transaction. Previously three separate browser calls could leave a role changed with an
+  // incomplete record.
   async function changeUserRole(userId, newRole, reason) {
     try {
       const { data: currentUser } = await supabase
@@ -370,48 +373,26 @@ export default function SuperAdminDashboard() {
         return;
       }
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', userId);
+      const { data, error } = await supabase.rpc('admin_change_role', {
+        p_user_id: userId,
+        p_new_role: newRole,
+        p_reason: reason || null,
+      });
+      if (error) throw error;
 
-      if (updateError) throw updateError;
+      if (data && data.changed === false) {
+        alert(`${currentUser.full_name || currentUser.email} is already ${newRole} — nothing was changed.`);
+      } else {
+        alert(`Successfully changed ${currentUser.full_name || currentUser.email} to ${newRole}`);
+      }
 
-      const { data: { user } } = await supabase.auth.getUser();
-
-      const { error: logError } = await supabase
-        .from('role_change_log')
-        .insert({
-          user_id: userId,
-          old_role: currentUser.role,
-          new_role: newRole,
-          changed_by: user.id,
-          reason: reason || `Changed from ${currentUser.role} to ${newRole}`
-        });
-
-      if (logError) throw logError;
-
-      const { error: auditError } = await supabase
-        .from('admin_audit_log')
-        .insert({
-          action: 'change_role',
-          admin_id: user.id,
-          target_user_id: userId,
-          details: {
-            old_role: currentUser.role,
-            new_role: newRole,
-            reason: reason
-          }
-        });
-
-      if (auditError) throw auditError;
-
-      alert(`Successfully changed ${currentUser.full_name || currentUser.email} to ${newRole}`);
-      
       fetchDashboardData();
     } catch (error) {
       console.error('Error changing user role:', error);
-      alert('Failed to change user role: ' + error.message);
+      const m = String(error?.message || '');
+      alert(m.includes('cannot_act_on_self')
+        ? 'You cannot change your own role.'
+        : 'Failed to change user role: ' + m);
     }
   }
 
@@ -430,9 +411,9 @@ export default function SuperAdminDashboard() {
       return;
     }
 
-    // Prevent super_admin deletion
-    if (targetUser.role === 'super_admin') {
-      alert('Cannot delete Super Admin accounts!');
+    // Prevent super_admin / admin deletion (the server refuses these too — demote to a lower role first)
+    if (targetUser.role === 'super_admin' || targetUser.role === 'admin') {
+      alert('Admin and Super Admin accounts cannot be deleted. Change the role to Professor or Student first.');
       return;
     }
 
@@ -478,34 +459,8 @@ Are you ABSOLUTELY SURE?`;
       return;
     }
 
-    // Step 5: 🆕 LOG THE DELETION **BEFORE** DELETING (CRITICAL FIX)
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    const { error: logError } = await supabase
-      .from('admin_audit_log')
-      .insert({
-        action: 'delete_user',
-        admin_id: user.id,
-        target_user_id: userId, // ✅ User still exists, so foreign key works!
-        details: {
-          deleted_user_name: targetUser.full_name,
-          deleted_user_email: targetUser.email,
-          deleted_user_role: targetUser.role,
-          deleted_notes_count: notesCount || 0,
-          deleted_flashcards_count: flashcardsCount || 0,
-          total_content_deleted: totalContent,
-          auth_deletion_status: 'manual_required',
-          reason: 'Manual deletion by super_admin'
-        }
-      });
-
-    // Log warning if audit logging fails (but continue with deletion)
-    if (logError) {
-      console.error('⚠️ Failed to log deletion:', logError);
-      // Continue - we'll still delete, logging is secondary
-    } else {
-      console.log('✅ Deletion logged successfully BEFORE deleting user');
-    }
+    // Step 5: the audit entry is now written by admin_delete_user_data itself, in the same transaction, before the
+    // profile row is removed (Sprint 8.8.5b4, D-48) — nothing to log from the browser.
 
     // Step 6+7: Delete all user data via SECURITY DEFINER RPC (bypasses RLS)
     console.log('Deleting user data via RPC...');
@@ -533,7 +488,10 @@ Search "${targetUser.email}" and delete the auth record.
       
     } catch (error) {
       console.error('❌ Error deleting user:', error);
-      alert('❌ Failed to delete user: ' + error.message);
+      const m = String(error?.message || '');
+      alert(m.includes('cannot_act_on')
+        ? '❌ Admin and Super Admin accounts cannot be deleted from here.'
+        : '❌ Failed to delete user: ' + m);
     }
   }
 
@@ -1232,7 +1190,7 @@ Search "${targetUser.email}" and delete the auth record.
                                 </>
                               )}
                               
-                              {user.role !== 'super_admin' && (
+                              {!['super_admin', 'admin'].includes(user.role) && (
                                 <Button
                                   size="sm"
                                   variant="outline"
