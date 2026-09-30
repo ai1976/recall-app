@@ -1485,6 +1485,14 @@ Step 0 re-verified live source (not summaries) against D-27–D-40 before this p
 
 ---
 
+**D-47: Dashboard "new student" check no longer hides the leaderboard from active students (Sprint 8.8.5b3, 30/09/2026)**
+- **Bug:** at least 5 students (Aarya Bapat, ananya bhagwat, Abhay Musale, Niranjan Jog, Yogesh Shinde) saw the first-time "Welcome to RevisOp - Get Started" home page with no leaderboard, Study Time or forward load. `Dashboard.jsx` set `isNewUser` when the student had zero `reviews`, `notes` and `flashcards` rows. Since Sprint 8.7.8 a `reviews` row exists only once a card is graded, so students who logged study time (Aarya: 20 sessions) or added cards to My Study (Niranjan/Yogesh: 2 each) but had not graded a card were classed as new. A failed count also silently read as zero.
+- **Evidence (`sprint8.8.5b3/00`, 30/09/2026):** 185 active students; 79 classified new = 74 genuinely new (correct) + 5 with real activity (the reporters). No data loss (0 users with review activity but no `reviews` rows); the read policies on `reviews`/`notes`/`flashcards` are normal.
+- **Fix:** `isNewUser` is now true only when there are no reviews, notes, flashcards, study sessions and no My Study enrollment rows in any status; any failed check means "not new" (full dashboard, error logged). New function `get_my_enrollment_count(p_user_id)` (SECURITY DEFINER, own-id-or-admin guard, `authenticated` only) because `my_cards_enrollment` has no client grants by design. SQL deployed and `02_TEST` 5/5 PASS before the frontend change; rollback `03`.
+- **Verification:** the five checks run cleanly from the app as TestOutlook (reviews 36, notes 2, flashcards 4, sessions 30, enrolled 37, no errors) and the dashboard still shows the leaderboard/Study Time. The fixed case itself (a student with only sessions/enrollment) is proven by the SQL test (Niranjan 2, Aarya 0) and by the logic, not by a live login as one of those students - ask them to confirm after deploy.
+
+---
+
 **D-01: batch_id for grouping flashcards**
 - **What:** Each INSERT gets a `batch_id` UUID (single card = unique UUID, bulk = shared UUID). Display groups by batch_id, never by timestamp.
 - **Why:** Toggling visibility from private→public was merging cards from different sessions into one visual group because they shared the same timestamp range.

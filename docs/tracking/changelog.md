@@ -1,6 +1,18 @@
 # Changelog
 
 ---
+## [30/09/2026] fix(sprint-8.8.5b3): dashboard no longer shows the first-time page to active students (D-47)
+
+### Added
+- `docs/database/sprint8.8.5b3/` `00`-`03`: diagnostic, `get_my_enrollment_count(p_user_id)` (SECURITY DEFINER, own-id-or-admin, `authenticated` only), test 5/5, rollback.
+
+### Changed
+- `Dashboard.jsx`: `isNewUser` is true only when the student has no reviews, notes, flashcards, study sessions and no My Study enrollment; a failed count now means "not new" instead of "new".
+
+### Files Changed
+- `src/pages/Dashboard.jsx`
+
+---
 ## [30/09/2026] fix(sprint-8.8.5b2): study/practice timer rebuilt around active time (D-46)
 
 ### Added

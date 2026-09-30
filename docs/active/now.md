@@ -2,6 +2,11 @@
 
 **Last Updated:** 30/09/2026
 
+## Sprint 8.8.5b3: dashboard new-student fix (D-47) - SQL DEPLOYED & VERIFIED (5/5); frontend BUILT + linted + checked as TestOutlook; NOT yet committed/pushed (30/09/2026)
+
+Students with study sessions or added cards but no graded card were shown the first-time "Get Started" page (5 confirmed: Aarya Bapat, ananya bhagwat, Abhay Musale, Niranjan Jog, Yogesh Shinde). Fix: `Dashboard.jsx` new-student rule + `get_my_enrollment_count` (D-47). **Next:** commit + push; ask the five students to confirm; then Admin Dashboard access -> deferred #5/#6/#7 -> 8.8.5d -> 8.8.6.
+**Auth track (Rujuta) - closed 30/09/2026:** Supabase reset template is the standard `{{ .ConfirmationURL }}`; Site URL `https://www.revisop.com`; redirect allow-list has localhost:5173, recallapp.co.in, www.recallapp.co.in, recall-app-omega.vercel.app, www.revisop.com (plain `revisop.com` not listed - only matters if that address does not redirect to www; local dev port is 5183, not 5173). A real recovery link from www.revisop.com (TestOutlook) landed on the "set a new password" page, so the 8.8.5b recovery handling works. Rujuta's original cause is unconfirmed (Free plan keeps auth logs ~1 day).
+
 ## Sprint 8.8.5b2: study-timer integrity (Avantika 709 h bug) - SQL 02/03 DEPLOYED & VERIFIED (13/13); data remediation 05/06 RUN & VERIFIED (6/6); frontend committed + pushed, live-verified in part (30/09/2026)
 
 Decision record: **D-46** in `blueprint.md`. Files: `docs/database/sprint8.8.5b2/` (`00`,`01` diagnostics, `02` schema, `03` test 13/13, `04` rollback, `05` remediation, `06` its test).

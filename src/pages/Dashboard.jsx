@@ -309,27 +309,29 @@ export default function Dashboard() {
         setNeedsReviewCount((flagData || []).length);
       }
 
-      // Determine if new user
-      const { count: reviewsCount } = await supabase
-        .from('reviews')
+      // Determine if new user (Sprint 8.8.5b3, D-47). "New" = has done NOTHING yet. A student only gets a
+      // `reviews` row once they grade a card, so reviews/notes/flashcards alone misclassified students who
+      // logged study time or added cards to My Study (e.g. Aarya Bapat: 20 sessions) and hid their
+      // leaderboard + Study Time behind the first-time "Get Started" page. Study sessions and My Study
+      // enrollment now count as activity. A failed count must never mean "new" — fall back to the full dashboard.
+      const countOwn = (table) => supabase
+        .from(table)
         .select('*', { count: 'exact', head: true })
         .eq('user_id', authUser.id);
-
-      const { count: notesTotal } = await supabase
-        .from('notes')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', authUser.id);
-
-      const { count: flashcardsTotal } = await supabase
-        .from('flashcards')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', authUser.id);
-
-      setIsNewUser(
-        (!reviewsCount || reviewsCount === 0) &&
-        (!notesTotal || notesTotal === 0) &&
-        (!flashcardsTotal || flashcardsTotal === 0)
-      );
+      const [reviewsRes, notesRes, flashcardsRes, sessionsRes, enrollRes] = await Promise.all([
+        countOwn('reviews'),
+        countOwn('notes'),
+        countOwn('flashcards'),
+        countOwn('study_sessions'),
+        supabase.rpc('get_my_enrollment_count', { p_user_id: authUser.id }),
+      ]);
+      const activityChecks = [reviewsRes, notesRes, flashcardsRes, sessionsRes, enrollRes];
+      const anyCheckFailed = activityChecks.some((r) => r.error);
+      const hasActivity =
+        reviewsRes.count > 0 || notesRes.count > 0 || flashcardsRes.count > 0 ||
+        sessionsRes.count > 0 || Number(enrollRes.data) > 0;
+      if (anyCheckFailed) console.error('Dashboard new-user check: a count failed, showing the full dashboard', activityChecks.map((r) => r.error).filter(Boolean));
+      setIsNewUser(!anyCheckFailed && !hasActivity);
 
       // Fetch study time stats for student dashboard
       if (!['professor', 'admin', 'super_admin'].includes(profile?.role)) {

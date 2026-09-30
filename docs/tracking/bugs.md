@@ -1,5 +1,16 @@
 # Bug Tracking
 
+## Sprint 8.8.5b3 - 30/09/2026
+
+### [30/09/2026] Active students saw the first-time "Get Started" page instead of their dashboard / leaderboard - SQL DEPLOYED & VERIFIED, frontend built, not yet pushed
+- **Reported:** at least 5 students incl. Aarya Bapat (`bf13ff54-fb3e-44b8-beb1-8ad55376faf6`).
+- **Root cause (confirmed from live data):** `isNewUser` required zero `reviews`/`notes`/`flashcards`; since 8.7.8 a `reviews` row exists only after grading a card, so students with study sessions (Aarya 20, ananya 3, Abhay 8) or added cards (Niranjan 2, Yogesh 2) were misclassified. 74 of the 79 "new" students are genuinely new. No data loss.
+- **Fix:** new-student rule now also counts study sessions and My Study enrollment (`get_my_enrollment_count`); a failed check never means "new". See D-47.
+- **Open:** push; the five students confirm.
+
+### [30/09/2026] Rujuta's password-reset link logged her in instead of showing the reset form - CLOSED as verified-working, original cause unconfirmed
+- Template, Site URL and redirect allow-list checked; a live recovery link from www.revisop.com landed on "set a new password". Logs for her attempt are gone (Free plan ~1 day retention).
+
 ## Sprint 8.8.5b2 - 30/09/2026 (study-timer integrity)
 
 ### [29/09/2026] One Study Mode session logged 709 h 16 m in a single day (Avantika Hagawane) - SQL DEPLOYED & VERIFIED, corrupt rows quarantined + removed (6/6), frontend pushed, partly live-verified

@@ -1454,6 +1454,10 @@ SECURITY DEFINER, plpgsql, SET search_path TO public, extensions
 
 ---
 
+## get_my_enrollment_count (Sprint 8.8.5b3, D-47 - deployed & test-verified 5/5, 30/09/2026)
+
+`get_my_enrollment_count(p_user_id uuid) RETURNS integer` - number of `my_cards_enrollment` rows for the student in ANY status (active / removed / course_archived). Used only by the dashboard's new-student check (`Dashboard.jsx`). SECURITY DEFINER, STABLE, `search_path = public, extensions`; guard: own id or `is_admin()`, otherwise `Access denied`. `EXECUTE` revoked from `PUBLIC`/`anon`, granted to `authenticated`. Files: `docs/database/sprint8.8.5b3/01` (deploy), `02` (test), `03` (rollback).
+
 ## get_study_time_stats (Sprint 3.1, split by source Sprint 7.3-C)
 
 ```sql
