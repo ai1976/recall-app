@@ -1,6 +1,20 @@
 # Changelog
 
 ---
+## [30/09/2026] fix(sprint-8.8.5b4): Admin Dashboard - server-authorized grant/suspend/reactivate + append-only audit log (D-48)
+
+### Added
+- `docs/database/sprint8.8.5b4/` `00`-`06`: diagnostics, `admin_grant_access` / `admin_suspend_user` / `admin_reactivate_user` + internal `admin_user_action_denial`, audit-log hardening (insert requires own id; client read+insert only), tests 12/12 and 8/8, rollback.
+- `AdminDashboard.jsx`: Reactivate button for suspended users.
+
+### Changed
+- `AdminDashboard.jsx`: the admin "Delete study set" button is hidden (it deleted only the list row and left every card); `deleteDeck` is parked, the database delete path is untouched - see D-48 / backlog "Study Set lifecycle management".
+- `AdminDashboard.jsx`: Grant Access / Suspend now call the server actions (no more silent no-op + false success for plain admins); plain messages for refusals and "nothing changed"; Grant/Suspend not shown on admin / super admin rows; the client no longer writes those audit entries or sends the grant notification (the server does).
+
+### Files Changed
+- `src/pages/admin/AdminDashboard.jsx`
+
+---
 ## [30/09/2026] fix(sprint-8.8.5b3): dashboard no longer shows the first-time page to active students (D-47)
 
 ### Added

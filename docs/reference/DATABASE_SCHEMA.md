@@ -1454,6 +1454,12 @@ SECURITY DEFINER, plpgsql, SET search_path TO public, extensions
 
 ---
 
+## Admin user actions + admin_audit_log hardening (Sprint 8.8.5b4, D-48 - deployed & test-verified 12/12 + 8/8, 30/09/2026)
+
+- `admin_user_action_denial(p_actor uuid, p_target uuid) RETURNS text` - internal, SECURITY DEFINER, STABLE; NULL = allowed, else `not_admin` / `target_not_found` / `cannot_act_on_self` / `cannot_act_on_admin`. `EXECUTE` revoked from `PUBLIC`/`anon`/`authenticated`. The single place to add future institution scoping.
+- `admin_grant_access(p_user_id uuid) RETURNS jsonb`, `admin_suspend_user(p_user_id uuid, p_reason text DEFAULT NULL) RETURNS jsonb`, `admin_reactivate_user(p_user_id uuid) RETURNS jsonb` - SECURITY DEFINER, `search_path = public, extensions`, `EXECUTE` for `authenticated` only. Callable by `admin` and `super_admin`; refuse self / admin / super_admin targets (`ERRCODE 42501`, message `Access denied: <reason>`). Return `{changed: true, ...}` or `{changed: false, reason: already_enrolled | already_suspended | not_suspended}`. Each changing call writes its own `admin_audit_log` row (`grant_access` / `suspend_user` / `reactivate_user`, `details.via` = function name) and grant also inserts the `access_granted` notification, all in the same transaction. Writes `profiles.account_type` = `enrolled`, `status` = `suspended` / `active` as the owner (bypasses the client-role guard trigger by design).
+- `admin_audit_log`: INSERT policy `"Admins can insert own audit logs"` = `is_admin() AND admin_id = auth.uid()` (replaced `"Admins can insert audit logs"`); `authenticated` = SELECT + INSERT only; `anon` = none. Files `docs/database/sprint8.8.5b4/02`-`06`. Open: no UPDATE/DELETE trigger yet (FK on `target_user_id`), remaining browser-side inserts to move server-side, `notify_access_granted` still callable by any admin.
+
 ## get_my_enrollment_count (Sprint 8.8.5b3, D-47 - deployed & test-verified 5/5, 30/09/2026)
 
 `get_my_enrollment_count(p_user_id uuid) RETURNS integer` - number of `my_cards_enrollment` rows for the student in ANY status (active / removed / course_archived). Used only by the dashboard's new-student check (`Dashboard.jsx`). SECURITY DEFINER, STABLE, `search_path = public, extensions`; guard: own id or `is_admin()`, otherwise `Access denied`. `EXECUTE` revoked from `PUBLIC`/`anon`, granted to `authenticated`. Files: `docs/database/sprint8.8.5b3/01` (deploy), `02` (test), `03` (rollback).

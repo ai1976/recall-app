@@ -1,5 +1,12 @@
 # Bug Tracking
 
+## Sprint 8.8.5b4 - 30/09/2026 (Admin Dashboard access)
+
+### [30/09/2026] Grant Access / Suspend silently did nothing for a plain admin, yet showed success, logged it and notified the student - SQL DEPLOYED & VERIFIED, frontend built, not yet pushed
+- **Cause (confirmed from live policies):** direct `profiles.update()`; only super admins have an UPDATE policy on other users' profiles, so RLS returned no error and 0 rows. Only one plain admin exists (Shailaja More). No harm found in the audit log (all 29 grants point at enrolled students).
+- **Fix:** server-authorized `admin_grant_access` / `admin_suspend_user` / `admin_reactivate_user` (D-48); audit log made append-only for clients with un-forgeable authorship.
+- **Open:** revoke `notify_access_granted` from clients after the page is live; "Delete study set" deleted only the list row, not its cards - button HIDDEN 30/09/2026, database untouched, lifecycle design recorded in the blueprint backlog; audit-log UPDATE/DELETE trigger pending an FK check; profiles (incl. email) readable in full by every signed-in user.
+
 ## Sprint 8.8.5b3 - 30/09/2026
 
 ### [30/09/2026] Active students saw the first-time "Get Started" page instead of their dashboard / leaderboard - SQL DEPLOYED & VERIFIED, frontend built, not yet pushed

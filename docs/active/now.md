@@ -2,6 +2,10 @@
 
 **Last Updated:** 30/09/2026
 
+## Sprint 8.8.5b4: Admin Dashboard access (D-48) - SQL DEPLOYED & VERIFIED (12/12 + 8/8); frontend BUILT + linted; NOT yet live-verified as an admin, NOT yet committed/pushed (30/09/2026)
+
+Plain admins can now grant access / suspend / reactivate through server-authorized actions (refuse admins/super admins/self, truthful results, self-written audit entries); audit log is append-only for clients with un-forgeable authorship. `AdminDashboard.jsx` switched to the RPCs (+ Reactivate button). **Next:** live-check the Users tab as Anand (do not press the buttons on real users), commit + push; then revoke `EXECUTE` on `notify_access_granted`; "Delete study set" button HIDDEN (decided 30/09/2026; database unchanged; Study Set lifecycle recorded as a backlog design item); then deferred #5/#6/#7 -> 8.8.5d -> 8.8.6. Also recorded: profiles readable in full by every signed-in user (incl. email).
+
 ## Sprint 8.8.5b3: dashboard new-student fix (D-47) - SQL DEPLOYED & VERIFIED (5/5); frontend BUILT + linted + checked as TestOutlook; NOT yet committed/pushed (30/09/2026)
 
 Students with study sessions or added cards but no graded card were shown the first-time "Get Started" page (5 confirmed: Aarya Bapat, ananya bhagwat, Abhay Musale, Niranjan Jog, Yogesh Shinde). Fix: `Dashboard.jsx` new-student rule + `get_my_enrollment_count` (D-47). **Next:** commit + push; ask the five students to confirm; then Admin Dashboard access -> deferred #5/#6/#7 -> 8.8.5d -> 8.8.6.

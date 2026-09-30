@@ -371,6 +371,9 @@ export default function AdminDashboard() {
     }
   }
 
+  // PARKED (Sprint 8.8.5b4, D-48): no UI calls this any more. Kept until the Study Set lifecycle design replaces it,
+  // in case anything else depends on it; the database delete policy (decks_delete_admin) is untouched.
+  // eslint-disable-next-line no-unused-vars
   async function deleteDeck(deckId) {
     if (!confirm('Delete this study set and ALL its cards? This cannot be undone.')) return;
     try {
@@ -388,27 +391,42 @@ export default function AdminDashboard() {
     }
   }
 
+  // Sprint 8.8.5b4 (D-48) — grant / suspend / reactivate are SERVER-authorized actions (admin_grant_access,
+  // admin_suspend_user, admin_reactivate_user). The old direct `profiles.update()` was a silent no-op for a plain
+  // admin (only super admins can update other users' profiles) while the page still showed success, logged an
+  // audit entry and notified the student. The server now decides, writes its own audit entry (and the grant
+  // notification) in the same transaction, and reports truthfully whether anything changed.
+  const ADMIN_ACTION_ERRORS = {
+    cannot_act_on_self: 'You cannot do this to your own account.',
+    cannot_act_on_admin: 'Admin and super admin accounts cannot be changed from here.',
+    target_not_found: 'That user could not be found.',
+    not_admin: 'Only admins can do this.',
+  };
+  function adminActionMessage(err, fallback) {
+    const m = String(err?.message || '');
+    const key = Object.keys(ADMIN_ACTION_ERRORS).find(k => m.includes(k));
+    return key ? ADMIN_ACTION_ERRORS[key] : fallback;
+  }
+  function patchUserEverywhere(userId, patch) {
+    setRecentUsers(prev => prev.map(u => u.id === userId ? { ...u, ...patch } : u));
+    setMatchedProfiles(prev => prev.map(p => p.id === userId ? { ...p, ...patch } : p));
+  }
+
   async function grantAccess(userId) {
     if (!confirm('Grant full content access to this user?')) return;
     try {
-      const { error } = await supabase
-        .from('profiles').update({ account_type: 'enrolled' }).eq('id', userId);
+      const { data, error } = await supabase.rpc('admin_grant_access', { p_user_id: userId });
       if (error) throw error;
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('admin_audit_log').insert({
-        action: 'grant_access', admin_id: user.id, target_user_id: userId,
-        details: { account_type: 'enrolled' },
-      });
-      setRecentUsers(prev => prev.map(u => u.id === userId ? { ...u, account_type: 'enrolled' } : u));
-      setMatchedProfiles(prev => prev.map(p => p.id === userId ? { ...p, account_type: 'enrolled' } : p));
-      // Notify the user that access has been granted
-      await supabase.rpc('notify_access_granted', { p_user_id: userId });
+      patchUserEverywhere(userId, { account_type: 'enrolled' });
+      if (data && data.changed === false) {
+        alert('This user already had full access — nothing was changed.');
+      }
       // Batch group membership is a separate, explicit action (see the batch
       // picker next to enrolled users below) — this no longer guesses a
       // batch from course+institution.
     } catch (err) {
       console.error('grantAccess:', err);
-      alert('Failed to grant access');
+      alert(adminActionMessage(err, 'Failed to grant access'));
     }
   }
 
@@ -463,18 +481,26 @@ export default function AdminDashboard() {
   async function suspendUser(userId) {
     if (!confirm('Suspend this user?')) return;
     try {
-      const { error } = await supabase
-        .from('profiles').update({ status: 'suspended' }).eq('id', userId);
+      const { data, error } = await supabase.rpc('admin_suspend_user', { p_user_id: userId });
       if (error) throw error;
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('admin_audit_log').insert({
-        action: 'suspend_user', admin_id: user.id, target_user_id: userId,
-        details: { reason: 'Suspended by admin' },
-      });
-      setRecentUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'suspended' } : u));
+      patchUserEverywhere(userId, { status: 'suspended' });
+      if (data && data.changed === false) alert('This user was already suspended — nothing was changed.');
     } catch (err) {
       console.error('suspendUser:', err);
-      alert('Failed to suspend user');
+      alert(adminActionMessage(err, 'Failed to suspend user'));
+    }
+  }
+
+  async function reactivateUser(userId) {
+    if (!confirm('Reactivate this user?')) return;
+    try {
+      const { data, error } = await supabase.rpc('admin_reactivate_user', { p_user_id: userId });
+      if (error) throw error;
+      patchUserEverywhere(userId, { status: 'active' });
+      if (data && data.changed === false) alert('This user was not suspended — nothing was changed.');
+    } catch (err) {
+      console.error('reactivateUser:', err);
+      alert(adminActionMessage(err, 'Failed to reactivate user'));
     }
   }
 
@@ -997,11 +1023,10 @@ export default function AdminDashboard() {
                                   : <><ChevronDown className="h-3 w-3" /> Preview items</>
                                 }
                               </button>
-                              <Button size="sm" variant="outline"
-                                className="text-red-600 hover:text-red-700"
-                                onClick={() => deleteDeck(deck.id)}>
-                                <XCircle className="h-3.5 w-3.5 mr-1" /> Delete
-                              </Button>
+                              {/* "Delete study set" is intentionally NOT offered (Sprint 8.8.5b4, D-48): it removed only the
+                                  flashcard_decks row while every card stayed (flashcards.deck_id is ON DELETE SET NULL), so its
+                                  "and ALL its cards" promise was false. Proper lifecycle (archive / restore / permanent delete with
+                                  impact preview, audit and student-history rules) is a future design item - see blueprint D-48. */}
                             </div>
                           </div>
 
@@ -1094,20 +1119,32 @@ export default function AdminDashboard() {
                         </div>
                         <div className="flex gap-2 ml-3 shrink-0">
                           {u.account_type === 'self_registered' ? (
-                            <Button size="sm" variant="outline"
-                              className="text-green-600 border-green-300"
-                              onClick={() => grantAccess(u.id)}>
-                              Grant Access
-                            </Button>
+                            !['admin', 'super_admin'].includes(u.role) && (
+                              <Button size="sm" variant="outline"
+                                className="text-green-600 border-green-300"
+                                onClick={() => grantAccess(u.id)}>
+                                Grant Access
+                              </Button>
+                            )
                           ) : (
                             <BatchGroupPicker userId={u.id} batchGroups={batchGroups.filter(g => !g.archived_at)} onAssign={addToBatchGroup} />
                           )}
-                          {u.status !== 'suspended' && (
-                            <Button size="sm" variant="outline"
-                              className="text-red-600"
-                              onClick={() => suspendUser(u.id)}>
-                              Suspend
-                            </Button>
+                          {/* Admin / super admin accounts are managed elsewhere (Super Admin dashboard) — the
+                              server refuses these actions on them, so the buttons are not offered (D-48). */}
+                          {!['admin', 'super_admin'].includes(u.role) && (
+                            u.status === 'suspended' ? (
+                              <Button size="sm" variant="outline"
+                                className="text-green-600 border-green-300"
+                                onClick={() => reactivateUser(u.id)}>
+                                Reactivate
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="outline"
+                                className="text-red-600"
+                                onClick={() => suspendUser(u.id)}>
+                                Suspend
+                              </Button>
+                            )
                           )}
                         </div>
                       </div>
