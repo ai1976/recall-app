@@ -6,7 +6,7 @@
 ### Added
 - `src/lib/studyTracker.js` (+ `studyTracker.test.js`, 27 tests): shared tracker - versioned persisted session, 30 s heartbeat / 90 s cap, hidden-tab and 10-minute idle pause, 4-hour stop, idempotent save by `session_id`, 7-day recovery, legacy-record discard, one-timed-session-per-browser lock (Web Locks + localStorage fallback).
 - `src/hooks/useStudyTracker.js`; `src/components/study/StudyLeaveGuard.jsx` (End session & log time / Continue studying / Leave without logging), `StudyRecovery.jsx` (recovery toasts), `StudyTrackerNotices.jsx` (idle, 4-hour and other-tab notices).
-- `docs/database/sprint8.8.5b2/` `00`-`06`: `study_sessions.session_id` + unique `(user_id, session_id)`, `study_sessions_machine_duration_max` (<= 14400 s, NOT VALID), `study_sessions_machine_time_integrity`; test 13/13; rollback; quarantine of the two corrupt rows + its test.
+- `docs/database/sprint8.8.5b2/` `00`-`06`: `study_sessions.session_id` + unique `(user_id, session_id)`, `study_sessions_machine_duration_max` (<= 14400 s, NOT VALID), `study_sessions_machine_time_integrity`; test 13/13; rollback; quarantine of the two corrupt rows + its test (6/6); privilege hardening `07`-`09` (7/7); TestOutlook test-row clean-up `10`.
 
 ### Changed
 - `StudyMode.jsx` and `PracticeMode.jsx`: duration is no longer `now - started_at`; backgrounding pauses instead of logging-and-clearing (study after returning is no longer lost); "Study Again" starts a new session.

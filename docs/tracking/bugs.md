@@ -6,7 +6,8 @@
 - **Reported:** Avantika Hagawane (`1de7a5d4-c780-4a5b-be53-47b95bb9e308`), dashboard "Today 710h 6m", leaderboard 710h 6m.
 - **Root cause (confirmed from live rows):** the old timer computed `now - stored started_at`. Her row started 31/08/2026 04:58 UTC and ended 29/09/2026 18:15 UTC (2,553,404 s) - an abandoned session closed a month later. Same defect produced a 4,097 h row on `075ad481-...`. Also: backgrounding logged-and-cleared, so study after returning was lost.
 - **Fix:** shared active-time tracker (D-46) + DB `session_id`, 4 h maximum for machine-timed sessions, timestamp integrity check. Corrupt rows to be quarantined + removed (`05`, `06`); the 6.4 h / 11.7 h / long manual rows deliberately untouched.
-- **Open:** tell Avantika; broad table privileges on `study_sessions` recorded as a hardening check.
+- **Also closed:** broad table privileges on `study_sessions` revoked (`07`, test 7/7 PASS 30/09/2026).
+- **Open:** tell Avantika.
 
 ## Sprint 8.8.5c - 30/09/2026 (course change left old-course cards in My Study)
 
