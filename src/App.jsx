@@ -6,6 +6,8 @@ import { CourseContextProvider } from '@/contexts/CourseContext'
 import { NavDataProvider } from '@/contexts/NavDataContext'
 import { ExamDateProvider } from '@/contexts/ExamDateContext'
 import { StudySessionProvider } from '@/contexts/StudySessionContext'
+import StudyLeaveGuard from '@/components/study/StudyLeaveGuard'
+import StudyRecovery from '@/components/study/StudyRecovery'
 import { StudyTimerProvider } from '@/contexts/StudyTimerContext'
 
 // Layout Components (not lazy — part of the app shell, needed immediately)
@@ -134,6 +136,9 @@ if (!user || loading) return
   return (
     <>
       {showAppShell && <Navigation />}
+      {/* Sprint 8.8.5b2 (D-46) — study-session protection: in-app leave modal + startup recovery. */}
+      {showAppShell && <StudyLeaveGuard />}
+      {showAppShell && <StudyRecovery />}
       {/* Sprint 8.8.3 — desktop authenticated shell: NavDesktop is now a fixed
           left rail (md:w-60) rather than an in-flow top bar, so authenticated
           content needs matching left padding at md+ to avoid sitting under it.

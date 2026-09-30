@@ -12,6 +12,8 @@ import { parseMultiAnswer } from '@/lib/mcq';
 import { useToast } from '@/hooks/use-toast';
 import { Brain, ArrowLeft, SkipForward, Check, ChevronUp, ChevronDown } from 'lucide-react';
 import RichText from '@/components/RichText';
+import { useStudyTracker } from '@/hooks/useStudyTracker';
+import { StudyTrackerNotices, OtherTabBlockedNotice } from '@/components/study/StudyTrackerNotices';
 
 // Sprint 8.7.8c — theory cards render as left-aligned, normal-weight prose (matches StudyMode.jsx).
 const isTheory = (card) => card?.question_type === 'theory';
@@ -134,52 +136,16 @@ export default function PracticeMode() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId, deckIdsParam, typeParam, user?.id]);
 
-  // Practice study-time logging — reuses StudyMode's exact timer/noise-floor pattern (10s noise
-  // floor, single INSERT on exit/backgrounding) with source='practice_mode'. study_sessions.source
-  // is free text with no CHECK enum (Step 0 §6 finding), and the 600s minimum is scoped to
-  // source='manual' only, so no SQL change was needed and no manual-floor leak is possible here.
-  useEffect(() => {
-    if (!loading && cards.length > 0) {
-      localStorage.setItem('revisop_practice_session_started_at', new Date().toISOString());
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading]);
-
-  const logPracticeSession = async () => {
-    try {
-      const startedAtStr = localStorage.getItem('revisop_practice_session_started_at');
-      if (!startedAtStr || !user) return;
-      const startedAt = new Date(startedAtStr);
-      const endedAt = new Date();
-      const durationSeconds = Math.round((endedAt.getTime() - startedAt.getTime()) / 1000);
-      localStorage.removeItem('revisop_practice_session_started_at');
-      if (durationSeconds < 10) return;
-      const sessionDate = new Date().toLocaleDateString('en-CA');
-      const { error } = await supabase.from('study_sessions').insert({
-        user_id: user.id,
-        started_at: startedAt.toISOString(),
-        ended_at: endedAt.toISOString(),
-        duration_seconds: durationSeconds,
-        session_date: sessionDate,
-        source: 'practice_mode',
-      });
-      if (error) console.error('Failed to log practice_mode session:', error);
-    } catch (err) {
-      console.error('Failed to log practice_mode session:', err);
-    }
-  };
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') logPracticeSession();
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Practice study-time tracking (Sprint 8.8.5b2, D-46) — the SAME shared tracker as Study Mode (heartbeat active
+  // time, pause on hidden tab / 10 min idle, 7-day recovery, one timed session per browser), source='practice_mode'.
+  // Replaces the old `now - started_at` timer and log-and-clear-on-background listener.
+  const tracking = useStudyTracker({
+    source: 'practice_mode',
+    enabled: !loading && cards.length > 0,
+  });
 
   const handleExit = () => {
-    logPracticeSession();
+    tracking.finalize(); // fire-and-forget; a failed save is kept locally and recovered later
     navigate('/dashboard/review-flashcards');
   };
 
@@ -233,7 +199,7 @@ export default function PracticeMode() {
     if (currentIndex < cards.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      logPracticeSession();
+      tracking.finalize(); // deck finished: save the session
       setCurrentIndex(cards.length);
     }
   };
@@ -338,6 +304,15 @@ export default function PracticeMode() {
       <div className="min-h-screen flex items-center justify-center bg-rv-bg-0">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rv-navy"></div>
       </div>
+    );
+  }
+
+  if (tracking.blocked) {
+    return (
+      <OtherTabBlockedNotice
+        onTryAgain={tracking.restart}
+        onBack={() => navigate('/dashboard/review-flashcards')}
+      />
     );
   }
 
@@ -699,6 +674,11 @@ export default function PracticeMode() {
           </div>
         )}
       </main>
+
+      <StudyTrackerNotices
+        tracking={tracking}
+        onTakeBreak={() => navigate('/dashboard/review-flashcards')}
+      />
     </div>
   );
 }

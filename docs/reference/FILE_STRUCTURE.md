@@ -271,7 +271,7 @@ recall-app
 - `src/components/dashboard/GoalProgressWidget.jsx` — inline edit, no modal
 
 ### Study / SRS
-- `src/pages/dashboard/Study/StudyMode.jsx` — SRS engine, TTS, Skip/Suspend/Reset/Skip-Topic, study time logging, visibilitychange listener; standalone-mode fetch is `get_my_cards` (Sprint 8.7.8c D-28)
+- `src/pages/dashboard/Study/StudyMode.jsx` — SRS engine, TTS, Skip/Suspend/Reset/Skip-Topic; study time via the shared `useStudyTracker` (Sprint 8.8.5b2, D-46); standalone-mode fetch is `get_my_cards` (Sprint 8.7.8c D-28)
 - `src/pages/dashboard/Study/PracticeMode.jsx` — Practice/Explore (Sprint 8.7.8c D-28): never calls `apply_review`; `get_practice_cards` fetch; `log_practice_attempt` per type; Add to My Cards with proactive eligibility (`is_own`/`is_enrolled`/`can_add_to_my_cards`); `practice_mode` study-time logging
 - `src/pages/dashboard/Study/ReviewFlashcards.jsx` — deck browser; deep-link via ?deck= param; per-deck "Practice" entry point (Sprint 8.7.8c)
 - `src/pages/dashboard/Study/ReviewSession.jsx` — due-cards-only session
@@ -299,6 +299,9 @@ recall-app
 
 ### Supabase / Backend
 - `src/lib/supabase.js` — Supabase client
+- `src/lib/studyTracker.js` — shared Study/Practice time tracker (Sprint 8.8.5b2, D-46): versioned persisted session, heartbeat active-time counting, hidden/idle pause, 4-hour stop, idempotent save by `session_id`, 7-day recovery, one-timed-session-per-browser lock. Plain JS, tested by `studyTracker.test.js`
+- `src/hooks/useStudyTracker.js` — React binding for the tracker (used by StudyMode + PracticeMode); registers `beforeunload` only while a session is live
+- `src/components/study/StudyLeaveGuard.jsx` — in-app leave modal (End session & log time / Continue studying / Leave without logging) by wrapping the router navigator; `StudyRecovery.jsx` — recovery pass + toasts; `StudyTrackerNotices.jsx` — idle, 4-hour and other-tab notices
 - `src/lib/navActive.js` — pure `(pathname) => boolean` active-route predicates shared by NavDesktop + NavBottomTabs (Sprint 7.1); no Supabase, no React
 - `src/lib/notifyEdge.js` — fire-and-forget helpers for Edge Function calls
 - `src/lib/revisop-tokens.js` — RevisOp reskin shared JS (Phase 6 S6.1): `REVISOP_LITERATA_ENABLED` gate (off), `REVISOP_BUCKETS`, `bucketForDays()` / `ledgerFromForecast()`. No Supabase.

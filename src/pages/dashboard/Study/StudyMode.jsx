@@ -46,6 +46,8 @@ import { isFitbMatch, splitFitbSentence } from '@/lib/fitb';
 import { parseMultiAnswer } from '@/lib/mcq';
 import { useToast } from '@/hooks/use-toast';
 import { useSpeech } from '@/hooks/useSpeech';
+import { useStudyTracker } from '@/hooks/useStudyTracker';
+import { StudyTrackerNotices, OtherTabBlockedNotice } from '@/components/study/StudyTrackerNotices';
 import SpeakButton from '@/components/flashcards/SpeakButton';
 import RichText from '@/components/RichText';
 import SpeechSettings from '@/components/flashcards/SpeechSettings';
@@ -187,32 +189,14 @@ export default function StudyMode({
     return () => { cancelled = true; };
   }, [batchIdKey]);
 
-  // Mark session start in localStorage once cards are ready.
-  // Preview mode sessions are excluded — Tier B users shouldn't log study time
-  // for content they haven't unlocked.
-  // The DB row is only written when the session ends (single INSERT pattern).
-  useEffect(() => {
-    if (!loading && flashcards.length > 0 && !previewModeParam) {
-      localStorage.setItem('revisop_session_started_at', new Date().toISOString());
-      localStorage.setItem('revisop_session_source', 'study_mode');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading]);
-
-  // Capture study time when the user backgrounds the app or closes the tab.
-  // Covers iOS force-quit and app-switch scenarios where handleExit() never fires.
-  // logStudyModeSession() clears localStorage before the DB call, so if the user
-  // returns and exits cleanly afterward, the second call is a safe no-op.
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        logStudyModeSession(); // fire-and-forget
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Study-time tracking (Sprint 8.8.5b2, D-46) — shared tracker with heartbeat/active-time counting, pause on
+  // hidden tab / 10 min idle, 7-day recovery and one-timed-session-per-browser. Preview-mode sessions are excluded —
+  // Tier B users shouldn't log study time for content they haven't unlocked. Replaces the old
+  // `now - started_at` timer and the log-and-clear-on-background listener.
+  const tracking = useStudyTracker({
+    source: 'study_mode',
+    enabled: !loading && flashcards.length > 0 && !previewModeParam,
+  });
 
   // Stop speech when card changes or answer is revealed
   useEffect(() => {
@@ -882,61 +866,10 @@ export default function StudyMode({
     }
   };
 
-  // Log the completed study_mode session to DB (single INSERT pattern).
-  // Called fire-and-forget from finishSession, handleExit, and the
-  // visibilitychange listener — never blocks the user flow.
-  // Minimum 10 seconds to avoid logging accidental/empty sessions.
-  // localStorage is cleared before the DB call so a second caller always
-  // finds empty keys and returns early — no double-logging possible.
-  const logStudyModeSession = async () => {
-    try {
-      // migrate-on-mount: recall_session_started_at → revisop_session_started_at
-      if (!localStorage.getItem('revisop_session_started_at')) {
-        const oldStarted = localStorage.getItem('recall_session_started_at');
-        if (oldStarted) {
-          localStorage.setItem('revisop_session_started_at', oldStarted);
-          localStorage.removeItem('recall_session_started_at');
-        }
-      }
-      // migrate-on-mount: recall_session_source → revisop_session_source
-      if (!localStorage.getItem('revisop_session_source')) {
-        const oldSource = localStorage.getItem('recall_session_source');
-        if (oldSource) {
-          localStorage.setItem('revisop_session_source', oldSource);
-          localStorage.removeItem('recall_session_source');
-        }
-      }
-
-      const startedAtStr = localStorage.getItem('revisop_session_started_at');
-      const source       = localStorage.getItem('revisop_session_source');
-
-      if (!startedAtStr || source !== 'study_mode' || !user) return;
-
-      const startedAt      = new Date(startedAtStr);
-      const endedAt        = new Date();
-      const durationSeconds = Math.round((endedAt.getTime() - startedAt.getTime()) / 1000);
-
-      // Clear localStorage before the DB call to prevent double-logging
-      localStorage.removeItem('revisop_session_started_at');
-      localStorage.removeItem('revisop_session_source');
-
-      if (durationSeconds < 10) return;
-
-      const sessionDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
-
-      const { error: sessionError } = await supabase.from('study_sessions').insert({
-        user_id:          user.id,
-        started_at:       startedAt.toISOString(),
-        ended_at:         endedAt.toISOString(),
-        duration_seconds: durationSeconds,
-        session_date:     sessionDate,
-        source:           'study_mode',
-      });
-      if (sessionError) console.error('Failed to log study_mode session:', sessionError);
-    } catch (err) {
-      // Silent fail — never interrupt the user's study completion flow
-      console.error('Failed to log study_mode session:', err);
-    }
+  // Save the study_mode session (fire-and-forget; idempotent via the tracker's stable session_id).
+  // Called from finishSession and handleExit. A failed save keeps the local session for recovery.
+  const logStudyModeSession = () => {
+    tracking.finalize();
   };
 
   const finishSession = () => {
@@ -1007,6 +940,7 @@ export default function StudyMode({
   };
 
   const restartSession = () => {
+    tracking.restart(); // "Study Again" begins a brand-new timed session
     setCurrentIndex(0);
     setShowAnswer(false);
     setSessionStats({ easy: 0, medium: 0, hard: 0 });
@@ -1029,6 +963,15 @@ export default function StudyMode({
       <div className="min-h-screen flex items-center justify-center bg-rv-bg-0">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rv-navy"></div>
       </div>
+    );
+  }
+
+  if (tracking.blocked) {
+    return (
+      <OtherTabBlockedNotice
+        onTryAgain={tracking.restart}
+        onBack={() => (onExit ? onExit() : navigate('/dashboard/review-flashcards'))}
+      />
     );
   }
 
@@ -2013,6 +1956,11 @@ export default function StudyMode({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <StudyTrackerNotices
+        tracking={tracking}
+        onTakeBreak={() => (onExit ? onExit() : navigate('/dashboard/review-flashcards'))}
+      />
     </div>
   );
 }
