@@ -6,6 +6,7 @@ import { deleteNoteStorageImage } from '@/lib/noteStorage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { BulkAddToBatchBar, BulkResolveRequestsBar } from '@/components/admin/BatchBulkActions';
 import {
   Users, FileText, AlertCircle, TrendingUp, XCircle, CreditCard,
   ChevronDown, ChevronUp, ExternalLink, Shield, Plus, X, AlertTriangle, Star,
@@ -44,6 +45,10 @@ export default function AdminDashboard() {
   // ── Pending Batch Requests state (Sprint 8.0 — self-requested via invite link)
   const [pendingBatchRequests, setPendingBatchRequests] = useState([]);
   const [pendingBatchRequestsLoading, setPendingBatchRequestsLoading] = useState(false);
+
+  // ── Bulk selection (Sprint 8.8.5b5, D-49): students for 'Add to batch', requests for approve / reject
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [selectedRequestIds, setSelectedRequestIds] = useState([]);
 
   // ── Batch Group archiving state (Sprint 8.1)
   const [batchStatusFilter, setBatchStatusFilter] = useState('active'); // 'active' | 'archived'
@@ -407,6 +412,11 @@ export default function AdminDashboard() {
     const key = Object.keys(ADMIN_ACTION_ERRORS).find(k => m.includes(k));
     return key ? ADMIN_ACTION_ERRORS[key] : fallback;
   }
+  // Only enrolled, non-suspended students can be bulk-added to a batch (the server enforces the same rules).
+  const isBulkEligible = (u) => u.role === 'student' && u.account_type !== 'self_registered' && u.status !== 'suspended';
+  const toggleSelectedUser = (id) => setSelectedUserIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const toggleSelectedRequest = (id) => setSelectedRequestIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
   function patchUserEverywhere(userId, patch) {
     setRecentUsers(prev => prev.map(u => u.id === userId ? { ...u, ...patch } : u));
     setMatchedProfiles(prev => prev.map(p => p.id === userId ? { ...p, ...patch } : p));
@@ -1082,9 +1092,33 @@ export default function AdminDashboard() {
                 <p className="text-center text-gray-400 py-8 text-sm">No users found</p>
               ) : (
                 <>
+                  <BulkAddToBatchBar
+                    selectedIds={selectedUserIds}
+                    batchGroups={batchGroups.filter(g => !g.archived_at)}
+                    onClear={() => setSelectedUserIds([])}
+                    onDone={fetchBatchGroups}
+                  />
+                  {recentUsers.some(isBulkEligible) && (
+                    <label className="mb-2 flex items-center gap-2 text-xs text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={recentUsers.filter(isBulkEligible).length > 0 && recentUsers.filter(isBulkEligible).every(u => selectedUserIds.includes(u.id))}
+                        onChange={(e) => setSelectedUserIds(e.target.checked ? recentUsers.filter(isBulkEligible).map(u => u.id) : [])}
+                      />
+                      Select all enrolled students shown (to add to a batch)
+                    </label>
+                  )}
                   <div className="space-y-3">
                     {recentUsers.map((u) => (
-                      <div key={u.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div key={u.id} className="flex items-center justify-between gap-3 p-3 border rounded-lg">
+                        {isBulkEligible(u) && (
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${u.full_name || u.email}`}
+                            checked={selectedUserIds.includes(u.id)}
+                            onChange={() => toggleSelectedUser(u.id)}
+                          />
+                        )}
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-gray-900 text-sm">{u.full_name || '(No name)'}</p>
                           <p className="text-xs text-gray-500 truncate">{u.email}</p>
@@ -1457,9 +1491,22 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-400 mb-4">No pending requests.</p>
             ) : (
               <div className="overflow-x-auto mb-4">
+                <BulkResolveRequestsBar
+                  selectedIds={selectedRequestIds}
+                  onClear={() => setSelectedRequestIds([])}
+                  onDone={() => { fetchPendingBatchRequests(); fetchBatchGroups(); }}
+                />
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-xs text-gray-500 border-b">
+                      <th className="pb-2 pr-2 w-6">
+                        <input
+                          type="checkbox"
+                          aria-label="Select all pending requests"
+                          checked={pendingBatchRequests.length > 0 && pendingBatchRequests.every(i => selectedRequestIds.includes(i.membership_id))}
+                          onChange={(e) => setSelectedRequestIds(e.target.checked ? pendingBatchRequests.map(i => i.membership_id) : [])}
+                        />
+                      </th>
                       <th className="pb-2 pr-4 font-medium">Student</th>
                       <th className="pb-2 pr-4 font-medium">Batch</th>
                       <th className="pb-2 pr-4 font-medium">Requested</th>
@@ -1469,6 +1516,14 @@ export default function AdminDashboard() {
                   <tbody className="divide-y divide-gray-100">
                     {pendingBatchRequests.map((item) => (
                       <tr key={item.membership_id} className="hover:bg-gray-50">
+                        <td className="py-3 pr-2">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${item.full_name}'s request`}
+                            checked={selectedRequestIds.includes(item.membership_id)}
+                            onChange={() => toggleSelectedRequest(item.membership_id)}
+                          />
+                        </td>
                         <td className="py-3 pr-4 font-medium text-gray-900">{item.full_name}</td>
                         <td className="py-3 pr-4 text-gray-700">
                           {item.group_name}

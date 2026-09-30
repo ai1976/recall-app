@@ -2,6 +2,10 @@
 
 **Last Updated:** 30/09/2026
 
+## Sprint 8.8.5b5: batch bulk membership (deferred bug #5, D-49) - SQL DEPLOYED & VERIFIED (17/17); frontend BUILT + live-checked on localhost; NOT yet committed/pushed (30/09/2026)
+
+Users tab: select many enrolled students -> "Add to batch" (confirmation + honest result with skip reasons). Batch Groups tab: select pending requests -> Approve / Reject selected. Students are notified on add/approve; every bulk call writes one audit entry. Notification bell knows the two new types. **Next:** run `sprint8.8.5b5/07_CLEANUP` (removes TestOutlook from the real batch the live check added it to); commit + push; live-check on production as admin; then #6 email change, #7 group rename, 8.8.5d, 8.8.6. **Assumptions to confirm:** rejection notifies nobody; direct add notifies. **Lesson:** extend `notifications_type_check` before adding any notification type.
+
 ## Sprint 8.8.5b4: Admin Dashboard access + admin-security closeout (D-48) - ✅ CLOSED (30/09/2026): all SQL (02-14) deployed & verified; frontend pushed (11b9fd5, 2d8b932) and live-verified, incl. a real Grant Access by plain admin Shailaja (4 students, exactly 1 notification each)
 
 Plain admins can now grant access / suspend / reactivate through server-authorized actions (refuse admins/super admins/self, truthful results, self-written audit entries); audit log is append-only for clients with un-forgeable authorship. `AdminDashboard.jsx` switched to the RPCs (+ Reactivate button). **Next:** live-check the Users tab as Anand (do not press the buttons on real users), commit + push; then revoke `EXECUTE` on `notify_access_granted`; "Delete study set" button HIDDEN (decided 30/09/2026; database unchanged; Study Set lifecycle recorded as a backlog design item); then deferred #5/#6/#7 -> 8.8.5d -> 8.8.6. Also recorded: profiles readable in full by every signed-in user (incl. email).

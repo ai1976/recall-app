@@ -1,6 +1,20 @@
 # Changelog
 
 ---
+## [30/09/2026] feat(sprint-8.8.5b5): batch bulk add / approve / reject with audit + notifications (D-49, deferred bug #5)
+
+### Added
+- `docs/database/sprint8.8.5b5/` `00`-`07`: `admin_bulk_add_to_batch`, `admin_bulk_resolve_batch_requests`, internal `admin_batch_action_denial`; audit + notification added to the single approve / reject / add functions; `notifications_type_check` extended with `batch_added`, `batch_approved`; tests (`02` 17/17), diagnostics, rollbacks, TestOutlook cleanup.
+- `src/components/admin/BatchBulkActions.jsx`: bulk bars with in-app confirmation and result dialogs.
+
+### Changed
+- `AdminDashboard.jsx`: checkboxes + select-all on eligible students (Users tab) and on pending batch requests; bulk action bars. `NotificationCenter.jsx`: icon + link for the two new notification types.
+- `enroll_user_in_batch_group` no longer re-stamps `joined_at` for an already-active member.
+
+### Files Changed
+- `src/pages/admin/AdminDashboard.jsx`, `src/components/layout/NotificationCenter.jsx`, `src/components/admin/BatchBulkActions.jsx` (new)
+
+---
 ## [30/09/2026] fix(sprint-8.8.5b4): admin-security closeout - every admin action writes its own audit entry; immutable audit log; user-delete fix (D-48)
 
 ### Added

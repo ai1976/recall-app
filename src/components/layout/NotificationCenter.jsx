@@ -143,6 +143,8 @@ export default function NotificationCenter({
       case 'comment':
         return <MessageSquare className="h-4 w-4 text-amber-500" />;
       case 'group_invite':
+      case 'batch_added':
+      case 'batch_approved':
         return <Users className="h-4 w-4 text-amber-500" />;
       case 'access_request':
         return <UserPlus className="h-4 w-4 text-orange-500" />;
@@ -169,6 +171,8 @@ export default function NotificationCenter({
         return '/dashboard/my-contributions';
       }
       case 'group_invite':
+      case 'batch_added':
+      case 'batch_approved':
         return '/dashboard/groups';
       case 'access_request':
         return '/admin?tab=access-requests';

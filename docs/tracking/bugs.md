@@ -1,5 +1,13 @@
 # Bug Tracking
 
+## Sprint 8.8.5b5 - 30/09/2026 (batch bulk membership, deferred bug #5)
+
+### [30/09/2026] No bulk way to add students to a batch or approve/reject join requests; approvals left no audit entry and told the student nothing - SQL DEPLOYED & VERIFIED (17/17), frontend built + live-checked, not yet pushed
+- **Reported:** one-at-a-time "Add to batch..." picker (real pain); pending-request approve/reject also one at a time, never used (0 pending). Approve/reject/enroll wrote no audit entry and sent no notification.
+- **Fix:** bulk add + bulk approve/reject server functions, audit entries, student notifications (D-49).
+- **Incident during rollout:** `notifications_type_check` rejected the new notification types, so the first deploy would have broken the live Add/Approve buttons; rolled back (`03`), constraint extended (`05`), redeployed. Lesson recorded in D-49.
+- **Open:** run `07_CLEANUP` (TestOutlook added to a real batch by the live check); confirm the two notification assumptions.
+
 ## Sprint 8.8.5b4 - 30/09/2026 (Admin Dashboard access)
 
 ### [30/09/2026] Deleting a user's data failed if they had created upload batches - SQL FIXED & VERIFIED (`13`, `09` U4), pre-existing
