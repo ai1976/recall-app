@@ -4,7 +4,7 @@
 ## [30/09/2026] fix(sprint-8.8.5b4): admin-security closeout - every admin action writes its own audit entry; immutable audit log; user-delete fix (D-48)
 
 ### Added
-- `docs/database/sprint8.8.5b4/` `07`-`16`: `admin_change_role`, `admin_delete_note`, `log_admin_event`; educator approve/reject and `admin_delete_user_data` now write their own audit entries; append-only trigger on `admin_audit_log`; provenance detach fix for user deletion; tests (`09`, `11`, `15`), diagnostics (`07`, `12`), combined rollback `16`; `14` (close direct client writes, run after the frontend is live).
+- `docs/database/sprint8.8.5b4/` `07`-`16`: `admin_change_role`, `admin_delete_note`, `log_admin_event`; educator approve/reject and `admin_delete_user_data` now write their own audit entries; append-only trigger on `admin_audit_log`; provenance detach fix for user deletion; tests (`09`, `11`, `15`), diagnostics (`07`, `12`), combined rollback `16`; `14` (close direct client writes - deployed, `15` 12/12 PASS), `17` (read-only check for a real Grant Access).
 
 ### Changed
 - `SuperAdminDashboard.jsx`: role change via `admin_change_role`; user delete no longer logs from the browser; Delete hidden on admin rows. `AdminDashboard.jsx`: note delete via `admin_delete_note`; educator approve/reject no longer log from the browser. `BulkUploadFlashcards.jsx`, `BulkUploadTopics.jsx`, `AuthContext.jsx`: audit events via `log_admin_event`.

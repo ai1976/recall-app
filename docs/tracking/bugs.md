@@ -7,9 +7,9 @@
 - **Fix:** `admin_delete_user_data` sets `created_by` to NULL first (history kept, count in the audit entry). Also: the function now refuses yourself and admin / super admin accounts.
 
 ### [30/09/2026] Admin audit history could be forged, edited or deleted from the browser - FIXED in stages (D-48)
-- Every admin action now writes its own entry server-side (`08`); audit log append-only for all roles (`10`, verified 7/7); the browser's direct INSERT is closed by `14` **after** the new frontend is live (pending).
+- Every admin action now writes its own entry server-side (`08`); audit log append-only for all roles (`10`, verified 7/7); the browser's direct INSERT closed by `14` (deployed, `15` 12/12 PASS 30/09/2026). Live-verified as super admin and as plain admin; real Grant Access by Shailaja confirmed (4 students, exactly 1 notification each).
 
-### [30/09/2026] Grant Access / Suspend silently did nothing for a plain admin, yet showed success, logged it and notified the student - SQL DEPLOYED & VERIFIED, frontend built, not yet pushed
+### [30/09/2026] Grant Access / Suspend silently did nothing for a plain admin, yet showed success, logged it and notified the student - ✅ FIXED, DEPLOYED, LIVE-VERIFIED (real grants by Shailaja, 1 notification each)
 - **Cause (confirmed from live policies):** direct `profiles.update()`; only super admins have an UPDATE policy on other users' profiles, so RLS returned no error and 0 rows. Only one plain admin exists (Shailaja More). No harm found in the audit log (all 29 grants point at enrolled students).
 - **Fix:** server-authorized `admin_grant_access` / `admin_suspend_user` / `admin_reactivate_user` (D-48); audit log made append-only for clients with un-forgeable authorship.
 - **Open:** revoke `notify_access_granted` from clients after the page is live; "Delete study set" deleted only the list row, not its cards - button HIDDEN 30/09/2026, database untouched, lifecycle design recorded in the blueprint backlog; audit-log UPDATE/DELETE trigger pending an FK check; profiles (incl. email) readable in full by every signed-in user.
