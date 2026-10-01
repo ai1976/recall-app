@@ -1,7 +1,9 @@
 # Changelog
 
 ---
-## [01/10/2026] feat(sprint-8.8.5f): profile privacy - email no longer readable by other users (D-52) - STEPS 1+2; STEP 3 pending
+## [01/10/2026] feat(sprint-8.8.5f): profile privacy - email no longer readable by other users (D-52) - ALL STEPS DEPLOYED & VERIFIED
+
+> Update 01/10/2026 (later): Step 3 (`06`) deployed; `07` 20/20 PASS after fixing two test-file bugs (alias/variable clash `pv`; bare string literals appended to a `text[]`). Test files `04` and `07` corrected; `09` diagnostic added (Find People returns 0 for the super admin account, 156 for a student - function is definer/owned by postgres, unrelated to the lock-down). Live-verified as super admin and as a student.
 
 ### Added
 - `docs/database/sprint8.8.5f/` `00`-`08`: diagnostics, step 1 functions (`admin_read_profiles`, `search_users_for_group_invite`, hardened `get_author_profile`) + tests 24/24 + rollback, step 3 column allow-list (`06`) + tests (`07`) + rollback (`08`, restores the old wide grants).
@@ -10,8 +12,8 @@
 - `get_author_profile`: no email in the result; viewer taken from `auth.uid()` (the `p_viewer_id` argument is ignored); ACL explicit (signed-in only).
 - Frontend moved off direct email reads: `AdminDashboard.jsx`, `SuperAdminDashboard.jsx` (via `admin_read_profiles`), `GroupDetail.jsx` (invite search by name or exact full email, masked results), `ProfileSettings.jsx` (own email from the login), `NotificationCenter.jsx` (sender shows course level, not email), `Signup.jsx` (dead logged-out profiles read removed).
 
-### Not yet done
-- Step 3 (`06`): revoke wide grants, column allow-list excluding `email` and `access_request_ref`; run only after the frontend is live and a few hours have passed (old open tabs read email).
+### Step 3 (done)
+- `06`: ALL privileges revoked from `anon` and `authenticated` on `profiles`; authenticated re-granted SELECT on every column except `email` and `access_request_ref`, plus INSERT/UPDATE/DELETE as before; anon has nothing. Rollback `08`.
 
 ### Files Changed
 - `src/pages/admin/AdminDashboard.jsx`, `src/pages/admin/SuperAdminDashboard.jsx`, `src/pages/dashboard/Groups/GroupDetail.jsx`, `src/pages/dashboard/Profile/ProfileSettings.jsx`, `src/components/layout/NotificationCenter.jsx`, `src/pages/auth/Signup.jsx`

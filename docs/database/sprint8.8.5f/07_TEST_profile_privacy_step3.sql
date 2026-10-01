@@ -31,19 +31,19 @@ BEGIN
   EXECUTE 'SET LOCAL ROLE authenticated';
 
   BEGIN PERFORM email FROM public.profiles LIMIT 1; RESET ROLE;
-    v_res := v_res || 'C1 student cannot read email [CRITICAL]|permission denied|read succeeded|FAIL';
+    v_res := v_res || ('C1 student cannot read email [CRITICAL]|permission denied|read succeeded|FAIL')::text;
   EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS sqlst = RETURNED_SQLSTATE; RESET ROLE;
     v_res := v_res || ('C1 student cannot read email [CRITICAL]|42501|' || sqlst || '|' || CASE WHEN sqlst = '42501' THEN 'PASS' ELSE 'FAIL' END)::text; END;
 
   EXECUTE 'SET LOCAL ROLE authenticated';
   BEGIN PERFORM access_request_ref FROM public.profiles LIMIT 1; RESET ROLE;
-    v_res := v_res || 'C2 student cannot read access_request_ref|permission denied|read succeeded|FAIL';
+    v_res := v_res || ('C2 student cannot read access_request_ref|permission denied|read succeeded|FAIL')::text;
   EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS sqlst = RETURNED_SQLSTATE; RESET ROLE;
     v_res := v_res || ('C2 student cannot read access_request_ref|42501|' || sqlst || '|' || CASE WHEN sqlst = '42501' THEN 'PASS' ELSE 'FAIL' END)::text; END;
 
   EXECUTE 'SET LOCAL ROLE authenticated';
   BEGIN PERFORM * FROM public.profiles LIMIT 1; RESET ROLE;
-    v_res := v_res || 'C3 SELECT * is refused|permission denied|read succeeded|FAIL';
+    v_res := v_res || ('C3 SELECT * is refused|permission denied|read succeeded|FAIL')::text;
   EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS sqlst = RETURNED_SQLSTATE; RESET ROLE;
     v_res := v_res || ('C3 SELECT * is refused|42501|' || sqlst || '|' || CASE WHEN sqlst = '42501' THEN 'PASS' ELSE 'FAIL' END)::text; END;
 
@@ -86,11 +86,11 @@ BEGIN
            CASE WHEN NOT (has_column_privilege('authenticated', 'public.profiles', 'email', 'SELECT') OR has_column_privilege('authenticated', 'public.profiles', 'access_request_ref', 'SELECT')
                           OR has_column_privilege('anon', 'public.profiles', 'email', 'SELECT') OR has_column_privilege('anon', 'public.profiles', 'access_request_ref', 'SELECT')) THEN 'PASS' ELSE 'FAIL' END)::text;
   -- EFFECTIVE privileges (has_*_privilege includes anything inherited through PUBLIC), not just direct grantee rows.
-  SELECT count(*) INTO n FROM unnest(ARRAY['SELECT', 'TRUNCATE', 'TRIGGER', 'REFERENCES']) AS pv
-   WHERE has_table_privilege('authenticated', 'public.profiles', pv);
+  SELECT count(*) INTO n FROM unnest(ARRAY['SELECT', 'TRUNCATE', 'TRIGGER', 'REFERENCES']) AS privname
+   WHERE has_table_privilege('authenticated', 'public.profiles', privname);
   v_res := v_res || ('C10 authenticated: no effective table-level SELECT / TRUNCATE / TRIGGER / REFERENCES|0|' || n || '|' || CASE WHEN n = 0 THEN 'PASS' ELSE 'FAIL' END)::text;
-  SELECT count(*) INTO n FROM unnest(ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'TRIGGER', 'REFERENCES']) AS pv
-   WHERE has_table_privilege('anon', 'public.profiles', pv);
+  SELECT count(*) INTO n FROM unnest(ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'TRIGGER', 'REFERENCES']) AS privname
+   WHERE has_table_privilege('anon', 'public.profiles', privname);
   SELECT count(*) INTO nm FROM pg_attribute a
    WHERE a.attrelid = 'public.profiles'::regclass AND a.attnum > 0 AND NOT a.attisdropped
      AND (has_column_privilege('anon', a.attrelid, a.attnum, 'SELECT') OR has_column_privilege('anon', a.attrelid, a.attnum, 'UPDATE')
@@ -108,31 +108,31 @@ BEGIN
   PERFORM set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
   EXECUTE 'SET LOCAL ROLE anon';
   BEGIN PERFORM id FROM public.profiles LIMIT 1; RESET ROLE;
-    v_res := v_res || 'D1 anon direct profile read fails|42501|read succeeded|FAIL';
+    v_res := v_res || ('D1 anon direct profile read fails|42501|read succeeded|FAIL')::text;
   EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS sqlst = RETURNED_SQLSTATE; RESET ROLE;
     v_res := v_res || ('D1 anon direct profile read fails|42501|' || sqlst || '|' || CASE WHEN sqlst = '42501' THEN 'PASS' ELSE 'FAIL' END)::text; END;
 
   EXECUTE 'SET LOCAL ROLE anon';
   BEGIN PERFORM email FROM public.profiles LIMIT 1; RESET ROLE;
-    v_res := v_res || 'D2 anon email read fails|42501|read succeeded|FAIL';
+    v_res := v_res || ('D2 anon email read fails|42501|read succeeded|FAIL')::text;
   EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS sqlst = RETURNED_SQLSTATE; RESET ROLE;
     v_res := v_res || ('D2 anon email read fails|42501|' || sqlst || '|' || CASE WHEN sqlst = '42501' THEN 'PASS' ELSE 'FAIL' END)::text; END;
 
   -- ---------- anonymous public surfaces (definer RPCs) ----------
   EXECUTE 'SET LOCAL ROLE anon';
-  BEGIN PERFORM * FROM public.get_public_educators(); RESET ROLE; v_res := v_res || 'R1 get_public_educators works for anon|no error|ok|PASS';
+  BEGIN PERFORM * FROM public.get_public_educators(); RESET ROLE; v_res := v_res || ('R1 get_public_educators works for anon|no error|ok|PASS')::text;
   EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; RESET ROLE; v_res := v_res || ('R1 get_public_educators works for anon|no error|' || left(v_err, 70) || '|FAIL')::text; END;
   EXECUTE 'SET LOCAL ROLE anon';
-  BEGIN PERFORM public.get_platform_stats(); RESET ROLE; v_res := v_res || 'R2 get_platform_stats works for anon|no error|ok|PASS';
+  BEGIN PERFORM public.get_platform_stats(); RESET ROLE; v_res := v_res || ('R2 get_platform_stats works for anon|no error|ok|PASS')::text;
   EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; RESET ROLE; v_res := v_res || ('R2 get_platform_stats works for anon|no error|' || left(v_err, 70) || '|FAIL')::text; END;
   EXECUTE 'SET LOCAL ROLE anon';
-  BEGIN PERFORM public.get_featured_landing_content(); RESET ROLE; v_res := v_res || 'R3 get_featured_landing_content works for anon|no error|ok|PASS';
+  BEGIN PERFORM public.get_featured_landing_content(); RESET ROLE; v_res := v_res || ('R3 get_featured_landing_content works for anon|no error|ok|PASS')::text;
   EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; RESET ROLE; v_res := v_res || ('R3 get_featured_landing_content works for anon|no error|' || left(v_err, 70) || '|FAIL')::text; END;
   -- R4 uses a REAL, eligible invite token (an active group) and requires the preview to actually contain that group's name.
   SELECT invite_token, name INTO tok, tokname FROM public.study_groups
    WHERE invite_token IS NOT NULL AND archived_at IS NULL AND name !~ '["\\]' ORDER BY created_at LIMIT 1;
   IF tok IS NULL THEN
-    v_res := v_res || 'R4 get_group_preview works for anon|a real group token|none found|SKIP';
+    v_res := v_res || ('R4 get_group_preview works for anon|a real group token|none found|SKIP')::text;
   ELSE
     EXECUTE 'SET LOCAL ROLE anon';
     BEGIN
@@ -146,7 +146,7 @@ BEGIN
   PERFORM set_config('request.jwt.claims', json_build_object('sub', stu, 'role', 'authenticated')::text, true);
   EXECUTE 'SET LOCAL ROLE authenticated';
   BEGIN PERFORM * FROM public.get_my_friends_with_stats(); PERFORM * FROM public.get_discoverable_users(); RESET ROLE;
-    v_res := v_res || 'R5 friends / discoverable users functions still work|no error|ok|PASS';
+    v_res := v_res || ('R5 friends / discoverable users functions still work|no error|ok|PASS')::text;
   EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; RESET ROLE; v_res := v_res || ('R5 friends / discoverable users functions|no error|' || left(v_err, 70) || '|FAIL')::text; END;
 
   PERFORM set_config('app.t07f_results', array_to_string(v_res, chr(10)), true);

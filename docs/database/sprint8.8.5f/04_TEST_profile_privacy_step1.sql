@@ -58,7 +58,7 @@ BEGIN
   EXECUTE 'SET LOCAL ROLE authenticated';
   BEGIN
     PERFORM * FROM public.admin_read_profiles(NULL, NULL, NULL, NULL, 5); RESET ROLE;
-    v_res := v_res || 'A3 student refused [CRITICAL]|not_admin|returned rows|FAIL';
+    v_res := v_res || ('A3 student refused [CRITICAL]|not_admin|returned rows|FAIL')::text;
   EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; RESET ROLE;
     v_res := v_res || ('A3 student refused [CRITICAL]|not_admin|' || v_err || '|' || CASE WHEN v_err ILIKE '%not_admin%' THEN 'PASS' ELSE 'FAIL' END)::text; END;
 
@@ -66,7 +66,7 @@ BEGIN
   EXECUTE 'SET LOCAL ROLE authenticated';
   BEGIN
     PERFORM * FROM public.admin_read_profiles(NULL, NULL, NULL, NULL, 5); RESET ROLE;
-    v_res := v_res || 'A4 professor refused [CRITICAL]|not_admin|returned rows|FAIL';
+    v_res := v_res || ('A4 professor refused [CRITICAL]|not_admin|returned rows|FAIL')::text;
   EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; RESET ROLE;
     v_res := v_res || ('A4 professor refused [CRITICAL]|not_admin|' || v_err || '|' || CASE WHEN v_err ILIKE '%not_admin%' THEN 'PASS' ELSE 'FAIL' END)::text; END;
 
@@ -131,7 +131,7 @@ BEGIN
   EXECUTE 'SET LOCAL ROLE authenticated';
   BEGIN
     PERFORM * FROM public.search_users_for_group_invite(g, 'abc'); RESET ROLE;
-    v_res := v_res || 'G5 plain member refused|error|allowed|FAIL';
+    v_res := v_res || ('G5 plain member refused|error|allowed|FAIL')::text;
   EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; RESET ROLE;
     v_res := v_res || ('G5 plain member refused|error|' || v_err || '|' || CASE WHEN v_err ILIKE '%group admins%' THEN 'PASS' ELSE 'FAIL' END)::text; END;
 
@@ -139,7 +139,7 @@ BEGIN
   EXECUTE 'SET LOCAL ROLE authenticated';
   BEGIN
     PERFORM * FROM public.search_users_for_group_invite(g, 'abc'); RESET ROLE;
-    v_res := v_res || 'G6 non-member refused [CRITICAL]|error|allowed|FAIL';
+    v_res := v_res || ('G6 non-member refused [CRITICAL]|error|allowed|FAIL')::text;
   EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; RESET ROLE;
     v_res := v_res || ('G6 non-member refused [CRITICAL]|error|' || v_err || '|' || CASE WHEN v_err ILIKE '%group admins%' THEN 'PASS' ELSE 'FAIL' END)::text; END;
 
@@ -167,7 +167,7 @@ BEGIN
   EXECUTE 'SET LOCAL ROLE authenticated';
   BEGIN
     PERFORM * FROM public.search_users_for_group_invite(g, s4email); RESET ROLE;
-    v_res := v_res || 'G10 suspended group admin refused [CRITICAL]|error|allowed|FAIL';
+    v_res := v_res || ('G10 suspended group admin refused [CRITICAL]|error|allowed|FAIL')::text;
   EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; RESET ROLE;
     v_res := v_res || ('G10 suspended group admin refused [CRITICAL]|not active|' || v_err || '|' || CASE WHEN v_err ILIKE '%not active%' THEN 'PASS' ELSE 'FAIL' END)::text; END;
   UPDATE public.profiles SET status = 'active' WHERE id = s1;
