@@ -32,6 +32,7 @@ export default function MyGroups() {
   const [pendingInvites, setPendingInvites] = useState([]);
   const [inviteLoading, setInviteLoading] = useState(true);
   const [inviteActionId, setInviteActionId] = useState(null); // track which invite is being acted on
+  const [viewerRole, setViewerRole] = useState(null);
 
   useEffect(() => {
     fetchGroups();
@@ -65,13 +66,16 @@ export default function MyGroups() {
         ]);
         if (userGroupsRes.error) throw userGroupsRes.error;
 
-        // Merge batch groups, deduplicating by ID
-        const merged = [...(userGroupsRes.data ?? [])];
+        // Sprint 8.8.5d: batch groups come ONLY from get_my_batch_groups (admins: all active batches; professors: assigned
+        // batches). A professor's old membership row must not list a batch they are not assigned to (the server would
+        // refuse the page), so batch groups are dropped from the membership list.
+        const merged = (userGroupsRes.data ?? []).filter(g => !g.is_batch_group);
         const existingIds = new Set(merged.map(g => g.id));
         (batchGroupsRes.data ?? []).forEach(g => {
           if (!existingIds.has(g.id)) merged.push(g);
         });
         setGroups(merged);
+        setViewerRole(profile?.role || null);
       }
     } catch (error) {
       console.error('Error fetching groups:', error);
@@ -275,13 +279,17 @@ export default function MyGroups() {
         const visibleGroups = activeCourse
           ? groups.filter(g => !g.is_batch_group || g.batch_course === activeCourse)
           : groups;
+        // Sprint 8.8.5d: a professor sees only assigned batches - say so plainly when there are none.
+        const professorWithoutBatch = viewerRole === 'professor' && !groups.some(g => g.is_batch_group);
         return visibleGroups.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No study groups yet</h3>
             <p className="text-gray-600 mb-6">
-              Create a group to start sharing content with classmates
+              {professorWithoutBatch
+                ? 'No batch is assigned to you yet - ask an admin to assign you to your batch. You can still create a group of your own.'
+                : 'Create a group to start sharing content with classmates'}
             </p>
             <Button onClick={() => navigate('/dashboard/groups/new')}>
               <Plus className="h-4 w-4 mr-2" />
@@ -290,6 +298,12 @@ export default function MyGroups() {
           </CardContent>
         </Card>
       ) : (
+        <>
+        {professorWithoutBatch && (
+          <p className="mb-4 text-sm text-gray-600 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+            No batch is assigned to you yet - ask an admin to assign you to your batch.
+          </p>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleGroups.map((group) => (
             <Card
@@ -367,6 +381,7 @@ export default function MyGroups() {
             </Card>
           ))}
         </div>
+        </>
         );
       })()}
 

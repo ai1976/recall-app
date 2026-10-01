@@ -1,5 +1,12 @@
 # Bug Tracking
 
+## Sprint 8.8.5d - 01/10/2026 (professor <-> batch assignment)
+
+### [01/10/2026] Every professor could see every active batch and its student report; staff appeared as student rows; a professor could join any batch through an invite link as an active member - FIXED (SQL deployed, `07` all PASS; frontend built, local test passed; live professor / plain-admin checks pending)
+- **Cause (confirmed from live function bodies, `sprint8.8.5d/00`-`02`):** the four batch functions gated on role only; `get_batch_group_member_stats` listed every active member; `join_group_by_token` inserted professor/admin/super_admin callers as `active` members of any group, and `get_group_detail` accepted any active member - so membership could stand in for monitoring access. `enroll_user_in_batch_group` accepted any role.
+- **Fix:** D-53 (assignment table + central helper, tightened functions, students-only report, join and direct-add validation).
+- **Open:** membership-based shared-content path (follow-up), Kaustubh's membership in CAFC May 27, `admin_batch_action_denial` lacks a suspension check, anon execute on `join_group_by_token` / `get_browsable_notes`.
+
 ## Sprint 8.8.5f - 01/10/2026 (profile privacy)
 
 ### [01/10/2026] Every signed-in user could read every other user's email (and access_request_ref); get_author_profile trusted a caller-supplied viewer id - FIXED: all 3 steps deployed & verified (Step 1 24/24, Step 3 20/20), live-checked as super admin and student

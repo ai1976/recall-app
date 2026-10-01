@@ -507,12 +507,16 @@ export default function GroupDetail() {
               </span>
             )}
           </div>
+          {/* Sprint 8.8.5d: the group count includes everyone in the group (staff too), so it is labelled "members"; the
+              report below lists STUDENTS only, so its row count is shown separately and never called "members". */}
           <p className="text-gray-600">
-            {members.length} {members.length === 1 ? 'student' : 'students'}
+            {members.length} {members.length === 1 ? 'member' : 'members'}
+            {!group.archived_at && ` · ${batchStats.length} ${batchStats.length === 1 ? 'student' : 'students'} in this report`}
           </p>
           {group.archived_at && (
             <p className="text-sm text-gray-500 mt-1">
-              Archived on {formatDate(group.archived_at)} — activity shown as of this date.
+              Archived on {formatDate(group.archived_at)} — activity shown as of this date. This frozen report is shown exactly as it was
+              recorded; older reports may also list staff who were group members at the time.
             </p>
           )}
         </div>

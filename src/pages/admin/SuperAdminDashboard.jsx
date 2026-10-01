@@ -337,7 +337,10 @@ export default function SuperAdminDashboard() {
       // Merge user info into logs
       const enrichedLogs = logs.map(log => ({
         ...log,
-        admin_name: userMap[log.admin_id]?.full_name || userMap[log.admin_id]?.email || 'Unknown Admin',
+        // An entry with no admin id is a system/migration write (e.g. the 8.8.5d professor backfill) - never an unknown person.
+        admin_name: log.admin_id
+          ? (userMap[log.admin_id]?.full_name || userMap[log.admin_id]?.email || 'Unknown Admin')
+          : 'System (migration)',
         target_user_name: log.target_user_id 
           ? (userMap[log.target_user_id]?.full_name || userMap[log.target_user_id]?.email || 'Unknown User')
           : null

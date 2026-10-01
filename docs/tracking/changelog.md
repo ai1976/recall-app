@@ -1,6 +1,25 @@
 # Changelog
 
 ---
+## [01/10/2026] feat(sprint-8.8.5d): explicit professor <-> batch assignment; students-only batch reports (D-53)
+
+### Added
+- `docs/database/sprint8.8.5d/` `00`-`08`: diagnostics, table `batch_group_professors` + internal helper `batch_group_access_denial`, admin functions (`assign_professor_to_batch`, `unassign_professor_from_batch`, `get_batch_group_professors`, `get_assignable_professors`), deploy-day backfill (6 assignments by exact id), tightened batch functions, tests (`07`, all PASS, 80+ checks), rollback (`08`).
+- `AdminDashboard.jsx`: Professors panel on each batch (assign / remove, flags a demoted professor).
+
+### Changed
+- Professors see only assigned batches (`get_my_batch_groups`, `get_group_detail`, `get_batch_group_member_stats`, `get_batch_group_archive`); a membership row never grants a professor access to a batch; `get_batch_group_member_stats` returns students only; the archive snapshot is returned verbatim.
+- `join_group_by_token` refuses a professor joining a batch; `enroll_user_in_batch_group` accepts students only; `get_admin_batch_groups` no longer executable by anon/PUBLIC.
+- `GroupDetail.jsx`: "N members · M students in this report" (was "N students"); `MyGroups.jsx`: batches only from the assignment-based list + message for an unassigned professor; "Add to batch" picker only for students; `SuperAdminDashboard.jsx`: audit rows with no admin id read "System (migration)".
+
+### Known / not changed
+- Membership-based shared-content visibility and sharing (legacy path) and existing professor membership rows (Kaustubh, CAFC May 27; three professors in the archived batch) are untouched; follow-ups recorded in D-53.
+- SQL was deployed before independent audit approval; review pending.
+
+### Files Changed
+- `src/pages/admin/AdminDashboard.jsx`, `src/pages/admin/SuperAdminDashboard.jsx`, `src/pages/dashboard/Groups/GroupDetail.jsx`, `src/pages/dashboard/Groups/MyGroups.jsx`
+
+---
 ## [01/10/2026] feat(sprint-8.8.5f): profile privacy - email no longer readable by other users (D-52) - ALL STEPS DEPLOYED & VERIFIED
 
 > Update 01/10/2026 (later): Step 3 (`06`) deployed; `07` 20/20 PASS after fixing two test-file bugs (alias/variable clash `pv`; bare string literals appended to a `text[]`). Test files `04` and `07` corrected; `09` diagnostic added (Find People returns 0 for the super admin account, 156 for a student - function is definer/owned by postgres, unrelated to the lock-down). Live-verified as super admin and as a student.

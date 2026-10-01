@@ -53,6 +53,7 @@ export default function AdminDashboard() {
   // ── Batch Group archiving state (Sprint 8.1)
   const [batchStatusFilter, setBatchStatusFilter] = useState('active'); // 'active' | 'archived'
   const [batchActionLoadingId, setBatchActionLoadingId] = useState(null);
+  const [professorsPanelGroupId, setProfessorsPanelGroupId] = useState(null); // Sprint 8.8.5d: which batch row shows its Professors panel
   const [renamingBatchId, setRenamingBatchId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [renameError, setRenameError] = useState('');
@@ -1177,7 +1178,11 @@ export default function AdminDashboard() {
                               </Button>
                             )
                           ) : (
-                            <BatchGroupPicker userId={u.id} batchGroups={batchGroups.filter(g => !g.archived_at)} onAssign={addToBatchGroup} />
+                            // Sprint 8.8.5d: batch membership is a student concept (the server refuses anyone else); a professor's
+                            // batch access is an assignment, made in Batch Groups -> Professors.
+                            u.role === 'student' && (
+                              <BatchGroupPicker userId={u.id} batchGroups={batchGroups.filter(g => !g.archived_at)} onAssign={addToBatchGroup} />
+                            )
                           )}
                           {/* Admin / super admin accounts are managed elsewhere (Super Admin dashboard) — the
                               server refuses these actions on them, so the buttons are not offered (D-48). */}
@@ -1627,7 +1632,8 @@ export default function AdminDashboard() {
                 return (
                   <div className="space-y-3">
                     {visibleGroups.map((group) => (
-                      <div key={group.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div key={group.id} className="border rounded-lg">
+                       <div className="flex items-center justify-between p-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <Shield className="h-4 w-4 text-amber-600 shrink-0" />
@@ -1681,6 +1687,10 @@ export default function AdminDashboard() {
                         </div>
                         <div className="flex items-center gap-2 shrink-0 ml-3">
                           {!group.archived_at && <CopyInviteLinkButton group={group} />}
+                          <Button size="sm" variant="outline"
+                            onClick={() => setProfessorsPanelGroupId(professorsPanelGroupId === group.id ? null : group.id)}>
+                            {professorsPanelGroupId === group.id ? 'Hide professors' : 'Professors'}
+                          </Button>
                           {!group.archived_at && (
                             <Button size="sm" variant="outline"
                               disabled={batchActionLoadingId === group.id}
@@ -1702,6 +1712,8 @@ export default function AdminDashboard() {
                             </Button>
                           )}
                         </div>
+                       </div>
+                       {professorsPanelGroupId === group.id && <BatchProfessorsPanel group={group} />}
                       </div>
                     ))}
                   </div>
@@ -1757,6 +1769,144 @@ function CopyInviteLinkButton({ group }) {
 // Sprint 8.0 — explicit student+batch picker for direct admin adds. No
 // course/institution guessing: the admin must pick one exact batch group
 // from the dropdown before "Add" is even enabled.
+// Sprint 8.8.5d — Professors panel for one batch. Professors see ONLY the batches assigned to them; the assignment (not group
+// membership) is what lets them open the batch page and its report. Every call goes through a server function that re-checks the
+// caller and writes its own audit entry; this component never writes the table or the audit log.
+function BatchProfessorsPanel({ group }) {
+  const archived = !!group.archived_at;
+  const [rows, setRows] = useState(null);       // null = still loading
+  const [options, setOptions] = useState([]);   // assignable professors (active professors)
+  const [selected, setSelected] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [confirmRemoveId, setConfirmRemoveId] = useState(null);
+
+  async function load() {
+    try {
+      const [listRes, optRes] = await Promise.all([
+        supabase.rpc('get_batch_group_professors', { p_group_id: group.id }),
+        archived ? Promise.resolve({ data: [], error: null }) : supabase.rpc('get_assignable_professors'),
+      ]);
+      if (listRes.error) throw listRes.error;
+      if (optRes.error) throw optRes.error;
+      setRows(listRes.data ?? []);
+      setOptions(optRes.data ?? []);
+    } catch (err) {
+      console.error('BatchProfessorsPanel load:', err);
+      setError(err.message || 'Failed to load professors');
+      setRows(prev => prev ?? []);
+    }
+  }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [group.id, archived]);
+
+  async function assign() {
+    if (!selected) return;
+    setBusy(true);
+    setError('');
+    try {
+      const { error: err } = await supabase.rpc('assign_professor_to_batch', { p_group_id: group.id, p_professor_id: selected });
+      if (err) throw err;
+      setSelected('');
+      await load();
+    } catch (err) {
+      console.error('assign_professor_to_batch:', err);
+      setError(err.message || 'Failed to assign professor');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(professorId) {
+    setBusy(true);
+    setError('');
+    try {
+      const { error: err } = await supabase.rpc('unassign_professor_from_batch', { p_group_id: group.id, p_professor_id: professorId });
+      if (err) throw err;
+      setConfirmRemoveId(null);
+      await load();
+    } catch (err) {
+      console.error('unassign_professor_from_batch:', err);
+      setError(err.message || 'Failed to remove professor');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const assignedIds = new Set((rows ?? []).map(r => r.professor_id));
+  const available = options.filter(o => !assignedIds.has(o.professor_id));
+
+  return (
+    <div className="border-t bg-gray-50 px-4 py-3 space-y-3">
+      <p className="text-xs text-gray-500">
+        Professors see only the batches assigned to them here. An assigned professor can open this batch and its student report
+        without being a group member.{archived && ' This batch is archived: assignments can be removed but not added.'}
+      </p>
+
+      {rows === null ? (
+        <p className="text-sm text-gray-500">Loading…</p>
+      ) : rows.length === 0 ? (
+        <p className="text-sm text-gray-500">No professor is assigned to this batch. Admins and super admins can always view it.</p>
+      ) : (
+        <ul className="space-y-2">
+          {rows.map(r => (
+            <li key={r.professor_id} className="flex flex-wrap items-center justify-between gap-2 bg-white border rounded px-3 py-2">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900">
+                  {r.full_name || '(no name)'}
+                  {r.course_level && <span className="ml-2 text-xs font-normal text-gray-500">{r.course_level}</span>}
+                  {!r.is_active_professor && (
+                    <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
+                      No longer an active professor — no access
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-gray-400">
+                  Assigned {new Date(r.assigned_at).toLocaleDateString('en-GB')}
+                  {r.assignment_source === 'migration_backfill' ? ' (system backfill)' : r.assigned_by_name ? ` by ${r.assigned_by_name}` : ''}
+                </p>
+              </div>
+              {confirmRemoveId === r.professor_id ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600">Remove access to this batch?</span>
+                  <Button size="sm" variant="outline" className="text-red-600 border-red-300" disabled={busy} onClick={() => remove(r.professor_id)}>
+                    {busy ? 'Removing…' : 'Yes, remove'}
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={busy} onClick={() => setConfirmRemoveId(null)}>Cancel</Button>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" disabled={busy} onClick={() => setConfirmRemoveId(r.professor_id)}>Remove</Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!archived && (
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+            disabled={busy || available.length === 0}
+            className="text-sm border border-gray-300 rounded px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+          >
+            <option value="">{available.length === 0 ? 'No more professors to assign' : 'Choose a professor…'}</option>
+            {available.map(o => (
+              <option key={o.professor_id} value={o.professor_id}>
+                {o.full_name || '(no name)'}{o.course_level ? ` — ${o.course_level}` : ''}
+              </option>
+            ))}
+          </select>
+          <Button size="sm" disabled={busy || !selected} onClick={assign}>{busy ? 'Saving…' : 'Assign'}</Button>
+        </div>
+      )}
+
+      {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
+    </div>
+  );
+}
+
 function BatchGroupPicker({ userId, batchGroups, onAssign }) {
   const [groupId, setGroupId] = useState('');
   const [loading, setLoading] = useState(false);
