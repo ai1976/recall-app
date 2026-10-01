@@ -1,6 +1,19 @@
 # Changelog
 
 ---
+## [01/10/2026] feat(sprint-8.8.5e): batch group rename for admins (D-51, deferred #7)
+
+### Added
+- `docs/database/sprint8.8.5e/` `00`-`04`: diagnostics, `rename_batch_group(uuid, text)` (admin/super_admin, duplicate rule on name + course + institution with NULL = NULL, audit entry), tests 12/12, rollback.
+- Inline Rename on each active batch row in the Admin Dashboard.
+
+### Changed
+- Nothing existing; personal-group rename unchanged.
+
+### Files Changed
+- `src/pages/admin/AdminDashboard.jsx`
+
+---
 ## [01/10/2026] feat(sprint-8.8.5b6): self-service email change + Auth->profile email sync + lowercase invariant (D-50, deferred bug #6)
 
 ### Added

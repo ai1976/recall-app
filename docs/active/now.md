@@ -2,6 +2,10 @@
 
 **Last Updated:** 01/10/2026
 
+## Sprint 8.8.5e: batch group rename (deferred #7, D-51) - SQL DEPLOYED & VERIFIED (12/12); frontend BUILT + live-tested; NOT yet committed/pushed (01/10/2026)
+
+Admin/super_admin can rename an active batch group via `rename_batch_group` (Rename button in Admin Dashboard batch list). Founder renamed "CA Intermediate May & Sept 27" to "CA Inter May & Sept 27" live. Old notifications/archive snapshots keep the old name. **Next:** commit + push (SQL already deployed); glance at the `rename_batch_group` audit entry; then profile privacy sprint, 8.8.5d, 8.8.6. Decisions answered 01/10/2026: rejecting a batch request notifies nobody (yes); a student added directly is notified (yes).
+
 ## Sprint 8.8.5b6: email change (deferred bug #6, D-50) - SQL DEPLOYED & VERIFIED (10/10); frontend BUILT + checked on localhost; NOT yet committed/pushed; real round trip pending (01/10/2026)
 
 Auth email is authoritative; a trigger copies a changed email into `profiles.email` (lowercase) and writes an `email_changed` audit entry. Profile Settings has a "Change email" form (Supabase secure change: both addresses confirm). Lost-mailbox recovery = super admin edits the email in the Supabase dashboard (runbook `docs/reference/RUNBOOK_change_user_email.md`); the plain Admin role has no email-change power. **Next:** commit + push; turn ON the "Email address changed" security notification in Supabase; founder round trip on TestOutlook (plus-alias address, open both links, check the audit entry, change back); then #7 group rename; then a PROFILE PRIVACY sprint (email readable by every signed-in user; `get_author_profile` returns full email); then 8.8.5d, 8.8.6.

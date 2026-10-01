@@ -53,6 +53,9 @@ export default function AdminDashboard() {
   // ── Batch Group archiving state (Sprint 8.1)
   const [batchStatusFilter, setBatchStatusFilter] = useState('active'); // 'active' | 'archived'
   const [batchActionLoadingId, setBatchActionLoadingId] = useState(null);
+  const [renamingBatchId, setRenamingBatchId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [renameError, setRenameError] = useState('');
 
   // ── Flagged content state
   const [flaggedItems, setFlaggedItems] = useState([]);
@@ -591,6 +594,31 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error('restoreBatchGroup:', err);
       alert(err.message || 'Failed to restore batch group');
+    } finally {
+      setBatchActionLoadingId(null);
+    }
+  }
+
+  function startRenameBatch(group) {
+    setRenamingBatchId(group.id);
+    setRenameValue(group.name);
+    setRenameError('');
+  }
+
+  async function submitRenameBatch(group) {
+    setBatchActionLoadingId(group.id);
+    setRenameError('');
+    try {
+      const { error } = await supabase.rpc('rename_batch_group', {
+        p_group_id: group.id,
+        p_new_name: renameValue,
+      });
+      if (error) throw error;
+      setRenamingBatchId(null);
+      await fetchBatchGroups();
+    } catch (err) {
+      console.error('submitRenameBatch:', err);
+      setRenameError(err.message || 'Failed to rename batch group');
     } finally {
       setBatchActionLoadingId(null);
     }
@@ -1607,13 +1635,38 @@ export default function AdminDashboard() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <Shield className="h-4 w-4 text-amber-600 shrink-0" />
-                            <p className="font-medium text-gray-900 text-sm">{group.name}</p>
+                            {renamingBatchId === group.id ? (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  maxLength={100}
+                                  value={renameValue}
+                                  onChange={(e) => setRenameValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') submitRenameBatch(group);
+                                    if (e.key === 'Escape') setRenamingBatchId(null);
+                                  }}
+                                  className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                />
+                                <Button size="sm" disabled={batchActionLoadingId === group.id || !renameValue.trim()}
+                                  onClick={() => submitRenameBatch(group)}>
+                                  {batchActionLoadingId === group.id ? 'Saving…' : 'Save'}
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => setRenamingBatchId(null)}>Cancel</Button>
+                              </div>
+                            ) : (
+                              <p className="font-medium text-gray-900 text-sm">{group.name}</p>
+                            )}
                             {group.archived_at && (
                               <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
                                 Archived
                               </span>
                             )}
                           </div>
+                          {renamingBatchId === group.id && renameError && (
+                            <p className="text-xs text-red-600 mt-1 ml-6">{renameError}</p>
+                          )}
                           {group.description && (
                             <p className="text-xs text-gray-500 mt-0.5 ml-6">{group.description}</p>
                           )}
@@ -1632,6 +1685,13 @@ export default function AdminDashboard() {
                         </div>
                         <div className="flex items-center gap-2 shrink-0 ml-3">
                           {!group.archived_at && <CopyInviteLinkButton group={group} />}
+                          {!group.archived_at && (
+                            <Button size="sm" variant="outline"
+                              disabled={batchActionLoadingId === group.id}
+                              onClick={() => startRenameBatch(group)}>
+                              Rename
+                            </Button>
+                          )}
                           {group.archived_at ? (
                             <Button size="sm" variant="outline"
                               disabled={batchActionLoadingId === group.id}
