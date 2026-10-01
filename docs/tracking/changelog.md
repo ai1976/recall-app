@@ -1,6 +1,19 @@
 # Changelog
 
 ---
+## [01/10/2026] fix(sprint-8.8.5b6): email-change error — log real error + support hint (follow-up to D-50)
+
+### Why
+Ananya Bhagwat (0e3cd9a5…) could not move to her Gmail: the address already belonged to her older account (38c343a1…, 146 reviews). The screen's message was correct but gave no way forward and the real error was invisible. Her data was not changed; founder is suspending the institute account (her class email expires) and she continues on the Gmail account.
+
+### Changed
+- `ChangeEmail.jsx`: the real Supabase error code/status/message is written to the console; the "couldn't use that address" text now adds a contact-support hint. Wording stays neutral (no confirmation whose account it is).
+- Diagnostics only: `docs/database/sprint8.8.5b6/05`-`07`.
+
+### Files Changed
+- `src/components/profile/ChangeEmail.jsx`
+
+---
 ## [01/10/2026] feat(sprint-8.8.5e): batch group rename for admins (D-51, deferred #7)
 
 ### Added

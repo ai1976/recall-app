@@ -39,11 +39,12 @@ export default function ChangeEmail({ currentEmail }) {
         { emailRedirectTo: `${window.location.origin}/dashboard/settings` },
       );
       if (err) {
+        console.error('ChangeEmail updateUser error:', err.code, err.status, err.message);
         const text = `${err.code || ''} ${err.message || ''}`;
         if (/rate|too many|429/i.test(text)) {
           setError('Too many requests. Please wait a few minutes and try again.');
         } else if (/already|exists|registered|invalid/i.test(text)) {
-          setError("We couldn't use that address. If it belongs to another account, please choose a different one.");
+          setError("We couldn't use that address. If it belongs to another account, please choose a different one. If you think it is your own older account, contact support and we'll help.");
         } else {
           setError("We couldn't start the change. Please try again.");
         }
