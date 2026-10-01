@@ -222,18 +222,21 @@ export default function GroupDetail() {
     }
     setSearching(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
-        .limit(10);
+      // Sprint 8.8.5f: partial NAME search, or an EXACT full email; the server checks the caller is an active admin of this group
+      // and returns a masked email only (never the raw address).
+      const { data, error } = await supabase.rpc('search_users_for_group_invite', {
+        p_group_id: groupId,
+        p_query: query,
+      });
       if (error) throw error;
 
       // Filter out existing active members AND pending invitations
       const memberIds = members.map(m => m.user_id);
       const pendingIds = pendingInvitations.map(p => p.user_id);
       const excludeIds = new Set([...memberIds, ...pendingIds]);
-      const filtered = (data || []).filter(u => !excludeIds.has(u.id));
+      const filtered = (data || [])
+        .map(r => ({ id: r.user_id, full_name: r.full_name, masked_email: r.masked_email }))
+        .filter(u => !excludeIds.has(u.id));
       setSearchResults(filtered);
     } catch (error) {
       console.error('Error searching users:', error);
@@ -872,14 +875,14 @@ export default function GroupDetail() {
           <DialogHeader>
             <DialogTitle>Invite Members</DialogTitle>
             <DialogDescription>
-              Search for users by name or email to invite them to the group. They will receive a notification and can accept or decline.
+              Search by name, or type someone's full email address, to invite them to the group. They will receive a notification and can accept or decline.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search by name or email..."
+                placeholder="Search by name or full email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -899,7 +902,7 @@ export default function GroupDetail() {
                 >
                   <div>
                     <p className="text-sm font-medium">{result.full_name || 'Unknown'}</p>
-                    <p className="text-xs text-gray-500">{result.email}</p>
+                    <p className="text-xs text-gray-500">{result.masked_email}</p>
                   </div>
                   <Button
                     size="sm"

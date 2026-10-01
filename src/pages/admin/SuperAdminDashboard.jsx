@@ -278,10 +278,8 @@ export default function SuperAdminDashboard() {
 
   async function fetchUsers() {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Sprint 8.8.5f: whole profile rows (incl. email) come from the admin-only server function, not the table.
+      const { data, error } = await supabase.rpc('admin_read_profiles', { p_limit: 5000 });
 
       if (error) throw error;
       setUsers(data || []);
@@ -292,11 +290,7 @@ export default function SuperAdminDashboard() {
 
   async function fetchAdmins() {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('role', ['admin', 'super_admin'])
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('admin_read_profiles', { p_roles: ['admin', 'super_admin'], p_limit: 5000 });
 
       if (error) throw error;
       setAdmins(data || []);
@@ -330,9 +324,7 @@ export default function SuperAdminDashboard() {
 
       // Fetch user profiles for those IDs
       const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .in('id', Array.from(userIds));
+        .rpc('admin_read_profiles', { p_ids: Array.from(userIds), p_limit: 5000 });
 
       if (profileError) throw profileError;
 
@@ -362,11 +354,8 @@ export default function SuperAdminDashboard() {
   // incomplete record.
   async function changeUserRole(userId, newRole, reason) {
     try {
-      const { data: currentUser } = await supabase
-        .from('profiles')
-        .select('role, email, full_name')
-        .eq('id', userId)
-        .single();
+      const { data: currentRows } = await supabase.rpc('admin_read_profiles', { p_ids: [userId], p_limit: 1 });
+      const currentUser = currentRows?.[0];
 
       if (!currentUser) {
         alert('User not found');
@@ -400,11 +389,8 @@ export default function SuperAdminDashboard() {
   async function deleteUser(userId) {
   try {
     // Step 1: Fetch user details BEFORE deletion (for audit log)
-    const { data: targetUser, error: fetchError } = await supabase
-      .from('profiles')
-      .select('email, full_name, role')
-      .eq('id', userId)
-      .single();
+    const { data: targetRows, error: fetchError } = await supabase.rpc('admin_read_profiles', { p_ids: [userId], p_limit: 1 });
+    const targetUser = targetRows?.[0];
 
     if (fetchError || !targetUser) {
       alert('User not found');

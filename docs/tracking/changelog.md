@@ -1,6 +1,22 @@
 # Changelog
 
 ---
+## [01/10/2026] feat(sprint-8.8.5f): profile privacy - email no longer readable by other users (D-52) - STEPS 1+2; STEP 3 pending
+
+### Added
+- `docs/database/sprint8.8.5f/` `00`-`08`: diagnostics, step 1 functions (`admin_read_profiles`, `search_users_for_group_invite`, hardened `get_author_profile`) + tests 24/24 + rollback, step 3 column allow-list (`06`) + tests (`07`) + rollback (`08`, restores the old wide grants).
+
+### Changed
+- `get_author_profile`: no email in the result; viewer taken from `auth.uid()` (the `p_viewer_id` argument is ignored); ACL explicit (signed-in only).
+- Frontend moved off direct email reads: `AdminDashboard.jsx`, `SuperAdminDashboard.jsx` (via `admin_read_profiles`), `GroupDetail.jsx` (invite search by name or exact full email, masked results), `ProfileSettings.jsx` (own email from the login), `NotificationCenter.jsx` (sender shows course level, not email), `Signup.jsx` (dead logged-out profiles read removed).
+
+### Not yet done
+- Step 3 (`06`): revoke wide grants, column allow-list excluding `email` and `access_request_ref`; run only after the frontend is live and a few hours have passed (old open tabs read email).
+
+### Files Changed
+- `src/pages/admin/AdminDashboard.jsx`, `src/pages/admin/SuperAdminDashboard.jsx`, `src/pages/dashboard/Groups/GroupDetail.jsx`, `src/pages/dashboard/Profile/ProfileSettings.jsx`, `src/components/layout/NotificationCenter.jsx`, `src/pages/auth/Signup.jsx`
+
+---
 ## [01/10/2026] fix(sprint-8.8.5b6): email-change error — log real error + support hint (follow-up to D-50)
 
 ### Why

@@ -62,7 +62,7 @@ export default function NotificationCenter({
         const userIds = requests.map((r) => r.user_id);
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, full_name, email')
+          .select('id, full_name, course_level')
           .in('id', userIds);
 
         setPendingRequests(
@@ -337,7 +337,7 @@ export default function NotificationCenter({
                         <p className="text-sm font-medium text-rv-ink-900 truncate">
                           {request.profile?.full_name || 'Unknown User'}
                         </p>
-                        <p className="text-xs text-rv-ink-400 truncate">{request.profile?.email}</p>
+                        <p className="text-xs text-rv-ink-400 truncate">{request.profile?.course_level}</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <Button

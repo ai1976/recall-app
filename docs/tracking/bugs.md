@@ -1,5 +1,12 @@
 # Bug Tracking
 
+## Sprint 8.8.5f - 01/10/2026 (profile privacy)
+
+### [01/10/2026] Every signed-in user could read every other user's email (and access_request_ref); get_author_profile trusted a caller-supplied viewer id - STEP 1 SQL DEPLOYED & VERIFIED (24/24), STEP 2 frontend built + checked locally, STEP 3 (lock-down) NOT yet run
+- **Cause (confirmed from the catalog, `sprint8.8.5f/00`-`02`):** policy `users_read_all_profiles` (USING true) plus a table-wide SELECT grant on `profiles`; `get_author_profile(p_author_id, p_viewer_id)` returned the raw `email` and used the caller-supplied `p_viewer_id` (anyone could pass viewer = author and read that user's private badges and friendship). Also `anon`/`authenticated` held TRUNCATE/TRIGGER/REFERENCES (anon also INSERT/UPDATE/DELETE) on `profiles`; RLS stopped row access but not TRUNCATE.
+- **Fix:** D-52 (three steps): replacement server functions, frontend migration, then an explicit column allow-list.
+- **Process lesson:** diagnostic `00` block F used `\b` in a PostgreSQL regex ("backspace", not word boundary - use `\y`) and silently missed `get_author_profile`; corrected in `02`. Operator precedence in a test (`'text' || NOT cond`) also cost one run.
+
 ## Sprint 8.8.5b6 - 01/10/2026 (email change, deferred bug #6)
 
 ### [01/10/2026] Users could not change their login email; a changed Auth email would also never have reached profiles.email - SQL DEPLOYED & VERIFIED (10/10), frontend built, not yet pushed, real round trip pending

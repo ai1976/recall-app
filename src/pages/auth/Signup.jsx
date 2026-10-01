@@ -38,14 +38,10 @@ export default function Signup() {
         .select('target_course')
         .not('target_course', 'is', null);
 
-      const { data: profileCourses, error: profileError } = await supabase
-        .from('profiles')
-        .select('course_level')
-        .not('course_level', 'is', null);
-
+      // Sprint 8.8.5f: the old read of profiles.course_level was removed - a visitor who is not logged in is never allowed to read
+      // profiles (it always returned nothing), and the profiles table is no longer open to the logged-out role at all.
       if (noteError) throw noteError;
       if (flashError) throw flashError;
-      if (profileError) throw profileError;
 
       const predefinedCourses = [
         'CA Foundation',
@@ -61,12 +57,9 @@ export default function Signup() {
 
       const customFromNotes = noteCourses?.map(n => n.target_course) || [];
       const customFromFlashcards = flashcardCourses?.map(f => f.target_course) || [];
-      const customFromProfiles = profileCourses?.map(p => p.course_level) || [];
-      
       const allCustomCourses = [...new Set([
-        ...customFromNotes, 
-        ...customFromFlashcards,
-        ...customFromProfiles
+        ...customFromNotes,
+        ...customFromFlashcards
       ])];
 
       const uniqueCustomCourses = allCustomCourses.filter(

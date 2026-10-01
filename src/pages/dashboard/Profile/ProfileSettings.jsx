@@ -164,14 +164,15 @@ export default function ProfileSettings() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, email, course_level, institution, daily_review_goal, daily_study_goal_minutes')
+        .select('full_name, course_level, institution, daily_review_goal, daily_study_goal_minutes')
         .eq('id', user.id)
         .single();
 
       if (error) throw error;
 
       setFullName(data.full_name || '');
-      setEmail(data.email || '');
+      // Sprint 8.8.5f: the profiles table no longer exposes email to the browser; your own address comes from your login session.
+      setEmail(user.email || '');
       setCourseLevel(data.course_level || '');
       setOriginalCourse(data.course_level || '');
 

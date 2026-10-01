@@ -253,11 +253,9 @@ export default function AdminDashboard() {
 
   async function fetchUsers() {
     try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role, status, account_type, created_at')
-        .order('created_at', { ascending: false })
-        .limit(usersLimit);
+      // Sprint 8.8.5f: email is no longer readable straight from the profiles table - admins read it through a server function.
+      const { data, error } = await supabase.rpc('admin_read_profiles', { p_limit: usersLimit });
+      if (error) throw error;
       setRecentUsers(data ?? []);
     } catch (err) {
       console.error('AdminDashboard fetchUsers:', err);
@@ -280,17 +278,15 @@ export default function AdminDashboard() {
       const merged = new Map();
 
       if (emails.length > 0) {
-        const { data: byEmail } = await supabase
-          .from('profiles')
-          .select('id, full_name, email, account_type, access_request_ref')
-          .in('email', emails);
+        const { data: byEmail, error: byEmailError } = await supabase
+          .rpc('admin_read_profiles', { p_emails: emails, p_limit: 5000 });
+        if (byEmailError) throw byEmailError;
         (byEmail ?? []).forEach(p => merged.set(p.id, p));
       }
       if (refTokens.length > 0) {
-        const { data: byRef } = await supabase
-          .from('profiles')
-          .select('id, full_name, email, account_type, access_request_ref')
-          .in('access_request_ref', refTokens);
+        const { data: byRef, error: byRefError } = await supabase
+          .rpc('admin_read_profiles', { p_refs: refTokens, p_limit: 5000 });
+        if (byRefError) throw byRefError;
         (byRef ?? []).forEach(p => merged.set(p.id, p));
       }
       setMatchedProfiles([...merged.values()]);

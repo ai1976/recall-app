@@ -2,6 +2,10 @@
 
 **Last Updated:** 01/10/2026
 
+## Sprint 8.8.5f: profile privacy (D-52) - STEP 1 SQL DEPLOYED (24/24); STEP 2 frontend built + checked locally as super admin; NOT yet committed/pushed; STEP 3 not run (01/10/2026)
+
+Emails and `access_request_ref` are still readable by every signed-in user until Step 3. Done: `admin_read_profiles`, `search_users_for_group_invite`, hardened `get_author_profile` (live); frontend moved to them (checked: Admin + Super Admin dashboards, access-request matching, audit log names, Profile Settings, bell, group invite by name / exact email / partial email, non-member refusal). **Next:** commit + push the frontend; smoke-test live (incl. logged-out Signup in a private window); wait several hours (overnight); run `06` then `07` (rollback `08`); final live check incl. a STUDENT group-invite test (founder types the login, use a test student). **Follow-up recorded:** a dedicated visibility/privacy classification of the remaining profile fields (goals, timezone, exam date, onboarding flags, account type, status, institution, created_at) - their omission here does not mean they are public. Broader grants audit still open (INSERT/UPDATE/DELETE on `profiles` left as-is for authenticated; `study_groups` UPDATE incl. `group_type`; `profile_courses`, `notes`, `flashcard_decks`, `access_requests`). Then 8.8.5d, 8.8.6.
+
 ## Sprint 8.8.5e: batch group rename (deferred #7, D-51) - SQL DEPLOYED & VERIFIED (12/12); frontend BUILT + live-tested; NOT yet committed/pushed (01/10/2026)
 
 Admin/super_admin can rename an active batch group via `rename_batch_group` (Rename button in Admin Dashboard batch list). Founder renamed "CA Intermediate May & Sept 27" to "CA Inter May & Sept 27" live. Old notifications/archive snapshots keep the old name. **Next:** commit + push (SQL already deployed); glance at the `rename_batch_group` audit entry; then profile privacy sprint, 8.8.5d, 8.8.6. Decisions answered 01/10/2026: rejecting a batch request notifies nobody (yes); a student added directly is notified (yes).
