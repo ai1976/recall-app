@@ -1,5 +1,12 @@
 # Bug Tracking
 
+## Sprint 8.8.5b6 - 01/10/2026 (email change, deferred bug #6)
+
+### [01/10/2026] Users could not change their login email; a changed Auth email would also never have reached profiles.email - SQL DEPLOYED & VERIFIED (10/10), frontend built, not yet pushed, real round trip pending
+- **Cause (confirmed from the catalog):** no change flow existed; the only trigger on `auth.users` fired on INSERT, and D-45 blocks the browser from writing `profiles.email`.
+- **Fix:** Auth->profiles sync trigger + audit, lowercase invariant, self-service secure email change screen (D-50); super-admin recovery via the Supabase dashboard (runbook).
+- **Open:** enable the "Email address changed" notification; founder round trip; PRIVACY: `get_author_profile` returns any author's full email to any signed-in caller, and every signed-in user can read all `profiles` columns (separate sprint after #7).
+
 ## Sprint 8.8.5b5 - 30/09/2026 (batch bulk membership, deferred bug #5)
 
 ### [30/09/2026] No bulk way to add students to a batch or approve/reject join requests; approvals left no audit entry and told the student nothing - SQL DEPLOYED & VERIFIED (17/17), frontend built + live-checked, not yet pushed

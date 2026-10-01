@@ -22,6 +22,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useExamDateContext } from '@/contexts/ExamDateContext';
 import { MONTH_NAMES, buildExamMonthValue, daysUntilExamDate } from '@/lib/examDate';
+import ChangeEmail from '@/components/profile/ChangeEmail';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const EXAM_YEAR_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2];
@@ -473,19 +474,8 @@ export default function ProfileSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Email (read-only) */}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              value={email}
-              disabled
-              className="bg-gray-50"
-            />
-            <p className="text-xs text-gray-500">
-              Email is managed by your login account and cannot be changed here.
-            </p>
-          </div>
+          {/* Email — shown read-only; changed through Supabase's secure email-change flow (Sprint 8.8.5b6, D-50) */}
+          <ChangeEmail currentEmail={email} />
 
           {/* Full Name */}
           <div className="space-y-2">

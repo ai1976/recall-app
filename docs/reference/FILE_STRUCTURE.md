@@ -301,6 +301,7 @@ recall-app
 - `src/lib/supabase.js` — Supabase client
 - `src/lib/studyTracker.js` — shared Study/Practice time tracker (Sprint 8.8.5b2, D-46): versioned persisted session, heartbeat active-time counting, hidden/idle pause, 4-hour stop, idempotent save by `session_id`, 7-day recovery, one-timed-session-per-browser lock. Plain JS, tested by `studyTracker.test.js`
 - `src/hooks/useStudyTracker.js` — React binding for the tracker (used by StudyMode + PracticeMode); registers `beforeunload` only while a session is live
+- `src/components/profile/ChangeEmail.jsx` — self-service secure email change inside Profile Settings (Sprint 8.8.5b6, D-50): Supabase `updateUser({ email })`, pending-confirmation note, neutral errors; profile copy + audit are written by the DB trigger
 - `src/components/admin/BatchBulkActions.jsx` — Admin Dashboard bulk bars (Sprint 8.8.5b5, D-49): `BulkAddToBatchBar` (Users tab) + `BulkResolveRequestsBar` (Batch Groups tab), in-app confirmation + result dialogs
 - `src/components/study/StudyLeaveGuard.jsx` — in-app leave modal (End session & log time / Continue studying / Leave without logging) by wrapping the router navigator; `StudyRecovery.jsx` — recovery pass + toasts; `StudyTrackerNotices.jsx` — idle, 4-hour and other-tab notices
 - `src/lib/navActive.js` — pure `(pathname) => boolean` active-route predicates shared by NavDesktop + NavBottomTabs (Sprint 7.1); no Supabase, no React

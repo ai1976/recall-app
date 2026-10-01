@@ -1,6 +1,20 @@
 # Changelog
 
 ---
+## [01/10/2026] feat(sprint-8.8.5b6): self-service email change + Auth->profile email sync + lowercase invariant (D-50, deferred bug #6)
+
+### Added
+- `docs/database/sprint8.8.5b6/` `00`-`04`: trigger `trg_sync_profile_email_from_auth` (Auth email change -> `profiles.email` + `email_changed` audit entry), CHECK `profiles_email_normalized` + unique `lower(email)`, signup function stores lowercase, tests 10/10, diagnostics, rollback.
+- `src/components/profile/ChangeEmail.jsx`; `docs/reference/RUNBOOK_change_user_email.md` (super-admin recovery).
+
+### Changed
+- `ProfileSettings.jsx`: the read-only email block is replaced by `<ChangeEmail>` (still shows the current email read-only).
+- Two mixed-case `profiles.email` values lowercased (they already matched Auth).
+
+### Files Changed
+- `src/pages/dashboard/Profile/ProfileSettings.jsx`, `src/components/profile/ChangeEmail.jsx` (new)
+
+---
 ## [30/09/2026] feat(sprint-8.8.5b5): batch bulk add / approve / reject with audit + notifications (D-49, deferred bug #5)
 
 ### Added

@@ -1,6 +1,10 @@
 # NOW - Current Development Status
 
-**Last Updated:** 30/09/2026
+**Last Updated:** 01/10/2026
+
+## Sprint 8.8.5b6: email change (deferred bug #6, D-50) - SQL DEPLOYED & VERIFIED (10/10); frontend BUILT + checked on localhost; NOT yet committed/pushed; real round trip pending (01/10/2026)
+
+Auth email is authoritative; a trigger copies a changed email into `profiles.email` (lowercase) and writes an `email_changed` audit entry. Profile Settings has a "Change email" form (Supabase secure change: both addresses confirm). Lost-mailbox recovery = super admin edits the email in the Supabase dashboard (runbook `docs/reference/RUNBOOK_change_user_email.md`); the plain Admin role has no email-change power. **Next:** commit + push; turn ON the "Email address changed" security notification in Supabase; founder round trip on TestOutlook (plus-alias address, open both links, check the audit entry, change back); then #7 group rename; then a PROFILE PRIVACY sprint (email readable by every signed-in user; `get_author_profile` returns full email); then 8.8.5d, 8.8.6.
 
 ## Sprint 8.8.5b5: batch bulk membership (deferred bug #5, D-49) - SQL DEPLOYED & VERIFIED (17/17); frontend BUILT + live-checked on localhost; NOT yet committed/pushed (30/09/2026)
 
