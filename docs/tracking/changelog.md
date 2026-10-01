@@ -14,7 +14,10 @@
 
 ### Known / not changed
 - Membership-based shared-content visibility and sharing (legacy path) and existing professor membership rows (Kaustubh, CAFC May 27; three professors in the archived batch) are untouched; follow-ups recorded in D-53.
-- SQL was deployed before independent audit approval; review pending.
+- SQL was deployed before independent audit approval; the independent audit later PASSED (01/10/2026).
+
+### Verification (01/10/2026)
+- Live as super admin and as a real professor (CA Anand More): assigned batches open with students-only reports; an archived batch where the professor is only a member (not assigned) is refused; admin pages not shown. Not live-tested: professor invite-link refusal (DB tests J1/J5/J6) and a plain admin.
 
 ### Files Changed
 - `src/pages/admin/AdminDashboard.jsx`, `src/pages/admin/SuperAdminDashboard.jsx`, `src/pages/dashboard/Groups/GroupDetail.jsx`, `src/pages/dashboard/Groups/MyGroups.jsx`
