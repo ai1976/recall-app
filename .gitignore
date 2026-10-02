@@ -34,3 +34,6 @@ repomix-output.xml
 
 # Playwright session cookies (design review screenshot capture)
 docs/active/design-review/_storage-state*.json
+
+# Raw QA discussion evidence may contain sensitive live output
+docs/discussions/**/evidence/raw/

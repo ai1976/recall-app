@@ -1,0 +1,26 @@
+# Copy this file to C:\Users\Anand\Desktop\recall-app\.codex\config.toml
+# only after removing legacy `sandbox_mode` / `[sandbox_workspace_write]`
+# settings from every loaded Codex configuration.
+
+project_doc_fallback_filenames = ["CHATGPT_QA.md"]
+default_permissions = "revisop-qa"
+approval_policy = "never"
+
+[permissions.revisop-qa]
+description = "RevisOp QA: repository read-only, discussion records writable."
+
+[permissions.revisop-qa.filesystem]
+":minimal" = "read"
+glob_scan_max_depth = 5
+
+[permissions.revisop-qa.filesystem.":workspace_roots"]
+"." = "read"
+"docs/discussions" = "write"
+"docs/active/design-review/_storage-state*.json" = "deny"
+".env" = "deny"
+".env.*" = "deny"
+"**/.env" = "deny"
+"**/.env.*" = "deny"
+
+[permissions.revisop-qa.network]
+enabled = false
