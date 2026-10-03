@@ -103,7 +103,9 @@ SELECT jsonb_build_object(
   'source_category_mix', (SELECT jsonb_agg(jsonb_build_object(
                 'source', source, 'has_category', has_cat, 'rows', n, 'hours', hrs
               ) ORDER BY source, has_cat)
-              FROM (SELECT source, (category IS NOT NULL) AS has_cat, count(*) AS n,
+              FROM (SELECT CASE WHEN source IN ('manual', 'study_mode', 'practice_mode')
+                                THEN source ELSE 'unexpected_other' END AS source,
+                           (category IS NOT NULL) AS has_cat, count(*) AS n,
                            round(sum(duration_seconds) / 3600.0, 1) AS hrs
                     FROM public.study_sessions GROUP BY 1, 2) s)
 ) AS result;
@@ -174,9 +176,11 @@ SELECT jsonb_build_object(
                     ORDER BY ordinal_position)
                   FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profile_courses'),
       'users_and_rows_by_role', (SELECT jsonb_agg(jsonb_build_object('role', role, 'users', users, 'rows', n))
-                  FROM (SELECT p.role, count(DISTINCT pc.user_id) AS users, count(*) AS n
+                  FROM (SELECT CASE WHEN p.role IN ('student', 'professor', 'admin', 'super_admin')
+                                THEN p.role ELSE 'unexpected_other' END AS role,
+                           count(DISTINCT pc.user_id) AS users, count(*) AS n
                         FROM public.profile_courses pc JOIN public.profiles p ON p.id = pc.user_id
-                        GROUP BY p.role) s)
+                        GROUP BY 1) s)
   )
 ) AS result;
 
@@ -205,7 +209,41 @@ SELECT jsonb_build_object(
               FROM pg_constraint c
               JOIN pg_namespace n ON n.oid = c.connamespace
               WHERE n.nspname = 'public' AND c.contype = 'c'
-                AND pg_get_constraintdef(c.oid) ~* '(course|subject|discipline)')
+                AND pg_get_constraintdef(c.oid) ~* '(course|subject|discipline)'),
+  -- Full structure of every table whose NAME looks course-related (so a registry table with generic
+  -- columns such as id / name / user_id is still found), including PK, UNIQUE, FK and CHECK constraints.
+  'course_named_tables', (SELECT jsonb_agg(jsonb_build_object(
+                'table', t.relname,
+                'columns', (SELECT jsonb_agg(jsonb_build_object(
+                              'column', a.attname, 'type', format_type(a.atttypid, a.atttypmod),
+                              'not_null', a.attnotnull) ORDER BY a.attnum)
+                            FROM pg_attribute a
+                            WHERE a.attrelid = t.oid AND a.attnum > 0 AND NOT a.attisdropped),
+                'constraints', (SELECT jsonb_agg(jsonb_build_object(
+                              'name', k.conname, 'type', k.contype::text,
+                              'definition', pg_get_constraintdef(k.oid)) ORDER BY k.conname)
+                            FROM pg_constraint k WHERE k.conrelid = t.oid),
+                'indexes', (SELECT jsonb_agg(jsonb_build_object(
+                              'name', i.indexname, 'definition', i.indexdef) ORDER BY i.indexname)
+                            FROM pg_indexes i
+                            WHERE i.schemaname = 'public' AND i.tablename = t.relname)
+              ) ORDER BY t.relname)
+              FROM pg_class t
+              JOIN pg_namespace tn ON tn.oid = t.relnamespace
+              WHERE tn.nspname = 'public' AND t.relkind = 'r'
+                AND (t.relname ~* '(course|discipline|subject|curriculum|exam|level|program|qualification)'
+                     OR t.relname IN ('profile_courses', 'disciplines', 'subjects'))),
+  'foreign_keys_referencing_course_named_tables', (SELECT jsonb_agg(jsonb_build_object(
+                'table', k.conrelid::regclass::text, 'name', k.conname,
+                'definition', pg_get_constraintdef(k.oid)
+              ) ORDER BY k.conrelid::regclass::text, k.conname)
+              FROM pg_constraint k
+              WHERE k.contype = 'f'
+                AND k.confrelid IN (
+                  SELECT t.oid FROM pg_class t JOIN pg_namespace tn ON tn.oid = t.relnamespace
+                  WHERE tn.nspname = 'public' AND t.relkind = 'r'
+                    AND (t.relname ~* '(course|discipline|subject|curriculum|exam|level|program|qualification)'
+                         OR t.relname IN ('profile_courses', 'disciplines', 'subjects'))))
 ) AS result;
 
 -- ============================================================================
@@ -236,23 +274,51 @@ SELECT jsonb_build_object(
   'status_role_counts_by_group_kind', (SELECT jsonb_agg(jsonb_build_object(
                 'is_batch_group', is_batch_group, 'status', status, 'role', role, 'rows', n
               ) ORDER BY is_batch_group, status, role)
-              FROM (SELECT sg.is_batch_group, sgm.status, sgm.role, count(*) AS n
+              FROM (SELECT sg.is_batch_group,
+                           CASE WHEN sgm.status IN ('invited', 'active', 'requested', 'closed')
+                                THEN sgm.status ELSE 'unexpected_other' END AS status,
+                           CASE WHEN sgm.role IN ('admin', 'member')
+                                THEN sgm.role ELSE 'unexpected_other' END AS role,
+                           count(*) AS n
                     FROM public.study_group_members sgm
                     JOIN public.study_groups sg ON sg.id = sgm.group_id
                     GROUP BY 1, 2, 3) s),
   'batch_group_admin_members_by_platform_role', (SELECT jsonb_agg(jsonb_build_object(
                 'platform_role', platform_role, 'status', status, 'rows', n
               ) ORDER BY platform_role, status)
-              FROM (SELECT p.role AS platform_role, sgm.status, count(*) AS n
+              FROM (SELECT CASE WHEN p.role IN ('student', 'professor', 'admin', 'super_admin')
+                                THEN p.role ELSE 'unexpected_other' END AS platform_role,
+                           CASE WHEN sgm.status IN ('invited', 'active', 'requested', 'closed')
+                                THEN sgm.status ELSE 'unexpected_other' END AS status,
+                           count(*) AS n
                     FROM public.study_group_members sgm
                     JOIN public.study_groups sg ON sg.id = sgm.group_id AND sg.is_batch_group
                     JOIN public.profiles p ON p.id = sgm.user_id
                     WHERE sgm.role = 'admin'
                     GROUP BY 1, 2) s),
-  'audit_actions_related_to_batches_or_members', (SELECT jsonb_agg(jsonb_build_object('action', action, 'rows', n)
-                ORDER BY n DESC)
-              FROM (SELECT action, count(*) AS n FROM public.admin_audit_log
-                    WHERE action ILIKE '%batch%' OR action ILIKE '%member%' GROUP BY action) s)
+  -- admin_audit_log.action is unbounded stored text: only the action names already known from the repo
+  -- are returned literally; anything else is reported as a COUNT, never as a value.
+  'audit_actions_related_to_batches_or_members', jsonb_build_object(
+      'known_actions', (SELECT jsonb_object_agg(a, n)
+                FROM (SELECT action AS a, count(*) AS n FROM public.admin_audit_log
+                      WHERE action IN ('add_to_batch', 'admin_bulk_add_to_batch', 'bulk_add_to_batch',
+                                       'approve_batch_join_request', 'reject_batch_join_request',
+                                       'bulk_approve_batch_requests', 'bulk_reject_batch_requests',
+                                       'create_batch_group', 'archive_batch_group', 'restore_batch_group',
+                                       'assign_professor_to_batch', 'unassign_professor_from_batch',
+                                       'remove_group_member')
+                      GROUP BY action) k),
+      'unexpected_other_batch_or_member_actions', (SELECT count(*) FROM public.admin_audit_log
+                WHERE (action ILIKE '%batch%' OR action ILIKE '%member%')
+                  AND action NOT IN ('add_to_batch', 'admin_bulk_add_to_batch', 'bulk_add_to_batch',
+                                     'approve_batch_join_request', 'reject_batch_join_request',
+                                     'bulk_approve_batch_requests', 'bulk_reject_batch_requests',
+                                     'create_batch_group', 'archive_batch_group', 'restore_batch_group',
+                                     'assign_professor_to_batch', 'unassign_professor_from_batch',
+                                     'remove_group_member')),
+      'unexpected_other_removal_like_actions', (SELECT count(*) FROM public.admin_audit_log
+                WHERE action ILIKE '%remov%' AND action <> 'remove_group_member')
+  )
 ) AS result;
 
 -- ============================================================================
@@ -268,13 +334,30 @@ SELECT jsonb_build_object(
   'access_requests_policies', (SELECT jsonb_agg(jsonb_build_object('name', policyname, 'cmd', cmd, 'roles', roles,
                 'using', qual, 'check', with_check) ORDER BY policyname)
               FROM pg_policies WHERE schemaname = 'public' AND tablename = 'access_requests'),
+  -- Stored text columns are bucketed to the values the repo says are allowed; anything else is
+  -- reported as 'unexpected_other' (a count), never as a literal. The CHECK definitions above show
+  -- the real allowed lists.
   'access_requests_by_status', (SELECT jsonb_agg(jsonb_build_object('status', st, 'rows', n) ORDER BY n DESC)
-              FROM (SELECT to_jsonb(a)->>'status' AS st, count(*) AS n
+              FROM (SELECT CASE WHEN to_jsonb(a)->>'status' IN ('pending', 'contacted', 'enrolled',
+                                                                'approved', 'rejected', 'dismissed')
+                                THEN to_jsonb(a)->>'status' ELSE 'unexpected_other' END AS st,
+                           count(*) AS n
+                    FROM public.access_requests a GROUP BY 1) s),
+  'access_requests_by_request_type', (SELECT jsonb_agg(jsonb_build_object('request_type', rt, 'rows', n) ORDER BY n DESC)
+              FROM (SELECT CASE WHEN to_jsonb(a)->>'request_type' IN ('student_access', 'institute_inquiry',
+                                                                      'educator_application')
+                                THEN to_jsonb(a)->>'request_type' ELSE 'unexpected_other' END AS rt,
+                           count(*) AS n
                     FROM public.access_requests a GROUP BY 1) s),
   'profiles_by_account_type_and_role', (SELECT jsonb_agg(jsonb_build_object(
                 'account_type', account_type, 'role', role, 'profiles', n
               ) ORDER BY n DESC)
-              FROM (SELECT account_type, role, count(*) AS n FROM public.profiles GROUP BY 1, 2) s)
+              FROM (SELECT CASE WHEN account_type IN ('self_registered', 'enrolled')
+                                THEN account_type ELSE 'unexpected_other' END AS account_type,
+                           CASE WHEN role IN ('student', 'professor', 'admin', 'super_admin')
+                                THEN role ELSE 'unexpected_other' END AS role,
+                           count(*) AS n
+                    FROM public.profiles GROUP BY 1, 2) s)
 ) AS result;
 
 -- ============================================================================
@@ -314,7 +397,9 @@ due AS (
 ),
 classified AS (
   SELECT d.user_id, d.flashcard_id, f.user_id = d.user_id AS is_own_card,
-         COALESCE(e.status, 'no_enrollment_row') AS enrollment_state
+         CASE WHEN e.status IS NULL THEN 'no_enrollment_row'
+              WHEN e.status IN ('active', 'removed', 'course_archived') THEN e.status
+              ELSE 'unexpected_other' END AS enrollment_state
   FROM due d
   JOIN public.flashcards f ON f.id = d.flashcard_id
   LEFT JOIN public.my_cards_enrollment e ON e.user_id = d.user_id AND e.flashcard_id = d.flashcard_id
