@@ -10,8 +10,19 @@ approval_policy = "never"
 description = "RevisOp QA: repository read-only, discussion records writable."
 
 [permissions.revisop-qa.filesystem]
-":minimal" = "read"
+":root" = "read"
 glob_scan_max_depth = 5
+
+# Sensitive locations outside the repo (":root" read is broad; these stay denied)
+"~/.codex/auth.json" = "deny"
+"~/.codex/.sandbox-secrets" = "deny"
+"~/.claude" = "deny"
+"~/.ssh" = "deny"
+"~/.aws" = "deny"
+"~/.config/gh" = "deny"
+"~/.git-credentials" = "deny"
+"~/AppData/Local/Google/Chrome/User Data" = "deny"
+"~/AppData/Local/Microsoft/Edge/User Data" = "deny"
 
 [permissions.revisop-qa.filesystem.":workspace_roots"]
 "." = "read"

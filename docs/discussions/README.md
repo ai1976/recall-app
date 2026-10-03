@@ -9,7 +9,7 @@ Working papers for planning and audit. **Not a source of truth** — agreed deci
 
 ## Files
 - One file per work item: `T-NNN_<sprint-or-topic>_<slug>.md` (flat folder, no open/closed subfolders — links stay stable).
-- ChatGPT/Codex QA follows the repository-specific instructions in `CHATGPT_QA.md`; Claude follows `CLAUDE.md`. This README is the shared protocol.
+- ChatGPT/Codex QA follows the repository-specific instructions in `CHATGPT_QA.md` (repository root, not this folder); Claude follows `CLAUDE.md`. This README is the shared protocol.
 - `INDEX.md` — navigation. Claude updates it at open / phase change / close only. Live handoff state lives in the thread file, not the index.
 - If a thread exceeds ~400 lines, split into a folder `T-NNN_<slug>/` with `status.md` (short, current), `discussion.md` (history), `evidence/` (raw query results, diffs).
 - SQL lives in `docs/database/sprintX.Y/` as usual (never inline in chat). The thread only indexes exact SQL files.
