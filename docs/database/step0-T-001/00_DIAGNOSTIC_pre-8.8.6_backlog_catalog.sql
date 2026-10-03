@@ -1,190 +1,333 @@
--- Name: [DIAGNOSTIC] T-001 Step 0 — live catalog + data facts for the pre-8.8.6 backlog
+-- Name: [DIAGNOSTIC] T-001 Step 0 (v2) - live catalog + data facts for the pre-8.8.6 backlog
 --
--- Description: READ-ONLY. Confirms against the LIVE database every database-side
--- claim in docs/discussions/T-001 Round 2 that could only be inferred from repo
--- files (CLAUDE.md rule: absence/behaviour of a DB object is never concluded from
--- code or docs alone; several committed migration files have drifted from live).
--- Covers: live function bodies (badge/Review/heatmap/removal/join/access request),
--- study_sessions constraints + triggers + columns, the course-identity landscape
--- (profiles.course_level, profile_courses, disciplines, subjects, target_course,
--- custom_course), batch-membership states, and RLS/grants for the touched tables.
--- No INSERT/UPDATE/DELETE/DDL. Safe to run in the Supabase SQL Editor.
+-- Description: READ-ONLY. Confirms against the LIVE database the database-side claims in
+-- docs/discussions/T-001 that could only be inferred from repo files (CLAUDE.md rule: the
+-- existence, absence or behaviour of a DB object is never concluded from code or docs alone).
+-- v2 (Round 4) answers QA's Round 3 blocking findings:
+--   * No free-text user values are ever selected: only counts, schema metadata and function
+--     source. (Finding 1)
+--   * RUN 8 is an exact row-level comparison of the forecast predicate against the Review page's
+--     enrollment boundary, using each student's own timezone date. (Finding 2)
+--   * RUN 1B includes get_due_forecast_buckets (the Dashboard Forward Load). (Finding 3)
+--   * RUN 5B is a bounded catalog inventory (all public table names, course-related columns,
+--     keys, constraints) so "no registry / no custom-course entity" can be tested, and RUN 6
+--     covers the live study_group_members model. (Finding 4)
 --
--- HOW TO RUN: run each numbered block separately (the editor shows only the last
--- result set). For blocks 1 and 3, results are long text — export or paste to a
--- file under docs/discussions/evidence/ (NOT raw/ unless it contains personal
--- data; counts only below, no emails or names are selected).
--- Record: environment = production, execution date, and which blocks were run.
+-- HOW TO RUN (10 runs). Each RUN is ONE statement that returns ONE row with ONE column named
+-- `result` (json). In the Supabase SQL Editor: select the text of a single RUN (from its SELECT/WITH
+-- to its closing semicolon), click Run, then copy the single result cell. Paste each result into the
+-- Claude chat, saying which RUN it is; Claude saves it under docs/discussions/evidence/.
+-- If a RUN returns an error, paste the error text instead; do not modify the query.
+-- Environment: production. Record the execution date.
+-- Nothing here writes data, changes schema, or calls an application function.
 
 -- ============================================================================
--- 1. Live function bodies (compare with repo copies named in T-001 Round 2)
+-- RUN 1A. Live function bodies: batch, join, removal, access-request functions
 -- ============================================================================
-SELECT p.proname,
-       pg_get_function_identity_arguments(p.oid) AS args,
-       p.prosecdef AS security_definer,
-       pg_get_functiondef(p.oid) AS definition
+SELECT jsonb_agg(jsonb_build_object(
+         'name', p.proname,
+         'args', pg_get_function_identity_arguments(p.oid),
+         'security_definer', p.prosecdef,
+         'definition', pg_get_functiondef(p.oid)
+       ) ORDER BY p.proname) AS result
 FROM pg_proc p
 JOIN pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname = 'public'
   AND p.proname IN (
-    'remove_group_member','leave_group','get_group_detail',
-    'join_group_by_token','get_group_preview',
-    'get_admin_pending_batch_requests','approve_batch_join_request','reject_batch_join_request',
-    'get_due_forecast','get_study_queue','get_my_cards','get_study_heatmap',
-    'submit_access_request','link_access_request'
-  )
-ORDER BY p.proname;
+    'remove_group_member', 'leave_group', 'get_group_detail',
+    'join_group_by_token', 'get_group_preview',
+    'get_admin_pending_batch_requests', 'approve_batch_join_request', 'reject_batch_join_request',
+    'enroll_user_in_batch_group', 'admin_bulk_resolve_batch_requests', 'get_admin_batch_groups',
+    'admin_grant_access', 'submit_access_request', 'link_access_request', 'admin_read_profiles'
+  );
 
 -- ============================================================================
--- 2. EXECUTE grants on the same functions (who can call remove_group_member?)
+-- RUN 1B. Live function bodies: due / queue / forecast / heatmap / My Cards
 -- ============================================================================
-SELECT routine_name, grantee, privilege_type
+SELECT jsonb_agg(jsonb_build_object(
+         'name', p.proname,
+         'args', pg_get_function_identity_arguments(p.oid),
+         'security_definer', p.prosecdef,
+         'definition', pg_get_functiondef(p.oid)
+       ) ORDER BY p.proname) AS result
+FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname IN (
+    'get_due_forecast', 'get_due_forecast_buckets', 'get_study_queue',
+    'get_my_cards', 'add_to_my_cards', 'remove_from_my_cards',
+    'get_study_heatmap'
+  );
+
+-- ============================================================================
+-- RUN 2. EXECUTE grants on every function inspected in RUN 1A and 1B
+-- ============================================================================
+SELECT jsonb_agg(jsonb_build_object(
+         'function', routine_name, 'grantee', grantee, 'privilege', privilege_type
+       ) ORDER BY routine_name, grantee) AS result
 FROM information_schema.routine_privileges
 WHERE routine_schema = 'public'
-  AND routine_name IN ('remove_group_member','leave_group','get_due_forecast','get_study_heatmap',
-                       'submit_access_request','get_admin_pending_batch_requests')
-ORDER BY routine_name, grantee;
+  AND routine_name IN (
+    'remove_group_member', 'leave_group', 'get_group_detail',
+    'join_group_by_token', 'get_group_preview',
+    'get_admin_pending_batch_requests', 'approve_batch_join_request', 'reject_batch_join_request',
+    'enroll_user_in_batch_group', 'admin_bulk_resolve_batch_requests', 'get_admin_batch_groups',
+    'admin_grant_access', 'submit_access_request', 'link_access_request', 'admin_read_profiles',
+    'get_due_forecast', 'get_due_forecast_buckets', 'get_study_queue',
+    'get_my_cards', 'add_to_my_cards', 'remove_from_my_cards', 'get_study_heatmap'
+  );
 
 -- ============================================================================
--- 3. study_sessions: columns, ALL constraints, indexes, triggers (broad scan)
+-- RUN 3. study_sessions: columns, ALL constraints, indexes, RLS, grants, source mix
 -- ============================================================================
-SELECT column_name, data_type, is_nullable, column_default
-FROM information_schema.columns
-WHERE table_schema = 'public' AND table_name = 'study_sessions'
-ORDER BY ordinal_position;
-
-SELECT conname, contype, pg_get_constraintdef(oid) AS definition, convalidated
-FROM pg_constraint
-WHERE conrelid = 'public.study_sessions'::regclass
-ORDER BY conname;
-
-SELECT indexname, indexdef FROM pg_indexes
-WHERE schemaname = 'public' AND tablename = 'study_sessions' ORDER BY indexname;
-
--- Broad trigger scan (trigger_schema = 'public', NOT filtered by table), per standing rule.
-SELECT trigger_name, event_object_table, event_manipulation, action_timing
-FROM information_schema.triggers
-WHERE trigger_schema = 'public'
-ORDER BY event_object_table, trigger_name;
-
--- RLS policies + table grants on study_sessions
-SELECT policyname, cmd, roles, qual, with_check
-FROM pg_policies WHERE schemaname = 'public' AND tablename = 'study_sessions';
-
-SELECT grantee, privilege_type
-FROM information_schema.role_table_grants
-WHERE table_schema = 'public' AND table_name = 'study_sessions'
-ORDER BY grantee, privilege_type;
-
--- Source / category distribution (no personal data)
-SELECT source, (category IS NOT NULL) AS has_category, count(*) AS rows,
-       round(sum(duration_seconds) / 3600.0, 1) AS hours
-FROM study_sessions GROUP BY 1, 2 ORDER BY 1, 2;
+SELECT jsonb_build_object(
+  'columns', (SELECT jsonb_agg(jsonb_build_object(
+                'column', column_name, 'type', data_type, 'nullable', is_nullable, 'default', column_default
+              ) ORDER BY ordinal_position)
+              FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name = 'study_sessions'),
+  'constraints', (SELECT jsonb_agg(jsonb_build_object(
+                'name', conname, 'type', contype::text,
+                'definition', pg_get_constraintdef(oid), 'validated', convalidated
+              ) ORDER BY conname)
+              FROM pg_constraint WHERE conrelid = 'public.study_sessions'::regclass),
+  'indexes', (SELECT jsonb_agg(jsonb_build_object('name', indexname, 'definition', indexdef) ORDER BY indexname)
+              FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'study_sessions'),
+  'policies', (SELECT jsonb_agg(jsonb_build_object(
+                'name', policyname, 'cmd', cmd, 'roles', roles, 'using', qual, 'check', with_check))
+              FROM pg_policies WHERE schemaname = 'public' AND tablename = 'study_sessions'),
+  'grants', (SELECT jsonb_agg(jsonb_build_object('grantee', grantee, 'privilege', privilege_type)
+                ORDER BY grantee, privilege_type)
+              FROM information_schema.role_table_grants
+              WHERE table_schema = 'public' AND table_name = 'study_sessions'),
+  'source_category_mix', (SELECT jsonb_agg(jsonb_build_object(
+                'source', source, 'has_category', has_cat, 'rows', n, 'hours', hrs
+              ) ORDER BY source, has_cat)
+              FROM (SELECT source, (category IS NOT NULL) AS has_cat, count(*) AS n,
+                           round(sum(duration_seconds) / 3600.0, 1) AS hrs
+                    FROM public.study_sessions GROUP BY 1, 2) s)
+) AS result;
 
 -- ============================================================================
--- 4. Course identity landscape
+-- RUN 4. Triggers in the public schema: broad scan, two independent methods
 -- ============================================================================
--- 4a. Platform courses and subject counts
-SELECT d.id, d.name, d.code, d.level, d.is_active,
-       (SELECT count(*) FROM subjects s WHERE s.discipline_id = d.id) AS subjects
-FROM disciplines d ORDER BY d.order_num, d.name;
-
--- 4b. profiles.course_level: distinct values (is it only the 3 platform labels, or free text?)
-SELECT course_level, role, count(*) AS profiles
-FROM profiles GROUP BY 1, 2 ORDER BY 3 DESC;
-
--- 4c. Constraints on profiles.course_level and on flashcards/notes course columns
-SELECT conrelid::regclass AS tbl, conname, pg_get_constraintdef(oid) AS definition
-FROM pg_constraint
-WHERE conrelid IN ('public.profiles'::regclass, 'public.flashcards'::regclass,
-                   'public.notes'::regclass, 'public.profile_courses'::regclass)
-  AND contype = 'c'
-  AND (pg_get_constraintdef(oid) ILIKE '%course%')
-ORDER BY 1, 2;
-
--- 4d. profile_courses: columns, and who has rows (role split only)
-SELECT column_name, data_type, is_nullable FROM information_schema.columns
-WHERE table_schema = 'public' AND table_name = 'profile_courses' ORDER BY ordinal_position;
-
-SELECT p.role, count(DISTINCT pc.user_id) AS users_with_rows, count(*) AS rows
-FROM profile_courses pc JOIN profiles p ON p.id = pc.user_id GROUP BY 1;
-
--- 4e. flashcards/notes: how course is actually stored. DATABASE_SCHEMA.md says flashcards has
---     target_course + custom_subject/custom_topic but NO custom_course column, while notes has
---     custom_course. Run the column listing FIRST so a wrong doc cannot break the queries after it.
-SELECT table_name, column_name FROM information_schema.columns
-WHERE table_schema = 'public' AND table_name IN ('flashcards','notes')
-  AND (column_name LIKE '%course%' OR column_name LIKE 'custom_%' OR column_name IN ('discipline_id','subject_id'))
-ORDER BY table_name, column_name;
-
-SELECT 'flashcards' AS tbl, target_course, (subject_id IS NOT NULL) AS has_subject_id,
-       (custom_subject IS NOT NULL) AS has_custom_subject, count(*) AS rows
-FROM flashcards GROUP BY 2, 3, 4 ORDER BY 5 DESC;
-
-SELECT 'notes' AS tbl, target_course, (custom_course IS NOT NULL) AS has_custom_course,
-       (subject_id IS NOT NULL) AS has_subject_id, (custom_subject IS NOT NULL) AS has_custom_subject,
-       count(*) AS rows
-FROM notes GROUP BY 2, 3, 4, 5 ORDER BY 6 DESC;
-
--- 4f. Distinct custom strings in use (spelling variants?). Counts only, no personal data.
-SELECT 'notes.custom_course' AS kind, custom_course AS value, count(*) AS rows
-FROM notes WHERE custom_course IS NOT NULL GROUP BY 2
-UNION ALL
-SELECT 'flashcards.custom_subject', custom_subject, count(*)
-FROM flashcards WHERE custom_subject IS NOT NULL GROUP BY 2
-ORDER BY 1, 3 DESC LIMIT 100;
-
--- 4g. Do disciplines.name values equal profiles.course_level / flashcards.target_course labels?
-SELECT d.name AS discipline_name,
-       (SELECT count(*) FROM profiles p WHERE p.course_level = d.name) AS profiles_matching,
-       (SELECT count(*) FROM flashcards f WHERE f.target_course = d.name) AS cards_matching
-FROM disciplines d ORDER BY d.order_num;
+SELECT jsonb_build_object(
+  'information_schema_triggers',
+    (SELECT jsonb_agg(jsonb_build_object(
+        'trigger', trigger_name, 'table', event_object_table,
+        'event', event_manipulation, 'timing', action_timing
+      ) ORDER BY event_object_table, trigger_name)
+     FROM information_schema.triggers WHERE trigger_schema = 'public'),
+  'pg_trigger_non_internal',
+    (SELECT jsonb_agg(jsonb_build_object(
+        'table', c.relname, 'trigger', t.tgname, 'enabled', t.tgenabled::text, 'function', p.proname
+      ) ORDER BY c.relname, t.tgname)
+     FROM pg_trigger t
+     JOIN pg_class c ON c.oid = t.tgrelid
+     JOIN pg_namespace n ON n.oid = c.relnamespace
+     JOIN pg_proc p ON p.oid = t.tgfoid
+     WHERE n.nspname = 'public' AND NOT t.tgisinternal)
+) AS result;
 
 -- ============================================================================
--- 5. Batch membership: states, admin roles, and the removal gap
+-- RUN 5A. Course identity: privacy-safe aggregates ONLY (no free-text value is selected)
 -- ============================================================================
-SELECT sg.is_batch_group, sgm.status, sgm.role, count(*) AS rows
-FROM study_group_members sgm JOIN study_groups sg ON sg.id = sgm.group_id
-GROUP BY 1, 2, 3 ORDER BY 1, 2, 3;
-
--- Are any platform admins/super_admins also group-admin MEMBERS of batch groups?
--- (The GroupDetail Remove control shows only when the viewer's own membership role = 'admin'.)
-SELECT p.role AS platform_role, sgm.role AS group_role, sgm.status, count(*) AS rows
-FROM study_group_members sgm
-JOIN study_groups sg ON sg.id = sgm.group_id AND sg.is_batch_group
-JOIN profiles p ON p.id = sgm.user_id
-WHERE sgm.role = 'admin' GROUP BY 1, 2, 3;
-
--- RLS policies on membership + audit log (does removal write an audit entry? see block 1 body)
-SELECT tablename, policyname, cmd, roles, qual
-FROM pg_policies
-WHERE schemaname = 'public'
-  AND tablename IN ('study_group_members','study_groups','access_requests','admin_audit_log')
-ORDER BY tablename, policyname;
-
--- Distinct audit actions currently recorded for batches (is there a remove action?)
-SELECT action, count(*) AS rows FROM admin_audit_log
-WHERE action ILIKE '%batch%' OR action ILIKE '%member%' GROUP BY 1 ORDER BY 2 DESC;
+WITH d AS (SELECT array_agg(name) AS names FROM public.disciplines)
+SELECT jsonb_build_object(
+  'platform_courses', (SELECT jsonb_agg(jsonb_build_object(
+                'name', x.name, 'code', x.code, 'is_active', x.is_active,
+                'subjects', (SELECT count(*) FROM public.subjects s WHERE s.discipline_id = x.id)
+              ) ORDER BY x.order_num, x.name) FROM public.disciplines x),
+  'profiles_course_level', (SELECT jsonb_build_object(
+                'total_profiles', count(*),
+                'null_or_blank', count(*) FILTER (WHERE p.course_level IS NULL OR btrim(p.course_level) = ''),
+                'equals_a_platform_course_name', count(*) FILTER (WHERE p.course_level = ANY (d.names)),
+                'other_nonblank', count(*) FILTER (WHERE btrim(coalesce(p.course_level, '')) <> ''
+                                                   AND NOT (p.course_level = ANY (d.names))),
+                'distinct_other_values', count(DISTINCT p.course_level) FILTER (WHERE btrim(coalesce(p.course_level, '')) <> ''
+                                                   AND NOT (p.course_level = ANY (d.names)))
+              ) FROM public.profiles p CROSS JOIN d),
+  'flashcards_course_columns', (SELECT jsonb_build_object(
+                'total_cards', count(*),
+                'target_course_null', count(*) FILTER (WHERE f.target_course IS NULL),
+                'target_course_equals_platform_name', count(*) FILTER (WHERE f.target_course = ANY (d.names)),
+                'target_course_other', count(*) FILTER (WHERE f.target_course IS NOT NULL AND NOT (f.target_course = ANY (d.names))),
+                'with_subject_id', count(*) FILTER (WHERE f.subject_id IS NOT NULL),
+                'with_custom_subject_text', count(*) FILTER (WHERE btrim(coalesce(to_jsonb(f)->>'custom_subject', '')) <> ''),
+                'with_custom_course_text', count(*) FILTER (WHERE btrim(coalesce(to_jsonb(f)->>'custom_course', '')) <> ''),
+                'distinct_custom_subject_normalised', count(DISTINCT lower(btrim(to_jsonb(f)->>'custom_subject')))
+                                                      FILTER (WHERE btrim(coalesce(to_jsonb(f)->>'custom_subject', '')) <> '')
+              ) FROM public.flashcards f CROSS JOIN d),
+  'notes_course_columns', (SELECT jsonb_build_object(
+                'total_notes', count(*),
+                'target_course_null', count(*) FILTER (WHERE n.target_course IS NULL),
+                'target_course_equals_platform_name', count(*) FILTER (WHERE n.target_course = ANY (d.names)),
+                'target_course_other', count(*) FILTER (WHERE n.target_course IS NOT NULL AND NOT (n.target_course = ANY (d.names))),
+                'with_subject_id', count(*) FILTER (WHERE n.subject_id IS NOT NULL),
+                'with_custom_subject_text', count(*) FILTER (WHERE btrim(coalesce(to_jsonb(n)->>'custom_subject', '')) <> ''),
+                'with_custom_course_text', count(*) FILTER (WHERE btrim(coalesce(to_jsonb(n)->>'custom_course', '')) <> ''),
+                'distinct_custom_course_normalised', count(DISTINCT lower(btrim(to_jsonb(n)->>'custom_course')))
+                                                     FILTER (WHERE btrim(coalesce(to_jsonb(n)->>'custom_course', '')) <> '')
+              ) FROM public.notes n CROSS JOIN d),
+  'profile_courses', jsonb_build_object(
+      'columns', (SELECT jsonb_agg(jsonb_build_object('column', column_name, 'type', data_type, 'nullable', is_nullable)
+                    ORDER BY ordinal_position)
+                  FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profile_courses'),
+      'users_and_rows_by_role', (SELECT jsonb_agg(jsonb_build_object('role', role, 'users', users, 'rows', n))
+                  FROM (SELECT p.role, count(DISTINCT pc.user_id) AS users, count(*) AS n
+                        FROM public.profile_courses pc JOIN public.profiles p ON p.id = pc.user_id
+                        GROUP BY p.role) s)
+  )
+) AS result;
 
 -- ============================================================================
--- 6. Access requests + account_type (points 3/4 baseline; counts only)
+-- RUN 5B. Bounded catalog inventory for course identity (schema metadata only)
 -- ============================================================================
-SELECT column_name, data_type, is_nullable FROM information_schema.columns
-WHERE table_schema = 'public' AND table_name = 'access_requests' ORDER BY ordinal_position;
-
-SELECT status, count(*) AS rows FROM access_requests GROUP BY 1 ORDER BY 2 DESC;
-
-SELECT account_type, role, count(*) AS profiles FROM profiles GROUP BY 1, 2 ORDER BY 3 DESC;
+SELECT jsonb_build_object(
+  'all_public_tables', (SELECT jsonb_agg(table_name ORDER BY table_name)
+                        FROM information_schema.tables
+                        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'),
+  'course_related_columns', (SELECT jsonb_agg(jsonb_build_object(
+                'table', table_name, 'column', column_name, 'type', data_type
+              ) ORDER BY table_name, column_name)
+              FROM information_schema.columns
+              WHERE table_schema = 'public'
+                AND column_name ~* '(course|discipline|subject|curriculum|exam|level)'),
+  'foreign_keys_to_disciplines_or_subjects', (SELECT jsonb_agg(jsonb_build_object(
+                'table', conrelid::regclass::text, 'name', conname, 'definition', pg_get_constraintdef(oid)
+              ) ORDER BY conrelid::regclass::text, conname)
+              FROM pg_constraint
+              WHERE contype = 'f'
+                AND confrelid IN ('public.disciplines'::regclass, 'public.subjects'::regclass)),
+  'check_constraints_mentioning_course_or_subject', (SELECT jsonb_agg(jsonb_build_object(
+                'table', c.conrelid::regclass::text, 'name', c.conname, 'definition', pg_get_constraintdef(c.oid)
+              ) ORDER BY c.conrelid::regclass::text, c.conname)
+              FROM pg_constraint c
+              JOIN pg_namespace n ON n.oid = c.connamespace
+              WHERE n.nspname = 'public' AND c.contype = 'c'
+                AND pg_get_constraintdef(c.oid) ~* '(course|subject|discipline)')
+) AS result;
 
 -- ============================================================================
--- 7. Badge vs Review page: students who have Removed or course-archived cards
---    that still have an active, due `reviews` row (counts only).
+-- RUN 6. Batch membership live model: structure, constraints, RLS, state counts (no names)
 -- ============================================================================
-SELECT e.status AS enrollment_status, count(DISTINCT e.user_id) AS students, count(*) AS due_review_rows
-FROM my_cards_enrollment e
-JOIN reviews r ON r.user_id = e.user_id AND r.flashcard_id = e.flashcard_id
-WHERE r.status = 'active'
-  AND r.next_review_date <= CURRENT_DATE
-  AND (r.skip_until IS NULL OR r.skip_until <= CURRENT_DATE)
-  AND e.status IN ('removed','course_archived')
-GROUP BY 1;
+SELECT jsonb_build_object(
+  'columns', (SELECT jsonb_agg(jsonb_build_object(
+                'table', table_name, 'column', column_name, 'type', data_type, 'nullable', is_nullable, 'default', column_default
+              ) ORDER BY table_name, ordinal_position)
+              FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name IN ('study_group_members', 'study_groups')),
+  'constraints', (SELECT jsonb_agg(jsonb_build_object(
+                'table', conrelid::regclass::text, 'name', conname, 'type', contype::text,
+                'definition', pg_get_constraintdef(oid)
+              ) ORDER BY conrelid::regclass::text, conname)
+              FROM pg_constraint
+              WHERE conrelid IN ('public.study_group_members'::regclass, 'public.study_groups'::regclass)),
+  'indexes', (SELECT jsonb_agg(jsonb_build_object('table', tablename, 'name', indexname, 'definition', indexdef)
+                ORDER BY tablename, indexname)
+              FROM pg_indexes
+              WHERE schemaname = 'public' AND tablename IN ('study_group_members', 'study_groups')),
+  'policies', (SELECT jsonb_agg(jsonb_build_object(
+                'table', tablename, 'name', policyname, 'cmd', cmd, 'roles', roles, 'using', qual, 'check', with_check
+              ) ORDER BY tablename, policyname)
+              FROM pg_policies
+              WHERE schemaname = 'public'
+                AND tablename IN ('study_group_members', 'study_groups', 'admin_audit_log')),
+  'status_role_counts_by_group_kind', (SELECT jsonb_agg(jsonb_build_object(
+                'is_batch_group', is_batch_group, 'status', status, 'role', role, 'rows', n
+              ) ORDER BY is_batch_group, status, role)
+              FROM (SELECT sg.is_batch_group, sgm.status, sgm.role, count(*) AS n
+                    FROM public.study_group_members sgm
+                    JOIN public.study_groups sg ON sg.id = sgm.group_id
+                    GROUP BY 1, 2, 3) s),
+  'batch_group_admin_members_by_platform_role', (SELECT jsonb_agg(jsonb_build_object(
+                'platform_role', platform_role, 'status', status, 'rows', n
+              ) ORDER BY platform_role, status)
+              FROM (SELECT p.role AS platform_role, sgm.status, count(*) AS n
+                    FROM public.study_group_members sgm
+                    JOIN public.study_groups sg ON sg.id = sgm.group_id AND sg.is_batch_group
+                    JOIN public.profiles p ON p.id = sgm.user_id
+                    WHERE sgm.role = 'admin'
+                    GROUP BY 1, 2) s),
+  'audit_actions_related_to_batches_or_members', (SELECT jsonb_agg(jsonb_build_object('action', action, 'rows', n)
+                ORDER BY n DESC)
+              FROM (SELECT action, count(*) AS n FROM public.admin_audit_log
+                    WHERE action ILIKE '%batch%' OR action ILIKE '%member%' GROUP BY action) s)
+) AS result;
+
+-- ============================================================================
+-- RUN 7. Access requests and account_type (structure and counts only; no names or emails)
+-- ============================================================================
+SELECT jsonb_build_object(
+  'access_requests_columns', (SELECT jsonb_agg(jsonb_build_object('column', column_name, 'type', data_type, 'nullable', is_nullable)
+                ORDER BY ordinal_position)
+              FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'access_requests'),
+  'access_requests_constraints', (SELECT jsonb_agg(jsonb_build_object('name', conname, 'type', contype::text,
+                'definition', pg_get_constraintdef(oid)) ORDER BY conname)
+              FROM pg_constraint WHERE conrelid = 'public.access_requests'::regclass),
+  'access_requests_policies', (SELECT jsonb_agg(jsonb_build_object('name', policyname, 'cmd', cmd, 'roles', roles,
+                'using', qual, 'check', with_check) ORDER BY policyname)
+              FROM pg_policies WHERE schemaname = 'public' AND tablename = 'access_requests'),
+  'access_requests_by_status', (SELECT jsonb_agg(jsonb_build_object('status', st, 'rows', n) ORDER BY n DESC)
+              FROM (SELECT to_jsonb(a)->>'status' AS st, count(*) AS n
+                    FROM public.access_requests a GROUP BY 1) s),
+  'profiles_by_account_type_and_role', (SELECT jsonb_agg(jsonb_build_object(
+                'account_type', account_type, 'role', role, 'profiles', n
+              ) ORDER BY n DESC)
+              FROM (SELECT account_type, role, count(*) AS n FROM public.profiles GROUP BY 1, 2) s)
+) AS result;
+
+-- ============================================================================
+-- RUN 8. Point 6, exact comparison (counts only). Row-level, per-student timezone date.
+--   "Badge set"  = rows satisfying the get_due_forecast.due_today predicate (repo copy
+--                  srs-ladder/02:410-476), reproduced here. RUN 1B shows the live bodies; if the
+--                  live get_due_forecast or get_my_cards differs from the repo copies this result
+--                  must be re-derived, so compare before relying on it.
+--   "Review set" = badge rows that also have an ACTIVE My Cards enrollment (get_my_cards v2,
+--                  sprint8.7.10/02: own cards need an active enrollment too; visibility rule is
+--                  the same as the forecast's).
+-- ============================================================================
+WITH p AS (
+  SELECT pr.id AS user_id, pr.course_level,
+         (now() AT TIME ZONE COALESCE(pr.timezone, 'Asia/Kolkata'))::date AS today
+  FROM public.profiles pr
+),
+due AS (
+  SELECT r.user_id, r.flashcard_id
+  FROM public.reviews r
+  JOIN p ON p.user_id = r.user_id
+  JOIN public.flashcards f ON f.id = r.flashcard_id
+  WHERE r.status = 'active'
+    AND r.next_review_date <= p.today
+    AND (r.skip_until IS NULL OR r.skip_until <= p.today)
+    AND f.question_type <> 'concept_card'
+    AND (p.course_level IS NULL OR f.target_course IS NULL OR f.target_course = p.course_level)
+    AND (
+      f.user_id = r.user_id
+      OR f.visibility = 'public'
+      OR (f.visibility = 'friends' AND EXISTS (
+            SELECT 1 FROM public.friendships fr
+            WHERE fr.status = 'accepted'
+              AND ((fr.user_id = r.user_id AND fr.friend_id = f.user_id)
+                OR (fr.friend_id = r.user_id AND fr.user_id = f.user_id))))
+    )
+),
+classified AS (
+  SELECT d.user_id, d.flashcard_id, f.user_id = d.user_id AS is_own_card,
+         COALESCE(e.status, 'no_enrollment_row') AS enrollment_state
+  FROM due d
+  JOIN public.flashcards f ON f.id = d.flashcard_id
+  LEFT JOIN public.my_cards_enrollment e ON e.user_id = d.user_id AND e.flashcard_id = d.flashcard_id
+)
+SELECT jsonb_build_object(
+  'students_with_badge_rows', (SELECT count(DISTINCT user_id) FROM classified),
+  'badge_rows', (SELECT count(*) FROM classified),
+  'review_page_rows', (SELECT count(*) FROM classified WHERE enrollment_state = 'active'),
+  'mismatch_rows', (SELECT count(*) FROM classified WHERE enrollment_state <> 'active'),
+  'students_with_mismatch', (SELECT count(DISTINCT user_id) FROM classified WHERE enrollment_state <> 'active'),
+  'mismatch_rows_by_enrollment_state', (SELECT jsonb_object_agg(enrollment_state, n)
+        FROM (SELECT enrollment_state, count(*) AS n FROM classified
+              WHERE enrollment_state <> 'active' GROUP BY 1) s),
+  'mismatch_rows_that_are_own_cards', (SELECT count(*) FROM classified
+        WHERE enrollment_state <> 'active' AND is_own_card)
+) AS result;
