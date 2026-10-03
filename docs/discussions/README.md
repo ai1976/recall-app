@@ -46,6 +46,13 @@ Approval names an exact version, e.g. "Round 5 design and SQL files 01–04, sha
 ## QA scope
 Audits design, SQL + rollback + tests, **and the exact frontend diff**, build/test results, role/security behaviour, deployment implications, live-verification evidence. Appends findings only; Claude makes fixes and returns the revised version for re-audit.
 
+## Git backstop check (Claude, start of every turn)
+The QA sandbox confines writes to `docs/discussions/`, but Git is the independent check. At the start of each turn Claude runs `git status --short` and compares it with the last known state:
+- Any changed file outside `docs/discussions/` that Claude did not edit is flagged to the Founder before work continues (and never silently reverted).
+- Inside `docs/discussions/`, QA may change only the active thread (its own appended round plus the four handoff fields). Edits to `README.md`, `INDEX.md`, `TEMPLATE.md`, `CODEX_QA_CONFIG.toml.example`, another thread, or Claude's/Founder's rounds are flagged.
+- Thread files are committed after each handoff so `git diff` shows exactly what the other party changed.
+- `.claude/settings.local.json` is expected to show as modified and is ignored by this check.
+
 ## Secrets and personal data
 No `.env` contents, keys, tokens, or credentials. Avoid student emails/IDs; sanitize query results; put raw output in `evidence/` or a results file.
 

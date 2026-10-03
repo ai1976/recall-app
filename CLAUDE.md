@@ -52,6 +52,7 @@ Planning and audit threads are recorded in `docs/discussions/` — read `docs/di
 - Approvals are per gate and per exact version (content hash / commit SHA). Material edits after approval return to QA.
 - Discussion files are working papers, not SSOT: promote agreed decisions to `blueprint.md`; shipped changes to `changelog.md` only once delivered.
 - Every turn ends with a four-line chat summary: file · round · what changed · what I need from you.
+- Git backstop: at the start of each turn run `git status --short`; flag any change outside `docs/discussions/` that Claude did not make, and any QA change in `docs/discussions/` beyond the active thread (see README "Git backstop check"). Never silently revert it.
 
 ## Database Rules
 - **Supabase client:** `src/lib/supabase.js`
