@@ -1,0 +1,90 @@
+# T-001 · Design brief B — course identity and reporting (consolidated)
+
+**Status:** DRAFT for QA audit. Not approved. No gate is given by this file.
+**Version:** v3, consolidated. This file is the single source for brief B. It replaces, as a design, the brief B text spread across T-001 Round 13 section C, Round 15 sections F-G and Round 17 section D. Those rounds remain as history and are not to be read as design.
+**Scope:** points 5 (progress by course) and 10 (course and subject on offline study logs), with the interaction with point 7 (heatmap). In-app study sessions are not classified in v1.
+**Evidence used:** production evidence files of 04/10/2026 (`docs/discussions/evidence/T-001_RUN-*_04-10-2026.md`: RUN 3, 4, 5A, 5B, 1B); code at `@ 6fc6ceb`. Items that depend on the follow-up diagnostic (`01_DIAGNOSTIC_follow-up_...sql`, not yet audited or run: RUN F6 and F9) are marked OPEN.
+
+## 1. Invariants (every other artifact must respect these)
+- **B-I1.** A platform course is identified by `disciplines.id` and a platform subject by `subjects.id`. Platform course **names are identifiers** (they are compared as text in the live queue and forecast filters, in `profiles.course_level`, `flashcards.target_course` and other columns, section 6) and are **immutable in v1**: renaming a discipline is prohibited and guarded (section 6).
+- **B-I2.** A custom course or subject is stored as a **label** (as typed) and a database-generated **key** (the grouping value). The label is **never truncated** (section 5).
+- **B-I3.** A new offline log is always classified (platform, custom, or explicit General). NULL means only "no classification recorded"; reports separate rows by `source` and classification, so NULL never has two meanings in one group (section 4.3).
+- **B-I4.** Rows written before the change are never back-filled from the student's mutable current course.
+- **B-I5.** Course and subject consistency is enforced by the database: on `study_sessions` by a composite foreign key and CHECKs; on `flashcards` and `notes` by a **guard trigger on write** (not a table CHECK), so legacy rows stay editable (section 6.3).
+- **B-I6.** Validation of a profile's course label is a trigger that fires only when `course_level` is inserted or changed, **not** a table CHECK (section 5.3).
+- **B-I7.** There is one shared source of course options for Signup, Profile Settings, the access-request form and the logging picker (section 5.5).
+- **B-I8.** Card progress and study time must resolve to the same course identity before they are shown in the same group; they are never summed.
+- **B-I9.** Professors see totals only; the course and subject breakdown is not exposed to them.
+- **B-I10.** Existing totals, `get_study_time_stats` and professor batch reports are unchanged.
+
+## 2. What the live data and code show
+1. Platform courses are exactly three disciplines: CA Final (5 subjects), CA Foundation (4), CA Intermediate (8) (RUN 5A). The CHECK on `profiles.course_level` lists nine labels (CA, CMA, CS) but ends with `OR length(course_level) > 0`, so any non-empty text passes (RUN 5B). 255 of 262 profiles equal a discipline name, 2 are blank, 5 hold other text (RUN 5A).
+2. Signup offers nine labels plus custom text (`Signup.jsx:46-56,267-271`); Profile Settings offers only the three CA courses (`ProfileSettings.jsx:30-34`); the access-request form offers ten (`ContentPreviewWall.jsx:17-28`). CMA and CS labels have no discipline.
+3. No student course registry is in use (`profile_courses` holds professor rows only: 3 users, 5 rows), no custom-course entity exists, and no `custom_course` column exists anywhere (RUN 5A, 5B). Custom subjects are almost unused (1 flashcard, 3 notes).
+4. The product is single-active-course: switching archives enrollments and the queue and forecast filter by the current course using text equality (RUN 4, RUN 1B).
+5. `study_sessions` has no course or subject. About 95% of recorded hours are offline manual (1,003.3 h of 1,051.1 h), of which 431 manual rows have no category (RUN 3). The table is immutable for client roles: `authenticated` holds INSERT and SELECT only, with no UPDATE or DELETE (RUN 3).
+6. Offline logging is timer-only: stop, optional recovery, then a required category picker "What were you studying?" (`StudyTimerWidget.jsx:28-34,270-300`), all ending at `confirmCategory` (`StudyTimerContext.jsx:208-230`). No direct-entry form exists.
+7. Progress already has a Subject Mastery table for the current course (`Progress.jsx:582-584`).
+
+## 3. Course identity
+- **Platform course and subject:** `disciplines.id`, `subjects.id`. Display by live join (no label snapshot), which is safe because names cannot change (B-I1).
+- **Custom course or subject:** no entity exists and almost no data uses it. v1 stores the label and the generated key; promotion to an entity is deferred until there is demand.
+- **General:** an explicit classification, not NULL.
+- **Legacy:** NULL, only for rows before the change (B-I4).
+- The picker never derives its list from `profiles.course_level` alone.
+
+## 4. Logging foundation (point 10)
+**4.1 Columns on `study_sessions`** (all nullable; rows before the change keep NULL):
+- `classification`: `platform`, `custom` or `general`.
+- `discipline_id` and `subject_id` (platform): foreign key `discipline_id` to `disciplines(id)`, and a composite foreign key (`discipline_id`, `subject_id`) to a new unique pair on `subjects`. A NULL `subject_id` is allowed and does not weaken the course requirement.
+- `custom_course_label` and a stored generated `custom_course_key`; `custom_subject_label` and a stored generated `custom_subject_key`. The key is computed by the database from the label (lower-cased, internal whitespace collapsed, trimmed), so a client cannot make them disagree. There is no uniqueness constraint (no entity). Grouping is by key; a group's display label is the label of the row with the greatest (`created_at`, `id`) for that key. No accent folding or fuzzy matching in v1; "CFA L1" and "CFA Level 1" stay separate groups, which the picker's suggestions from the student's own earlier labels are meant to prevent.
+- Adding a stored generated column rewrites the table; at 1,395 rows this is negligible but it takes a table lock and must be in the SQL plan.
+**4.2 Constraints (`NOT VALID`, safe because the table is immutable, RUN 3).**
+- `platform`: `discipline_id` required, custom columns forbidden, subject optional.
+- `custom`: `custom_course_label` required (length rule, section 5), `discipline_id` and `subject_id` forbidden, custom subject label optional.
+- `general`: all of them NULL.
+- `source = 'manual'` requires a non-NULL classification.
+- `source` in (`study_mode`, `practice_mode`) requires a NULL classification in v1; this may be relaxed later if in-app classification is approved.
+**4.3 Report contract.** Rows are separated by `source` and classification:
+- **Offline, classified:** manual rows with `platform` (one group per discipline), `custom` (one group per key), or `general`.
+- **Offline, unassigned (legacy):** manual rows with a NULL classification. The constraint makes this possible only for rows written before the change.
+- **In-app, not classified by course:** `study_mode` and `practice_mode` rows, before and after the change, in v1.
+- **All-course totals** add every group once; General is included and is attributed to no course.
+**4.4 Write path.** Every manual path (normal stop, recovery log-full or log-less, restored pending log) ends at `confirmCategory`, so one change in that function plus the database constraints covers them. Any future direct-entry writer must use the same contract.
+**4.5 Picker (mobile-fast).** A compact "Course" row above the category buttons, preselected, always visible before Save; subject optional and skippable; "General" one tap away. Options, in order: the student's **current course** (a platform course maps to its discipline; a non-platform current course is offered as a custom entry with its exact label); the other active platform courses; the student's own earlier custom labels (distinct by key, from their own sessions); General; "Other…" for new text. The subject list follows the course: a platform course lists its active subjects; a custom course lists the student's own earlier custom subjects for that key. The last subject used per course is remembered on the device only. No student course registry is created in v1.
+
+## 5. Course label length and validation (one contract)
+**5.1 Rule.** A course label is trimmed, contains no control characters, and has a length between 1 and **L** characters. L is **provisional at 120** and is fixed only after follow-up RUN F9: L is the larger of 120 and the longest existing `profiles.course_level` value rounded up to the next multiple of 20, capped at 200. **A label is never truncated.**
+**5.2 Same rule everywhere:** the Signup custom-course input, Profile Settings, the access-request course field and `custom_course_label` (and `custom_subject_label`).
+**5.3 Profile validation is a trigger, not a CHECK (B-I6).** PostgreSQL enforces a `NOT VALID` CHECK against every new row version, so a table CHECK, even `NOT VALID`, is evaluated on **every** update of a row, so one legacy profile with an over-limit or untrimmed value would become impossible to update for unrelated reasons (for example marking onboarding seen). The validation therefore runs in a trigger that fires on insert and only when `course_level` changes, so legacy values stay untouched and updatable. Real-role test: updating an unrelated column of a legacy over-limit profile succeeds.
+**5.4 Existing values.** Every existing value up to L is used **exactly** as stored (the session label and key equal the profile's). Because L is fixed at or above the observed maximum, no existing value should exceed it; if F9 shows any value above 200, those individual students are asked in the picker to **choose and confirm a short alias** (up to L characters, their own typed label); the alias is the identity of that group by the student's explicit choice, and the profile value is never changed by the logging flow. No distinct existing values are ever merged by truncation.
+**5.5 One option source (B-I7).** One shared definition returns, in order: the active `disciplines` rows; the allowed non-platform labels from one shared definition (the nine-label rule: three CA, three CMA, three CS); the student's current course; the student's own earlier custom labels (never other students' text). A name that appears twice is shown once; a `disciplines` row wins over a same-named non-platform entry; a custom entry whose normalized text equals a platform name is treated as that platform course. Signup, Profile Settings, the access form and the picker all read it; no copied lists.
+
+## 6. Card and note mapping, and the rename prohibition
+**6.1 Canonical course for a card or note** is the discipline implied by its subject (`subject_id` to `subjects.discipline_id`); `discipline_id` and `target_course` are copies that must agree with it. Mapping chain for reporting: (1) the subject-derived discipline; (2) if there is no subject-derived discipline but `discipline_id` is set, that discipline; (3) **legacy rows only:** `target_course` text equal to a discipline name; (4) a non-empty other `target_course` is a custom group using the study-time grouping key; (5) otherwise unassigned.
+**6.2 Conflicts.** Where `discipline_id` disagrees with the subject-derived discipline, or `target_course` differs from the resolved discipline's name, the row is reported under **"Unassigned (conflict)"** until reconciled. There is no silent preference. Reconciliation is a separate data-fix task with its own SQL and rollback. How many such rows exist is **not yet measured** (follow-up RUN F6 counts them with subject-first resolution); this brief makes no claim about the result.
+**6.3 New platform cards and notes.** `discipline_id` is required and (`discipline_id`, `subject_id`) is consistent, enforced by a **guard trigger on insert and on update of those columns** (and the same composite foreign key, `NOT VALID`; foreign-key checks are skipped when the key columns are unchanged, to be confirmed by a real-role test). A table CHECK is not used, because it would block edits to legacy rows that lack `discipline_id` (6.2 and B-I5). `target_course` becomes a derived label for new platform rows, set from the discipline by the guard trigger or the creating function (implementation choice). A new platform row never depends on text equality for its identity.
+**6.4 Rename prohibition (B-I1).** Platform course names are identifiers used as text in at least these eight columns (RUN 5B): `profiles.course_level`, `flashcards.target_course`, `notes.target_course`, `flashcard_decks.target_course`, `my_cards_enrollment.archived_course`, `study_groups.batch_course`, `study_groups.linked_course`, `access_requests.course`; and in the live queue, forecast and bucket functions, which compare `f.target_course = course_level` as text (RUN 1B). A rename without a coordinated migration would create conflicts and change which cards are due. Therefore **a discipline rename is prohibited in v1**, enforced by a trigger on `disciplines` that rejects any change to `name`; deactivation (`is_active`) is allowed. A rename becomes a separate migration project that updates all dependent columns in one transaction. Acceptance tests: an attempted rename fails; a catalog test lists the dependent columns and fails if a new one appears unlisted.
+
+## 7. Reporting and Progress by course (point 5)
+- Heatmap tooltip stays concise (in-app, offline and total time; point 7); the course and subject appear in a day-detail view for the student only.
+- Progress groups: the current course first and expanded; other platform courses collapsed with one summary line; each custom group by key; **General** as its own group, counted in the all-course totals and attributed to no course; **Unassigned / legacy** (offline, NULL), **In-app, not classified by course** (section 4.3) and **Unassigned (conflict)** (6.2) shown separately; nothing hidden. Headline totals state their scope ("All courses").
+- Two measures, never summed (B-I8): card progress (reviews mapped through section 6) and study time (classified sessions). Both resolve to the same identity: `discipline_id` for a platform course, the same grouping key for a custom one.
+- Collapse state is remembered in the browser only.
+- Professors: totals only (B-I9). Existing totals, `get_study_time_stats` and professor batch reports are unchanged (B-I10); the new groups are an addition, and the all-course totals must reconcile with the existing totals in the real-role tests (section 8).
+
+## 8. Sequencing, SQL implications and tests (no SQL written)
+Logging foundation (point 10) ships before the Progress interface (point 5), only after this brief is approved. SQL to be designed later, each with its own file, rollback and real-role tests: the `study_sessions` columns, generated keys, composite key and CHECKs; the unique pair on `subjects`; the profile-label trigger; the `disciplines` name guard; the guard trigger on `flashcards` and `notes`; a student-only read function for the classified breakdown. Tests include: every existing `study_sessions` constraint and the three source values; each classification case accepted and each invalid combination refused; the generated key and the display-label tie-breaker; an unrelated update of a legacy profile; a rename attempt; the guard trigger on a legacy and a new card; the report contract totals reconcile with the existing totals; the picker with a non-platform current course.
+
+## 9. Decisions for the Founder (none requested until QA has audited this file)
+- **E1.** Picker source: current course first, other platform courses, the student's own earlier custom labels, General, Other; no student registry in v1. Recommend yes.
+- **E2.** CMA and CS students use custom text in v1; adding CMA and CS disciplines is a separate catalogue decision. Recommend yes.
+- **E3.** One canonical course list for Signup, Profile Settings, the access form and the picker: recommend the nine labels (three CA, three CMA, three CS) plus custom text, defined once. Needs a Founder choice.
+- **E4.** In-app sessions are not classified in v1; reports are separated by source. Recommend yes.
+- **E5.** Platform names by live join (safe because renames are prohibited); custom text stored as label plus generated key. Recommend yes.
+- **E6.** Professors see totals only. Recommend confirm.
+- **E7 (revised).** The label limit is provisional at 120 and fixed from follow-up RUN F9; labels are never truncated; outliers use a student-confirmed alias. Recommend yes.
+- **E8 (new).** Discipline renames are prohibited in v1 and guarded. Recommend yes.
+
+## 10. Gate 1 prerequisites and OPEN items
+Before this brief goes to the Founder for Gate 1: follow-up RUN F6 (subject-first card and note mapping counts) and RUN F9 (label length bands) must be audited by QA by their file hash, authorized by the Founder, run, and their evidence audited. Brief B does not depend on brief A. OPEN: how many cards and notes have a NULL or conflicting `discipline_id`; the actual longest `course_level`; what the five non-platform values are (not needed for this design); whether any student creates a custom course in the UI today (code trace not done); whether in-app course attribution is wanted later; custom-key collation behaviour and any normalized-text collisions (later SQL tests).
