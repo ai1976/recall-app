@@ -1,4 +1,4 @@
--- Name: [DIAGNOSTIC] T-001 follow-up (v2) - effective privileges, row-level security, function bodies, own-card gap, course mapping, access-request duplicates, course-label length
+-- Name: [DIAGNOSTIC] T-001 follow-up (v3) - effective privileges, row-level security, function bodies, own-card gap, course mapping, access-request duplicates, course-label length
 --
 -- Description: READ-ONLY follow-up to docs/database/step0-T-001/00_DIAGNOSTIC_pre-8.8.6_backlog_catalog.sql
 -- (already run 04/10/2026). It answers the questions T-001 left OPEN that design briefs A and B need before
@@ -6,7 +6,7 @@
 --   F1  Effective table privileges (SELECT, INSERT, UPDATE, DELETE, TRUNCATE) of `authenticated` and `anon`
 --       on 13 tables, and effective column privileges on 8 selected columns. Policies alone do not show
 --       whether a role can actually write (open S-1, S-2, S-5).
---   F2  Row-level-security state of every public table, and the policy definitions on 15 tables: the content
+--   F2  Row-level-security state of every ordinary and partitioned public table, and the policy definitions on 15 tables: the content
 --       tables (notes, flashcards, flashcard_decks, content_group_shares, flashcard_batch_provenance), the
 --       membership tables (study_group_members, study_groups, batch_group_professors, batch_group_archives),
 --       access_requests, study_sessions, admin_audit_log, profiles, my_cards_enrollment and reviews.
@@ -16,8 +16,13 @@
 --   F3B Live bodies of batch_group_access_denial, get_my_batch_groups, is_admin, admin_user_action_denial,
 --       every get_browsable_* function, and the functions whose name contains suspend_user or reactivate_user.
 --   F4  Names (not bodies) of every function and policy whose source mentions account_type or suspended.
---   F5  The own-card rows that have a review but no My Cards enrollment (59 due rows seen in RUN 8): counts
---       by review status, owner role, card creation month, batch or not, and visibility.
+--   F5  The RUN 8 mismatch set, classified. Population = exactly the RUN 8 badge set (the get_due_forecast.due_today
+--       predicate, compared clause by clause with the live body captured in RUN 1B), restricted to the student's
+--       own cards that have no My Cards enrollment row. Reports the RUN 8 reconciliation keys (badge rows,
+--       mismatch rows, own-card mismatch rows, mismatch by enrollment state) and then that set by owner role,
+--       card creation month, batch or not, visibility, days overdue, skip state and course-rule basis. A separate,
+--       clearly labelled 'wider_population' count (all own reviewed cards without enrollment, any status or
+--       date) shows whether the gap extends beyond due rows; it is not the RUN 8 population.
 --   F6  Course mapping of flashcards and notes, resolved SUBJECT FIRST (the subject's discipline is the
 --       canonical course, then the stored discipline_id), with each disagreement counted independently:
 --       subject missing, stored discipline missing, both present and agree, both present and disagree,
@@ -25,11 +30,14 @@
 --       discipline name, and rows resolvable by neither.
 --   F7  Invite-token duplicates among study_groups, profile status values, and memberships by profile
 --       status, platform role, membership status and batch or not.
---   F8  Access-request duplicates and contact-email facts, split by authenticated and anonymous requests and
---       by request target (request type, content type, content id): missing versus present contact email,
---       a contact email that differs from the requester's profile email (only when both exist), open
---       duplicate groups per authenticated requester and target, open repeat groups per anonymous
---       contact email and target, and email matches to profiles (case-insensitive versus exact).
+--   F8  Access-request facts for brief A, for request_type student_access (the only type brief A governs):
+--       requester id present or absent (a stored id is not proof of an authenticated submission, because the live
+--       function stored a client-supplied id), contact email missing versus present, a contact email that differs
+--       from the requester's profile email (only when both exist), the shape of the request target (platform-level,
+--       item-level, malformed pair, item not found in its table), open duplicate groups for platform-level and for
+--       item-level targets (what the two proposed unique indexes of brief A 4.2 would reject), open repeat groups
+--       per contact email for rows without a requester id, and email matches to profiles (case-insensitive versus
+--       exact). Other request types appear only in by_request_type and one informational by-type duplicate count.
 --   F9  Length bands of profiles.course_level (numbers only; the values themselves are never selected).
 -- Privacy rule: no user-authored stored text is ever returned as a literal. Stored text columns are bucketed
 -- to expected values plus 'unexpected_other', or only counted or measured. Function source, policy text,
@@ -82,7 +90,7 @@ SELECT jsonb_build_object(
         'table', c.relname, 'rls_enabled', c.relrowsecurity, 'rls_forced', c.relforcerowsecurity
       ) ORDER BY c.relname)
       FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-      WHERE n.nspname = 'public' AND c.relkind = 'r'),
+      WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p')),
   'policies', (SELECT jsonb_agg(jsonb_build_object(
         'table', tablename, 'name', policyname, 'cmd', cmd, 'permissive', permissive,
         'roles', roles, 'using', qual, 'check', with_check
@@ -155,36 +163,103 @@ SELECT jsonb_build_object(
 ) AS result;
 
 -- ============================================================================
--- RUN F5. The own-card rows that have a review but no My Cards enrollment (counts only)
+-- RUN F5. The RUN 8 own-card / no-enrollment mismatch set, classified (counts only)
+--   Population: EXACTLY the RUN 8 "badge set" (the get_due_forecast.due_today predicate: active review, due by the
+--   student's own timezone date, skip boundary, question type is not concept_card, the course rule, the visibility
+--   rule), restricted to rows that are the student's OWN card and have NO my_cards_enrollment row.
+--   The predicate below is the RUN 8 predicate. It was compared clause by clause with the live get_due_forecast body
+--   captured in RUN 1B (04/10/2026) and matches; if the live body changes, re-derive before relying on this run.
+--   The first four keys reuse the RUN 8 key names so the output can be reconciled with the RUN 8 evidence
+--   (4138 badge rows, 59 mismatch rows, all own cards without an enrollment row, one student, on 04/10/2026; later
+--   data may differ legitimately).
+--   The 'wider_population' keys are NOT the RUN 8 population. They count every own reviewed card without an
+--   enrollment row, whatever its review status, due date, course or question type, and exist only to show whether
+--   the gap extends beyond due rows.
 -- ============================================================================
-WITH nr AS (
-  SELECT r.user_id, r.flashcard_id,
-         CASE WHEN r.status IN ('active', 'suspended', 'mastered') THEN r.status ELSE 'unexpected_other' END AS review_status,
-         to_char(date_trunc('month', f.created_at), 'YYYY-MM') AS card_month,
-         (f.batch_id IS NOT NULL) AS card_has_batch,
-         CASE WHEN f.visibility IN ('private', 'friends', 'public') THEN f.visibility ELSE 'unexpected_other' END AS visibility,
-         CASE WHEN p.role IN ('student', 'professor', 'admin', 'super_admin') THEN p.role ELSE 'unexpected_other' END AS owner_role
+WITH p AS (
+  SELECT pr.id AS user_id, pr.course_level, pr.role AS platform_role,
+         (now() AT TIME ZONE COALESCE(pr.timezone, 'Asia/Kolkata'))::date AS today
+  FROM public.profiles pr
+),
+due AS (
+  SELECT r.user_id, r.flashcard_id, r.next_review_date, r.skip_until, p.today, p.platform_role, p.course_level,
+         f.user_id AS card_owner_id, f.created_at AS card_created_at, f.batch_id AS card_batch_id,
+         f.visibility AS card_visibility, f.target_course
+  FROM public.reviews r
+  JOIN p ON p.user_id = r.user_id
+  JOIN public.flashcards f ON f.id = r.flashcard_id
+  WHERE r.status = 'active'
+    AND r.next_review_date <= p.today
+    AND (r.skip_until IS NULL OR r.skip_until <= p.today)
+    AND f.question_type <> 'concept_card'
+    AND (p.course_level IS NULL OR f.target_course IS NULL OR f.target_course = p.course_level)
+    AND (
+      f.user_id = r.user_id
+      OR f.visibility = 'public'
+      OR (f.visibility = 'friends' AND EXISTS (
+            SELECT 1 FROM public.friendships fr
+            WHERE fr.status = 'accepted'
+              AND ((fr.user_id = r.user_id AND fr.friend_id = f.user_id)
+                OR (fr.friend_id = r.user_id AND fr.user_id = f.user_id))))
+    )
+),
+classified AS (
+  SELECT d.*, d.card_owner_id = d.user_id AS is_own_card,
+         CASE WHEN e.status IS NULL THEN 'no_enrollment_row'
+              WHEN e.status IN ('active', 'removed', 'course_archived') THEN e.status
+              ELSE 'unexpected_other' END AS enrollment_state
+  FROM due d
+  LEFT JOIN public.my_cards_enrollment e ON e.user_id = d.user_id AND e.flashcard_id = d.flashcard_id
+),
+ow AS (
+  SELECT * FROM classified WHERE is_own_card AND enrollment_state = 'no_enrollment_row'
+),
+wide AS (
+  SELECT CASE WHEN r.status IN ('active', 'suspended', 'mastered') THEN r.status ELSE 'unexpected_other' END AS review_status
   FROM public.reviews r
   JOIN public.flashcards f ON f.id = r.flashcard_id AND f.user_id = r.user_id
-  JOIN public.profiles p ON p.id = r.user_id
   WHERE NOT EXISTS (SELECT 1 FROM public.my_cards_enrollment e
                     WHERE e.user_id = r.user_id AND e.flashcard_id = r.flashcard_id)
 )
 SELECT jsonb_build_object(
-  'own_reviewed_cards_total', (SELECT count(*) FROM public.reviews r
-                               JOIN public.flashcards f ON f.id = r.flashcard_id AND f.user_id = r.user_id),
-  'own_reviewed_cards_without_enrollment', (SELECT count(*) FROM nr),
-  'students_affected', (SELECT count(DISTINCT user_id) FROM nr),
-  'by_review_status', (SELECT jsonb_object_agg(review_status, n)
-        FROM (SELECT review_status, count(*) AS n FROM nr GROUP BY 1) s),
-  'by_owner_role', (SELECT jsonb_object_agg(owner_role, n)
-        FROM (SELECT owner_role, count(*) AS n FROM nr GROUP BY 1) s),
+  'badge_rows', (SELECT count(*) FROM classified),
+  'mismatch_rows', (SELECT count(*) FROM classified WHERE enrollment_state <> 'active'),
+  'mismatch_rows_that_are_own_cards', (SELECT count(*) FROM classified WHERE enrollment_state <> 'active' AND is_own_card),
+  'mismatch_rows_by_enrollment_state', (SELECT jsonb_object_agg(enrollment_state, n)
+        FROM (SELECT enrollment_state, count(*) AS n FROM classified
+              WHERE enrollment_state <> 'active' GROUP BY 1) s),
+  'classified_population_own_cards_without_enrollment_row', (SELECT count(*) FROM ow),
+  'students_affected', (SELECT count(DISTINCT user_id) FROM ow),
+  'by_owner_platform_role', (SELECT jsonb_object_agg(owner_role, n)
+        FROM (SELECT CASE WHEN platform_role IN ('student', 'professor', 'admin', 'super_admin')
+                          THEN platform_role ELSE 'unexpected_other' END AS owner_role, count(*) AS n
+              FROM ow GROUP BY 1) s),
   'by_card_creation_month', (SELECT jsonb_object_agg(card_month, n)
-        FROM (SELECT card_month, count(*) AS n FROM nr GROUP BY 1) s),
-  'by_batch_membership_of_card', (SELECT jsonb_object_agg(CASE WHEN card_has_batch THEN 'card_has_batch_id' ELSE 'card_without_batch_id' END, n)
-        FROM (SELECT card_has_batch, count(*) AS n FROM nr GROUP BY 1) s),
-  'by_visibility', (SELECT jsonb_object_agg(visibility, n)
-        FROM (SELECT visibility, count(*) AS n FROM nr GROUP BY 1) s)
+        FROM (SELECT to_char(date_trunc('month', card_created_at), 'YYYY-MM') AS card_month, count(*) AS n
+              FROM ow GROUP BY 1) s),
+  'by_card_has_batch_id', (SELECT jsonb_object_agg(k, n)
+        FROM (SELECT CASE WHEN card_batch_id IS NOT NULL THEN 'card_has_batch_id' ELSE 'card_without_batch_id' END AS k,
+                     count(*) AS n FROM ow GROUP BY 1) s),
+  'by_card_visibility', (SELECT jsonb_object_agg(vis, n)
+        FROM (SELECT CASE WHEN card_visibility IN ('private', 'friends', 'public') THEN card_visibility ELSE 'unexpected_other' END AS vis,
+                     count(*) AS n FROM ow GROUP BY 1) s),
+  'by_days_overdue', (SELECT jsonb_object_agg(band, n)
+        FROM (SELECT CASE WHEN today - next_review_date = 0 THEN 'due_today'
+                          WHEN today - next_review_date BETWEEN 1 AND 7 THEN 'overdue_1_to_7_days'
+                          WHEN today - next_review_date BETWEEN 8 AND 30 THEN 'overdue_8_to_30_days'
+                          ELSE 'overdue_over_30_days' END AS band, count(*) AS n
+              FROM ow GROUP BY 1) s),
+  'by_skip_until_state', (SELECT jsonb_object_agg(k, n)
+        FROM (SELECT CASE WHEN skip_until IS NULL THEN 'skip_until_null' ELSE 'skip_until_set_and_elapsed' END AS k, count(*) AS n
+              FROM ow GROUP BY 1) s),
+  'by_course_rule_basis', (SELECT jsonb_object_agg(k, n)
+        FROM (SELECT CASE WHEN course_level IS NULL THEN 'student_course_level_null'
+                          WHEN target_course IS NULL THEN 'card_target_course_null'
+                          ELSE 'card_target_course_equals_student_course_level' END AS k, count(*) AS n
+              FROM ow GROUP BY 1) s),
+  'wider_population_own_reviewed_cards_without_enrollment_any_status_any_date', (SELECT count(*) FROM wide),
+  'wider_population_by_review_status', (SELECT jsonb_object_agg(review_status, n)
+        FROM (SELECT review_status, count(*) AS n FROM wide GROUP BY 1) s)
 ) AS result;
 
 -- ============================================================================
@@ -271,11 +346,16 @@ SELECT jsonb_build_object(
 ) AS result;
 
 -- ============================================================================
--- RUN F8. Access-request duplicates and contact-email facts, by authenticated versus anonymous and by target
---   authenticated = requester_user_id is not null; anonymous = requester_user_id is null
---   target        = (request_type, content_type, content_id); platform-level requests have no content
+-- RUN F8. Access-request facts for brief A: requester id present or absent, contact email, target shape, duplicates
+--   "requester id present/absent" describes only whether the stored row has requester_user_id. The live
+--   submit_access_request stored whatever id the client sent (RUN 1A), so a present id is NOT proof of an
+--   authenticated submission. These are snapshot facts about stored rows, nothing more.
+--   target        = (request_type, content_type, content_id); platform-level means both content fields are NULL
 --   open          = status is pending or contacted (the two statuses that still await a decision)
 --   contact email = the typed email, lower-cased and trimmed; a blank value is treated as missing, not as a value
+--   Decision metrics are for request_type = 'student_access' only (the only type brief A governs). Counts for the
+--   other two request types appear once, in by_request_type and in the by-type duplicate breakdown, labelled
+--   informational: they are out of scope and must not be read as collisions governed by brief A.
 -- ============================================================================
 WITH a AS (
   SELECT x.id, x.request_type, x.status, x.content_type, x.content_id, x.requester_user_id,
@@ -286,6 +366,14 @@ WITH a AS (
 pe AS (
   SELECT p.id, NULLIF(lower(btrim(p.email)), '') AS profile_email, p.email AS raw_profile_email
   FROM public.profiles p
+),
+sa AS (
+  SELECT a.*,
+         (a.content_id IS NOT NULL AND
+          CASE WHEN a.content_type = 'note' THEN NOT EXISTS (SELECT 1 FROM public.notes n WHERE n.id = a.content_id)
+               WHEN a.content_type = 'flashcard_deck' THEN NOT EXISTS (SELECT 1 FROM public.flashcard_decks d WHERE d.id = a.content_id)
+               ELSE false END) AS item_missing
+  FROM a WHERE a.request_type = 'student_access'
 )
 SELECT jsonb_build_object(
   'requests_total', (SELECT count(*) FROM a),
@@ -294,36 +382,69 @@ SELECT jsonb_build_object(
         FROM (SELECT CASE WHEN request_type IN ('student_access', 'institute_inquiry', 'educator_application')
                           THEN request_type ELSE 'unexpected_other' END AS rt, count(*) AS n
               FROM a GROUP BY 1) s),
-  'authenticated_requests', (SELECT count(*) FROM a WHERE requester_user_id IS NOT NULL),
-  'anonymous_requests', (SELECT count(*) FROM a WHERE requester_user_id IS NULL),
-  'contact_email_missing', (SELECT count(*) FROM a WHERE contact_email IS NULL),
-  'contact_email_present', (SELECT count(*) FROM a WHERE contact_email IS NOT NULL),
-  'authenticated_contact_email_missing', (SELECT count(*) FROM a WHERE requester_user_id IS NOT NULL AND contact_email IS NULL),
-  'authenticated_contact_and_profile_email_both_present_and_different', (SELECT count(*) FROM a
-        JOIN pe ON pe.id = a.requester_user_id
-        WHERE a.contact_email IS NOT NULL AND pe.profile_email IS NOT NULL AND a.contact_email <> pe.profile_email),
-  'anonymous_contact_email_equals_a_profile_email_case_insensitively', (SELECT count(*) FROM a
-        WHERE a.requester_user_id IS NULL AND a.contact_email IS NOT NULL
-          AND EXISTS (SELECT 1 FROM pe WHERE pe.profile_email = a.contact_email)),
-  'anonymous_contact_email_equals_a_profile_email_exactly_as_typed', (SELECT count(*) FROM a
-        WHERE a.requester_user_id IS NULL AND a.contact_email IS NOT NULL
-          AND EXISTS (SELECT 1 FROM pe WHERE pe.raw_profile_email = a.raw_email)),
-  'open_authenticated_duplicate_groups_by_requester_and_target', (SELECT jsonb_build_object(
+  'student_access_requests', (SELECT count(*) FROM sa),
+  'student_access_open', (SELECT count(*) FROM sa WHERE status IN ('pending', 'contacted')),
+  'student_access_requester_id_present', (SELECT count(*) FROM sa WHERE requester_user_id IS NOT NULL),
+  'student_access_requester_id_absent', (SELECT count(*) FROM sa WHERE requester_user_id IS NULL),
+  'student_access_contact_email_missing', (SELECT count(*) FROM sa WHERE contact_email IS NULL),
+  'student_access_contact_email_present', (SELECT count(*) FROM sa WHERE contact_email IS NOT NULL),
+  'student_access_requester_id_present_and_contact_email_missing', (SELECT count(*) FROM sa
+        WHERE requester_user_id IS NOT NULL AND contact_email IS NULL),
+  'student_access_requester_id_present_and_contact_vs_profile_email_both_present_and_different', (SELECT count(*) FROM sa
+        JOIN pe ON pe.id = sa.requester_user_id
+        WHERE sa.contact_email IS NOT NULL AND pe.profile_email IS NOT NULL AND sa.contact_email <> pe.profile_email),
+  'student_access_requester_id_absent_and_contact_email_equals_a_profile_email_case_insensitively', (SELECT count(*) FROM sa
+        WHERE sa.requester_user_id IS NULL AND sa.contact_email IS NOT NULL
+          AND EXISTS (SELECT 1 FROM pe WHERE pe.profile_email = sa.contact_email)),
+  'student_access_requester_id_absent_and_contact_email_equals_a_profile_email_exactly_as_typed', (SELECT count(*) FROM sa
+        WHERE sa.requester_user_id IS NULL AND sa.contact_email IS NOT NULL
+          AND EXISTS (SELECT 1 FROM pe WHERE pe.raw_profile_email = sa.raw_email)),
+  'student_access_target_shape_all_statuses', (SELECT jsonb_build_object(
+          'both_content_fields_null_platform_level', count(*) FILTER (WHERE content_type IS NULL AND content_id IS NULL),
+          'both_content_fields_present_item_level', count(*) FILTER (WHERE content_type IS NOT NULL AND content_id IS NOT NULL),
+          'content_type_present_content_id_null', count(*) FILTER (WHERE content_type IS NOT NULL AND content_id IS NULL),
+          'content_type_null_content_id_present', count(*) FILTER (WHERE content_type IS NULL AND content_id IS NOT NULL),
+          'item_level_content_type_note', count(*) FILTER (WHERE content_type = 'note' AND content_id IS NOT NULL),
+          'item_level_content_type_flashcard_deck', count(*) FILTER (WHERE content_type = 'flashcard_deck' AND content_id IS NOT NULL),
+          'item_level_content_id_not_found_in_its_table', count(*) FILTER (WHERE item_missing)
+        ) FROM sa),
+  'student_access_open_platform_level_duplicate_groups_by_requester_id', (SELECT jsonb_build_object(
           'groups_with_more_than_one_open_request', count(*),
           'requests_in_those_groups', coalesce(sum(n), 0))
-        FROM (SELECT count(*) AS n FROM a
-              WHERE a.status IN ('pending', 'contacted') AND a.requester_user_id IS NOT NULL
-              GROUP BY a.requester_user_id, a.request_type, coalesce(a.content_type, ''), coalesce(a.content_id::text, '')
+        FROM (SELECT count(*) AS n FROM sa
+              WHERE status IN ('pending', 'contacted') AND requester_user_id IS NOT NULL
+                AND content_type IS NULL AND content_id IS NULL
+              GROUP BY requester_user_id
               HAVING count(*) > 1) g),
-  'open_anonymous_repeat_groups_by_contact_email_and_target', (SELECT jsonb_build_object(
+  'student_access_open_item_level_duplicate_groups_by_requester_id_and_item', (SELECT jsonb_build_object(
           'groups_with_more_than_one_open_request', count(*),
           'requests_in_those_groups', coalesce(sum(n), 0))
-        FROM (SELECT count(*) AS n FROM a
-              WHERE a.status IN ('pending', 'contacted') AND a.requester_user_id IS NULL AND a.contact_email IS NOT NULL
-              GROUP BY a.contact_email, a.request_type, coalesce(a.content_type, ''), coalesce(a.content_id::text, '')
+        FROM (SELECT count(*) AS n FROM sa
+              WHERE status IN ('pending', 'contacted') AND requester_user_id IS NOT NULL
+                AND content_type IS NOT NULL AND content_id IS NOT NULL
+              GROUP BY requester_user_id, content_type, content_id
               HAVING count(*) > 1) g),
-  'open_anonymous_requests_without_contact_email', (SELECT count(*) FROM a
-        WHERE a.status IN ('pending', 'contacted') AND a.requester_user_id IS NULL AND a.contact_email IS NULL)
+  'student_access_open_requests_with_a_malformed_target_pair', (SELECT count(*) FROM sa
+        WHERE status IN ('pending', 'contacted') AND (content_type IS NULL) <> (content_id IS NULL)),
+  'student_access_open_repeat_groups_by_contact_email_and_target_requester_id_absent', (SELECT jsonb_build_object(
+          'groups_with_more_than_one_open_request', count(*),
+          'requests_in_those_groups', coalesce(sum(n), 0))
+        FROM (SELECT count(*) AS n FROM sa
+              WHERE status IN ('pending', 'contacted') AND requester_user_id IS NULL AND contact_email IS NOT NULL
+              GROUP BY contact_email, coalesce(content_type, ''), coalesce(content_id::text, '')
+              HAVING count(*) > 1) g),
+  'student_access_open_requester_id_absent_without_contact_email', (SELECT count(*) FROM sa
+        WHERE status IN ('pending', 'contacted') AND requester_user_id IS NULL AND contact_email IS NULL),
+  'informational_all_request_types_open_repeat_groups_by_requester_id_and_target', (SELECT jsonb_object_agg(rt, g)
+        FROM (SELECT CASE WHEN request_type IN ('student_access', 'institute_inquiry', 'educator_application')
+                          THEN request_type ELSE 'unexpected_other' END AS rt,
+                     jsonb_build_object('groups_with_more_than_one_open_request', count(*),
+                                        'requests_in_those_groups', coalesce(sum(n), 0)) AS g
+              FROM (SELECT request_type, count(*) AS n FROM a
+                    WHERE status IN ('pending', 'contacted') AND requester_user_id IS NOT NULL
+                    GROUP BY requester_user_id, request_type, coalesce(content_type, ''), coalesce(content_id::text, '')
+                    HAVING count(*) > 1) x
+              GROUP BY 1) y)
 ) AS result;
 
 -- ============================================================================
