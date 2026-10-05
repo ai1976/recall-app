@@ -1,6 +1,6 @@
--- Name: [DIAGNOSTIC] T-001 follow-up 4 (v3) - role graph and execution identity, routine inventory, writer and reader call-closure across every non-system schema, definitions, views/rules/triggers/foreign keys, policies, scheduled jobs, non-batch group RPC bodies
+-- Name: [DIAGNOSTIC] T-001 follow-up 4 (v4) - role graph and execution identity, routine inventory, writer and reader call-closure across every non-system schema, definitions, views/rules/triggers/foreign keys, policies, scheduled jobs, non-batch group RPC bodies
 --
--- Description: READ-ONLY fourth follow-up, revised after QA Round 42 (v2) and QA Round 44 (v3; supersedes v2 b9f389b7fd1e and v1 64392d6daff9). It measures the
+-- Description: READ-ONLY fourth follow-up, revised after QA Round 42 (v2), QA Round 44 (v3) and QA Round 46 (v4; supersedes v3 97c9b9f9f65e, v2 b9f389b7fd1e and v1 64392d6daff9). It measures the
 -- facts that the T-001 SQL design needs before any SQL is authored: QA Round 40 condition 2 (the exact boundary of the future
 -- no-login writer role grp_batch_writer), the complete set of routines that can write or read the group tables, and the live
 -- bodies that decide whether client INSERT and UPDATE privileges on the group tables can ever be revoked.
@@ -10,15 +10,15 @@
 --     server's own answer, from pg_has_role, to "is A a member of B / does A inherit B's privileges / can A SET ROLE to B" for
 --     every pair of roles, so transitive paths through any intermediate role are shown without any reasoning of ours. It also
 --     returns the default privileges (pg_default_acl) that would give new objects to client roles.
---   * J2 is no longer a text-match lead list, and (v3, after QA Round 44) it is no longer public-only. J2a inventories EVERY public
+--   * J2 is no longer a text-match lead list, and (v4, after QA Round 46) it is no longer public-only. J2a inventories EVERY public
 --     routine (including overloads) with owner, language, security definer flag, search_path, ACL and body flags, plus a count
 --     per schema and language of the routines in every other non-system schema. J2b computes the call-closure across EVERY
 --     non-system schema (everything except pg_catalog, information_schema and the toast and temporary schemas) with
 --     schema-qualified identities, over the routines whose body can be read (languages plpgsql and sql; routines in any other
---     language are counted by J2a): a routine is a seed if its source mentions study_group (any form: quoted, ONLY, MERGE,
+--     language are counted by J2a): a routine is a seed if its source mentions study_group or content_group_shares (any form: quoted, ONLY, MERGE,
 --     aliases, joins, reads), invite_token, a view over the group tables, or dynamic SQL (EXECUTE); the closure then adds every
---     routine that calls a member, directly or through other routines, by a schema-qualified call or by a bare name when the
---     callee is in the caller's schema, in public, or in the caller's configured search_path; it also lists the call edges
+--     routine that calls a member, directly or through other routines, by a schema-qualified call or by ANY bare-name match in any non-system schema (a deliberate over-approximation: the
+--     effective search_path of a caller is not assumed); it also lists the call edges
 --     inside the closure. J2c-1 and J2c-2 return the FULL DEFINITION of every routine in that closure (two runs so that no
 --     result cell is oversized). J2d returns what text matching cannot see: views and materialized views over the tables,
 --     rewrite rules, triggers on the tables and triggers whose function is in the closure, and every foreign key that touches
@@ -26,10 +26,10 @@
 --   * J4 returns every row-level security policy, on any table, whose text mentions the group tables or calls a routine of the
 --     closure, with full text (the readers and write policies that must treat only status 'active' as access, brief A 6.7).
 --   * J5 lists scheduled jobs (names, schedules, flags only, never the command text, because a scheduled command can carry a
---   * J5 lists scheduled jobs (names, schedules, flags only, never the command text, because a scheduled command can carry a
---     secret) and which non-system routines each calls by name. A positive flag (the command mentions study_group, or it calls a
+--     secret) and which non-system routines each calls by name. A positive flag (the command mentions the group tables or content_group_shares, or it calls a
 --     routine that is in the J2b closure or in the reviewed manifests) blocks every dependent SQL file until a secret-redacted
---     capture of that command is reviewed (plan v3, section 3).
+--     capture of that command is reviewed (plan v4, section 3).
+--   * J3 (bodies of create_study_group, invite_to_group, accept_group_invite, decline_group_invite, rename_batch_group) is kept
 --     as a guaranteed capture even if the closure missed one.
 -- Known blind spots, stated: the closure is a name-and-text over-approximation (a superset: it can include routines that do not
 -- write); it cannot see SQL built from a string assembled out of parts (for example 'study_' || 'groups') and not containing
@@ -135,8 +135,7 @@ SELECT jsonb_build_object(
 WITH RECURSIVE
 f AS (
   SELECT p.oid, n.nspname, p.proname, pg_get_function_identity_arguments(p.oid) AS args, p.prosecdef,
-         pg_get_userbyid(p.proowner) AS owner_role, p.prosrc,
-         coalesce(array_to_string(p.proconfig, ' '), '') AS cfg
+         pg_get_userbyid(p.proowner) AS owner_role, p.prosrc
   FROM pg_proc p
   JOIN pg_namespace n ON n.oid = p.pronamespace
   JOIN pg_language l ON l.oid = p.prolang
@@ -145,13 +144,13 @@ f AS (
     AND p.prokind IN ('f', 'p') AND l.lanname IN ('plpgsql', 'sql')
 ),
 vw AS (
-  SELECT viewname::text AS vname FROM pg_views WHERE definition ~* 'study_group'
+  SELECT viewname::text AS vname FROM pg_views WHERE definition ~* 'study_group|content_group_shares'
   UNION
-  SELECT matviewname::text FROM pg_matviews WHERE definition ~* 'study_group'
+  SELECT matviewname::text FROM pg_matviews WHERE definition ~* 'study_group|content_group_shares'
 ),
 seed AS (
   SELECT f.oid FROM f
-  WHERE f.prosrc ~* 'study_group' OR f.prosrc ~* 'invite_token' OR f.prosrc ~* '\mexecute\s'
+  WHERE f.prosrc ~* 'study_group|content_group_shares' OR f.prosrc ~* 'invite_token' OR f.prosrc ~* '\mexecute\s'
      OR EXISTS (SELECT 1 FROM vw WHERE f.prosrc ~* ('\m' || vw.vname || '\M'))
 ),
 closure(oid) AS (
@@ -162,9 +161,7 @@ closure(oid) AS (
   JOIN f g ON g.oid = cl.oid
   JOIN f c ON c.oid <> g.oid
    AND ( c.prosrc ~* ('(^|[^a-z0-9_])"?' || g.nspname || '"?\."?' || g.proname || '"?\s*\(')
-         OR ( c.prosrc ~* ('\m' || g.proname || '\s*\(')
-              AND ( g.nspname = c.nspname OR g.nspname = 'public'
-                    OR c.cfg ~* ('(^|[^a-z0-9_])' || g.nspname || '([^a-z0-9_]|$)') ) ) )
+         OR c.prosrc ~* ('\m' || g.proname || '\s*\(') )
 ),
 calls AS (
   SELECT c.oid AS caller, g.oid AS callee
@@ -173,9 +170,7 @@ calls AS (
   JOIN closure cg ON cg.oid <> cc.oid
   JOIN f g ON g.oid = cg.oid
   WHERE c.prosrc ~* ('(^|[^a-z0-9_])"?' || g.nspname || '"?\."?' || g.proname || '"?\s*\(')
-     OR ( c.prosrc ~* ('\m' || g.proname || '\s*\(')
-          AND ( g.nspname = c.nspname OR g.nspname = 'public'
-                OR c.cfg ~* ('(^|[^a-z0-9_])' || g.nspname || '([^a-z0-9_]|$)') ) )
+     OR c.prosrc ~* ('\m' || g.proname || '\s*\(')
 )
 SELECT jsonb_build_object(
   'seed_count', (SELECT count(*) FROM seed),
@@ -184,7 +179,7 @@ SELECT jsonb_build_object(
         'schema', f.nspname, 'name', f.proname, 'args', f.args, 'security_definer', f.prosecdef, 'owner', f.owner_role,
         'is_seed', EXISTS (SELECT 1 FROM seed s WHERE s.oid = f.oid),
         'seed_reasons', (SELECT jsonb_agg(reason) FROM (
-              SELECT 'mentions_study_group' AS reason WHERE f.prosrc ~* 'study_group'
+              SELECT 'mentions_group_tables_or_content_group_shares' AS reason WHERE f.prosrc ~* 'study_group|content_group_shares'
               UNION ALL SELECT 'mentions_invite_token' WHERE f.prosrc ~* 'invite_token'
               UNION ALL SELECT 'has_dynamic_sql' WHERE f.prosrc ~* '\mexecute\s'
               UNION ALL SELECT 'mentions_view_over_group_tables' WHERE EXISTS (SELECT 1 FROM vw WHERE f.prosrc ~* ('\m' || vw.vname || '\M'))
@@ -205,8 +200,7 @@ SELECT jsonb_build_object(
 WITH RECURSIVE
 f AS (
   SELECT p.oid, n.nspname, p.proname, pg_get_function_identity_arguments(p.oid) AS args, p.prosecdef,
-         pg_get_userbyid(p.proowner) AS owner_role, p.prosrc,
-         coalesce(array_to_string(p.proconfig, ' '), '') AS cfg
+         pg_get_userbyid(p.proowner) AS owner_role, p.prosrc
   FROM pg_proc p
   JOIN pg_namespace n ON n.oid = p.pronamespace
   JOIN pg_language l ON l.oid = p.prolang
@@ -215,13 +209,13 @@ f AS (
     AND p.prokind IN ('f', 'p') AND l.lanname IN ('plpgsql', 'sql')
 ),
 vw AS (
-  SELECT viewname::text AS vname FROM pg_views WHERE definition ~* 'study_group'
+  SELECT viewname::text AS vname FROM pg_views WHERE definition ~* 'study_group|content_group_shares'
   UNION
-  SELECT matviewname::text FROM pg_matviews WHERE definition ~* 'study_group'
+  SELECT matviewname::text FROM pg_matviews WHERE definition ~* 'study_group|content_group_shares'
 ),
 seed AS (
   SELECT f.oid FROM f
-  WHERE f.prosrc ~* 'study_group' OR f.prosrc ~* 'invite_token' OR f.prosrc ~* '\mexecute\s'
+  WHERE f.prosrc ~* 'study_group|content_group_shares' OR f.prosrc ~* 'invite_token' OR f.prosrc ~* '\mexecute\s'
      OR EXISTS (SELECT 1 FROM vw WHERE f.prosrc ~* ('\m' || vw.vname || '\M'))
 ),
 closure(oid) AS (
@@ -232,9 +226,7 @@ closure(oid) AS (
   JOIN f g ON g.oid = cl.oid
   JOIN f c ON c.oid <> g.oid
    AND ( c.prosrc ~* ('(^|[^a-z0-9_])"?' || g.nspname || '"?\."?' || g.proname || '"?\s*\(')
-         OR ( c.prosrc ~* ('\m' || g.proname || '\s*\(')
-              AND ( g.nspname = c.nspname OR g.nspname = 'public'
-                    OR c.cfg ~* ('(^|[^a-z0-9_])' || g.nspname || '([^a-z0-9_]|$)') ) ) )
+         OR c.prosrc ~* ('\m' || g.proname || '\s*\(') )
 ),
 calls AS (
   SELECT c.oid AS caller, g.oid AS callee
@@ -243,9 +235,7 @@ calls AS (
   JOIN closure cg ON cg.oid <> cc.oid
   JOIN f g ON g.oid = cg.oid
   WHERE c.prosrc ~* ('(^|[^a-z0-9_])"?' || g.nspname || '"?\."?' || g.proname || '"?\s*\(')
-     OR ( c.prosrc ~* ('\m' || g.proname || '\s*\(')
-          AND ( g.nspname = c.nspname OR g.nspname = 'public'
-                OR c.cfg ~* ('(^|[^a-z0-9_])' || g.nspname || '([^a-z0-9_]|$)') ) )
+     OR c.prosrc ~* ('\m' || g.proname || '\s*\(')
 ),
 numbered AS (
   SELECT f.*, ntile(2) OVER (ORDER BY f.nspname, f.proname, f.args) AS tile FROM f WHERE f.oid IN (SELECT oid FROM closure)
@@ -266,8 +256,7 @@ SELECT jsonb_build_object(
 WITH RECURSIVE
 f AS (
   SELECT p.oid, n.nspname, p.proname, pg_get_function_identity_arguments(p.oid) AS args, p.prosecdef,
-         pg_get_userbyid(p.proowner) AS owner_role, p.prosrc,
-         coalesce(array_to_string(p.proconfig, ' '), '') AS cfg
+         pg_get_userbyid(p.proowner) AS owner_role, p.prosrc
   FROM pg_proc p
   JOIN pg_namespace n ON n.oid = p.pronamespace
   JOIN pg_language l ON l.oid = p.prolang
@@ -276,13 +265,13 @@ f AS (
     AND p.prokind IN ('f', 'p') AND l.lanname IN ('plpgsql', 'sql')
 ),
 vw AS (
-  SELECT viewname::text AS vname FROM pg_views WHERE definition ~* 'study_group'
+  SELECT viewname::text AS vname FROM pg_views WHERE definition ~* 'study_group|content_group_shares'
   UNION
-  SELECT matviewname::text FROM pg_matviews WHERE definition ~* 'study_group'
+  SELECT matviewname::text FROM pg_matviews WHERE definition ~* 'study_group|content_group_shares'
 ),
 seed AS (
   SELECT f.oid FROM f
-  WHERE f.prosrc ~* 'study_group' OR f.prosrc ~* 'invite_token' OR f.prosrc ~* '\mexecute\s'
+  WHERE f.prosrc ~* 'study_group|content_group_shares' OR f.prosrc ~* 'invite_token' OR f.prosrc ~* '\mexecute\s'
      OR EXISTS (SELECT 1 FROM vw WHERE f.prosrc ~* ('\m' || vw.vname || '\M'))
 ),
 closure(oid) AS (
@@ -293,9 +282,7 @@ closure(oid) AS (
   JOIN f g ON g.oid = cl.oid
   JOIN f c ON c.oid <> g.oid
    AND ( c.prosrc ~* ('(^|[^a-z0-9_])"?' || g.nspname || '"?\."?' || g.proname || '"?\s*\(')
-         OR ( c.prosrc ~* ('\m' || g.proname || '\s*\(')
-              AND ( g.nspname = c.nspname OR g.nspname = 'public'
-                    OR c.cfg ~* ('(^|[^a-z0-9_])' || g.nspname || '([^a-z0-9_]|$)') ) ) )
+         OR c.prosrc ~* ('\m' || g.proname || '\s*\(') )
 ),
 calls AS (
   SELECT c.oid AS caller, g.oid AS callee
@@ -304,9 +291,7 @@ calls AS (
   JOIN closure cg ON cg.oid <> cc.oid
   JOIN f g ON g.oid = cg.oid
   WHERE c.prosrc ~* ('(^|[^a-z0-9_])"?' || g.nspname || '"?\."?' || g.proname || '"?\s*\(')
-     OR ( c.prosrc ~* ('\m' || g.proname || '\s*\(')
-          AND ( g.nspname = c.nspname OR g.nspname = 'public'
-                OR c.cfg ~* ('(^|[^a-z0-9_])' || g.nspname || '([^a-z0-9_]|$)') ) )
+     OR c.prosrc ~* ('\m' || g.proname || '\s*\(')
 ),
 numbered AS (
   SELECT f.*, ntile(2) OVER (ORDER BY f.nspname, f.proname, f.args) AS tile FROM f WHERE f.oid IN (SELECT oid FROM closure)
@@ -327,8 +312,7 @@ SELECT jsonb_build_object(
 WITH RECURSIVE
 f AS (
   SELECT p.oid, n.nspname, p.proname, pg_get_function_identity_arguments(p.oid) AS args, p.prosecdef,
-         pg_get_userbyid(p.proowner) AS owner_role, p.prosrc,
-         coalesce(array_to_string(p.proconfig, ' '), '') AS cfg
+         pg_get_userbyid(p.proowner) AS owner_role, p.prosrc
   FROM pg_proc p
   JOIN pg_namespace n ON n.oid = p.pronamespace
   JOIN pg_language l ON l.oid = p.prolang
@@ -337,13 +321,13 @@ f AS (
     AND p.prokind IN ('f', 'p') AND l.lanname IN ('plpgsql', 'sql')
 ),
 vw AS (
-  SELECT viewname::text AS vname FROM pg_views WHERE definition ~* 'study_group'
+  SELECT viewname::text AS vname FROM pg_views WHERE definition ~* 'study_group|content_group_shares'
   UNION
-  SELECT matviewname::text FROM pg_matviews WHERE definition ~* 'study_group'
+  SELECT matviewname::text FROM pg_matviews WHERE definition ~* 'study_group|content_group_shares'
 ),
 seed AS (
   SELECT f.oid FROM f
-  WHERE f.prosrc ~* 'study_group' OR f.prosrc ~* 'invite_token' OR f.prosrc ~* '\mexecute\s'
+  WHERE f.prosrc ~* 'study_group|content_group_shares' OR f.prosrc ~* 'invite_token' OR f.prosrc ~* '\mexecute\s'
      OR EXISTS (SELECT 1 FROM vw WHERE f.prosrc ~* ('\m' || vw.vname || '\M'))
 ),
 closure(oid) AS (
@@ -354,9 +338,7 @@ closure(oid) AS (
   JOIN f g ON g.oid = cl.oid
   JOIN f c ON c.oid <> g.oid
    AND ( c.prosrc ~* ('(^|[^a-z0-9_])"?' || g.nspname || '"?\."?' || g.proname || '"?\s*\(')
-         OR ( c.prosrc ~* ('\m' || g.proname || '\s*\(')
-              AND ( g.nspname = c.nspname OR g.nspname = 'public'
-                    OR c.cfg ~* ('(^|[^a-z0-9_])' || g.nspname || '([^a-z0-9_]|$)') ) ) )
+         OR c.prosrc ~* ('\m' || g.proname || '\s*\(') )
 ),
 calls AS (
   SELECT c.oid AS caller, g.oid AS callee
@@ -365,17 +347,15 @@ calls AS (
   JOIN closure cg ON cg.oid <> cc.oid
   JOIN f g ON g.oid = cg.oid
   WHERE c.prosrc ~* ('(^|[^a-z0-9_])"?' || g.nspname || '"?\."?' || g.proname || '"?\s*\(')
-     OR ( c.prosrc ~* ('\m' || g.proname || '\s*\(')
-          AND ( g.nspname = c.nspname OR g.nspname = 'public'
-                OR c.cfg ~* ('(^|[^a-z0-9_])' || g.nspname || '([^a-z0-9_]|$)') ) )
+     OR c.prosrc ~* ('\m' || g.proname || '\s*\(')
 )
 SELECT jsonb_build_object(
   'views_over_group_tables', (SELECT jsonb_agg(jsonb_build_object('schema', schemaname, 'view', viewname, 'definition', definition)
-      ORDER BY schemaname, viewname) FROM pg_views WHERE definition ~* 'study_group'),
+      ORDER BY schemaname, viewname) FROM pg_views WHERE definition ~* 'study_group|content_group_shares'),
   'materialized_views_over_group_tables', (SELECT jsonb_agg(jsonb_build_object('schema', schemaname, 'view', matviewname, 'definition', definition)
-      ORDER BY schemaname, matviewname) FROM pg_matviews WHERE definition ~* 'study_group'),
+      ORDER BY schemaname, matviewname) FROM pg_matviews WHERE definition ~* 'study_group|content_group_shares'),
   'rewrite_rules_on_or_mentioning_group_tables', (SELECT jsonb_agg(jsonb_build_object('schema', schemaname, 'table', tablename, 'rule', rulename, 'definition', definition)
-      ORDER BY schemaname, tablename, rulename) FROM pg_rules WHERE tablename IN ('study_groups', 'study_group_members') OR definition ~* 'study_group'),
+      ORDER BY schemaname, tablename, rulename) FROM pg_rules WHERE tablename IN ('study_groups', 'study_group_members', 'content_group_shares') OR definition ~* 'study_group|content_group_shares'),
   'triggers_on_group_tables_or_calling_a_closure_routine', (SELECT jsonb_agg(jsonb_build_object(
         'table', c.relname, 'trigger', t.tgname, 'enabled', t.tgenabled::text, 'function', pf.proname,
         'definition', pg_get_triggerdef(t.oid)) ORDER BY c.relname, t.tgname)
@@ -383,7 +363,7 @@ SELECT jsonb_build_object(
       JOIN pg_class c ON c.oid = t.tgrelid
       JOIN pg_proc pf ON pf.oid = t.tgfoid
       WHERE NOT t.tgisinternal
-        AND (c.relname IN ('study_groups', 'study_group_members') OR t.tgfoid IN (SELECT oid FROM closure))),
+        AND (c.relname IN ('study_groups', 'study_group_members', 'content_group_shares') OR t.tgfoid IN (SELECT oid FROM closure))),
   'foreign_keys_touching_group_tables', (SELECT jsonb_agg(jsonb_build_object(
         'constraint', con.conname, 'table', cl.relname, 'references', rf.relname,
         'on_update', con.confupdtype::text, 'on_delete', con.confdeltype::text,
@@ -392,7 +372,7 @@ SELECT jsonb_build_object(
       JOIN pg_class cl ON cl.oid = con.conrelid
       JOIN pg_class rf ON rf.oid = con.confrelid
       WHERE con.contype = 'f'
-        AND (cl.relname IN ('study_groups', 'study_group_members') OR rf.relname IN ('study_groups', 'study_group_members')))
+        AND (cl.relname IN ('study_groups', 'study_group_members', 'content_group_shares') OR rf.relname IN ('study_groups', 'study_group_members', 'content_group_shares')))
 ) AS result;
 
 -- ============================================================================
@@ -418,8 +398,7 @@ WHERE n.nspname = 'public'
 WITH RECURSIVE
 f AS (
   SELECT p.oid, n.nspname, p.proname, pg_get_function_identity_arguments(p.oid) AS args, p.prosecdef,
-         pg_get_userbyid(p.proowner) AS owner_role, p.prosrc,
-         coalesce(array_to_string(p.proconfig, ' '), '') AS cfg
+         pg_get_userbyid(p.proowner) AS owner_role, p.prosrc
   FROM pg_proc p
   JOIN pg_namespace n ON n.oid = p.pronamespace
   JOIN pg_language l ON l.oid = p.prolang
@@ -428,13 +407,13 @@ f AS (
     AND p.prokind IN ('f', 'p') AND l.lanname IN ('plpgsql', 'sql')
 ),
 vw AS (
-  SELECT viewname::text AS vname FROM pg_views WHERE definition ~* 'study_group'
+  SELECT viewname::text AS vname FROM pg_views WHERE definition ~* 'study_group|content_group_shares'
   UNION
-  SELECT matviewname::text FROM pg_matviews WHERE definition ~* 'study_group'
+  SELECT matviewname::text FROM pg_matviews WHERE definition ~* 'study_group|content_group_shares'
 ),
 seed AS (
   SELECT f.oid FROM f
-  WHERE f.prosrc ~* 'study_group' OR f.prosrc ~* 'invite_token' OR f.prosrc ~* '\mexecute\s'
+  WHERE f.prosrc ~* 'study_group|content_group_shares' OR f.prosrc ~* 'invite_token' OR f.prosrc ~* '\mexecute\s'
      OR EXISTS (SELECT 1 FROM vw WHERE f.prosrc ~* ('\m' || vw.vname || '\M'))
 ),
 closure(oid) AS (
@@ -445,9 +424,7 @@ closure(oid) AS (
   JOIN f g ON g.oid = cl.oid
   JOIN f c ON c.oid <> g.oid
    AND ( c.prosrc ~* ('(^|[^a-z0-9_])"?' || g.nspname || '"?\."?' || g.proname || '"?\s*\(')
-         OR ( c.prosrc ~* ('\m' || g.proname || '\s*\(')
-              AND ( g.nspname = c.nspname OR g.nspname = 'public'
-                    OR c.cfg ~* ('(^|[^a-z0-9_])' || g.nspname || '([^a-z0-9_]|$)') ) ) )
+         OR c.prosrc ~* ('\m' || g.proname || '\s*\(') )
 ),
 calls AS (
   SELECT c.oid AS caller, g.oid AS callee
@@ -456,13 +433,11 @@ calls AS (
   JOIN closure cg ON cg.oid <> cc.oid
   JOIN f g ON g.oid = cg.oid
   WHERE c.prosrc ~* ('(^|[^a-z0-9_])"?' || g.nspname || '"?\."?' || g.proname || '"?\s*\(')
-     OR ( c.prosrc ~* ('\m' || g.proname || '\s*\(')
-          AND ( g.nspname = c.nspname OR g.nspname = 'public'
-                OR c.cfg ~* ('(^|[^a-z0-9_])' || g.nspname || '([^a-z0-9_]|$)') ) )
+     OR c.prosrc ~* ('\m' || g.proname || '\s*\(')
 )
 SELECT jsonb_build_object(
   'policy_count', (SELECT count(*) FROM pg_policies pol WHERE (pol.tablename IN ('study_groups', 'study_group_members', 'content_group_shares', 'access_requests')
-        OR (coalesce(pol.qual, '') || ' ' || coalesce(pol.with_check, '')) ~* 'study_group'
+        OR (coalesce(pol.qual, '') || ' ' || coalesce(pol.with_check, '')) ~* 'study_group|content_group_shares'
         OR EXISTS (SELECT 1 FROM f g WHERE g.oid IN (SELECT oid FROM closure)
                    AND (coalesce(pol.qual, '') || ' ' || coalesce(pol.with_check, '')) ~* ('\m' || g.proname || '\s*\(')))),
   'policies', (SELECT jsonb_agg(jsonb_build_object(
@@ -470,7 +445,7 @@ SELECT jsonb_build_object(
         'permissive', pol.permissive, 'roles', pol.roles, 'using', pol.qual, 'with_check', pol.with_check
       ) ORDER BY pol.schemaname, pol.tablename, pol.policyname)
       FROM pg_policies pol WHERE (pol.tablename IN ('study_groups', 'study_group_members', 'content_group_shares', 'access_requests')
-        OR (coalesce(pol.qual, '') || ' ' || coalesce(pol.with_check, '')) ~* 'study_group'
+        OR (coalesce(pol.qual, '') || ' ' || coalesce(pol.with_check, '')) ~* 'study_group|content_group_shares'
         OR EXISTS (SELECT 1 FROM f g WHERE g.oid IN (SELECT oid FROM closure)
                    AND (coalesce(pol.qual, '') || ' ' || coalesce(pol.with_check, '')) ~* ('\m' || g.proname || '\s*\('))))
 ) AS result;
@@ -481,7 +456,7 @@ SELECT jsonb_build_object(
 SELECT jsonb_agg(jsonb_build_object(
          'jobid', j.jobid, 'jobname', j.jobname, 'schedule', j.schedule, 'active', j.active,
          'command_length', length(j.command),
-         'command_mentions_study_group', j.command ~* 'study_group',
+         'command_mentions_group_tables', j.command ~* 'study_group|content_group_shares',
          'command_mentions_an_http_call', j.command ~* 'net\.http',
          'routines_called', (SELECT jsonb_agg(n.nspname || '.' || p.proname ORDER BY n.nspname, p.proname)
               FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
