@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { addBatchToMyCards, createFlashcardBatches } from '@/lib/dueSet';
 import { useRole } from '@/contexts/NavDataContext'; // Sprint 7.0: shared nav-data context, not a per-mount fetch
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -811,7 +812,7 @@ IMPORTANT:
     const cardIds = (createdCards || []).map(c => c.id);
     if (cardIds.length === 0) return;
 
-    const { error: enrollError } = await supabase.rpc('add_batch_to_my_cards', {
+    const { error: enrollError } = await addBatchToMyCards({
       p_user_id: userId,
       p_flashcard_ids: cardIds,
     });
@@ -1019,7 +1020,7 @@ IMPORTANT:
       // same batch_id into one { batch_id, cards } entry.
       const batches = groupCardsIntoBatches(flashcardsToInsert);
 
-      const { data, error } = await supabase.rpc('create_flashcard_batches', {
+      const { data, error } = await createFlashcardBatches({
         p_source_type: sourceType,
         p_source_name: sourceName.trim(),
         p_batches: batches,

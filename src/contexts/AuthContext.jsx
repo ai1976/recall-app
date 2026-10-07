@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase';
+import { updateProfileDueFields } from '@/lib/dueSet';
 
 const AuthContext = createContext({})
 
@@ -86,10 +87,7 @@ export const AuthProvider = ({ children }) => {
 
       // Only update if timezone is different or null
       if (profile?.timezone !== browserTimezone) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ timezone: browserTimezone })
-          .eq('id', userId);
+        const { error: updateError } = await updateProfileDueFields(userId, { timezone: browserTimezone });
 
         if (updateError) {
           console.warn('⏰ Failed to update timezone:', updateError);

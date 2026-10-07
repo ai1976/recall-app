@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { setFriendshipStatus, deleteFriendship } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,13 +66,7 @@ export default function FriendRequests() {
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('friendships')
-        .update({
-          status: 'accepted',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', friendshipId);
+      const { error } = await setFriendshipStatus(friendshipId, 'accepted');
 
       if (error) throw error;
 
@@ -103,10 +98,8 @@ export default function FriendRequests() {
   const handleReject = async (friendshipId) => {
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('friendships')
-        .delete() // <--- THIS IS THE FIX (Deletes the row completely)
-        .eq('id', friendshipId);
+      // Hard delete (not a soft "rejected" update): the row is removed completely.
+      const { error } = await deleteFriendship(friendshipId);
 
       if (error) throw error;
 

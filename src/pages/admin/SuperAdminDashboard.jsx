@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { adminChangeRole, adminDeleteUserData } from '@/lib/dueSet';
 import { useRole } from '@/contexts/NavDataContext'; // Sprint 7.0: shared nav-data context, not a per-mount fetch
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -365,7 +366,7 @@ export default function SuperAdminDashboard() {
         return;
       }
 
-      const { data, error } = await supabase.rpc('admin_change_role', {
+      const { data, error } = await adminChangeRole({
         p_user_id: userId,
         p_new_role: newRole,
         p_reason: reason || null,
@@ -453,8 +454,7 @@ Are you ABSOLUTELY SURE?`;
 
     // Step 6+7: Delete all user data via SECURITY DEFINER RPC (bypasses RLS)
     console.log('Deleting user data via RPC...');
-    const { error: deleteError } = await supabase
-      .rpc('admin_delete_user_data', { p_user_id: userId });
+    const { error: deleteError } = await adminDeleteUserData({ p_user_id: userId });
 
     if (deleteError) throw deleteError;
 

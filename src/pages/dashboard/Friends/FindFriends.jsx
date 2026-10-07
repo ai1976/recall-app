@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { upsertFriendRequest } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -47,8 +48,9 @@ export default function FindFriends() {
       return next;
     });
     try {
-      const rpc = isFollowing ? 'unfollow_user' : 'follow_user';
-      const { error } = await supabase.rpc(rpc, { p_followee_id: userId });
+      const { error } = isFollowing
+        ? await supabase.rpc('unfollow_user', { p_followee_id: userId })
+        : await supabase.rpc('follow_user', { p_followee_id: userId });
       if (error) throw error;
     } catch (error) {
       // revert on error
@@ -108,14 +110,12 @@ export default function FindFriends() {
   const sendFriendRequest = async (friendId) => {
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('friendships')
-        .upsert({
+      const { error } = await upsertFriendRequest({
           user_id: user.id,
           friend_id: friendId,
           status: 'pending',
           updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id, friend_id' });
+        });
 
       if (error) throw error;
 

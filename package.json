@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "guard:due": "node scripts/dueSetGuard.run.mjs",
+    "prebuild": "node scripts/dueSetGuard.run.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { unsuspendCard } from '@/lib/dueSet';
+import { useDueSnapshot, useRefreshDueSnapshotOnEntry } from '@/contexts/DueSnapshotContext';
 import { Button } from '@/components/ui/button';
 
 import {
@@ -21,13 +23,13 @@ import {
   PlayCircle,
   ChevronDown,
   ChevronRight,
-  Clock,
   BookOpen,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCourseContext } from '@/contexts/CourseContext';
 import PageContainer from '@/components/layout/PageContainer';
 import StudyHeatmap from '@/components/progress/StudyHeatmap';
+import ForecastCard from '@/components/progress/ForecastCard';
 import SubjectMasteryTable from '@/components/progress/SubjectMasteryTable';
 import { Num, Label } from '@/components/revisop';
 import { formatQuestionType } from '@/lib/questionTypes';
@@ -102,8 +104,9 @@ export default function MyProgress() {
   const [lifetimeLoading, setLifetimeLoading] = useState(true);
 
   // ── Due forecast ─────────────────────────────────────────────────────────
-  const [forecast, setForecast] = useState(null);
-  const [forecastLoading, setForecastLoading] = useState(true);
+  // T-001 brief C v6: the tiles read the one shared snapshot (a failed refresh keeps the previous numbers).
+  const { forecast, loading: forecastLoading } = useDueSnapshot();
+  useRefreshDueSnapshotOnEntry();
 
   // ── Question type performance ─────────────────────────────────────────────
   const [qtPerf, setQtPerf] = useState([]);
@@ -197,18 +200,6 @@ export default function MyProgress() {
     load();
   }, [user, window]);
 
-  // ─── Fetch forecast once ──────────────────────────────────────────────────
-  useEffect(() => {
-    if (!user) return;
-    const load = async () => {
-      setForecastLoading(true);
-      const { data } = await supabase.rpc('get_due_forecast', { p_user_id: user.id });
-      setForecast(data?.[0] ?? null);
-      setForecastLoading(false);
-    };
-    load();
-  }, [user]);
-
   // ─── Fetch question-type performance when tab or selected course changes ───
   useEffect(() => {
     if (!user) return;
@@ -252,7 +243,7 @@ export default function MyProgress() {
   // ─── Unsuspend handler ────────────────────────────────────────────────────
   const handleUnsuspend = async (card) => {
     try {
-      const { error } = await supabase.rpc('unsuspend_card', {
+      const { error } = await unsuspendCard({
         p_user_id:      user.id,
         p_flashcard_id: card.flashcard_id,
       });
@@ -510,7 +501,7 @@ function ProgressBody({
   masteredCards, masteredLoading, masteredExpanded, setMasteredExpanded, groupedMastered,
 }) {
   const windowLabel = window === '7d' ? 'Last 7 days' : window === '30d' ? 'Last 30 days' : 'All time';
-  const dueToday = forecast?.due_today ?? 0;
+  const dueToday = forecast ? forecast.due_today : null; // null = unknown (never shown as zero)
 
   return (
     <>
@@ -563,12 +554,12 @@ function ProgressBody({
           />
           <ForecastCard
             label="Next 7 Days"
-            value={forecastLoading ? null : (forecast?.due_next_7 ?? 0)}
+            value={forecastLoading || !forecast ? null : forecast.due_next_7}
             tone="quiet"
           />
           <ForecastCard
             label="Next 30 Days"
-            value={forecastLoading ? null : (forecast?.due_next_30 ?? 0)}
+            value={forecastLoading || !forecast ? null : forecast.due_next_30}
             tone="quiet"
           />
         </div>
@@ -751,33 +742,6 @@ function StatCard({ icon, value, label, sub, loading }) {
       </div>
       <h3 className="text-sm font-medium text-rv-ink-600">{label}</h3>
       <p className="text-xs text-rv-ink-400 mt-0.5">{sub}</p>
-    </div>
-  );
-}
-
-// Due Items Forecast tile. `tone` drives colour (see the hierarchy note above):
-//   calm   → nothing due today (positive, muted green)
-//   amber  → today's pile — the loudest surface, it's the only call to action
-//   danger → Due Today past DUE_TODAY_ALARM_THRESHOLD (genuine backlog)
-//   quiet  → the 7 / 30-day forecast — context, deliberately the softest
-const FORECAST_TONES = {
-  calm:   { box: 'bg-rv-green-50 border-rv-border',     text: 'text-rv-green' },
-  amber:  { box: 'bg-rv-amber-50 border-rv-amber-edge', text: 'text-rv-amber-ink' },
-  danger: { box: 'bg-rv-bg-1 border-rv-danger',         text: 'text-rv-danger' },
-  quiet:  { box: 'bg-rv-bg-1 border-rv-border',         text: 'text-rv-ink-600' },
-};
-
-function ForecastCard({ label, value, tone }) {
-  const t = FORECAST_TONES[tone] ?? FORECAST_TONES.quiet;
-  return (
-    <div className={`rounded-lg border p-4 text-center ${t.box} ${t.text}`}>
-      <div className="flex items-center justify-center gap-1 mb-1">
-        <Clock className="h-4 w-4 opacity-70" />
-      </div>
-      <Num className={`block text-2xl leading-none mb-1 ${t.text}`}>
-        {value === null ? <span className="animate-pulse">—</span> : value}
-      </Num>
-      <p className="text-xs font-medium opacity-80">{label}</p>
     </div>
   );
 }

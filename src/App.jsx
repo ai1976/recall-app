@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { CourseContextProvider } from '@/contexts/CourseContext'
 import { NavDataProvider } from '@/contexts/NavDataContext'
+import { DueSnapshotProvider } from '@/contexts/DueSnapshotContext'
 import { ExamDateProvider } from '@/contexts/ExamDateContext'
 import { StudySessionProvider } from '@/contexts/StudySessionContext'
 import StudyLeaveGuard from '@/components/study/StudyLeaveGuard'
@@ -435,6 +436,7 @@ function App() {
         {/* NavDataProvider owns useRole / useNotifications / useFriendRequestCount
             as ONE instance for the whole app (Sprint 7.0 — Finding 5). Above the
             router so every route (nav shell + pages) reads the same context. */}
+        <DueSnapshotProvider>
         <NavDataProvider>
           {/* ExamDateProvider — Sprint 8.4. App-wide so the nav chip, the
               first-login prompt, and Profile Settings all read/write the
@@ -452,6 +454,7 @@ function App() {
             </StudySessionProvider>
           </ExamDateProvider>
         </NavDataProvider>
+        </DueSnapshotProvider>
       </CourseContextProvider>
     </AuthProvider>
   )

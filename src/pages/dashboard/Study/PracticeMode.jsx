@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { addToMyCards } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStudySession } from '@/contexts/StudySessionContext';
 import { Button } from '@/components/ui/button';
@@ -176,7 +177,7 @@ export default function PracticeMode() {
   const handleAdd = async (card) => {
     setAddingId(card.id);
     try {
-      const { error } = await supabase.rpc('add_to_my_cards', {
+      const { error } = await addToMyCards({
         p_user_id: user.id,
         p_flashcard_id: card.id,
       });

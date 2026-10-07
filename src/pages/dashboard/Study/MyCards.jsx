@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { suspendCard, unsuspendCard, removeFromMyCards, addToMyCards, runBulkMyCards } from '@/lib/dueSet';
 import { useToast } from '@/hooks/use-toast';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
@@ -234,8 +235,6 @@ export default function MyCards() {
   };
 
   // ── Bulk actions (Sprint 8.8.5c) ───────────────────────────────────────────
-  const BULK_RPC = { pause: 'bulk_pause_my_cards', resume: 'bulk_resume_my_cards', remove: 'bulk_remove_from_my_cards' };
-  const BULK_CHUNK = 500; // server cap per call
 
   const openBulk = (action, scopeName, ids) => setBulkDialog({ open: true, action, scopeName, ids });
 
@@ -244,17 +243,9 @@ export default function MyCards() {
     if (!action || ids.length === 0) return;
     setBulkBusy(true);
     try {
-      let processed = 0;
-      let skipped = 0;
-      for (let i = 0; i < ids.length; i += BULK_CHUNK) {
-        const { data, error } = await supabase.rpc(BULK_RPC[action], {
-          p_user_id: user.id,
-          p_flashcard_ids: ids.slice(i, i + BULK_CHUNK),
-        });
-        if (error) throw error;
-        processed += data?.processed ?? 0;
-        skipped += data?.skipped ?? 0;
-      }
+      // One wrapper runs the chunks (500 per call, the server cap) and sends ONE refresh signal after the last chunk, or after a partial failure.
+      const { processed, skipped, error } = await runBulkMyCards(action, user.id, ids);
+      if (error) throw error;
       const verb = { pause: 'paused', resume: 'resumed', remove: 'removed from My Study' }[action];
       toast({
         title: `${processed} item${processed === 1 ? '' : 's'} ${verb}`,
@@ -318,7 +309,7 @@ export default function MyCards() {
   const handlePause = async (card) => {
     setBusyId(card.id);
     try {
-      const { error } = await supabase.rpc('suspend_card', { p_user_id: user.id, p_flashcard_id: card.id });
+      const { error } = await suspendCard({ p_user_id: user.id, p_flashcard_id: card.id });
       if (error) throw error;
       setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, reviewStatus: 'suspended' } : c)));
       toast({ title: 'Card paused', description: 'It stays in My Study but will not be scheduled until you resume it.' });
@@ -333,7 +324,7 @@ export default function MyCards() {
   const handleResume = async (card) => {
     setBusyId(card.id);
     try {
-      const { error } = await supabase.rpc('unsuspend_card', { p_user_id: user.id, p_flashcard_id: card.id });
+      const { error } = await unsuspendCard({ p_user_id: user.id, p_flashcard_id: card.id });
       if (error) throw error;
       setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, reviewStatus: 'active' } : c)));
       toast({ title: 'Card resumed', description: 'Review scheduling resumes — it is due for review today.' });
@@ -348,7 +339,7 @@ export default function MyCards() {
   const handleRemove = async (card) => {
     setBusyId(card.id);
     try {
-      const { error } = await supabase.rpc('remove_from_my_cards', { p_user_id: user.id, p_flashcard_id: card.id });
+      const { error } = await removeFromMyCards({ p_user_id: user.id, p_flashcard_id: card.id });
       if (error) throw error;
       setCards((prev) => prev.filter((c) => c.id !== card.id));
       // Removed cards move into History — invalidate the lazy cache so it's fetched fresh next open.
@@ -367,7 +358,7 @@ export default function MyCards() {
   const handleReAdd = async (card) => {
     setBusyId(card.id);
     try {
-      const { error } = await supabase.rpc('add_to_my_cards', { p_user_id: user.id, p_flashcard_id: card.id });
+      const { error } = await addToMyCards({ p_user_id: user.id, p_flashcard_id: card.id });
       if (error) throw error;
       setRemovedCards((prev) => (prev || []).filter((c) => c.id !== card.id));
       toast({ title: 'Added to My Study', description: 'Find it in your working list.' });

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { upsertFriendRequest } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -133,15 +134,12 @@ export default function AuthorProfile() {
   const sendFriendRequest = async () => {
     setSendingRequest(true);
     try {
-      const { error } = await supabase.from('friendships').upsert(
-        {
+      const { error } = await upsertFriendRequest({
           user_id: user.id,
           friend_id: userId,
           status: 'pending',
           updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id, friend_id' }
-      );
+        });
 
       if (error) throw error;
 

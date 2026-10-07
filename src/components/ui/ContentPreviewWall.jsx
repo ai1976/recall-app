@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { submitAccessRequest } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Lock } from 'lucide-react';
@@ -63,7 +63,7 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
 
     setLoading(true);
     try {
-      const { error } = await supabase.rpc('submit_access_request', {
+      const { error } = await submitAccessRequest({
         p_name: name.trim(),
         p_whatsapp_number: normalizedWhatsapp,
         p_course: course,

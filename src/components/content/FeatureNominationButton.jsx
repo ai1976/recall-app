@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Star } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { nominateFeaturedContent } from '@/lib/dueSet';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -16,7 +16,7 @@ export default function FeatureNominationButton({ contentType, contentId, isFeat
   const handleNominate = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.rpc('nominate_featured_content', {
+      const { error } = await nominateFeaturedContent({
         p_content_type: contentType,
         p_content_id: contentId,
       });

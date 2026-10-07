@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { deleteNote } from '@/lib/dueSet';
 import { FileText, Search, Lock, Globe, Trash2, Filter, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -209,10 +210,7 @@ export default function MyNotes() {
     try {
       const noteToDelete = notes.find(n => n.id === noteId);
 
-      const { error } = await supabase
-        .from('notes')
-        .delete()
-        .eq('id', noteId);
+      const { error } = await deleteNote(noteId);
 
       if (error) throw error;
 

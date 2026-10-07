@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/lib/supabase';
+import { setFriendshipStatus } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 import { notifyFriendEvent } from '@/lib/notifyEdge';
 
@@ -90,10 +91,7 @@ export default function NotificationCenter({
 
     setActionLoading(`req-${friendshipId}`);
     try {
-      const { error } = await supabase
-        .from('friendships')
-        .update({ status: 'accepted', updated_at: new Date().toISOString() })
-        .eq('id', friendshipId);
+      const { error } = await setFriendshipStatus(friendshipId, 'accepted');
 
       if (error) throw error;
 
@@ -115,10 +113,7 @@ export default function NotificationCenter({
     setActionLoading(`req-${friendshipId}`);
 
     try {
-      const { error } = await supabase
-        .from('friendships')
-        .update({ status: 'rejected', updated_at: new Date().toISOString() })
-        .eq('id', friendshipId);
+      const { error } = await setFriendshipStatus(friendshipId, 'rejected');
 
       if (error) throw error;
 

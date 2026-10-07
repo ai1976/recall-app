@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { submitEducatorApplication, submitInstituteInquiry } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Zap, Users, BookOpen, ArrowLeft } from 'lucide-react';
@@ -101,7 +101,7 @@ export default function Educators() {
 
     setEduLoading(true);
     try {
-      const { data: refToken, error } = await supabase.rpc('submit_educator_application', {
+      const { data: refToken, error } = await submitEducatorApplication({
         p_full_name: eduFullName.trim(),
         p_whatsapp_number: normalizedWhatsapp,
         p_credential_or_linkedin: eduCredential.trim(),
@@ -141,7 +141,7 @@ export default function Educators() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.rpc('submit_institute_inquiry', {
+      const { error } = await submitInstituteInquiry({
         p_institute_name: instituteName.trim(),
         p_contact_name: contactName.trim(),
         p_whatsapp_number: normalizedWhatsapp,

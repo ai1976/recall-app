@@ -1,0 +1,1395 @@
+{
+ "_about": "Per-name classification of every RPC the frontend calls (T-001 brief C v6 C-6.4, QA Round 78 condition 4). Built from the accepted live-body evidence: diagnostic 11 v4 (39c0cd05bce8), run W1, Gate 4 accepted in Round 126, and diagnostic 12 (e8c3d9953dd1), run W2, Gate 4 accepted in Round 131 (the 25 row-level-security policy preconditions cleared). Rule (QA Rounds 125 and 130): a routine is not-due-changing only if W1 shows no write to reviews, my_cards_enrollment, friendships, flashcards, notes or profiles, directly, transitively or indirectly, and no manual-review flag; all other frontend routines are due-changing and live in src/lib/dueSet.js. The classification is bound to this evidence snapshot: a change to a routine, policy, trigger, rule, cascade or frontend call returns to review. Lexical analysis, not a behavioural proof.",
+ "evidence": {
+  "w1_raw_sha256": "4784e9656e63dd2325cf9fb19939c5e88f5dc57c44a5a879cf0fa658950109c9",
+  "w2_raw_sha256": "a3047e740732e9ed9f7aaa35af905cace26c1f5a16bf3d23191f8a6b1d426c21",
+  "w1_diagnostic": "39c0cd05bce80989e331ec34d7c8bee0365793467961610a2811e01f4475010d",
+  "w2_diagnostic": "e8c3d9953dd1c4b86128139b11a27de60612e0f802e8ce26eb4f2def721f85c5"
+ },
+ "names": {
+  "accept_group_invite": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "add_batch_to_my_cards": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "my_cards_enrollment.insert"
+    ],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [
+     "my_cards_enrollment.update"
+    ],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": true
+   }
+  },
+  "add_to_my_cards": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "my_cards_enrollment.insert",
+     "reviews.update"
+    ],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [
+     "my_cards_enrollment.update"
+    ],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": true
+   }
+  },
+  "admin_bulk_add_to_batch": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "admin_bulk_resolve_batch_requests": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "admin_change_role": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "profiles.update"
+    ],
+    "due_input_writes_indirect": [
+     "profiles.update>flashcards",
+     "profiles.update>friendships",
+     "profiles.update>my_cards_enrollment",
+     "profiles.update>notes",
+     "profiles.update>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "admin_delete_note": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "notes.delete"
+    ],
+    "due_input_writes_indirect": [
+     "notes.delete>flashcards",
+     "notes.delete>my_cards_enrollment",
+     "notes.delete>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "admin_delete_user_data": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "flashcards.delete",
+     "notes.delete",
+     "profiles.delete",
+     "reviews.delete"
+    ],
+    "due_input_writes_indirect": [
+     "flashcard_decks.delete>flashcards",
+     "flashcard_decks.delete>my_cards_enrollment",
+     "flashcard_decks.delete>reviews",
+     "flashcards.delete>my_cards_enrollment",
+     "flashcards.delete>reviews",
+     "notes.delete>flashcards",
+     "notes.delete>my_cards_enrollment",
+     "notes.delete>reviews",
+     "profiles.delete>flashcards",
+     "profiles.delete>friendships",
+     "profiles.delete>my_cards_enrollment",
+     "profiles.delete>notes",
+     "profiles.delete>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [
+     "flashcards"
+    ],
+    "needs_manual_review": true
+   }
+  },
+  "admin_grant_access": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "profiles.update"
+    ],
+    "due_input_writes_indirect": [
+     "profiles.update>flashcards",
+     "profiles.update>friendships",
+     "profiles.update>my_cards_enrollment",
+     "profiles.update>notes",
+     "profiles.update>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "admin_reactivate_user": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "profiles.update"
+    ],
+    "due_input_writes_indirect": [
+     "profiles.update>flashcards",
+     "profiles.update>friendships",
+     "profiles.update>my_cards_enrollment",
+     "profiles.update>notes",
+     "profiles.update>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "admin_read_profiles": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "admin_suspend_user": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "profiles.update"
+    ],
+    "due_input_writes_indirect": [
+     "profiles.update>flashcards",
+     "profiles.update>friendships",
+     "profiles.update>my_cards_enrollment",
+     "profiles.update>notes",
+     "profiles.update>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "apply_review": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "reviews.insert",
+     "reviews.update"
+    ],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "approve_batch_join_request": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "approve_educator_application": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "profiles.update"
+    ],
+    "due_input_writes_indirect": [
+     "profiles.update>flashcards",
+     "profiles.update>friendships",
+     "profiles.update>my_cards_enrollment",
+     "profiles.update>notes",
+     "profiles.update>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [
+     "bare_call_matching_non_public_routine:role"
+    ],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": true
+   }
+  },
+  "approve_featured_nomination": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "notes.update"
+    ],
+    "due_input_writes_indirect": [
+     "flashcard_decks.update>flashcards",
+     "flashcard_decks.update>my_cards_enrollment",
+     "flashcard_decks.update>reviews",
+     "notes.update>flashcards",
+     "notes.update>my_cards_enrollment",
+     "notes.update>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "archive_batch_group": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "assign_professor_to_batch": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "bulk_pause_my_cards": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "reviews.insert"
+    ],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "bulk_remove_from_my_cards": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "my_cards_enrollment.update",
+     "reviews.insert"
+    ],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "bulk_resume_my_cards": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "reviews.update"
+    ],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "create_batch_group": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "create_flashcard_batches": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "flashcards.insert"
+    ],
+    "due_input_writes_indirect": [
+     "flashcards.insert>my_cards_enrollment",
+     "flashcards.insert>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [
+     "flashcards"
+    ],
+    "needs_manual_review": true
+   }
+  },
+  "create_study_group": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "decline_group_invite": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "delete_notification": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "enroll_user_in_batch_group": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "follow_user": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_admin_batch_groups": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_admin_flags": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_admin_pending_batch_requests": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_admin_platform_overview": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_assignable_professors": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_author_content_summary": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_author_profile": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_batch_group_archive": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_batch_group_member_stats": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_batch_group_professors": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_browsable_decks": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_browsable_notes": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_content_creation_stats": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_content_health_stats": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_course_archived_my_cards": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_creator_leaderboard": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_discoverable_users": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_due_forecast": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_due_forecast_buckets": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_educator_accuracy_by_qtype": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_educator_cohort_forecast_buckets": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_featured_landing_content": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_filtered_authors_for_flashcards": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_filtered_authors_for_notes": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_follow_status": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_following_leaderboard": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_following_with_stats": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_friends_leaderboard": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_group_detail": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_group_preview": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_live_featured_content_admin": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_mastered_cards": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_my_batch_groups": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_my_cards": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_my_content_flags": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_my_enrollment_count": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_my_friends_with_stats": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_pending_featured_nominations": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_pending_group_invites": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_platform_heatmap": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_platform_stats": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_practice_cards": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_professor_overview": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_professor_subject_engagement": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_professor_top_cards": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_professor_weak_cards": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_professor_weekly_reach": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_public_deck_preview": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_public_educators": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_public_note_preview": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_question_type_performance": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_recent_activity_feed": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_recent_notifications": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_removed_my_cards": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_srs_ladder_config": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_study_engagement_stats": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_study_heatmap": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_study_heatmap_split": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_study_queue": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_study_time_stats": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_subject_mastery_v1": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_super_admin_cohort_comparison": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_super_admin_header_stats": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_suspended_cards": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_unnotified_badges": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_unread_notification_count": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_user_activity_stats": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_user_badges": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_user_groups": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_user_onboarding_stats": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_user_retention_stats": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_user_streak": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "get_weekly_platform_reviews": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "invite_to_group": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [
+     "flashcards.insert",
+     "notes.insert"
+    ],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": true
+   }
+  },
+  "join_group_by_token": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "leave_group": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [
+     "bare_call_matching_non_public_routine:role"
+    ],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": true
+   }
+  },
+  "link_access_request": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "profiles.update"
+    ],
+    "due_input_writes_indirect": [
+     "profiles.update>flashcards",
+     "profiles.update>friendships",
+     "profiles.update>my_cards_enrollment",
+     "profiles.update>notes",
+     "profiles.update>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [
+     "bare_call_matching_non_public_routine:role"
+    ],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": true
+   }
+  },
+  "log_admin_event": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "log_practice_attempt": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "mark_notifications_read": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "mark_single_notification_read": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "nominate_featured_content": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "notes.update"
+    ],
+    "due_input_writes_indirect": [
+     "flashcard_decks.update>flashcards",
+     "flashcard_decks.update>my_cards_enrollment",
+     "flashcard_decks.update>reviews",
+     "notes.update>flashcards",
+     "notes.update>my_cards_enrollment",
+     "notes.update>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "preview_course_change": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "reject_batch_join_request": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "reject_educator_application": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "reject_featured_nomination": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "notes.update"
+    ],
+    "due_input_writes_indirect": [
+     "flashcard_decks.update>flashcards",
+     "flashcard_decks.update>my_cards_enrollment",
+     "flashcard_decks.update>reviews",
+     "notes.update>flashcards",
+     "notes.update>my_cards_enrollment",
+     "notes.update>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "remove_from_my_cards": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "my_cards_enrollment.update",
+     "reviews.insert"
+    ],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "remove_group_member": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "rename_batch_group": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "reset_card": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "reviews.delete"
+    ],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "resolve_content_flag": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "restore_batch_group": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "search_users_for_group_invite": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "share_content_with_groups": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "skip_card": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "reviews.insert"
+    ],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [
+     "reviews.update"
+    ],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": true
+   }
+  },
+  "skip_topic_cards": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "reviews.insert"
+    ],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [
+     "reviews.update"
+    ],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": true
+   }
+  },
+  "submit_access_request": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [
+     "profiles.insert"
+    ],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": true
+   }
+  },
+  "submit_content_flag": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "submit_educator_application": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [
+     "profiles.insert"
+    ],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": true
+   }
+  },
+  "submit_institute_inquiry": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [
+     "profiles.insert"
+    ],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": true
+   }
+  },
+  "suspend_card": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "reviews.insert"
+    ],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "suspend_topic_cards": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "reviews.insert"
+    ],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [
+     "reviews.update"
+    ],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": true
+   }
+  },
+  "toggle_upvote": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [
+     "upvotes.delete>flashcards",
+     "upvotes.delete>my_cards_enrollment",
+     "upvotes.delete>notes",
+     "upvotes.delete>reviews",
+     "upvotes.insert>flashcards",
+     "upvotes.insert>my_cards_enrollment",
+     "upvotes.insert>notes",
+     "upvotes.insert>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [
+     "upvotes"
+    ],
+    "needs_manual_review": true
+   }
+  },
+  "unassign_professor_from_batch": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [
+     "profiles.update"
+    ],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": true
+   }
+  },
+  "unfeature_content": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "notes.update"
+    ],
+    "due_input_writes_indirect": [
+     "flashcard_decks.update>flashcards",
+     "flashcard_decks.update>my_cards_enrollment",
+     "flashcard_decks.update>reviews",
+     "notes.update>flashcards",
+     "notes.update>my_cards_enrollment",
+     "notes.update>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "unfollow_user": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   }
+  },
+  "unsuspend_card": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "reviews.update"
+    ],
+    "due_input_writes_indirect": [],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  },
+  "update_daily_goal": {
+   "classification": "due-changing",
+   "w1": {
+    "due_input_writes_transitive": [
+     "profiles.update"
+    ],
+    "due_input_writes_indirect": [
+     "profiles.update>flashcards",
+     "profiles.update>friendships",
+     "profiles.update>my_cards_enrollment",
+     "profiles.update>notes",
+     "profiles.update>reviews"
+    ],
+    "loose_write_leads": [],
+    "unresolved_effect_markers": [],
+    "writes_table_with_unresolved_trigger": [],
+    "needs_manual_review": false
+   }
+  }
+ }
+}

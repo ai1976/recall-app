@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { adminDeleteNote, adminGrantAccess, adminReactivateUser, adminSuspendUser, approveEducatorApplication as approveEducatorApplicationRpc, approveFeaturedNomination as approveFeaturedNominationRpc, deleteFlashcard, deleteNote as deleteNoteRow, rejectFeaturedNomination as rejectFeaturedNominationRpc, unassignProfessorFromBatch, unfeatureContent as unfeatureContentRpc, deleteDeck as deleteDeckRow } from '@/lib/dueSet'; // aliased: this file has its own deleteNote()
 import { useRole } from '@/contexts/NavDataContext'; // Sprint 7.0: shared nav-data context, not a per-mount fetch
 import { deleteNoteStorageImage } from '@/lib/noteStorage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -130,7 +131,7 @@ export default function AdminDashboard() {
 
   async function approveFeaturedNomination(item) {
     try {
-      const { data, error } = await supabase.rpc('approve_featured_nomination', {
+      const { data, error } = await approveFeaturedNominationRpc({
         p_content_type: item.content_type,
         p_content_id: item.content_id,
       });
@@ -148,7 +149,7 @@ export default function AdminDashboard() {
   async function rejectFeaturedNomination(item) {
     if (!confirm('Reject this nomination?')) return;
     try {
-      const { error } = await supabase.rpc('reject_featured_nomination', {
+      const { error } = await rejectFeaturedNominationRpc({
         p_content_type: item.content_type,
         p_content_id: item.content_id,
       });
@@ -163,7 +164,7 @@ export default function AdminDashboard() {
   async function unfeatureContent(item) {
     if (!confirm('Remove this content from the landing page?')) return;
     try {
-      const { error } = await supabase.rpc('unfeature_content', {
+      const { error } = await unfeatureContentRpc({
         p_content_type: item.content_type,
         p_content_id: item.content_id,
       });
@@ -360,7 +361,7 @@ export default function AdminDashboard() {
     try {
       // Sprint 8.8.5b4 (D-48): server-side delete that writes its own audit entry in the same transaction and
       // hands back the image path for the storage cleanup (which only the browser can do).
-      const { data, error } = await supabase.rpc('admin_delete_note', { p_note_id: noteId });
+      const { data, error } = await adminDeleteNote({ p_note_id: noteId });
       if (error) throw error;
 
       if (data && data.deleted && data.image_url) {
@@ -382,7 +383,7 @@ export default function AdminDashboard() {
   async function deleteDeck(deckId) {
     if (!confirm('Delete this study set and ALL its cards? This cannot be undone.')) return;
     try {
-      const { error } = await supabase.from('flashcard_decks').delete().eq('id', deckId);
+      const { error } = await deleteDeckRow(deckId);
       if (error) throw error;
       const { data: { user } } = await supabase.auth.getUser();
       await supabase.from('admin_audit_log').insert({
@@ -425,7 +426,7 @@ export default function AdminDashboard() {
   async function grantAccess(userId) {
     if (!confirm('Grant full content access to this user?')) return;
     try {
-      const { data, error } = await supabase.rpc('admin_grant_access', { p_user_id: userId });
+      const { data, error } = await adminGrantAccess({ p_user_id: userId });
       if (error) throw error;
       patchUserEverywhere(userId, { account_type: 'enrolled' });
       if (data && data.changed === false) {
@@ -458,7 +459,7 @@ export default function AdminDashboard() {
     if (!confirm('Approve this educator application? This grants the Professor (Educator) role.')) return;
     try {
       // The server function writes its own audit entry (target = the applicant) in the same transaction (D-48).
-      const { error } = await supabase.rpc('approve_educator_application', { p_request_id: requestId });
+      const { error } = await approveEducatorApplicationRpc({ p_request_id: requestId });
       if (error) throw error;
       await fetchAccessRequests();
     } catch (err) {
@@ -483,7 +484,7 @@ export default function AdminDashboard() {
   async function suspendUser(userId) {
     if (!confirm('Suspend this user?')) return;
     try {
-      const { data, error } = await supabase.rpc('admin_suspend_user', { p_user_id: userId });
+      const { data, error } = await adminSuspendUser({ p_user_id: userId });
       if (error) throw error;
       patchUserEverywhere(userId, { status: 'suspended' });
       if (data && data.changed === false) alert('This user was already suspended — nothing was changed.');
@@ -496,7 +497,7 @@ export default function AdminDashboard() {
   async function reactivateUser(userId) {
     if (!confirm('Reactivate this user?')) return;
     try {
-      const { data, error } = await supabase.rpc('admin_reactivate_user', { p_user_id: userId });
+      const { data, error } = await adminReactivateUser({ p_user_id: userId });
       if (error) throw error;
       patchUserEverywhere(userId, { status: 'active' });
       if (data && data.changed === false) alert('This user was not suspended — nothing was changed.');
@@ -803,10 +804,7 @@ export default function AdminDashboard() {
                             variant="destructive"
                             onClick={async () => {
                               if (!confirm(`Delete this ${item.content_type}? This cannot be undone.`)) return;
-                              await supabase
-                                .from(item.content_type === 'note' ? 'notes' : 'flashcards')
-                                .delete()
-                                .eq('id', item.content_id);
+                              await (item.content_type === 'note' ? deleteNoteRow(item.content_id) : deleteFlashcard(item.content_id));
                               await supabase.rpc('resolve_content_flag', {
                                 p_flag_id: item.flag_id,
                                 p_action: 'remove',
@@ -1822,7 +1820,7 @@ function BatchProfessorsPanel({ group }) {
     setBusy(true);
     setError('');
     try {
-      const { error: err } = await supabase.rpc('unassign_professor_from_batch', { p_group_id: group.id, p_professor_id: professorId });
+      const { error: err } = await unassignProfessorFromBatch({ p_group_id: group.id, p_professor_id: professorId });
       if (err) throw err;
       setConfirmRemoveId(null);
       await load();

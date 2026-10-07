@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { leaveGroup } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourseContext } from '@/contexts/CourseContext';
 import { useToast } from '@/hooks/use-toast';
@@ -149,7 +150,7 @@ export default function MyGroups() {
     if (!leaveDialog.group) return;
     setActionLoading(true);
     try {
-      const { error } = await supabase.rpc('leave_group', {
+      const { error } = await leaveGroup({
         p_group_id: leaveDialog.group.id,
       });
       if (error) throw error;

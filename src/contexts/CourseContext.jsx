@@ -14,6 +14,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { updateProfileDueFields } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 
 // ── Context definition ────────────────────────────────────────────────────────
@@ -170,10 +171,7 @@ export const CourseContextProvider = ({ children }) => {
     if (setError) return { error: setError };
 
     // Step 3: Sync profiles.course_level for backward compatibility (CRITICAL)
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ course_level: disciplineName })
-      .eq('id', user.id);
+    const { error: profileError } = await updateProfileDueFields(user.id, { course_level: disciplineName });
 
     if (profileError) {
       console.error('🔴 CourseContext: Failed to sync profiles.course_level:', profileError);

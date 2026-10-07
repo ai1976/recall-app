@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { applyReview, skipCard, suspendCard, skipTopicCards, suspendTopicCards, resetCard, flushReviewDataChanged } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRefreshDueSnapshotOnEntry } from '@/contexts/DueSnapshotContext';
 import { useStudySession } from '@/contexts/StudySessionContext';
 import { Button } from '@/components/ui/button';
 import { Card as RvCard, GradeButtonRow, VerifiedEdge, AnswerOption, MatchZone } from '@/components/revisop';
@@ -65,6 +67,7 @@ export default function StudyMode({
   const { toast } = useToast();
   const { user } = useAuth();
   const { setInStudySession } = useStudySession();
+  useRefreshDueSnapshotOnEntry(); // entering Review refreshes the shared due snapshot when it is older than 60 seconds
   const [searchParams] = useSearchParams();
 
   // Tell the app shell the full-screen card loop is mounted (Sprint 7.1) so
@@ -465,7 +468,7 @@ export default function StudyMode({
       // SELECT-or-INSERT, computes the rung transition, sets next_review_date
       // (kept DATE, user-tz), applies/reverts MASTERED at the threshold, and
       // logs a review_events row alongside it.
-      const { data, error } = await supabase.rpc('apply_review', {
+      const { data, error } = await applyReview({
         p_user_id: user.id,
         p_flashcard_id: currentCard.id,
         p_rating: quality, // 'easy' | 'medium' | 'hard'
@@ -637,6 +640,9 @@ export default function StudyMode({
   // ============================================================
   // SKIP: Hide card for 24 hours
   // ============================================================
+  // Send a pending (debounced) due-set refresh when the study session is left.
+  useEffect(() => () => flushReviewDataChanged(), []);
+
   const handleSkip = async () => {
     const currentCard = flashcards[currentIndex];
 
@@ -644,7 +650,7 @@ export default function StudyMode({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase.rpc('skip_card', {
+      const { error } = await skipCard({
         p_user_id: user.id,
         p_flashcard_id: currentCard.id
       });
@@ -677,7 +683,7 @@ export default function StudyMode({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase.rpc('suspend_card', {
+      const { error } = await suspendCard({
         p_user_id: user.id,
         p_flashcard_id: currentCard.id
       });
@@ -721,7 +727,7 @@ export default function StudyMode({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: count, error } = await supabase.rpc('skip_topic_cards', {
+      const { data: count, error } = await skipTopicCards({
         p_user_id: user.id,
         p_topic_id: topicId || null,
         p_custom_topic: customTopic || null,
@@ -780,7 +786,7 @@ export default function StudyMode({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: count, error } = await supabase.rpc('suspend_topic_cards', {
+      const { data: count, error } = await suspendTopicCards({
         p_user_id: user.id,
         p_topic_id: topicId || null,
         p_custom_topic: customTopic || null,
@@ -828,7 +834,7 @@ export default function StudyMode({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase.rpc('reset_card', {
+      const { error } = await resetCard({
         p_user_id: user.id,
         p_flashcard_id: currentCard.id
       });

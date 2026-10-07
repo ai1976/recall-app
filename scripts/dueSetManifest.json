@@ -1,0 +1,1271 @@
+{
+ "_about": "Reviewed classification of every database call in src/ (T-001 brief C v6 C-6.4). Identity is file::enclosing symbol::kind:target with ordinals, no line numbers. RPC entries follow scripts/dueSetRpcClassification.json (accepted W1 and W2 evidence). Checked by scripts/dueSetGuard.mjs on every build.",
+ "entries": [
+  {
+   "id": "src/components/admin/BatchBulkActions.jsx::BulkAddToBatchBar>run::rpc:admin_bulk_add_to_batch",
+   "classification": "not-due-changing",
+   "reason": "RPC admin_bulk_add_to_batch: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/components/admin/BatchBulkActions.jsx::BulkResolveRequestsBar>run::rpc:admin_bulk_resolve_batch_requests",
+   "classification": "not-due-changing",
+   "reason": "RPC admin_bulk_resolve_batch_requests: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/components/dashboard/LeaderboardWidget.jsx::LeaderboardWidget::rpc:get_friends_leaderboard",
+   "classification": "not-due-changing",
+   "reason": "RPC get_friends_leaderboard: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/components/dashboard/LeaderboardWidget.jsx::LeaderboardWidget::rpc:get_following_leaderboard",
+   "classification": "not-due-changing",
+   "reason": "RPC get_following_leaderboard: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/components/layout/NotificationCenter.jsx::NotificationCenter>handleAcceptInvite::rpc:accept_group_invite",
+   "classification": "not-due-changing",
+   "reason": "RPC accept_group_invite: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/components/layout/NotificationCenter.jsx::NotificationCenter>handleDeclineInvite::rpc:decline_group_invite",
+   "classification": "not-due-changing",
+   "reason": "RPC decline_group_invite: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/components/progress/PlatformHeatmap.jsx::PlatformHeatmap>load::rpc:get_platform_heatmap",
+   "classification": "not-due-changing",
+   "reason": "RPC get_platform_heatmap: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/components/progress/StudyHeatmap.jsx::StudyHeatmap>load::rpc:get_study_heatmap_split",
+   "classification": "not-due-changing",
+   "reason": "RPC get_study_heatmap_split: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/components/progress/SubjectMasteryTable.jsx::SubjectMasteryTable>load::rpc:get_subject_mastery_v1",
+   "classification": "not-due-changing",
+   "reason": "RPC get_subject_mastery_v1: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/components/ui/FlagButton.jsx::FlagButton>handleSubmit::rpc:submit_content_flag",
+   "classification": "not-due-changing",
+   "reason": "RPC submit_content_flag: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/contexts/AuthContext.jsx::AuthProvider>signIn::rpc:log_admin_event",
+   "classification": "not-due-changing",
+   "reason": "RPC log_admin_event: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/contexts/CourseContext.jsx::CourseContextProvider>addCourse::table-write:profile_courses.insert",
+   "classification": "not-due-changing",
+   "reason": "The profile_courses table is not an input of the due rule (C-01 reads profiles.course_level only) and W1 lists no trigger, cascade or view edge from it to a due-input table.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/contexts/CourseContext.jsx::CourseContextProvider>removeCourse::table-write:profile_courses.delete",
+   "classification": "not-due-changing",
+   "reason": "The profile_courses table is not an input of the due rule (C-01 reads profiles.course_level only) and W1 lists no trigger, cascade or view edge from it to a due-input table.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/contexts/CourseContext.jsx::CourseContextProvider>setPrimaryCourse::table-write:profile_courses.update",
+   "classification": "not-due-changing",
+   "reason": "The profile_courses table is not an input of the due rule (C-01 reads profiles.course_level only) and W1 lists no trigger, cascade or view edge from it to a due-input table.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/contexts/CourseContext.jsx::CourseContextProvider>setPrimaryCourse::table-write:profile_courses.update#2",
+   "classification": "not-due-changing",
+   "reason": "The profile_courses table is not an input of the due rule (C-01 reads profiles.course_level only) and W1 lists no trigger, cascade or view edge from it to a due-input table.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/contexts/DueSnapshotContext.jsx::DueSnapshotProvider::rpc:get_due_forecast",
+   "classification": "not-due-changing",
+   "reason": "RPC get_due_forecast: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/contexts/DueSnapshotContext.jsx::DueSnapshotProvider::rpc:get_due_forecast_buckets",
+   "classification": "not-due-changing",
+   "reason": "RPC get_due_forecast_buckets: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/contexts/ExamDateContext.jsx::ExamDateProvider>saveExamDate::table-write:profiles.update",
+   "classification": "not-due-changing",
+   "reason": "Profile update of exam_date, exam_month only: not course_level or timezone, the two profile columns that change what is due (read in code; the guard rejects those keys outside the wrapper module).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/contexts/ExamDateContext.jsx::ExamDateProvider>dismissPrompt::table-write:profiles.update",
+   "classification": "not-due-changing",
+   "reason": "Profile update of has_dismissed_exam_prompt only: not course_level or timezone, the two profile columns that change what is due (read in code; the guard rejects those keys outside the wrapper module).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/contexts/StudyTimerContext.jsx::StudyTimerProvider::table-write:study_sessions.insert",
+   "classification": "not-due-changing",
+   "reason": "Study-time log rows are not an input of the due rule and W1 lists no trigger, cascade or view edge from study_sessions to a due-input table.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/hooks/useActivityFeed.js::useActivityFeed::rpc:get_recent_activity_feed",
+   "classification": "not-due-changing",
+   "reason": "RPC get_recent_activity_feed: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/hooks/useBadges.js::useBadges::rpc:get_user_badges",
+   "classification": "not-due-changing",
+   "reason": "RPC get_user_badges: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/hooks/useBadges.js::useBadges::rpc:get_unnotified_badges",
+   "classification": "not-due-changing",
+   "reason": "RPC get_unnotified_badges: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/hooks/useNotifications.js::useNotifications::rpc:get_unread_notification_count",
+   "classification": "not-due-changing",
+   "reason": "RPC get_unread_notification_count: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/hooks/useNotifications.js::useNotifications::rpc:get_recent_notifications",
+   "classification": "not-due-changing",
+   "reason": "RPC get_recent_notifications: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/hooks/useNotifications.js::useNotifications::rpc:mark_notifications_read",
+   "classification": "not-due-changing",
+   "reason": "RPC mark_notifications_read: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/hooks/useNotifications.js::useNotifications::rpc:mark_single_notification_read",
+   "classification": "not-due-changing",
+   "reason": "RPC mark_single_notification_read: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/hooks/useNotifications.js::useNotifications::rpc:delete_notification",
+   "classification": "not-due-changing",
+   "reason": "RPC delete_notification: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/hooks/usePushNotifications.js::usePushNotifications::http:${}/functions/v1/push-subscribe",
+   "classification": "not-due-changing",
+   "reason": "Call to an Edge Function (${}/functions/v1/push-subscribe) that sends or manages notifications; it is not a database write path of the due-input tables (read in code).",
+   "basis": "function name and call site only"
+  },
+  {
+   "id": "src/hooks/usePushNotifications.js::usePushNotifications::http:${}/functions/v1/push-unsubscribe",
+   "classification": "not-due-changing",
+   "reason": "Call to an Edge Function (${}/functions/v1/push-unsubscribe) that sends or manages notifications; it is not a database write path of the due-input tables (read in code).",
+   "basis": "function name and call site only"
+  },
+  {
+   "id": "src/lib/dueSet.js::applyReview::rpc:apply_review",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC apply_review is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::skipCard::rpc:skip_card",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC skip_card is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::suspendCard::rpc:suspend_card",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC suspend_card is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::unsuspendCard::rpc:unsuspend_card",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC unsuspend_card is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::resetCard::rpc:reset_card",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC reset_card is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::skipTopicCards::rpc:skip_topic_cards",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC skip_topic_cards is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::suspendTopicCards::rpc:suspend_topic_cards",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC suspend_topic_cards is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::addToMyCards::rpc:add_to_my_cards",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC add_to_my_cards is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::removeFromMyCards::rpc:remove_from_my_cards",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC remove_from_my_cards is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::addBatchToMyCards::rpc:add_batch_to_my_cards",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC add_batch_to_my_cards is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::createFlashcardBatches::rpc:create_flashcard_batches",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC create_flashcard_batches is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::adminChangeRole::rpc:admin_change_role",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC admin_change_role is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::adminDeleteNote::rpc:admin_delete_note",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC admin_delete_note is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::adminDeleteUserData::rpc:admin_delete_user_data",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC admin_delete_user_data is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::adminGrantAccess::rpc:admin_grant_access",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC admin_grant_access is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::adminReactivateUser::rpc:admin_reactivate_user",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC admin_reactivate_user is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::adminSuspendUser::rpc:admin_suspend_user",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC admin_suspend_user is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::approveEducatorApplication::rpc:approve_educator_application",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC approve_educator_application is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::approveFeaturedNomination::rpc:approve_featured_nomination",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC approve_featured_nomination is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::nominateFeaturedContent::rpc:nominate_featured_content",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC nominate_featured_content is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::rejectFeaturedNomination::rpc:reject_featured_nomination",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC reject_featured_nomination is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::unfeatureContent::rpc:unfeature_content",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC unfeature_content is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::linkAccessRequest::rpc:link_access_request",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC link_access_request is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::toggleUpvote::rpc:toggle_upvote",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC toggle_upvote is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::updateDailyGoal::rpc:update_daily_goal",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC update_daily_goal is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::inviteToGroup::rpc:invite_to_group",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC invite_to_group is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::leaveGroup::rpc:leave_group",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC leave_group is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::unassignProfessorFromBatch::rpc:unassign_professor_from_batch",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC unassign_professor_from_batch is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::submitAccessRequest::rpc:submit_access_request",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC submit_access_request is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::submitEducatorApplication::rpc:submit_educator_application",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC submit_educator_application is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::submitInstituteInquiry::rpc:submit_institute_inquiry",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC submit_institute_inquiry is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::pause::rpc:bulk_pause_my_cards",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC bulk_pause_my_cards is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::resume::rpc:bulk_resume_my_cards",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC bulk_resume_my_cards is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::remove::rpc:bulk_remove_from_my_cards",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. RPC bulk_remove_from_my_cards is classified due-changing from W1.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/dueSet.js::updateProfileDueFields::table-write:profiles.update",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. Write to profiles (update) can change what is due (brief C v6 P6-E5 and W1 edges).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/lib/dueSet.js::setFriendshipStatus::table-write:friendships.update",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. Write to friendships (update) can change what is due (brief C v6 P6-E5 and W1 edges).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/lib/dueSet.js::deleteFriendship::table-write:friendships.delete",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. Write to friendships (delete) can change what is due (brief C v6 P6-E5 and W1 edges).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/lib/dueSet.js::deleteFlashcard::table-write:flashcards.delete",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. Write to flashcards (delete) can change what is due (brief C v6 P6-E5 and W1 edges).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/lib/dueSet.js::deleteFlashcards::table-write:flashcards.delete",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. Write to flashcards (delete) can change what is due (brief C v6 P6-E5 and W1 edges).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/lib/dueSet.js::deleteNote::table-write:notes.delete",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. Write to notes (delete) can change what is due (brief C v6 P6-E5 and W1 edges).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/lib/dueSet.js::deleteDeck::table-write:flashcard_decks.delete",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. Write to flashcard_decks (delete) can change what is due (brief C v6 P6-E5 and W1 edges).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/lib/dueSet.js::upsertFriendRequest::table-write:friendships.upsert",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. Write to friendships (upsert) can change what is due (brief C v6 P6-E5 and W1 edges).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/lib/dueSet.js::updateFlashcardsByBatch::table-write:flashcards.update",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. Write to flashcards (update) can change what is due (brief C v6 P6-E5 and W1 edges).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/lib/dueSet.js::updateFlashcardVisibility::table-write:flashcards.update",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. Write to flashcards (update) can change what is due (brief C v6 P6-E5 and W1 edges).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/lib/dueSet.js::updateFlashcardsVisibility::table-write:flashcards.update",
+   "classification": "due-changing",
+   "reason": "Inside the wrapper module: every call here signals the due snapshot on success. Write to flashcards (update) can change what is due (brief C v6 P6-E5 and W1 edges).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/lib/notifyEdge.js::notifyContentCreated::http:${}/functions/v1/notify-content-created",
+   "classification": "not-due-changing",
+   "reason": "Call to an Edge Function (${}/functions/v1/notify-content-created) that sends or manages notifications; it is not a database write path of the due-input tables (read in code).",
+   "basis": "function name and call site only"
+  },
+  {
+   "id": "src/lib/notifyEdge.js::notifyFriendEvent::http:${}/functions/v1/notify-friend-event",
+   "classification": "not-due-changing",
+   "reason": "Call to an Edge Function (${}/functions/v1/notify-friend-event) that sends or manages notifications; it is not a database write path of the due-input tables (read in code).",
+   "basis": "function name and call site only"
+  },
+  {
+   "id": "src/lib/studyTracker.js::persistRecord::table-write:study_sessions.insert",
+   "classification": "not-due-changing",
+   "reason": "Study-time log rows are not an input of the due rule and W1 lists no trigger, cascade or view edge from study_sessions to a due-input table.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/lib/supabase.js::module::client-creation:createClient",
+   "classification": "infrastructure",
+   "reason": "The single Supabase client of the application; every other call is bound to it by the guard.",
+   "basis": "infrastructure"
+  },
+  {
+   "id": "src/pages/Dashboard.jsx::Dashboard>fetchDashboardData::rpc:get_my_content_flags",
+   "classification": "not-due-changing",
+   "reason": "RPC get_my_content_flags: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/Dashboard.jsx::Dashboard>fetchDashboardData::rpc:get_admin_flags",
+   "classification": "not-due-changing",
+   "reason": "RPC get_admin_flags: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/Dashboard.jsx::Dashboard>fetchDashboardData::rpc:get_my_enrollment_count",
+   "classification": "not-due-changing",
+   "reason": "RPC get_my_enrollment_count: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/Dashboard.jsx::Dashboard>fetchEducatorWidgets::rpc:get_educator_accuracy_by_qtype",
+   "classification": "not-due-changing",
+   "reason": "RPC get_educator_accuracy_by_qtype: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/Dashboard.jsx::Dashboard>fetchEducatorWidgets::rpc:get_educator_cohort_forecast_buckets",
+   "classification": "not-due-changing",
+   "reason": "RPC get_educator_cohort_forecast_buckets: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/Dashboard.jsx::Dashboard>fetchEducatorWidgets::rpc:get_professor_overview",
+   "classification": "not-due-changing",
+   "reason": "RPC get_professor_overview: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/Dashboard.jsx::Dashboard>fetchEducatorWidgets::rpc:get_professor_weak_cards",
+   "classification": "not-due-changing",
+   "reason": "RPC get_professor_weak_cards: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/Dashboard.jsx::Dashboard>fetchStudyTimeStats::rpc:get_study_time_stats",
+   "classification": "not-due-changing",
+   "reason": "RPC get_study_time_stats: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/Dashboard.jsx::Dashboard>handleDismissOnboarding::table-write:profiles.update",
+   "classification": "not-due-changing",
+   "reason": "Profile update of has_seen_onboarding only: not course_level or timezone, the two profile columns that change what is due (read in code; the guard rejects those keys outside the wrapper module).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/Dashboard.jsx::Dashboard>handleDismissGoalPrompt::table-write:profiles.update",
+   "classification": "not-due-changing",
+   "reason": "Profile update of has_dismissed_goal_prompt only: not course_level or timezone, the two profile columns that change what is due (read in code; the guard rejects those keys outside the wrapper module).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/Dashboard.jsx::Dashboard::rpc:resolve_content_flag",
+   "classification": "not-due-changing",
+   "reason": "RPC resolve_content_flag: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/Dashboard.jsx::Dashboard::rpc:get_my_content_flags",
+   "classification": "not-due-changing",
+   "reason": "RPC get_my_content_flags: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/Home.jsx::Home>fetchStats::rpc:get_public_educators",
+   "classification": "not-due-changing",
+   "reason": "RPC get_public_educators: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/Home.jsx::Home>fetchStats::rpc:get_platform_stats",
+   "classification": "not-due-changing",
+   "reason": "RPC get_platform_stats: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/Home.jsx::Home>fetchStats::rpc:get_featured_landing_content",
+   "classification": "not-due-changing",
+   "reason": "RPC get_featured_landing_content: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminAnalytics.jsx::AdminAnalytics::rpc:get_admin_platform_overview",
+   "classification": "not-due-changing",
+   "reason": "RPC get_admin_platform_overview: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminAnalytics.jsx::AdminAnalytics::rpc:get_content_health_stats",
+   "classification": "not-due-changing",
+   "reason": "RPC get_content_health_stats: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminAnalytics.jsx::AdminAnalytics::rpc:get_user_onboarding_stats",
+   "classification": "not-due-changing",
+   "reason": "RPC get_user_onboarding_stats: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminAnalytics.jsx::AdminAnalytics::rpc:get_weekly_platform_reviews",
+   "classification": "not-due-changing",
+   "reason": "RPC get_weekly_platform_reviews: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>fetchFlaggedContent::rpc:get_admin_flags",
+   "classification": "not-due-changing",
+   "reason": "RPC get_admin_flags: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>fetchFeaturedContent::rpc:get_pending_featured_nominations",
+   "classification": "not-due-changing",
+   "reason": "RPC get_pending_featured_nominations: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>fetchFeaturedContent::rpc:get_live_featured_content_admin",
+   "classification": "not-due-changing",
+   "reason": "RPC get_live_featured_content_admin: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>fetchStats::rpc:get_admin_platform_overview",
+   "classification": "not-due-changing",
+   "reason": "RPC get_admin_platform_overview: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>fetchUsers::rpc:admin_read_profiles",
+   "classification": "not-due-changing",
+   "reason": "RPC admin_read_profiles: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>fetchAccessRequests::rpc:admin_read_profiles",
+   "classification": "not-due-changing",
+   "reason": "RPC admin_read_profiles: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>fetchAccessRequests::rpc:admin_read_profiles#2",
+   "classification": "not-due-changing",
+   "reason": "RPC admin_read_profiles: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>updateAccessRequestStatus::table-write:access_requests.update",
+   "classification": "not-due-changing",
+   "reason": "Access requests are not an input of the due rule and W1 lists no trigger, cascade or view edge from access_requests to a due-input table.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>deleteDeck::table-write:admin_audit_log.insert",
+   "classification": "not-due-changing",
+   "reason": "The admin audit log is not an input of the due rule and W1 lists no trigger, cascade or view edge from it to a due-input table.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>addToBatchGroup::rpc:enroll_user_in_batch_group",
+   "classification": "not-due-changing",
+   "reason": "RPC enroll_user_in_batch_group: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>rejectEducatorApplication::rpc:reject_educator_application",
+   "classification": "not-due-changing",
+   "reason": "RPC reject_educator_application: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>fetchBatchGroups::rpc:get_admin_batch_groups",
+   "classification": "not-due-changing",
+   "reason": "RPC get_admin_batch_groups: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>fetchPendingBatchRequests::rpc:get_admin_pending_batch_requests",
+   "classification": "not-due-changing",
+   "reason": "RPC get_admin_pending_batch_requests: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>approveBatchRequest::rpc:approve_batch_join_request",
+   "classification": "not-due-changing",
+   "reason": "RPC approve_batch_join_request: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>rejectBatchRequest::rpc:reject_batch_join_request",
+   "classification": "not-due-changing",
+   "reason": "RPC reject_batch_join_request: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>archiveBatchGroup::rpc:archive_batch_group",
+   "classification": "not-due-changing",
+   "reason": "RPC archive_batch_group: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>restoreBatchGroup::rpc:restore_batch_group",
+   "classification": "not-due-changing",
+   "reason": "RPC restore_batch_group: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>submitRenameBatch::rpc:rename_batch_group",
+   "classification": "not-due-changing",
+   "reason": "RPC rename_batch_group: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard>handleCreateBatchGroup::rpc:create_batch_group",
+   "classification": "not-due-changing",
+   "reason": "RPC create_batch_group: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard::rpc:resolve_content_flag",
+   "classification": "not-due-changing",
+   "reason": "RPC resolve_content_flag: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::AdminDashboard::rpc:resolve_content_flag#2",
+   "classification": "not-due-changing",
+   "reason": "RPC resolve_content_flag: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::BatchProfessorsPanel>load::rpc:get_batch_group_professors",
+   "classification": "not-due-changing",
+   "reason": "RPC get_batch_group_professors: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::BatchProfessorsPanel>load::rpc:get_assignable_professors",
+   "classification": "not-due-changing",
+   "reason": "RPC get_assignable_professors: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/AdminDashboard.jsx::BatchProfessorsPanel>assign::rpc:assign_professor_to_batch",
+   "classification": "not-due-changing",
+   "reason": "RPC assign_professor_to_batch: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/BulkUploadTopics.jsx::BulkUploadTopics>handleCreateCourse::table-write:disciplines.insert",
+   "classification": "not-due-changing",
+   "reason": "An insert of a discipline does not touch any due-input table; W1 lists only a delete or key-update cascade from disciplines to subjects, which an insert cannot cause.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/admin/BulkUploadTopics.jsx::BulkUploadTopics>handleCreateCourse::rpc:log_admin_event",
+   "classification": "not-due-changing",
+   "reason": "RPC log_admin_event: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/BulkUploadTopics.jsx::BulkUploadTopics>uploadTopics::table-write:subjects.insert",
+   "classification": "not-due-changing",
+   "reason": "A subject insert or sort-order update does not touch a due-input table; W1 lists only a delete or key-update cascade from subjects, which neither can cause.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/admin/BulkUploadTopics.jsx::BulkUploadTopics>uploadTopics::table-write:subjects.update",
+   "classification": "not-due-changing",
+   "reason": "A subject insert or sort-order update does not touch a due-input table; W1 lists only a delete or key-update cascade from subjects, which neither can cause.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/admin/BulkUploadTopics.jsx::BulkUploadTopics>uploadTopics::table-write:topics.insert",
+   "classification": "not-due-changing",
+   "reason": "A topic insert does not touch a due-input table; W1 lists only a delete or key-update cascade from topics, which an insert cannot cause.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/admin/BulkUploadTopics.jsx::BulkUploadTopics>uploadTopics::rpc:log_admin_event",
+   "classification": "not-due-changing",
+   "reason": "RPC log_admin_event: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/SuperAdminAnalytics.jsx::SuperAdminAnalytics>fetchHeaderStats::rpc:get_super_admin_header_stats",
+   "classification": "not-due-changing",
+   "reason": "RPC get_super_admin_header_stats: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/SuperAdminAnalytics.jsx::SuperAdminAnalytics>fetchCohortComparison::rpc:get_super_admin_cohort_comparison",
+   "classification": "not-due-changing",
+   "reason": "RPC get_super_admin_cohort_comparison: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/SuperAdminAnalytics.jsx::SuperAdminAnalytics>fetchLeaderboard::rpc:get_creator_leaderboard",
+   "classification": "not-due-changing",
+   "reason": "RPC get_creator_leaderboard: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/SuperAdminDashboard.jsx::SuperAdminDashboard>fetchStats::rpc:get_user_activity_stats",
+   "classification": "not-due-changing",
+   "reason": "RPC get_user_activity_stats: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/SuperAdminDashboard.jsx::SuperAdminDashboard>fetchContentStats::rpc:get_content_creation_stats",
+   "classification": "not-due-changing",
+   "reason": "RPC get_content_creation_stats: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/SuperAdminDashboard.jsx::SuperAdminDashboard>fetchEngagementStats::rpc:get_study_engagement_stats",
+   "classification": "not-due-changing",
+   "reason": "RPC get_study_engagement_stats: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/SuperAdminDashboard.jsx::SuperAdminDashboard>fetchRetentionStats::rpc:get_user_retention_stats",
+   "classification": "not-due-changing",
+   "reason": "RPC get_user_retention_stats: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/SuperAdminDashboard.jsx::SuperAdminDashboard>fetchUsers::rpc:admin_read_profiles",
+   "classification": "not-due-changing",
+   "reason": "RPC admin_read_profiles: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/SuperAdminDashboard.jsx::SuperAdminDashboard>fetchAdmins::rpc:admin_read_profiles",
+   "classification": "not-due-changing",
+   "reason": "RPC admin_read_profiles: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/SuperAdminDashboard.jsx::SuperAdminDashboard>fetchRecentAuditLogs::rpc:admin_read_profiles",
+   "classification": "not-due-changing",
+   "reason": "RPC admin_read_profiles: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/SuperAdminDashboard.jsx::SuperAdminDashboard>changeUserRole::rpc:admin_read_profiles",
+   "classification": "not-due-changing",
+   "reason": "RPC admin_read_profiles: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/admin/SuperAdminDashboard.jsx::SuperAdminDashboard>deleteUser::rpc:admin_read_profiles",
+   "classification": "not-due-changing",
+   "reason": "RPC admin_read_profiles: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/BulkUploadFlashcards.jsx::BulkUploadFlashcards>uploadFlashcards::table-write:flashcard_decks.update",
+   "classification": "not-due-changing",
+   "reason": "A deck insert or an update of its name, topic or timestamp does not write a due-input table; W1 lists only a delete or key-update cascade from flashcard_decks to flashcards, which neither can cause. Deck deletes are due-changing and live in the wrapper module.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/dashboard/BulkUploadFlashcards.jsx::BulkUploadFlashcards>uploadFlashcards::rpc:log_admin_event",
+   "classification": "not-due-changing",
+   "reason": "RPC log_admin_event: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Content/BrowseNotes.jsx::BrowseNotes::rpc:get_filtered_authors_for_notes",
+   "classification": "not-due-changing",
+   "reason": "RPC get_filtered_authors_for_notes: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Content/BrowseNotes.jsx::BrowseNotes>fetchNotes::rpc:get_browsable_notes",
+   "classification": "not-due-changing",
+   "reason": "RPC get_browsable_notes: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Content/FlashcardCreate.jsx::FlashcardCreate>fetchUserGroups::rpc:get_user_groups",
+   "classification": "not-due-changing",
+   "reason": "RPC get_user_groups: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Content/FlashcardCreate.jsx::FlashcardCreate>handleSubmit::table-write:flashcard_decks.update",
+   "classification": "not-due-changing",
+   "reason": "A deck insert or an update of its name, topic or timestamp does not write a due-input table; W1 lists only a delete or key-update cascade from flashcard_decks to flashcards, which neither can cause. Deck deletes are due-changing and live in the wrapper module.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/dashboard/Content/FlashcardCreate.jsx::FlashcardCreate>handleSubmit::table-write:flashcard_decks.insert",
+   "classification": "not-due-changing",
+   "reason": "A deck insert or an update of its name, topic or timestamp does not write a due-input table; W1 lists only a delete or key-update cascade from flashcard_decks to flashcards, which neither can cause. Deck deletes are due-changing and live in the wrapper module.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/dashboard/Content/FlashcardCreate.jsx::FlashcardCreate>handleSubmit::rpc:share_content_with_groups",
+   "classification": "not-due-changing",
+   "reason": "RPC share_content_with_groups: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Content/MyFlashcards.jsx::MyFlashcards::table-write:flashcards.update",
+   "classification": "not-due-changing",
+   "reason": "Flashcard update of back_text, front_text only: none of target_course, question_type or visibility (read in code; the guard rejects those keys and unreadable payloads outside the wrapper module).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/dashboard/Content/MyFlashcards.jsx::MyFlashcards>handleSaveGroupInfo::table-write:flashcard_decks.update",
+   "classification": "not-due-changing",
+   "reason": "A deck insert or an update of its name, topic or timestamp does not write a due-input table; W1 lists only a delete or key-update cascade from flashcard_decks to flashcards, which neither can cause. Deck deletes are due-changing and live in the wrapper module.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/dashboard/Content/MyFlashcards.jsx::MyFlashcards>executeMerge::table-write:flashcards.update",
+   "classification": "not-due-changing",
+   "reason": "Flashcard update of batch_description, batch_id only: none of target_course, question_type or visibility (read in code; the guard rejects those keys and unreadable payloads outside the wrapper module).",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/dashboard/Content/NoteEdit.jsx::NoteEdit>handleSubmit::table-write:notes.update",
+   "classification": "not-due-changing",
+   "reason": "A note insert or update does not write a due-input table; W1 lists only a delete or key-update cascade from notes to flashcards, which neither can cause. Note deletes are due-changing and live in the wrapper module.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/dashboard/Content/NoteUpload.jsx::NoteUpload>fetchUserGroups::rpc:get_user_groups",
+   "classification": "not-due-changing",
+   "reason": "RPC get_user_groups: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Content/NoteUpload.jsx::NoteUpload>handleSubmit::table-write:notes.insert",
+   "classification": "not-due-changing",
+   "reason": "A note insert or update does not write a due-input table; W1 lists only a delete or key-update cascade from notes to flashcards, which neither can cause. Note deletes are due-changing and live in the wrapper module.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/dashboard/Content/NoteUpload.jsx::NoteUpload>handleSubmit::rpc:share_content_with_groups",
+   "classification": "not-due-changing",
+   "reason": "RPC share_content_with_groups: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Friends/FindFriends.jsx::FindFriends>fetchFollowingSet::rpc:get_following_with_stats",
+   "classification": "not-due-changing",
+   "reason": "RPC get_following_with_stats: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Friends/FindFriends.jsx::FindFriends>handleFollowToggle::rpc:unfollow_user",
+   "classification": "not-due-changing",
+   "reason": "RPC unfollow_user: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Friends/FindFriends.jsx::FindFriends>handleFollowToggle::rpc:follow_user",
+   "classification": "not-due-changing",
+   "reason": "RPC follow_user: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Friends/FindFriends.jsx::FindFriends>fetchUsers::rpc:get_discoverable_users",
+   "classification": "not-due-changing",
+   "reason": "RPC get_discoverable_users: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Friends/Following.jsx::Following>fetchFollowing::rpc:get_following_with_stats",
+   "classification": "not-due-changing",
+   "reason": "RPC get_following_with_stats: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Friends/Following.jsx::Following>handleUnfollow::rpc:unfollow_user",
+   "classification": "not-due-changing",
+   "reason": "RPC unfollow_user: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Friends/MyFriends.jsx::MyFriends>fetchFriends::rpc:get_my_friends_with_stats",
+   "classification": "not-due-changing",
+   "reason": "RPC get_my_friends_with_stats: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/CreateGroup.jsx::CreateGroup>handleSubmit::rpc:create_study_group",
+   "classification": "not-due-changing",
+   "reason": "RPC create_study_group: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/GroupDetail.jsx::GroupDetail>fetchBatchStats::rpc:get_batch_group_member_stats",
+   "classification": "not-due-changing",
+   "reason": "RPC get_batch_group_member_stats: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/GroupDetail.jsx::GroupDetail>fetchBatchArchive::rpc:get_batch_group_archive",
+   "classification": "not-due-changing",
+   "reason": "RPC get_batch_group_archive: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/GroupDetail.jsx::GroupDetail>fetchGroupData::rpc:get_group_detail",
+   "classification": "not-due-changing",
+   "reason": "RPC get_group_detail: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/GroupDetail.jsx::GroupDetail>searchUsers::rpc:search_users_for_group_invite",
+   "classification": "not-due-changing",
+   "reason": "RPC search_users_for_group_invite: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/GroupDetail.jsx::GroupDetail>handleCancelInvite::table-write:study_group_members.delete",
+   "classification": "not-due-changing",
+   "reason": "Study-group membership is not an input of the due rule (visibility is own, public or accepted friends) and W1 lists no edge from it to a due-input table.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/GroupDetail.jsx::GroupDetail>handleRemoveMember::rpc:remove_group_member",
+   "classification": "not-due-changing",
+   "reason": "RPC remove_group_member: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/GroupDetail.jsx::GroupDetail>handleShareContent::rpc:share_content_with_groups",
+   "classification": "not-due-changing",
+   "reason": "RPC share_content_with_groups: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/GroupDetail.jsx::GroupDetail>handleUnshare::table-write:content_group_shares.delete",
+   "classification": "not-due-changing",
+   "reason": "Group shares of content are not an input of the due rule (visibility is own, public or accepted friends) and W1 lists no edge from it to a due-input table.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/MyGroups.jsx::MyGroups>fetchGroups::rpc:get_user_groups",
+   "classification": "not-due-changing",
+   "reason": "RPC get_user_groups: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/MyGroups.jsx::MyGroups>fetchGroups::rpc:get_user_groups#2",
+   "classification": "not-due-changing",
+   "reason": "RPC get_user_groups: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/MyGroups.jsx::MyGroups>fetchGroups::rpc:get_my_batch_groups",
+   "classification": "not-due-changing",
+   "reason": "RPC get_my_batch_groups: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/MyGroups.jsx::MyGroups>fetchPendingInvites::rpc:get_pending_group_invites",
+   "classification": "not-due-changing",
+   "reason": "RPC get_pending_group_invites: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/MyGroups.jsx::MyGroups>handleAcceptInvite::rpc:accept_group_invite",
+   "classification": "not-due-changing",
+   "reason": "RPC accept_group_invite: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/MyGroups.jsx::MyGroups>handleDeclineInvite::rpc:decline_group_invite",
+   "classification": "not-due-changing",
+   "reason": "RPC decline_group_invite: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Groups/MyGroups.jsx::MyGroups>handleDeleteGroup::table-write:study_groups.delete",
+   "classification": "not-due-changing",
+   "reason": "Study groups are not an input of the due rule and W1 lists no edge from study_groups to a due-input table.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/dashboard/ProfessorAnalytics.jsx::ProfessorAnalytics::rpc:get_professor_overview",
+   "classification": "not-due-changing",
+   "reason": "RPC get_professor_overview: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/ProfessorAnalytics.jsx::ProfessorAnalytics::rpc:get_professor_subject_engagement",
+   "classification": "not-due-changing",
+   "reason": "RPC get_professor_subject_engagement: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/ProfessorAnalytics.jsx::ProfessorAnalytics::rpc:get_professor_weak_cards",
+   "classification": "not-due-changing",
+   "reason": "RPC get_professor_weak_cards: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/ProfessorAnalytics.jsx::ProfessorAnalytics::rpc:get_professor_top_cards",
+   "classification": "not-due-changing",
+   "reason": "RPC get_professor_top_cards: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/ProfessorAnalytics.jsx::ProfessorAnalytics::rpc:get_professor_weekly_reach",
+   "classification": "not-due-changing",
+   "reason": "RPC get_professor_weekly_reach: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Profile/AuthorProfile.jsx::AuthorProfile>fetchAllData::rpc:get_author_profile",
+   "classification": "not-due-changing",
+   "reason": "RPC get_author_profile: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Profile/AuthorProfile.jsx::AuthorProfile>fetchAllData::rpc:get_author_content_summary",
+   "classification": "not-due-changing",
+   "reason": "RPC get_author_content_summary: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Profile/AuthorProfile.jsx::AuthorProfile>fetchAllData::rpc:get_follow_status",
+   "classification": "not-due-changing",
+   "reason": "RPC get_follow_status: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Profile/AuthorProfile.jsx::AuthorProfile>handleFollow::rpc:follow_user",
+   "classification": "not-due-changing",
+   "reason": "RPC follow_user: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Profile/AuthorProfile.jsx::AuthorProfile>handleUnfollow::rpc:unfollow_user",
+   "classification": "not-due-changing",
+   "reason": "RPC unfollow_user: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Profile/MyAchievements.jsx::MyAchievements>handlePrivacyToggle::table-write:user_badges.update",
+   "classification": "not-due-changing",
+   "reason": "Badge privacy is not an input of the due rule and W1 lists no edge from user_badges to a due-input table.",
+   "basis": "table write read in code"
+  },
+  {
+   "id": "src/pages/dashboard/Profile/MyAchievements.jsx::MyAchievements>fetchProgress::rpc:get_user_streak",
+   "classification": "not-due-changing",
+   "reason": "RPC get_user_streak: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Profile/ProfileSettings.jsx::ProfileSettings>handleSave::rpc:preview_course_change",
+   "classification": "not-due-changing",
+   "reason": "RPC preview_course_change: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/MyCards.jsx::MyCards>fetchMyCards::rpc:get_my_cards",
+   "classification": "not-due-changing",
+   "reason": "RPC get_my_cards: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/MyCards.jsx::MyCards>fetchRemovedCards::rpc:get_removed_my_cards",
+   "classification": "not-due-changing",
+   "reason": "RPC get_removed_my_cards: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/MyCards.jsx::MyCards>fetchArchivedCards::rpc:get_course_archived_my_cards",
+   "classification": "not-due-changing",
+   "reason": "RPC get_course_archived_my_cards: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/PracticeMode.jsx::PracticeMode>fetchCards::rpc:get_practice_cards",
+   "classification": "not-due-changing",
+   "reason": "RPC get_practice_cards: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/PracticeMode.jsx::PracticeMode>logAttempt::rpc:log_practice_attempt",
+   "classification": "not-due-changing",
+   "reason": "RPC log_practice_attempt: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/Progress.jsx::MyProgress>load::rpc:get_mastered_cards",
+   "classification": "not-due-changing",
+   "reason": "RPC get_mastered_cards: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/Progress.jsx::MyProgress>load::rpc:get_question_type_performance",
+   "classification": "not-due-changing",
+   "reason": "RPC get_question_type_performance: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/Progress.jsx::MyProgress>load::rpc:get_suspended_cards",
+   "classification": "not-due-changing",
+   "reason": "RPC get_suspended_cards: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/Progress.jsx::MyProgress>load::rpc:get_mastered_cards#2",
+   "classification": "not-due-changing",
+   "reason": "RPC get_mastered_cards: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/ReviewFlashcards.jsx::ReviewFlashcards::rpc:get_filtered_authors_for_flashcards",
+   "classification": "not-due-changing",
+   "reason": "RPC get_filtered_authors_for_flashcards: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/ReviewFlashcards.jsx::ReviewFlashcards>fetchFlashcardSets::rpc:get_browsable_decks",
+   "classification": "not-due-changing",
+   "reason": "RPC get_browsable_decks: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/ReviewSession.jsx::ReviewSession>fetchDueCards::rpc:get_study_queue",
+   "classification": "not-due-changing",
+   "reason": "RPC get_study_queue: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/ReviewSession.jsx::ReviewSession>fetchDueCards::rpc:get_my_cards",
+   "classification": "not-due-changing",
+   "reason": "RPC get_my_cards: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/StudyMode.jsx::StudyMode::rpc:get_srs_ladder_config",
+   "classification": "not-due-changing",
+   "reason": "RPC get_srs_ladder_config: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/StudyMode.jsx::StudyMode>fetchFlashcards::rpc:get_my_cards",
+   "classification": "not-due-changing",
+   "reason": "RPC get_my_cards: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/dashboard/Study/StudyMode.jsx::StudyMode>fetchFlashcards::rpc:get_study_queue",
+   "classification": "not-due-changing",
+   "reason": "RPC get_study_queue: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/public/DeckPreview.jsx::DeckPreview>load::rpc:get_public_deck_preview",
+   "classification": "not-due-changing",
+   "reason": "RPC get_public_deck_preview: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/public/GroupJoin.jsx::GroupJoin>load::rpc:get_group_preview",
+   "classification": "not-due-changing",
+   "reason": "RPC get_group_preview: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/public/GroupJoin.jsx::GroupJoin>handleJoin::rpc:join_group_by_token",
+   "classification": "not-due-changing",
+   "reason": "RPC join_group_by_token: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/pages/public/NotePreview.jsx::NotePreview>load::rpc:get_public_note_preview",
+   "classification": "not-due-changing",
+   "reason": "RPC get_public_note_preview: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+   "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  }
+ ]
+}

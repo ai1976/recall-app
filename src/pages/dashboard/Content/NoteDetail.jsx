@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { deleteFlashcard } from '@/lib/dueSet';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText, File, Calendar, Tag, Plus, Brain, Trash2, Edit, Users, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -119,10 +120,7 @@ export default function NoteDetail() {
     if (!confirm('Delete this flashcard?')) return;
 
     try {
-      const { error } = await supabase
-        .from('flashcards')
-        .delete()
-        .eq('id', cardId);
+      const { error } = await deleteFlashcard(cardId);
 
       if (error) throw error;
 

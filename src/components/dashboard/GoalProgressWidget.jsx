@@ -25,7 +25,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { updateDailyGoal } from '@/lib/dueSet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -108,7 +108,7 @@ export default function GoalProgressWidget({
     try {
       const newReviewGoal = inputType === 'review' ? val : null;
       const newStudyGoal  = inputType === 'study'  ? val : null;
-      const { error } = await supabase.rpc('update_daily_goal', {
+      const { error } = await updateDailyGoal({
         p_review_goal:        newReviewGoal,
         p_study_goal_minutes: newStudyGoal,
       });
@@ -126,7 +126,7 @@ export default function GoalProgressWidget({
   const handleClear = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase.rpc('update_daily_goal', {
+      const { error } = await updateDailyGoal({
         p_review_goal:        null,
         p_study_goal_minutes: null,
       });

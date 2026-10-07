@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ThumbsUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { toggleUpvote } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -110,8 +111,7 @@ export default function UpvoteButton({
 
     try {
       // Use the toggle_upvote function
-      const { data, error } = await supabase
-        .rpc('toggle_upvote', {
+      const { data, error } = await toggleUpvote({
           p_content_type: contentType,
           p_target_id: targetId
         });

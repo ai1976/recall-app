@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { addBatchToMyCards, createFlashcardBatches } from '@/lib/dueSet';
 import { useRole } from '@/contexts/NavDataContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -662,7 +663,7 @@ export default function FlashcardCreate() {
     const cardIds = (createdCards || []).map(c => c.id);
     if (cardIds.length === 0) return;
 
-    const { error: enrollError } = await supabase.rpc('add_batch_to_my_cards', {
+    const { error: enrollError } = await addBatchToMyCards({
       p_user_id: userId,
       p_flashcard_ids: cardIds,
     });
@@ -980,7 +981,7 @@ export default function FlashcardCreate() {
       // the same batch_id into one { batch_id, cards } entry.
       const batches = groupCardsIntoBatches(flashcardsToInsert);
 
-      const { error: insertError } = await supabase.rpc('create_flashcard_batches', {
+      const { error: insertError } = await createFlashcardBatches({
         p_source_type: sourceType,
         p_source_name: sourceName.trim(),
         p_batches: batches,

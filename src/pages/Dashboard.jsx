@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { linkAccessRequest, updateProfileDueFields } from '@/lib/dueSet';
 import { formatQuestionType } from '@/lib/questionTypes';
 import { useCourseContext } from '@/contexts/CourseContext';
 import { useNavData } from '@/contexts/NavDataContext';
+import { useDueSnapshot, useRefreshDueSnapshotOnEntry } from '@/contexts/DueSnapshotContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -111,6 +113,9 @@ export default function Dashboard() {
   // forward-load chart below — reads the NavDataContext singleton (7.2-F), no
   // separate get_due_forecast call.
   const { dueToday: myDueToday } = useNavData();
+  // T-001 brief C v6: the zero-state strip and the Forward Load chart read the same shared snapshot as the nav badge and the Progress tiles.
+  const { forecast: snapshotForecast, dueToday: snapshotDueToday, buckets: forecastSeries } = useDueSnapshot();
+  useRefreshDueSnapshotOnEntry();
   // Track initial mount so the activeCourse effect doesn't double-fetch on first load
   const isInitialMount = useRef(true);
   
@@ -118,15 +123,12 @@ export default function Dashboard() {
   const [userName, setUserName] = useState('');
   
   // Personal stats
-  const [reviewsDue, setReviewsDue] = useState(0);
   
   // Content counts
   const [notesCount, setNotesCount] = useState(0);
   const [flashcardsCount, setFlashcardsCount] = useState(0);
   
-  // Forward Ledger — student's 8-lane scheduled-load series (Sprint 6.3).
-  // Sourced from get_due_forecast_buckets; folded to number[8] for ForwardLedgerMacro.
-  const [forecastSeries, setForecastSeries] = useState(null);
+  // Forward Ledger — student's 8-lane scheduled-load series (Sprint 6.3): `forecastSeries` above comes from the shared snapshot (number[8]).
 
   // Educator dashboard — accuracy by question type + cohort forward load (Sprint 6.3)
   const [educatorAccuracy, setEducatorAccuracy] = useState(null);
@@ -284,17 +286,15 @@ export default function Dashboard() {
       }
       if (accessRef) {
         localStorage.removeItem('revisop_access_ref');
-        supabase.rpc('link_access_request', { p_ref_token: accessRef }).catch(() => {});
+        linkAccessRequest({ p_ref_token: accessRef }).catch(() => {});
       }
 
       // Fetch all data in parallel
       // For professors: activeCourse may override profile.course_level for cohort widgets
       const courseForStats = activeCourse || profile?.course_level;
-      const isStudent = !['professor', 'admin', 'super_admin'].includes(profile?.role);
       await Promise.all([
         fetchPersonalStats(authUser.id),
         fetchContentCounts(authUser.id),
-        isStudent ? fetchForecastSeries(authUser.id) : Promise.resolve(),
         profile?.role === 'professor'
           ? fetchEducatorWidgets(authUser.id, courseForStats)
           : Promise.resolve(),
@@ -346,11 +346,6 @@ export default function Dashboard() {
   };
 
   const fetchPersonalStats = async (userId) => {
-    // Reviews due — single source of truth: get_study_queue RPC (course-aware,
-    // concept-cards excluded, skip/suspend/skip_until all handled server-side).
-    const { data: dueQueue } = await supabase.rpc('get_study_queue', { p_user_id: userId });
-    setReviewsDue((dueQueue || []).length);
-
     // Fetch user's reviews for today's count (exclude suspended). Weekly/streak/
     // accuracy/mastered stats live on the Progress tab (Sprint 7.3-A) — this
     // dashboard only needs today's count, for GoalProgressWidget.
@@ -389,22 +384,6 @@ export default function Dashboard() {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
     setFlashcardsCount(flashcards || 0);
-  };
-
-  // Fold the 8-row get_due_forecast_buckets result into the number[8] series the
-  // ForwardLedgerMacro renders. Ordered 0..7 by bucket_index server-side.
-  const fetchForecastSeries = async (userId) => {
-    try {
-      const { data, error } = await supabase.rpc('get_due_forecast_buckets', { p_user_id: userId });
-      if (error) { console.error('🔴 Forecast buckets error:', error); return; }
-      const series = Array.from({ length: 8 }, (_, i) => {
-        const row = (data || []).find(r => Number(r.bucket_index) === i);
-        return row ? Number(row.scheduled_count) || 0 : 0;
-      });
-      setForecastSeries(series);
-    } catch (err) {
-      console.error('🔴 Forecast buckets RPC error:', err);
-    }
   };
 
   // Educator dashboard widgets — accuracy by question type + cohort forward load +
@@ -496,13 +475,10 @@ export default function Dashboard() {
     setSavingProfile(true);
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          course_level: modalCourseLevel,
-          institution: finalInstitution,
-        })
-        .eq('id', authUser.id);
+      const { error } = await updateProfileDueFields(authUser.id, {
+        course_level: modalCourseLevel,
+        institution: finalInstitution,
+      });
 
       if (error) throw error;
 
@@ -918,7 +894,7 @@ export default function Dashboard() {
                       Cohort forward load — all students in your course
                     </h2>
                     <span className="text-xs text-rv-ink-400">
-                      Your own due today: <span className="font-plex-mono font-medium text-rv-ink-900">{myDueToday}</span>
+                      Your own due today: <span className="font-plex-mono font-medium text-rv-ink-900">{myDueToday ?? '—'}</span>
                     </span>
                   </div>
                   <Card>
@@ -1287,7 +1263,7 @@ export default function Dashboard() {
                    card is REMOVED — it duplicated the header subtitle above (which
                    already says the same thing) and the Review-tab due badge (7.2-F).
                    Browse links for the caught-up state moved into a slim strip. */}
-              {!isNewUser && reviewsDue === 0 && (
+              {!isNewUser && snapshotForecast && snapshotDueToday === 0 && (
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/review-flashcards')}>
                     Browse Study Sets

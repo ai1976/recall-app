@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { updateDailyGoal, updateProfileDueFields } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourseContext } from '@/contexts/CourseContext';
 import { Input } from '@/components/ui/input';
@@ -234,14 +235,11 @@ export default function ProfileSettings() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: values.trimmedName,
-          course_level: courseLevel || null,
-          institution: values.finalInstitution || null,
-        })
-        .eq('id', user.id);
+      const { error } = await updateProfileDueFields(user.id, {
+        full_name: values.trimmedName,
+        course_level: courseLevel || null,
+        institution: values.finalInstitution || null,
+      });
 
       if (error) throw error;
 
@@ -332,7 +330,7 @@ export default function ProfileSettings() {
     try {
       const newReviewGoal = goalType === 'review' ? val : null;
       const newStudyGoal  = goalType === 'study'  ? val : null;
-      const { error } = await supabase.rpc('update_daily_goal', {
+      const { error } = await updateDailyGoal({
         p_review_goal:        newReviewGoal,
         p_study_goal_minutes: newStudyGoal,
       });
@@ -350,7 +348,7 @@ export default function ProfileSettings() {
   const handleClearGoal = async () => {
     setGoalSaving(true);
     try {
-      const { error } = await supabase.rpc('update_daily_goal', {
+      const { error } = await updateDailyGoal({
         p_review_goal:        null,
         p_study_goal_minutes: null,
       });

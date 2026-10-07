@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { deleteFlashcard, deleteFlashcards, updateFlashcardVisibility, updateFlashcardsByBatch, updateFlashcardsVisibility } from '@/lib/dueSet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -372,10 +373,7 @@ export default function MyFlashcards() {
     }
 
     try {
-      const { error } = await supabase
-        .from('flashcards')
-        .delete()
-        .eq('id', cardId);
+      const { error } = await deleteFlashcard(cardId);
 
       if (error) throw error;
 
@@ -410,10 +408,7 @@ export default function MyFlashcards() {
     try {
       const cardIds = groupCards.map(c => c.id);
 
-      const { error } = await supabase
-        .from('flashcards')
-        .delete()
-        .in('id', cardIds);
+      const { error } = await deleteFlashcards(cardIds);
 
       if (error) throw error;
 
@@ -473,10 +468,7 @@ export default function MyFlashcards() {
         batch_description: editGroupForm.description.trim() || null
       };
 
-      const { error } = await supabase
-        .from('flashcards')
-        .update(updates)
-        .eq('batch_id', editingGroupBatchId);
+      const { error } = await updateFlashcardsByBatch(editingGroupBatchId, updates);
 
       if (error) throw error;
 
@@ -517,12 +509,7 @@ export default function MyFlashcards() {
     event.stopPropagation();
 
     try {
-      const { error } = await supabase
-        .from('flashcards')
-        .update({
-          visibility: newVisibility,
-        })
-        .eq('id', cardId);
+      const { error } = await updateFlashcardVisibility(cardId, newVisibility);
 
       if (error) throw error;
 
@@ -552,12 +539,7 @@ export default function MyFlashcards() {
     try {
       const cardIds = group.cards.map(card => card.id);
 
-      const { error } = await supabase
-        .from('flashcards')
-        .update({
-          visibility: newVisibility,
-        })
-        .in('id', cardIds);
+      const { error } = await updateFlashcardsVisibility(cardIds, newVisibility);
 
       if (error) throw error;
 

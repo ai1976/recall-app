@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { inviteToGroup } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import PageContainer from '@/components/layout/PageContainer';
@@ -260,7 +261,7 @@ export default function GroupDetail() {
   const handleInvite = async (userId) => {
     setInviting(true);
     try {
-      const { error } = await supabase.rpc('invite_to_group', {
+      const { error } = await inviteToGroup({
         p_group_id: groupId,
         p_user_id: userId,
       });
