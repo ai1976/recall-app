@@ -1,29 +1,39 @@
--- Name: [DIAGNOSTIC] T-001 brief C file C-03 pre-check (v1) - which public routines can write the tables that define "due", read from the live function bodies
+-- Name: [DIAGNOSTIC] T-001 brief C file C-03 pre-check (v2) - which public routines can write the tables that define "due", read from the live function bodies
 --
 -- Description: READ-ONLY. Brief C v6 (20647dbce877, Gate 1) C-6.4 requires a reviewed manifest that classifies EVERY database call in the frontend as
 -- due-changing or not-due-changing, with a reason; QA Round 78 made it a condition that the initial classification of each RPC use the reviewed function
 -- BODIES and the live catalogue, because the name of an RPC does not show which tables it changes. The saved evidence holds full bodies for only about 57
--- group-related routines and seven forecast and queue functions, not for the roughly 135 RPCs the frontend calls. This file reads the live bodies of every
--- routine in schema public, analyses them LEXICALLY (the statement forms INSERT INTO, UPDATE ... SET, DELETE FROM, MERGE INTO and TRUNCATE; the tables they
--- name; whether the body uses EXECUTE; which other public routines it calls), follows calls transitively, and reports which routines can write the six tables
--- that define a student's due set: reviews, my_cards_enrollment, friendships, flashcards, notes and profiles (the course_level and timezone columns).
--- It returns analysis only: NO function body, no definition text and no identity is returned.
+-- group-related routines and seven forecast and queue functions, not for the roughly 136 RPCs the frontend calls. This file reads the live bodies of every
+-- routine in schema public, analyses them LEXICALLY (INSERT INTO, UPDATE ... SET in its three forms, DELETE FROM, MERGE INTO and TRUNCATE with a table list),
+-- follows calls transitively, and reports which routines can write the six tables that define a student's due set: reviews, my_cards_enrollment,
+-- friendships, flashcards, notes and profiles (the course_level and timezone columns). It returns analysis only: NO function body, no definition text and
+-- no identity is returned.
+-- v2 (after QA Round 116): (1) the strict write matcher now also reads UPDATE t alias SET and every table of TRUNCATE a, b; (2) a LOOSE matcher reports, per
+-- routine, any write keyword followed in the same statement by a due-input table name that the strict matcher did not report (over-reports on purpose), so a
+-- form the matcher misses is a visible lead and not a silent gap; (3) the closure now also reports calls qualified with a non-public schema, calls of public
+-- routines whose language is not readable, writes that reach a due-input table through a trigger, a cascading foreign key or a view, and tables whose trigger
+-- cannot be resolved; (4) the profile flag is transitive; (5) the recursive WITH was missing its RECURSIVE keyword (v1 would have failed to parse); (6) the
+-- list now includes get_study_heatmap_split (C-02, applied), so the C-03 manifest ties that call to evidence.
 -- How it moves the finish line (the standing rule for new diagnostics): without it the C-03 manifest could classify the RPCs only by name, which QA has
 -- already ruled insufficient; with it the manifest is built from evidence and the C-03 exact-diff audit does not stop on that point.
 -- What it returns (one row, one jsonb column named `result`):
---   * routine_count (public routines readable as plpgsql or sql), unreadable_routine_count (any other language), language_counts;
---   * frontend_names_expected and frontend_names_missing (names in the list below that match no public routine);
---   * routines: for every public routine that is called from the frontend, OR can (transitively) write a due-input table, OR uses EXECUTE: its name and
---     arguments, SECURITY DEFINER flag, language, whether it is called from the frontend (the list below), its own written tables by statement form, the
---     due-input tables it can write transitively (and through which statement form), whether it uses EXECUTE (dynamic SQL, not analysable), and whether it
---     writes profiles and assigns course_level or timezone;
---   * summary counts.
--- Safety: one SELECT ... WITH, no DML, DDL, dynamic SQL, transaction control or application-function call. Only pg_proc, pg_namespace, pg_language,
--- pg_get_functiondef (on public routines of languages plpgsql and sql), pg_get_function_identity_arguments and regular-expression functions are used.
--- Blind spots, stated: the analysis is lexical (a table named in a comment or in a string is reported; a statement built by string concatenation inside EXECUTE
--- is NOT seen and the routine is flagged dynamic instead; a table written only by a trigger is not attributed to the routine); calls are matched by routine name
--- followed by an opening parenthesis (every overload, an over-approximation); routines of other schemas are not analysed. A routine that is flagged dynamic or
--- that calls a flagged routine must be read by hand before it is classified.
+--   * routine_count, unreadable_routine_count, language_counts, frontend_names_expected, frontend_names_missing;
+--   * summary counts, tables_with_unresolved_trigger, and table_effect_edges_reaching_a_due_input_table (trigger, fk_cascade and view edges);
+--   * routines: for every public routine that is called from the frontend, OR can write a due-input table (directly, transitively or indirectly), OR needs
+--     manual review: its name and arguments, SECURITY DEFINER flag, language, whether it is called from the frontend, own_writes, due_input_writes_transitive,
+--     due_input_writes_indirect (table.op>due_table through a trigger, cascade or view), loose_write_leads_transitive, non_public_calls_transitive,
+--     unreadable_callees_transitive, writes_table_with_unresolved_trigger, uses_execute, reaches_execute, the transitive profiles flag, needs_manual_review.
+-- Rule for the C-03 manifest: a routine may be classified not-due-changing from this evidence ONLY if due_input_writes_transitive and
+-- due_input_writes_indirect are empty AND needs_manual_review is false; every other routine called from the frontend is read by hand (body in the live
+-- database, not in the evidence) before it is classified, and the manual review is recorded in the manifest reason.
+-- Safety: one SELECT ... WITH RECURSIVE, no DML, DDL, dynamic SQL, transaction control or application-function call. Only pg_proc, pg_namespace, pg_language,
+-- pg_class, pg_constraint, pg_trigger, pg_get_functiondef (public routines of languages plpgsql and sql), pg_get_viewdef (public views),
+-- pg_get_function_identity_arguments and regular-expression functions are used. Definition text is read into an internal string for analysis only.
+-- Blind spots, stated: the analysis is lexical (a table named in a comment or a string is reported; a statement built by string concatenation inside EXECUTE
+-- is NOT seen and the routine is flagged dynamic); calls are matched by routine name followed by an opening parenthesis (every overload, an
+-- over-approximation); trigger events are not matched (every trigger on a table is assumed to fire); effects of extensions and non-public routines are only
+-- flagged, not followed; row-level security policies and rules (pg_rewrite rules other than views) are not analysed; a write to a due-input table by a
+-- role other than through these routines is out of scope. Anything flagged needs_manual_review must be read by hand before it is classified.
 --
 -- HOW TO RUN (one run): select the whole file (Ctrl+A in the file, Ctrl+C), paste it into the SQL Editor, click Run, copy the single result cell and paste it into a
 -- Notepad file under the label W1; save it as docs/discussions/evidence/T-001_C03-W-raw_<dd-mm-yyyy>.raw.txt (check that Notepad did not drop the .txt) and keep it
@@ -31,7 +41,7 @@
 -- Run only after QA has passed this exact file by hash and the Founder has authorized running that hash.
 
 -- ===== RUN W1 =====
-WITH fe(name) AS (
+WITH RECURSIVE fe(name) AS (
   VALUES
          ('accept_group_invite'),
          ('add_batch_to_my_cards'),
@@ -118,6 +128,7 @@ WITH fe(name) AS (
          ('get_srs_ladder_config'),
          ('get_study_engagement_stats'),
          ('get_study_heatmap'),
+         ('get_study_heatmap_split'),
          ('get_study_queue'),
          ('get_study_time_stats'),
          ('get_subject_mastery_v1'),
@@ -172,6 +183,12 @@ WITH fe(name) AS (
 due(tbl) AS (
   VALUES ('reviews'), ('my_cards_enrollment'), ('friendships'), ('flashcards'), ('notes'), ('profiles')
 ),
+pt AS (
+  -- public relations (tables, partitioned tables, views, materialised views, foreign tables)
+  SELECT c.oid, c.relname::text AS relname, c.relkind
+  FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
+),
 r AS (
   SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args, p.prosecdef, l.lanname,
          lower(replace(pg_get_functiondef(p.oid), '"', '')) AS body
@@ -180,12 +197,21 @@ r AS (
   JOIN pg_language l ON l.oid = p.prolang
   WHERE n.nspname = 'public' AND p.prokind IN ('f', 'p') AND l.lanname IN ('plpgsql', 'sql')
 ),
+ur AS (
+  -- public routines whose body cannot be read as text (any other language): matched by name as callees
+  SELECT DISTINCT p.proname
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  JOIN pg_language l ON l.oid = p.prolang
+  WHERE n.nspname = 'public' AND p.prokind IN ('f', 'p') AND l.lanname NOT IN ('plpgsql', 'sql')
+),
 w AS (
   SELECT r.oid, m[1] AS tbl, 'insert' AS op
   FROM r, regexp_matches(r.body, 'insert\s+into\s+(?:only\s+)?(?:public\.)?([a-z_][a-z0-9_]*)', 'g') m
   UNION ALL
+  -- UPDATE t SET, UPDATE t AS a SET and UPDATE t a SET
   SELECT r.oid, m[1], 'update'
-  FROM r, regexp_matches(r.body, 'update\s+(?:only\s+)?(?:public\.)?([a-z_][a-z0-9_]*)\s+(?:as\s+[a-z_][a-z0-9_]*\s+)?set\s', 'g') m
+  FROM r, regexp_matches(r.body, 'update\s+(?:only\s+)?(?:public\.)?([a-z_][a-z0-9_]*)(?:\s+(?:as\s+)?[a-z_][a-z0-9_]*)?\s+set\s', 'g') m
   UNION ALL
   SELECT r.oid, m[1], 'delete'
   FROM r, regexp_matches(r.body, 'delete\s+from\s+(?:only\s+)?(?:public\.)?([a-z_][a-z0-9_]*)', 'g') m
@@ -193,11 +219,37 @@ w AS (
   SELECT r.oid, m[1], 'merge'
   FROM r, regexp_matches(r.body, 'merge\s+into\s+(?:only\s+)?(?:public\.)?([a-z_][a-z0-9_]*)', 'g') m
   UNION ALL
-  SELECT r.oid, m[1], 'truncate'
-  FROM r, regexp_matches(r.body, 'truncate\s+(?:table\s+)?(?:only\s+)?(?:public\.)?([a-z_][a-z0-9_]*)', 'g') m
+  -- TRUNCATE a, b, c: every public relation named in the statement (up to the next semicolon)
+  SELECT r.oid, t.tok, 'truncate'
+  FROM r,
+       regexp_matches(r.body, 'truncate\s+(?:table\s+)?([^;]*)', 'g') m,
+       regexp_split_to_table(replace(m[1], 'public.', ''), '[\s,]+') t(tok)
+  WHERE t.tok IN (SELECT relname FROM pt)
 ),
 own AS (
   SELECT oid, tbl, op FROM w GROUP BY oid, tbl, op
+),
+lead AS (
+  -- LOOSE leads: a write keyword followed, inside the same statement (up to the next semicolon), by the name of a due-input table, where the strict
+  -- pattern above found no such write. Over-reports on purpose (INSERT ... SELECT FROM reviews); it exists so a form the strict pattern misses is a
+  -- lead the manifest must clear, not a silent gap.
+  SELECT r.oid, d.tbl, k.op
+  FROM r
+  CROSS JOIN due d
+  CROSS JOIN (VALUES ('insert'), ('update'), ('delete'), ('merge'), ('truncate')) k(op)
+  WHERE r.body ~ ('(^|[^a-z0-9_])' || k.op || '[^a-z0-9_]([^;]*[^a-z0-9_])?' || d.tbl || '([^a-z0-9_]|$)')
+    AND NOT EXISTS (SELECT 1 FROM own x WHERE x.oid = r.oid AND x.tbl = d.tbl AND x.op = k.op)
+),
+npc AS (
+  -- calls qualified with a schema other than public / pg_catalog / information_schema (auth.uid, auth.jwt and auth.role excluded: they read the session)
+  SELECT DISTINCT r.oid, m[1] || '.' || m[2] AS callee
+  FROM r, regexp_matches(r.body, '([a-z_][a-z0-9_]*)\.([a-z_][a-z0-9_]*)\s*\(', 'g') m
+  WHERE m[1] IN (SELECT nspname FROM pg_namespace WHERE nspname NOT IN ('public', 'pg_catalog', 'information_schema', 'pg_toast') AND nspname NOT LIKE 'pg_temp%')
+    AND (m[1] || '.' || m[2]) NOT IN ('auth.uid', 'auth.jwt', 'auth.role')
+),
+ucall AS (
+  SELECT DISTINCT r.oid, u.proname AS callee
+  FROM r JOIN ur u ON r.body ~ ('(^|[^a-z0-9_.])(public\.)?' || u.proname || '\s*\(')
 ),
 edges AS (
   SELECT a.oid AS caller, b.oid AS callee
@@ -215,6 +267,21 @@ trans AS (
   FROM reach JOIN own o ON o.oid = reach.node
   GROUP BY reach.root, o.tbl, o.op
 ),
+tlead AS (
+  SELECT reach.root AS oid, l.tbl, l.op
+  FROM reach JOIN lead l ON l.oid = reach.node
+  GROUP BY reach.root, l.tbl, l.op
+),
+tnpc AS (
+  SELECT reach.root AS oid, n.callee
+  FROM reach JOIN npc n ON n.oid = reach.node
+  GROUP BY reach.root, n.callee
+),
+tucall AS (
+  SELECT reach.root AS oid, u.callee
+  FROM reach JOIN ucall u ON u.oid = reach.node
+  GROUP BY reach.root, u.callee
+),
 dyn AS (
   SELECT oid, (body ~ '(^|[^a-z0-9_])execute\s') AS has_exec FROM r
 ),
@@ -223,23 +290,91 @@ tdyn AS (
   FROM reach JOIN dyn d ON d.oid = reach.node
   GROUP BY reach.root
 ),
-prof AS (
+flag AS (
+  -- a routine (with everything it can call) that the strict analysis cannot fully resolve
   SELECT r.oid,
-         EXISTS (SELECT 1 FROM own o WHERE o.oid = r.oid AND o.tbl = 'profiles')
-         AND r.body ~ '(course_level|timezone)\s*=' AS assigns_course_or_timezone
+         (COALESCE(td.reaches_exec, false)
+          OR EXISTS (SELECT 1 FROM tlead x WHERE x.oid = r.oid)
+          OR EXISTS (SELECT 1 FROM tnpc x WHERE x.oid = r.oid)
+          OR EXISTS (SELECT 1 FROM tucall x WHERE x.oid = r.oid)) AS unresolved
+  FROM r LEFT JOIN tdyn td ON td.oid = r.oid
+),
+tedge(src, dst, via) AS (
+  -- table-to-table effects that a write can have without the routine naming the target
+  -- (1) a trigger function on src (and everything it calls) writes dst; trigger events are not matched, every trigger on src is assumed to fire
+  SELECT pc.relname, o.tbl, 'trigger'
+  FROM pg_trigger tg
+  JOIN pt pc ON pc.oid = tg.tgrelid
+  JOIN reach rr ON rr.root = tg.tgfoid
+  JOIN own o ON o.oid = rr.node
+  WHERE NOT tg.tgisinternal
+  UNION
+  -- (2) a foreign key with a cascading or nulling action on delete or update: a write to the parent writes the child
+  SELECT pp.relname, cc.relname, 'fk_cascade'
+  FROM pg_constraint k
+  JOIN pt pp ON pp.oid = k.confrelid
+  JOIN pt cc ON cc.oid = k.conrelid
+  WHERE k.contype = 'f' AND (k.confdeltype IN ('c', 'n', 'd') OR k.confupdtype IN ('c', 'n', 'd'))
+  UNION
+  -- (3) a view whose definition names another relation: a write to the view can write that relation
+  SELECT v.relname, b.relname, 'view'
+  FROM pt v JOIN pt b ON b.oid <> v.oid
+  WHERE v.relkind = 'v' AND lower(pg_get_viewdef(v.oid)) ~ ('(^|[^a-z0-9_])' || b.relname || '([^a-z0-9_]|$)')
+),
+tclose(src, dst) AS (
+  SELECT relname, relname FROM pt
+  UNION
+  SELECT c.src, e.dst FROM tclose c JOIN tedge e ON e.src = c.dst
+),
+utr AS (
+  -- tables that have a trigger the analysis cannot resolve (function not readable, or it reaches dynamic SQL, a loose lead, a non-public or unreadable call)
+  SELECT DISTINCT pc.relname AS tbl
+  FROM pg_trigger tg
+  JOIN pt pc ON pc.oid = tg.tgrelid
+  WHERE NOT tg.tgisinternal
+    AND (tg.tgfoid NOT IN (SELECT oid FROM r) OR COALESCE((SELECT f.unresolved FROM flag f WHERE f.oid = tg.tgfoid), false))
+),
+indirect AS (
+  SELECT t.oid, t.tbl || '.' || t.op || '>' || c.dst AS item
+  FROM trans t JOIN tclose c ON c.src = t.tbl
+  WHERE c.dst <> t.tbl AND c.dst IN (SELECT tbl FROM due)
+  GROUP BY t.oid, t.tbl, t.op, c.dst
+),
+prof_own AS (
+  -- writes profiles and names course_level or timezone anywhere in its body (a mention, not only an assignment: over-reports on purpose)
+  SELECT r.oid
   FROM r
+  WHERE EXISTS (SELECT 1 FROM own o WHERE o.oid = r.oid AND o.tbl = 'profiles')
+    AND r.body ~ '(^|[^a-z0-9_])(course_level|timezone)([^a-z0-9_]|$)'
+),
+tprof AS (
+  SELECT reach.root AS oid
+  FROM reach JOIN prof_own p ON p.oid = reach.node
+  GROUP BY reach.root
 ),
 rep AS (
   SELECT r.oid, r.proname, r.args, r.prosecdef, r.lanname,
          EXISTS (SELECT 1 FROM fe WHERE fe.name = r.proname) AS called_from_frontend,
          COALESCE((SELECT jsonb_agg(o.tbl || '.' || o.op ORDER BY o.tbl, o.op) FROM own o WHERE o.oid = r.oid), '[]'::jsonb) AS own_writes,
          COALESCE((SELECT jsonb_agg(t.tbl || '.' || t.op ORDER BY t.tbl, t.op) FROM trans t WHERE t.oid = r.oid AND t.tbl IN (SELECT tbl FROM due)), '[]'::jsonb) AS due_input_writes_transitive,
+         COALESCE((SELECT jsonb_agg(i.item ORDER BY i.item) FROM indirect i WHERE i.oid = r.oid), '[]'::jsonb) AS due_input_writes_indirect,
+         COALESCE((SELECT jsonb_agg(l.tbl || '.' || l.op ORDER BY l.tbl, l.op) FROM tlead l WHERE l.oid = r.oid), '[]'::jsonb) AS loose_write_leads_transitive,
+         COALESCE((SELECT jsonb_agg(n.callee ORDER BY n.callee) FROM tnpc n WHERE n.oid = r.oid), '[]'::jsonb) AS non_public_calls_transitive,
+         COALESCE((SELECT jsonb_agg(u.callee ORDER BY u.callee) FROM tucall u WHERE u.oid = r.oid), '[]'::jsonb) AS unreadable_callees_transitive,
+         COALESCE((SELECT jsonb_agg(DISTINCT t.tbl ORDER BY t.tbl) FROM trans t WHERE t.oid = r.oid AND t.tbl IN (SELECT tbl FROM utr)), '[]'::jsonb) AS writes_table_with_unresolved_trigger,
          d.has_exec AS uses_execute, COALESCE(td.reaches_exec, false) AS reaches_execute,
-         COALESCE(pf.assigns_course_or_timezone, false) AS writes_profiles_and_assigns_course_or_timezone
+         EXISTS (SELECT 1 FROM tprof tp WHERE tp.oid = r.oid) AS reaches_profiles_write_naming_course_level_or_timezone
   FROM r
   JOIN dyn d ON d.oid = r.oid
   LEFT JOIN tdyn td ON td.oid = r.oid
-  LEFT JOIN prof pf ON pf.oid = r.oid
+),
+rep2 AS (
+  SELECT rep.*,
+         (jsonb_array_length(loose_write_leads_transitive) > 0 OR jsonb_array_length(non_public_calls_transitive) > 0
+          OR jsonb_array_length(unreadable_callees_transitive) > 0 OR jsonb_array_length(writes_table_with_unresolved_trigger) > 0
+          OR uses_execute OR reaches_execute) AS needs_manual_review,
+         (jsonb_array_length(due_input_writes_transitive) > 0 OR jsonb_array_length(due_input_writes_indirect) > 0) AS can_write_due_input
+  FROM rep
 )
 SELECT jsonb_build_object(
   'run', 'W1',
@@ -249,15 +384,25 @@ SELECT jsonb_build_object(
   'language_counts', (SELECT COALESCE(jsonb_object_agg(lanname, c), '{}'::jsonb) FROM (SELECT lanname, count(*) AS c FROM r GROUP BY lanname) x),
   'frontend_names_expected', (SELECT count(*) FROM fe),
   'frontend_names_missing', (SELECT COALESCE(jsonb_agg(fe.name ORDER BY fe.name), '[]'::jsonb) FROM fe WHERE NOT EXISTS (SELECT 1 FROM r WHERE r.proname = fe.name)),
-  'routines_that_can_write_a_due_input_table_transitively', (SELECT count(*) FROM rep WHERE jsonb_array_length(due_input_writes_transitive) > 0),
-  'routines_using_execute', (SELECT count(*) FROM rep WHERE uses_execute),
+  'routines_that_can_write_a_due_input_table', (SELECT count(*) FROM rep2 WHERE can_write_due_input),
+  'frontend_routines_needing_manual_review', (SELECT count(*) FROM rep2 WHERE called_from_frontend AND needs_manual_review),
+  'routines_using_execute', (SELECT count(*) FROM rep2 WHERE uses_execute),
+  'tables_with_unresolved_trigger', (SELECT COALESCE(jsonb_agg(tbl ORDER BY tbl), '[]'::jsonb) FROM utr),
+  'table_effect_edges_reaching_a_due_input_table', (SELECT COALESCE(jsonb_agg(jsonb_build_object('src', e.src, 'dst', e.dst, 'via', e.via) ORDER BY e.src, e.dst, e.via), '[]'::jsonb)
+                                                    FROM tedge e WHERE EXISTS (SELECT 1 FROM tclose c WHERE c.src = e.dst AND c.dst IN (SELECT tbl FROM due))),
   'routines', (SELECT COALESCE(jsonb_agg(jsonb_build_object(
                   'name', proname, 'args', args, 'security_definer', prosecdef, 'language', lanname,
                   'called_from_frontend', called_from_frontend, 'own_writes', own_writes,
                   'due_input_writes_transitive', due_input_writes_transitive,
+                  'due_input_writes_indirect', due_input_writes_indirect,
+                  'loose_write_leads_transitive', loose_write_leads_transitive,
+                  'non_public_calls_transitive', non_public_calls_transitive,
+                  'unreadable_callees_transitive', unreadable_callees_transitive,
+                  'writes_table_with_unresolved_trigger', writes_table_with_unresolved_trigger,
                   'uses_execute', uses_execute, 'reaches_execute', reaches_execute,
-                  'writes_profiles_and_assigns_course_or_timezone', writes_profiles_and_assigns_course_or_timezone)
+                  'reaches_profiles_write_naming_course_level_or_timezone', reaches_profiles_write_naming_course_level_or_timezone,
+                  'needs_manual_review', needs_manual_review)
                   ORDER BY proname, args), '[]'::jsonb)
-               FROM rep
-               WHERE called_from_frontend OR jsonb_array_length(due_input_writes_transitive) > 0 OR uses_execute OR reaches_execute)
+               FROM rep2
+               WHERE called_from_frontend OR can_write_due_input OR needs_manual_review)
 ) AS result;
