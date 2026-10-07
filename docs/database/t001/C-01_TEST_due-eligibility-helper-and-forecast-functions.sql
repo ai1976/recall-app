@@ -1,15 +1,15 @@
--- Name: [TEST] T-001 C-01 TEST (v3) - verification of the due-eligibility helper and the two forecast functions (brief C v6, C-6.5 items 1 to 4)
+-- Name: [TEST] T-001 C-01 TEST (v4) - verification of the due-eligibility helper and the two forecast functions (brief C v6, C-6.5 items 1 to 4)
 --
 -- Description: VERIFICATION, run AFTER C-01_FUNCTIONS_due-eligibility-helper-and-forecast-functions.sql has been executed (it fails or reports "not
 -- found" before that). It changes NOTHING that persists: five runs; each ends in one SELECT that returns a single jsonb cell named `result` (T2 to T5 first create TEMPORARY functions in pg_temp,
--- which vanishes with the session, and the SELECT calls it; T1 is a single SELECT). v3 (supersedes v2 657d0962e36e and v1 65e25142f7fa, never authorized or run; QA Rounds 94 to 100; Founder Option A, Round 101):
+-- which vanishes with the session, and the SELECT calls it; T1 is a single SELECT). v4 (supersedes v3 469d205db488, never authorized or run; QA Round 102: header citations of the coverage evidence corrected from the superseded diagnostic 10 v2 to the run diagnostic 10 v3; no SQL changed). v3 (supersedes v2 657d0962e36e and v1 65e25142f7fa, never authorized or run; QA Rounds 94 to 100; Founder Option A, Round 101):
 -- adds run T5, which exercises the skip_until and next_review_date boundaries on REAL rows by moving the date the helper treats as today (day before, day of and
 -- day after for every live skip date; 3 days before, 1 day before, the day itself and 1 day after for every live due date), against an independently
 -- written recomputation at the same date, and counts the decisive rows per boundary relation; every pg_temp function is now CREATE OR REPLACE so a run can
 -- never collide with an earlier one in the same session. v2 (supersedes v1 65e25142f7fa, never authorized or run; QA Round 94):
 -- T1 now compares the COMPLETE, deterministically ordered set of roles holding EXECUTE with the approved ceiling (the helper: the owner only; each public
 -- function: exactly authenticated, postgres and service_role), so an unexpected extra role fails; and the coverage run T5 of v1 is REMOVED, because the exact
--- coverage of the C-6.5 item 3 boundary cases is now measured BEFORE Gate 2 by the read-only diagnostic 10 v2, runs P3 and P4. No INSERT, UPDATE, DELETE or DDL on any application object. Role
+-- coverage of the C-6.5 item 3 boundary cases is now measured BEFORE Gate 2 by the read-only diagnostic 10 v3 (39a1f3ab1981, run 07/10/2026, Gate 4 accepted), run P3. No INSERT, UPDATE, DELETE or DDL on any application object. Role
 -- switches use SET LOCAL ROLE inside the temporary function and are reset before it returns. No user id, card id or text is returned; only labels,
 -- counts and pass flags. Run only after QA has passed this exact file by hash and the Founder has authorized running that hash.
 -- HOW TO RUN: select ONE run (from its banner line to the closing SELECT ... AS result;), click Run, copy the single result cell, and paste it into one
@@ -38,7 +38,7 @@
 --       independent recomputation at the same date; the decisive live rows per relation are counted.  [C-6.5 item 3, skip_until and dated-card cases]
 --   (Coverage of the other C-6.5 item 3 cases was measured exactly, before Gate 2, by diagnostic 10 run P3; T3 exercises every case that has live rows,
 --       because it compares ALL profiles. The cases with no live row are the Founder-accepted residual gaps of Round 101.)
--- Not proven here, stated: a boundary case that diagnostic 10 v2 P3 reports as NOT COVERED by live data (for example a user at exactly +14 or -12 hours)
+-- Not proven here, stated: a boundary case that diagnostic 10 v3 P3 reports as NOT COVERED by live data (for example a user at exactly +14 or -12 hours)
 -- is not exercised by T3 and needs a decision of the Founder (accept the residual gap, or approve a safe fixture environment) before Gate 2; the frontend (C-03) is not touched; real-role tests use the SET LOCAL ROLE emulation with a JWT claim, the same mechanism as the platform.
 
 -- ===== RUN T1: catalogue and ACL assertions =====

@@ -1,15 +1,15 @@
--- Name: [TEST] T-001 C-02 TEST (v3) - verification of the new study-heatmap function get_study_heatmap_split (brief C v6, C-7.5 items 1 to 5)
+-- Name: [TEST] T-001 C-02 TEST (v4) - verification of the new study-heatmap function get_study_heatmap_split (brief C v6, C-7.5 items 1 to 5)
 --
 -- Description: VERIFICATION, run AFTER C-02_FUNCTIONS_study-heatmap-split.sql has been executed (before that it reports the function missing or fails).
 -- It changes NOTHING that persists: four runs; each ends in one SELECT that returns a single jsonb cell named `result` (U2 to U4 first create
--- TEMPORARY functions in pg_temp, which vanish with the session; U1 is a single SELECT). v3 (supersedes v2 9da07d2c6954 and v1 fe815adb6cbd, never authorized or run;
+-- TEMPORARY functions in pg_temp, which vanish with the session; U1 is a single SELECT). v4 (supersedes v3 d6d14bfd6e0f, never authorized or run; QA Round 102: header citations of the coverage evidence corrected from the superseded diagnostic 10 v2 to the run diagnostic 10 v3; no SQL changed). v3 (supersedes v2 9da07d2c6954 and v1 fe815adb6cbd, never authorized or run;
 -- QA Rounds 94 to 100; Founder Option A, Round 101): adds run U4, which tests the new function for EVERY profile at the windows 0, 1 and 7 days and at eight
 -- further windows DERIVED from the data (offsets of actual listed days, chosen evenly by rank so the window start falls on listed rows), counts the listed
 -- rows exactly on the window start and on today, and every pg_temp function is now CREATE OR REPLACE. v2 (supersedes v1 fe815adb6cbd, never authorized or run; QA Round 94):
 -- U1 now compares COMPLETE, deterministically ordered sets of EXECUTE holders with the approved ceiling (exactly authenticated, postgres and service_role, for
 -- the new and for the live function) instead of an order-dependent comparison with the live function; and the coverage run U4 of v1 is REMOVED, because the
 -- exact coverage of the C-7.5 item 5 boundary cases, restricted to the days the 90-day window actually exercises, the exact +14 h and -12 h users, and the
--- complete upper-end count over ALL THREE sources are now measured BEFORE Gate 2 by the read-only diagnostic 10 v2, run P4. No INSERT, UPDATE, DELETE or DDL on any application
+-- complete upper-end count over ALL THREE sources are now measured BEFORE Gate 2 by the read-only diagnostic 10 v3 (39a1f3ab1981, run 07/10/2026, Gate 4 accepted), run P4. No INSERT, UPDATE, DELETE or DDL on any application
 -- object. Role switches use SET LOCAL ROLE inside a temporary function and are reset before it returns. No user id, date, card id or text is returned:
 -- only labels, counts and pass flags. Run only after QA has passed this exact file by hash and the Founder has authorized running that hash.
 -- HOW TO RUN: select ONE run (from its banner line to the closing SELECT ... AS result;), click Run, copy the single result cell, and paste it into one
@@ -38,7 +38,7 @@
 --   U4  windows 0, 1, 7 and eight data-derived windows (see its banner): the same independent comparison for every profile, with the window-start and today
 --       edge rows counted.  [C-7.5 item 5, window-edge cases]
 --   (Coverage of the other C-7.5 item 5 cases was measured exactly, before Gate 2, by diagnostic 10 run P4; U3 exercises every case that has live rows.)
--- Not proven here, stated: a case that diagnostic 10 v2 P4 reports NOT COVERED by live data (for example a user at exactly +14 or -12 hours) is not exercised
+-- Not proven here, stated: a case that diagnostic 10 v3 P4 reports NOT COVERED by live data (for example a user at exactly +14 or -12 hours) is not exercised
 -- and needs a decision of the Founder (accept the residual gap, or approve a safe fixture environment) before Gate 2;
 -- the frontend (C-7.4, accessibility and date handling) is part of C-03 and is not touched; real-role tests use SET LOCAL ROLE with a JWT claim.
 
