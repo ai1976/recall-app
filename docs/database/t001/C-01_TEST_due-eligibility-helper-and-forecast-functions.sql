@@ -1,15 +1,19 @@
--- Name: [TEST] T-001 C-01 TEST (v2) - verification of the due-eligibility helper and the two forecast functions (brief C v6, C-6.5 items 1 to 4)
+-- Name: [TEST] T-001 C-01 TEST (v3) - verification of the due-eligibility helper and the two forecast functions (brief C v6, C-6.5 items 1 to 4)
 --
 -- Description: VERIFICATION, run AFTER C-01_FUNCTIONS_due-eligibility-helper-and-forecast-functions.sql has been executed (it fails or reports "not
--- found" before that). It changes NOTHING that persists: four runs; each ends in one SELECT that returns a single jsonb cell named `result` (T2 to T4 first create a TEMPORARY function in pg_temp,
--- which vanishes with the session, and the SELECT calls it; T1 is a single SELECT). v2 (supersedes v1 65e25142f7fa, never authorized or run; QA Round 94):
+-- found" before that). It changes NOTHING that persists: five runs; each ends in one SELECT that returns a single jsonb cell named `result` (T2 to T5 first create TEMPORARY functions in pg_temp,
+-- which vanishes with the session, and the SELECT calls it; T1 is a single SELECT). v3 (supersedes v2 657d0962e36e and v1 65e25142f7fa, never authorized or run; QA Rounds 94 to 100; Founder Option A, Round 101):
+-- adds run T5, which exercises the skip_until and next_review_date boundaries on REAL rows by moving the date the helper treats as today (day before, day of and
+-- day after for every live skip date; 3 days before, 1 day before, the day itself and 1 day after for every live due date), against an independently
+-- written recomputation at the same date, and counts the decisive rows per boundary relation; every pg_temp function is now CREATE OR REPLACE so a run can
+-- never collide with an earlier one in the same session. v2 (supersedes v1 65e25142f7fa, never authorized or run; QA Round 94):
 -- T1 now compares the COMPLETE, deterministically ordered set of roles holding EXECUTE with the approved ceiling (the helper: the owner only; each public
 -- function: exactly authenticated, postgres and service_role), so an unexpected extra role fails; and the coverage run T5 of v1 is REMOVED, because the exact
 -- coverage of the C-6.5 item 3 boundary cases is now measured BEFORE Gate 2 by the read-only diagnostic 10 v2, runs P3 and P4. No INSERT, UPDATE, DELETE or DDL on any application object. Role
 -- switches use SET LOCAL ROLE inside the temporary function and are reset before it returns. No user id, card id or text is returned; only labels,
 -- counts and pass flags. Run only after QA has passed this exact file by hash and the Founder has authorized running that hash.
 -- HOW TO RUN: select ONE run (from its banner line to the closing SELECT ... AS result;), click Run, copy the single result cell, and paste it into one
--- Notepad file under its label (T1 to T4), unchanged. Save as docs/discussions/evidence/T-001_C01-test-raw_<dd-mm-yyyy>.raw.txt. An error is evidence:
+-- Notepad file under its label (T1 to T5), unchanged. Save as docs/discussions/evidence/T-001_C01-test-raw_<dd-mm-yyyy>.raw.txt. An error is evidence:
 -- save the error text under its label, do not edit and re-run (stop and report instead).
 --
 -- What each run proves (the brief C v6 clause in brackets):
@@ -29,8 +33,11 @@
 --       [C-6.5 items 1 and 2, and the date boundary of item 3]
 --   T4  the null date: for every profile, over many dates, the helper returns no null date; the number of null-dated active reviews that exist is
 --       reported with the number that any figure counted (must be 0).  [brief C v6 D-C5; C-6.5 item 3]
---   (no T5: coverage of the C-6.5 item 3 boundary cases is measured exactly, before Gate 2, by diagnostic 10 v2 run P3; T3 then exercises every case that
---       has live rows, because it compares ALL profiles.)
+--   T5  date boundaries on real rows: for every live skip_until and next_review_date the helper is called with the probe date moved so that the row sits
+--       exactly on a boundary (skip exactly yesterday, today, tomorrow; due exactly today, tomorrow, in 3 days, overdue by one day) and compared with an
+--       independent recomputation at the same date; the decisive live rows per relation are counted.  [C-6.5 item 3, skip_until and dated-card cases]
+--   (Coverage of the other C-6.5 item 3 cases was measured exactly, before Gate 2, by diagnostic 10 run P3; T3 exercises every case that has live rows,
+--       because it compares ALL profiles. The cases with no live row are the Founder-accepted residual gaps of Round 101.)
 -- Not proven here, stated: a boundary case that diagnostic 10 v2 P3 reports as NOT COVERED by live data (for example a user at exactly +14 or -12 hours)
 -- is not exercised by T3 and needs a decision of the Founder (accept the residual gap, or approve a safe fixture environment) before Gate 2; the frontend (C-03) is not touched; real-role tests use the SET LOCAL ROLE emulation with a JWT claim, the same mechanism as the platform.
 
@@ -90,7 +97,7 @@ SELECT jsonb_build_object(
 ) AS result;
 
 -- ===== RUN T2: direct invocation as real roles =====
-CREATE FUNCTION pg_temp.c01_t2() RETURNS jsonb LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION pg_temp.c01_t2() RETURNS jsonb LANGUAGE plpgsql AS $$
 DECLARE
   v_user uuid; v_other uuid; v_admin uuid;
   v_res jsonb := '[]'::jsonb;
@@ -156,7 +163,7 @@ $$;
 SELECT pg_temp.c01_t2() AS result;
 
 -- ===== RUN T3: all profiles, public functions against the Review composition and an independent recomputation; helper at six dates =====
-CREATE FUNCTION pg_temp.c01_expected(p_offset integer)
+CREATE OR REPLACE FUNCTION pg_temp.c01_expected(p_offset integer)
  RETURNS TABLE(uid uuid, nrd date, today date)
  LANGUAGE sql STABLE
 AS $f$
@@ -187,7 +194,7 @@ AS $f$
     )
 $f$;
 
-CREATE FUNCTION pg_temp.c01_t3() RETURNS jsonb LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION pg_temp.c01_t3() RETURNS jsonb LANGUAGE plpgsql AS $$
 DECLARE
   v_admin uuid; v_ids uuid[]; v_u uuid;
   v_fc jsonb := '{}'::jsonb; v_bk jsonb := '{}'::jsonb; v_q jsonb := '{}'::jsonb;
@@ -293,7 +300,7 @@ $$;
 SELECT pg_temp.c01_t3() AS result;
 
 -- ===== RUN T4: the null date (brief C v6, D-C5) =====
-CREATE FUNCTION pg_temp.c01_t4() RETURNS jsonb LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION pg_temp.c01_t4() RETURNS jsonb LANGUAGE plpgsql AS $$
 DECLARE
   v_null_rows_returned integer; v_off integer; v_cnt integer; v_per jsonb := '[]'::jsonb;
 BEGIN
@@ -316,3 +323,88 @@ BEGIN
 END;
 $$;
 SELECT pg_temp.c01_t4() AS result;
+
+-- ===== RUN T5: date-boundary probes on REAL rows (v3; QA Round 100; Founder Option A) =====
+-- The helper takes the date as a parameter, so a live row can be put exactly on a rule boundary by moving "today" instead of writing any data. For every
+-- active review with a skip_until the helper is called, for that review's user, at skip_until minus 1, skip_until and skip_until plus 1 (the skip is then
+-- exactly tomorrow, exactly today and exactly yesterday relative to the probe date); for every active review with a next_review_date, at that date minus 3,
+-- minus 1, the date itself and plus 1 (the card is then due exactly in 3 days, tomorrow, today and overdue by one day). Each (user, date) result is compared,
+-- as a multiset of dates, with an independently written recomputation at the same probe date. The run also counts the decisive live rows for each
+-- boundary relation so that a relation with no row is reported, never assumed. This is the heaviest run (several thousand helper calls): run it last.
+CREATE OR REPLACE FUNCTION pg_temp.c01_probes() RETURNS TABLE(uid uuid, p date)
+ LANGUAGE sql STABLE
+AS $f$
+  SELECT r.user_id, (r.skip_until + v.k)::date
+  FROM public.reviews r CROSS JOIN (VALUES (-1), (0), (1)) v(k)
+  WHERE r.status = 'active' AND r.skip_until IS NOT NULL
+  UNION
+  SELECT r.user_id, (r.next_review_date + v.k)::date
+  FROM public.reviews r CROSS JOIN (VALUES (-3), (-1), (0), (1)) v(k)
+  WHERE r.status = 'active' AND r.next_review_date IS NOT NULL
+$f$;
+
+CREATE OR REPLACE FUNCTION pg_temp.c01_rows_at() RETURNS TABLE(uid uuid, p date, nrd date, su date)
+ LANGUAGE sql STABLE
+AS $f$
+  -- every (probe, review) pair of the probe's user that satisfies every rule condition EXCEPT the skip rule, with the probe date as "today"
+  SELECT pr.uid, pr.p, r.next_review_date, r.skip_until
+  FROM pg_temp.c01_probes() pr
+  JOIN public.profiles u ON u.id = pr.uid
+  JOIN public.reviews r ON r.user_id = pr.uid
+  JOIN public.flashcards f ON f.id = r.flashcard_id
+  WHERE r.status = 'active'
+    AND r.next_review_date IS NOT NULL
+    AND f.question_type IS NOT NULL AND f.question_type <> 'concept_card'
+    AND (u.course_level IS NULL OR COALESCE(f.target_course, u.course_level) = u.course_level)
+    AND EXISTS (SELECT 1 FROM public.my_cards_enrollment e
+                WHERE e.user_id = pr.uid AND e.flashcard_id = r.flashcard_id AND e.status = 'active')
+    AND (
+      f.user_id = pr.uid
+      OR f.visibility = 'public'
+      OR (f.visibility = 'friends' AND f.user_id IN (
+            SELECT CASE WHEN fr.user_id = pr.uid THEN fr.friend_id ELSE fr.user_id END
+            FROM public.friendships fr
+            WHERE fr.status = 'accepted' AND pr.uid IN (fr.user_id, fr.friend_id)))
+    )
+$f$;
+
+CREATE OR REPLACE FUNCTION pg_temp.c01_t5() RETURNS jsonb LANGUAGE plpgsql AS $$
+DECLARE
+  v_pairs integer; v_mis integer; v_rel jsonb;
+BEGIN
+  SELECT count(*) INTO v_pairs FROM pg_temp.c01_probes();
+  SELECT count(*) INTO v_mis FROM (
+    SELECT COALESCE(a.uid, b.uid) AS uid
+    FROM (SELECT x.uid, x.p, count(*) AS c, md5(string_agg(x.nrd::text, ',' ORDER BY x.nrd)) AS h
+          FROM pg_temp.c01_rows_at() x
+          WHERE COALESCE(x.su, DATE '-infinity') <= x.p
+          GROUP BY x.uid, x.p) a
+    FULL OUTER JOIN (
+      SELECT pr.uid, pr.p, count(*) AS c, md5(string_agg(hh.due_date::text, ',' ORDER BY hh.due_date)) AS h
+      FROM pg_temp.c01_probes() pr
+      CROSS JOIN LATERAL public.fn_due_eligible_dates(pr.uid, pr.p) hh
+      GROUP BY pr.uid, pr.p
+    ) b ON a.uid = b.uid AND a.p = b.p
+    WHERE a.uid IS NULL OR b.uid IS NULL OR a.c <> b.c OR a.h <> b.h
+  ) m;
+  SELECT jsonb_build_object(
+    'skip_until_exactly_yesterday_rows', count(*) FILTER (WHERE x.su = x.p - 1),
+    'skip_until_exactly_today_rows', count(*) FILTER (WHERE x.su = x.p),
+    'skip_until_exactly_tomorrow_rows', count(*) FILTER (WHERE x.su = x.p + 1),
+    'due_exactly_today_and_not_skipped_rows', count(*) FILTER (WHERE x.nrd = x.p AND COALESCE(x.su, DATE '-infinity') <= x.p),
+    'due_exactly_in_3_days_rows', count(*) FILTER (WHERE x.nrd = x.p + 3 AND COALESCE(x.su, DATE '-infinity') <= x.p),
+    'due_exactly_tomorrow_rows', count(*) FILTER (WHERE x.nrd = x.p + 1 AND COALESCE(x.su, DATE '-infinity') <= x.p),
+    'overdue_by_exactly_one_day_rows', count(*) FILTER (WHERE x.nrd = x.p - 1 AND COALESCE(x.su, DATE '-infinity') <= x.p))
+  INTO v_rel
+  FROM pg_temp.c01_rows_at() x;
+  RETURN jsonb_build_object(
+    'run', 'T5',
+    'probe_pairs_user_and_date', v_pairs,
+    'pairs_whose_helper_result_differs_from_the_recomputation', v_mis,
+    'decisive_live_rows_by_boundary_relation', v_rel,
+    'boundary_relations_with_no_decisive_row',
+      (SELECT COALESCE(jsonb_agg(e.key ORDER BY e.key), '[]'::jsonb) FROM jsonb_each(v_rel) e WHERE (e.value)::text::integer = 0),
+    'all_passed', (v_pairs > 0 AND v_mis = 0));
+END;
+$$;
+SELECT pg_temp.c01_t5() AS result;

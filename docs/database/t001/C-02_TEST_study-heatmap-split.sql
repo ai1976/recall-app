@@ -1,8 +1,11 @@
--- Name: [TEST] T-001 C-02 TEST (v2) - verification of the new study-heatmap function get_study_heatmap_split (brief C v6, C-7.5 items 1 to 5)
+-- Name: [TEST] T-001 C-02 TEST (v3) - verification of the new study-heatmap function get_study_heatmap_split (brief C v6, C-7.5 items 1 to 5)
 --
 -- Description: VERIFICATION, run AFTER C-02_FUNCTIONS_study-heatmap-split.sql has been executed (before that it reports the function missing or fails).
--- It changes NOTHING that persists: three runs; each ends in one SELECT that returns a single jsonb cell named `result` (U2 and U3 first create
--- TEMPORARY functions in pg_temp, which vanish with the session; U1 is a single SELECT). v2 (supersedes v1 fe815adb6cbd, never authorized or run; QA Round 94):
+-- It changes NOTHING that persists: four runs; each ends in one SELECT that returns a single jsonb cell named `result` (U2 to U4 first create
+-- TEMPORARY functions in pg_temp, which vanish with the session; U1 is a single SELECT). v3 (supersedes v2 9da07d2c6954 and v1 fe815adb6cbd, never authorized or run;
+-- QA Rounds 94 to 100; Founder Option A, Round 101): adds run U4, which tests the new function for EVERY profile at the windows 0, 1 and 7 days and at eight
+-- further windows DERIVED from the data (offsets of actual listed days, chosen evenly by rank so the window start falls on listed rows), counts the listed
+-- rows exactly on the window start and on today, and every pg_temp function is now CREATE OR REPLACE. v2 (supersedes v1 fe815adb6cbd, never authorized or run; QA Round 94):
 -- U1 now compares COMPLETE, deterministically ordered sets of EXECUTE holders with the approved ceiling (exactly authenticated, postgres and service_role, for
 -- the new and for the live function) instead of an order-dependent comparison with the live function; and the coverage run U4 of v1 is REMOVED, because the
 -- exact coverage of the C-7.5 item 5 boundary cases, restricted to the days the 90-day window actually exercises, the exact +14 h and -12 h users, and the
@@ -10,7 +13,7 @@
 -- object. Role switches use SET LOCAL ROLE inside a temporary function and are reset before it returns. No user id, date, card id or text is returned:
 -- only labels, counts and pass flags. Run only after QA has passed this exact file by hash and the Founder has authorized running that hash.
 -- HOW TO RUN: select ONE run (from its banner line to the closing SELECT ... AS result;), click Run, copy the single result cell, and paste it into one
--- Notepad file under its label (U1 to U3), unchanged. Save as docs/discussions/evidence/T-001_C02-test-raw_<dd-mm-yyyy>.raw.txt. An error is evidence:
+-- Notepad file under its label (U1 to U4), unchanged. Save as docs/discussions/evidence/T-001_C02-test-raw_<dd-mm-yyyy>.raw.txt. An error is evidence:
 -- save the error text under its label, do not edit and re-run (stop and report instead).
 --
 -- What each run proves (the brief C v6 clause in brackets):
@@ -32,7 +35,9 @@
 --       (4) the boundary delta: the rows that exist on only one side (outside the common set) are counted with their review and study totals, and every
 --           such row is already proven equal to its own side's independent recomputation by (1) and (2), so the delta consists of exactly the source rows in
 --           the symmetric difference of the two windows and nothing else.  [C-7.5 item 3]
---   (no U4: coverage of the boundary cases is measured exactly, before Gate 2, by diagnostic 10 v2 run P4; U3 then exercises every case that has live rows.)
+--   U4  windows 0, 1, 7 and eight data-derived windows (see its banner): the same independent comparison for every profile, with the window-start and today
+--       edge rows counted.  [C-7.5 item 5, window-edge cases]
+--   (Coverage of the other C-7.5 item 5 cases was measured exactly, before Gate 2, by diagnostic 10 run P4; U3 exercises every case that has live rows.)
 -- Not proven here, stated: a case that diagnostic 10 v2 P4 reports NOT COVERED by live data (for example a user at exactly +14 or -12 hours) is not exercised
 -- and needs a decision of the Founder (accept the residual gap, or approve a safe fixture environment) before Gate 2;
 -- the frontend (C-7.4, accessibility and date handling) is part of C-03 and is not touched; real-role tests use SET LOCAL ROLE with a JWT claim.
@@ -77,7 +82,7 @@ SELECT jsonb_build_object(
 ) AS result;
 
 -- ===== RUN U2: real roles =====
-CREATE FUNCTION pg_temp.c02_u2() RETURNS jsonb LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION pg_temp.c02_u2() RETURNS jsonb LANGUAGE plpgsql AS $$
 DECLARE
   v_user uuid; v_other uuid; v_admin uuid;
   v_res jsonb := '[]'::jsonb;
@@ -123,7 +128,7 @@ $$;
 SELECT pg_temp.c02_u2() AS result;
 
 -- ===== RUN U3: all profiles, new function and live function against independent recomputations, common days and boundary delta =====
-CREATE FUNCTION pg_temp.c02_expected_new(p_days integer)
+CREATE OR REPLACE FUNCTION pg_temp.c02_expected_new(p_days integer)
  RETURNS TABLE(uid uuid, d date, rc integer, ins integer, offs integer, tot integer, oth integer)
  LANGUAGE sql STABLE
 AS $f$
@@ -163,7 +168,7 @@ AS $f$
   LEFT JOIN st ON st.uid = days.uid AND st.d = days.d
 $f$;
 
-CREATE FUNCTION pg_temp.c02_expected_old(p_days integer)
+CREATE OR REPLACE FUNCTION pg_temp.c02_expected_old(p_days integer)
  RETURNS TABLE(uid uuid, d date, rc integer, tot integer)
  LANGUAGE sql STABLE
 AS $f$
@@ -191,7 +196,7 @@ AS $f$
   LEFT JOIN st ON st.uid = days.uid AND st.d = days.d
 $f$;
 
-CREATE FUNCTION pg_temp.c02_u3() RETURNS jsonb LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION pg_temp.c02_u3() RETURNS jsonb LANGUAGE plpgsql AS $$
 DECLARE
   v_admin uuid; v_ids uuid[]; v_u uuid; v_row jsonb;
   v_days integer;
@@ -298,3 +303,129 @@ BEGIN
 END;
 $$;
 SELECT pg_temp.c02_u3() AS result;
+
+-- ===== RUN U4: small and data-derived windows, so the window start falls on LISTED live days (v3; QA Round 100; Founder Option A) =====
+-- U3 tests the contract windows 90 and 30. The live data show a listed day exactly at today minus 30 and today, but none exactly at today minus 90, so U4
+-- derives further windows from the data: the distinct offsets (local today minus the date) of every listed day, from the review activity log and the
+-- study sessions, between 0 and 90 days; eight of them chosen evenly by rank (so the smallest and the largest are always among them), plus the fixed
+-- windows 0 (today only), 1 and 7. For each window p_days the new function is compared, for EVERY profile as an administrator, with the independent
+-- recomputation (both directions, duplicates counted), other_seconds is checked to be 0, and the number of listed rows that sit exactly on the window
+-- start and exactly on today is reported, so the edge cases are exercised and counted, not assumed. Windows 30 and 90 stay in U3.
+CREATE OR REPLACE FUNCTION pg_temp.c02_expected_new(p_days integer)
+ RETURNS TABLE(uid uuid, d date, rc integer, ins integer, offs integer, tot integer, oth integer)
+ LANGUAGE sql STABLE
+AS $f$
+  WITH u AS (
+    SELECT p.id, COALESCE(p.timezone, 'Asia/Kolkata') AS tz,
+           (now() AT TIME ZONE COALESCE(p.timezone, 'Asia/Kolkata'))::date AS today
+    FROM public.profiles p
+  ),
+  rv AS (
+    SELECT u.id AS uid, (r.created_at AT TIME ZONE u.tz)::date AS d, count(*)::integer AS c
+    FROM u JOIN public.reviews r ON r.user_id = u.id
+    WHERE r.status = 'active'
+      AND (r.created_at AT TIME ZONE u.tz)::date >= u.today - p_days
+      AND (r.created_at AT TIME ZONE u.tz)::date <= u.today
+    GROUP BY 1, 2
+  ),
+  al AS (
+    SELECT u.id AS uid, a.activity_date AS d
+    FROM u JOIN public.user_activity_log a ON a.user_id = u.id
+    WHERE a.activity_type = 'review' AND a.activity_date >= u.today - p_days AND a.activity_date <= u.today
+  ),
+  st AS (
+    SELECT u.id AS uid, s.session_date AS d,
+           sum(s.duration_seconds)::integer AS tot,
+           COALESCE(sum(s.duration_seconds) FILTER (WHERE s.source IN ('study_mode', 'practice_mode')), 0)::integer AS ins,
+           COALESCE(sum(s.duration_seconds) FILTER (WHERE s.source = 'manual'), 0)::integer AS offs
+    FROM u JOIN public.study_sessions s ON s.user_id = u.id
+    WHERE s.session_date >= u.today - p_days AND s.session_date <= u.today
+    GROUP BY 1, 2
+  ),
+  days AS (SELECT al.uid, al.d FROM al UNION SELECT st.uid, st.d FROM st)
+  SELECT days.uid, days.d, COALESCE(rv.c, 0), COALESCE(st.ins, 0), COALESCE(st.offs, 0), COALESCE(st.tot, 0),
+         COALESCE(st.tot, 0) - COALESCE(st.ins, 0) - COALESCE(st.offs, 0)
+  FROM days
+  LEFT JOIN rv ON rv.uid = days.uid AND rv.d = days.d
+  LEFT JOIN st ON st.uid = days.uid AND st.d = days.d
+$f$;
+
+CREATE OR REPLACE FUNCTION pg_temp.c02_u4() RETURNS jsonb LANGUAGE plpgsql AS $$
+DECLARE
+  v_admin uuid; v_ids uuid[]; v_u uuid; v_row jsonb; v_new jsonb;
+  v_offs integer[]; v_days integer[]; v_d integer; i integer; n integer;
+  v_out jsonb := '[]'::jsonb;
+  n_mis integer; n_other integer; n_rows integer; n_start integer; n_today integer;
+BEGIN
+  SELECT p.id INTO v_admin FROM public.profiles p WHERE p.role IN ('admin', 'super_admin') ORDER BY p.id LIMIT 1;
+  IF v_admin IS NULL THEN
+    RETURN jsonb_build_object('run', 'U4', 'error', 'no administrator profile found; the test cannot run');
+  END IF;
+  SELECT array_agg(p.id ORDER BY p.id) INTO v_ids FROM public.profiles p;
+
+  SELECT array_agg(z.o ORDER BY z.o) INTO v_offs FROM (
+    SELECT DISTINCT ((now() AT TIME ZONE COALESCE(p.timezone, 'Asia/Kolkata'))::date - d.d) AS o
+    FROM public.profiles p
+    JOIN (SELECT a.user_id AS uid, a.activity_date AS d FROM public.user_activity_log a WHERE a.activity_type = 'review'
+          UNION
+          SELECT s.user_id, s.session_date FROM public.study_sessions s) d ON d.uid = p.id
+    WHERE ((now() AT TIME ZONE COALESCE(p.timezone, 'Asia/Kolkata'))::date - d.d) BETWEEN 0 AND 90
+  ) z;
+  n := COALESCE(array_length(v_offs, 1), 0);
+  v_days := ARRAY[0, 1, 7];
+  IF n > 0 THEN
+    FOR i IN 0..7 LOOP
+      v_days := v_days || v_offs[1 + (i * (n - 1)) / 7];
+    END LOOP;
+  END IF;
+  SELECT array_agg(DISTINCT x ORDER BY x) INTO v_days FROM unnest(v_days) x;
+
+  FOREACH v_d IN ARRAY v_days LOOP
+    v_new := '{}'::jsonb;
+    PERFORM set_config('request.jwt.claims', jsonb_build_object('sub', v_admin::text, 'role', 'authenticated')::text, true);
+    SET LOCAL ROLE authenticated;
+    FOREACH v_u IN ARRAY v_ids LOOP
+      SELECT COALESCE(jsonb_agg(to_jsonb(h) ORDER BY h.review_date), '[]'::jsonb) INTO v_row FROM public.get_study_heatmap_split(v_u, v_d) h;
+      v_new := v_new || jsonb_build_object(v_u::text, v_row);
+    END LOOP;
+    RESET ROLE;
+    PERFORM set_config('request.jwt.claims', '', true);
+
+    SELECT count(*) INTO n_mis FROM (
+      (SELECT j.k::uuid AS uid, (e ->> 'review_date')::date AS d, (e ->> 'review_count')::integer AS rc, (e ->> 'in_app_seconds')::integer AS ins,
+              (e ->> 'offline_seconds')::integer AS offs, (e ->> 'study_seconds')::integer AS tot, (e ->> 'other_seconds')::integer AS oth
+       FROM jsonb_each(v_new) j(k, v) CROSS JOIN LATERAL jsonb_array_elements(j.v) e
+       EXCEPT ALL SELECT x.uid, x.d, x.rc, x.ins, x.offs, x.tot, x.oth FROM pg_temp.c02_expected_new(v_d) x)
+      UNION ALL
+      (SELECT x.uid, x.d, x.rc, x.ins, x.offs, x.tot, x.oth FROM pg_temp.c02_expected_new(v_d) x
+       EXCEPT ALL
+       SELECT j.k::uuid, (e ->> 'review_date')::date, (e ->> 'review_count')::integer, (e ->> 'in_app_seconds')::integer,
+              (e ->> 'offline_seconds')::integer, (e ->> 'study_seconds')::integer, (e ->> 'other_seconds')::integer
+       FROM jsonb_each(v_new) j(k, v) CROSS JOIN LATERAL jsonb_array_elements(j.v) e)
+    ) m;
+    SELECT count(*) INTO n_other FROM jsonb_each(v_new) j(k, v) CROSS JOIN LATERAL jsonb_array_elements(j.v) e WHERE (e ->> 'other_seconds')::integer <> 0;
+    SELECT count(*) INTO n_rows FROM jsonb_each(v_new) j(k, v) CROSS JOIN LATERAL jsonb_array_elements(j.v) e;
+    SELECT count(*) FILTER (WHERE (e ->> 'review_date')::date = (now() AT TIME ZONE COALESCE(p.timezone, 'Asia/Kolkata'))::date - v_d),
+           count(*) FILTER (WHERE (e ->> 'review_date')::date = (now() AT TIME ZONE COALESCE(p.timezone, 'Asia/Kolkata'))::date)
+      INTO n_start, n_today
+    FROM jsonb_each(v_new) j(k, v) CROSS JOIN LATERAL jsonb_array_elements(j.v) e
+    JOIN public.profiles p ON p.id = j.k::uuid;
+
+    v_out := v_out || jsonb_build_object(
+      'p_days', v_d, 'rows', n_rows,
+      'mismatching_rows_against_the_independent_recomputation', n_mis,
+      'rows_with_other_seconds_not_zero', n_other,
+      'listed_rows_exactly_on_the_window_start', n_start,
+      'listed_rows_exactly_on_today', n_today,
+      'pass', (n_mis = 0 AND n_other = 0));
+  END LOOP;
+  RETURN jsonb_build_object(
+    'run', 'U4', 'profiles', array_length(v_ids, 1), 'derived_distinct_listed_day_offsets_available', n,
+    'p_days_tested', to_jsonb(v_days), 'by_window', v_out,
+    'windows_greater_than_0_whose_start_falls_on_a_listed_row',
+      (SELECT count(*) FROM jsonb_array_elements(v_out) e WHERE (e ->> 'p_days')::integer > 0 AND (e ->> 'listed_rows_exactly_on_the_window_start')::integer > 0),
+    'windows_greater_than_0_tested', (SELECT count(*) FROM jsonb_array_elements(v_out) e WHERE (e ->> 'p_days')::integer > 0),
+    'all_passed', NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_out) e WHERE (e ->> 'pass')::boolean IS NOT TRUE));
+END;
+$$;
+SELECT pg_temp.c02_u4() AS result;

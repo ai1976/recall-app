@@ -1,15 +1,15 @@
--- Name: [FUNCTIONS] T-001 C-01 ROLLBACK (v2) - restore get_due_forecast and get_due_forecast_buckets to their pre-C-01 bodies and remove the shared helper
+-- Name: [FUNCTIONS] T-001 C-01 ROLLBACK (v3) - restore get_due_forecast and get_due_forecast_buckets to their pre-C-01 bodies and remove the shared helper
 --
 -- Description: PERSISTENT DDL (undo of C-01_FUNCTIONS_due-eligibility-helper-and-forecast-functions.sql). Run only after the Founder has authorized it
 -- (Gate 2 for this exact hash, as for every SQL file). It restores the two public functions to the bodies of docs/discussions/evidence/T-001_RUN-1B_04-10-2026.md
 -- (the live bodies of 04/10/2026) and then drops public.fn_due_eligible_dates, in that order (the public functions depend on the helper).
--- v2 (supersedes v1 c114289e439f, which was never authorized or run): the byte comparison promised in v1 has been done against the live definitions
--- saved by diagnostic 10 v3 (docs/discussions/evidence/T-001_C-slice1-P1_07-10-2026.json, index T-001_C-slice1-index_07-10-2026.md section 3). RESULT: the
--- function bodies below are identical to the live definitions of get_due_forecast (1,762 characters) and get_due_forecast_buckets (2,516) except for
--- exactly two things, both intended and both stated here: (1) the search_path clause is written unquoted, SET search_path TO public, extensions (the
--- project standard; the live definition prints it as SET search_path TO 'public', 'extensions', and the live configuration value is
--- search_path=public, extensions, which is also what the unquoted form stores); (2) the live bodies contain carriage-return characters (Windows line
--- endings) which this line-feed file does not reproduce. The function LOGIC restored is therefore exactly the live logic.
+-- v3 (supersedes v2 a6e22c2961f4 and v1 c114289e439f, never authorized or run; header text only, no statement changed): QA Round 100 compared the two function
+-- bodies of v2 with the live definitions saved by diagnostic 10 v3 (docs/discussions/evidence/T-001_C-slice1-P1_07-10-2026.json) and found them
+-- BYTE-FOR-BYTE equal, including the carriage returns, because this file is saved with Windows line endings. v2 and the evidence index wrongly said the file does not
+-- reproduce the carriage returns; that statement is corrected here. What differs from the live definition is only the search_path clause, written unquoted here
+-- (SET search_path TO public, extensions, the project standard) where pg_get_functiondef prints SET search_path TO 'public', 'extensions'; the live configuration
+-- value is search_path=public, extensions, which is also what the unquoted form stores. The function LOGIC restored is exactly the live logic.
+-- An editor or browser may normalize line endings when this file is pasted, so a raw md5 after a rollback is not the acceptance criterion; the criterion follows.
 -- HOW A ROLLBACK IS VERIFIED AFTER ANY USE OF THIS FILE: run RUN P1 of diagnostic 10 again and compare, after removing carriage returns from both sides,
 -- the returned definitions of get_due_forecast and get_due_forecast_buckets with the saved pre-C-01 definitions (a raw md5 will differ only because of the
 -- carriage returns); the helper must be absent (new_routine_names_already_present must not list fn_due_eligible_dates), and the execute_roles of both
