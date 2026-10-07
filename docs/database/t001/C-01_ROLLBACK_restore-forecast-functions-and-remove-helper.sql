@@ -1,15 +1,19 @@
--- Name: [FUNCTIONS] T-001 C-01 ROLLBACK (v1) - restore get_due_forecast and get_due_forecast_buckets to their pre-C-01 bodies and remove the shared helper
+-- Name: [FUNCTIONS] T-001 C-01 ROLLBACK (v2) - restore get_due_forecast and get_due_forecast_buckets to their pre-C-01 bodies and remove the shared helper
 --
 -- Description: PERSISTENT DDL (undo of C-01_FUNCTIONS_due-eligibility-helper-and-forecast-functions.sql). Run only after the Founder has authorized it
 -- (Gate 2 for this exact hash, as for every SQL file). It restores the two public functions to the bodies of docs/discussions/evidence/T-001_RUN-1B_04-10-2026.md
 -- (the live bodies of 04/10/2026) and then drops public.fn_due_eligible_dates, in that order (the public functions depend on the helper).
--- HOW THIS FILE IS CHECKED BEFORE IT IS EVER NEEDED: the saved RUN 1B text is a transcription, not byte-identical to the live cell, so (1) the pre-check
--- diagnostic 10 saves the live definitions and their md5 BEFORE C-01 runs; (2) Claude compares the body text below with those saved definitions
--- byte for byte and reports the result to QA (any difference makes this file a new version); (3) after any use of this file, run RUN P1 of diagnostic 10
--- again: the definition_md5 of both functions must equal the pre-C-01 values, the helper must be absent, and the execute_roles of both functions
--- must equal the pre-C-01 values (authenticated, postgres, service_role). The only intended difference of the text below from the live
--- definitions is that the search_path clause is written unquoted (SET search_path TO public, extensions), the project standard, which PostgreSQL
--- stores and prints identically.
+-- v2 (supersedes v1 c114289e439f, which was never authorized or run): the byte comparison promised in v1 has been done against the live definitions
+-- saved by diagnostic 10 v3 (docs/discussions/evidence/T-001_C-slice1-P1_07-10-2026.json, index T-001_C-slice1-index_07-10-2026.md section 3). RESULT: the
+-- function bodies below are identical to the live definitions of get_due_forecast (1,762 characters) and get_due_forecast_buckets (2,516) except for
+-- exactly two things, both intended and both stated here: (1) the search_path clause is written unquoted, SET search_path TO public, extensions (the
+-- project standard; the live definition prints it as SET search_path TO 'public', 'extensions', and the live configuration value is
+-- search_path=public, extensions, which is also what the unquoted form stores); (2) the live bodies contain carriage-return characters (Windows line
+-- endings) which this line-feed file does not reproduce. The function LOGIC restored is therefore exactly the live logic.
+-- HOW A ROLLBACK IS VERIFIED AFTER ANY USE OF THIS FILE: run RUN P1 of diagnostic 10 again and compare, after removing carriage returns from both sides,
+-- the returned definitions of get_due_forecast and get_due_forecast_buckets with the saved pre-C-01 definitions (a raw md5 will differ only because of the
+-- carriage returns); the helper must be absent (new_routine_names_already_present must not list fn_due_eligible_dates), and the execute_roles of both
+-- functions must again be exactly authenticated, postgres, service_role.
 -- The Supabase SQL Editor runs one selection in ONE transaction; this file has no verification and no ROLLBACK.
 
 -- 1. get_due_forecast, as of 04/10/2026
