@@ -1,12 +1,15 @@
--- Name: [TEST] T-001 C-01 TEST (v1) - verification of the due-eligibility helper and the two forecast functions (brief C v6, C-6.5 items 1 to 4)
+-- Name: [TEST] T-001 C-01 TEST (v2) - verification of the due-eligibility helper and the two forecast functions (brief C v6, C-6.5 items 1 to 4)
 --
 -- Description: VERIFICATION, run AFTER C-01_FUNCTIONS_due-eligibility-helper-and-forecast-functions.sql has been executed (it fails or reports "not
--- found" before that). It changes NOTHING that persists: five runs; each ends in one SELECT that returns a single jsonb cell named `result` (T2 to T4 first create a TEMPORARY function in pg_temp,
--- which vanishes with the session, and the SELECT calls it; T1 and T5 are a single SELECT). No INSERT, UPDATE, DELETE or DDL on any application object. Role
+-- found" before that). It changes NOTHING that persists: four runs; each ends in one SELECT that returns a single jsonb cell named `result` (T2 to T4 first create a TEMPORARY function in pg_temp,
+-- which vanishes with the session, and the SELECT calls it; T1 is a single SELECT). v2 (supersedes v1 65e25142f7fa, never authorized or run; QA Round 94):
+-- T1 now compares the COMPLETE, deterministically ordered set of roles holding EXECUTE with the approved ceiling (the helper: the owner only; each public
+-- function: exactly authenticated, postgres and service_role), so an unexpected extra role fails; and the coverage run T5 of v1 is REMOVED, because the exact
+-- coverage of the C-6.5 item 3 boundary cases is now measured BEFORE Gate 2 by the read-only diagnostic 10 v2, runs P3 and P4. No INSERT, UPDATE, DELETE or DDL on any application object. Role
 -- switches use SET LOCAL ROLE inside the temporary function and are reset before it returns. No user id, card id or text is returned; only labels,
 -- counts and pass flags. Run only after QA has passed this exact file by hash and the Founder has authorized running that hash.
 -- HOW TO RUN: select ONE run (from its banner line to the closing SELECT ... AS result;), click Run, copy the single result cell, and paste it into one
--- Notepad file under its label (T1 to T5), unchanged. Save as docs/discussions/evidence/T-001_C01-test-raw_<dd-mm-yyyy>.raw.txt. An error is evidence:
+-- Notepad file under its label (T1 to T4), unchanged. Save as docs/discussions/evidence/T-001_C01-test-raw_<dd-mm-yyyy>.raw.txt. An error is evidence:
 -- save the error text under its label, do not edit and re-run (stop and report instead).
 --
 -- What each run proves (the brief C v6 clause in brackets):
@@ -26,11 +29,10 @@
 --       [C-6.5 items 1 and 2, and the date boundary of item 3]
 --   T4  the null date: for every profile, over many dates, the helper returns no null date; the number of null-dated active reviews that exist is
 --       reported with the number that any figure counted (must be 0).  [brief C v6 D-C5; C-6.5 item 3]
---   T5  coverage and time-zone edges: how many live rows exist in each C-6.5 item 3 category (status, enrollment state, visibility, concept_card,
---       course, skip_until), so that a category with no live rows is reported as NOT COVERED by live data instead of silently untested; and the local-date
---       formula at +14 hours and -12 hours against UTC.  [C-6.5 item 3]
--- Not proven here, stated: categories reported as NOT COVERED by T5 need rolled-back fixtures or a different environment, a decision for QA and the
--- Founder; the frontend (C-03) is not touched; real-role tests use the SET LOCAL ROLE emulation with a JWT claim, the same mechanism as the platform.
+--   (no T5: coverage of the C-6.5 item 3 boundary cases is measured exactly, before Gate 2, by diagnostic 10 v2 run P3; T3 then exercises every case that
+--       has live rows, because it compares ALL profiles.)
+-- Not proven here, stated: a boundary case that diagnostic 10 v2 P3 reports as NOT COVERED by live data (for example a user at exactly +14 or -12 hours)
+-- is not exercised by T3 and needs a decision of the Founder (accept the residual gap, or approve a safe fixture environment) before Gate 2; the frontend (C-03) is not touched; real-role tests use the SET LOCAL ROLE emulation with a JWT claim, the same mechanism as the platform.
 
 -- ===== RUN T1: catalogue and ACL assertions =====
 WITH h AS (
@@ -68,6 +70,10 @@ chk AS (
   UNION ALL SELECT 'public_functions_executable_by_authenticated_and_service_role',
          COALESCE((SELECT bool_and(has_function_privilege('authenticated', rp.oid, 'EXECUTE')
                                    AND has_function_privilege('service_role', rp.oid, 'EXECUTE')) FROM rp), false)
+  UNION ALL SELECT 'helper_execute_set_is_exactly_the_owner',
+         COALESCE((SELECT (SELECT array_agg(DISTINCT s.g ORDER BY s.g) FROM (SELECT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee)::text END AS g FROM aclexplode(COALESCE(h.proacl, acldefault('f', h.proowner))) x WHERE x.privilege_type = 'EXECUTE') s) = ARRAY[pg_get_userbyid(h.proowner)::text] FROM h), false)
+  UNION ALL SELECT 'public_function_execute_set_is_exactly_authenticated_postgres_service_role',
+         COALESCE((SELECT bool_and((SELECT array_agg(DISTINCT s.g ORDER BY s.g) FROM (SELECT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee)::text END AS g FROM aclexplode(COALESCE(rp.proacl, acldefault('f', rp.proowner))) x WHERE x.privilege_type = 'EXECUTE') s) = ARRAY['authenticated', 'postgres', 'service_role']) FROM rp), false)
   UNION ALL SELECT 'no_duplicate_enrollment_pair',
          NOT EXISTS (SELECT 1 FROM public.my_cards_enrollment e GROUP BY e.user_id, e.flashcard_id HAVING count(*) > 1)
 )
@@ -76,10 +82,11 @@ SELECT jsonb_build_object(
   'checks', (SELECT jsonb_agg(jsonb_build_object('check', name, 'pass', pass) ORDER BY name) FROM chk),
   'all_passed', (SELECT bool_and(pass) FROM chk),
   'public_function_execute_roles', (SELECT jsonb_agg(jsonb_build_object('function', rp.proname,
-        'roles', (SELECT COALESCE(jsonb_agg(DISTINCT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee) END), '[]'::jsonb)
-                  FROM aclexplode(COALESCE(rp.proacl, acldefault('f', rp.proowner))) x WHERE x.privilege_type = 'EXECUTE')) ORDER BY rp.proname) FROM rp),
-  'helper_execute_roles', (SELECT COALESCE(jsonb_agg(DISTINCT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee) END), '[]'::jsonb)
-                           FROM h, aclexplode(COALESCE(h.proacl, acldefault('f', h.proowner))) x WHERE x.privilege_type = 'EXECUTE')
+        'roles', to_jsonb((SELECT array_agg(DISTINCT s.g ORDER BY s.g) FROM (SELECT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee)::text END AS g FROM aclexplode(COALESCE(rp.proacl, acldefault('f', rp.proowner))) x WHERE x.privilege_type = 'EXECUTE') s))) ORDER BY rp.proname) FROM rp),
+  'helper_execute_roles', (SELECT to_jsonb((SELECT array_agg(DISTINCT s.g ORDER BY s.g) FROM (SELECT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee)::text END AS g FROM aclexplode(COALESCE(h.proacl, acldefault('f', h.proowner))) x WHERE x.privilege_type = 'EXECUTE') s)) FROM h),
+  -- informational, not a pass criterion: roles that can execute the helper only because they inherit the owner's privileges or are superusers
+  'helper_effective_executors_other_than_owner', (SELECT COALESCE(jsonb_agg(r.rolname ORDER BY r.rolname), '[]'::jsonb)
+        FROM pg_roles r, h WHERE r.oid <> h.proowner AND has_function_privilege(r.oid, h.oid, 'EXECUTE'))
 ) AS result;
 
 -- ===== RUN T2: direct invocation as real roles =====
@@ -309,60 +316,3 @@ BEGIN
 END;
 $$;
 SELECT pg_temp.c01_t4() AS result;
-
--- ===== RUN T5: coverage of the C-6.5 item 3 categories by live data, and the time-zone edges =====
-WITH x AS (
-  SELECT r.status AS rstatus, r.next_review_date IS NULL AS null_date,
-         (r.skip_until IS NULL) AS skip_null,
-         (r.skip_until < (now() AT TIME ZONE COALESCE(p.timezone, 'Asia/Kolkata'))::date) AS skip_past,
-         (r.skip_until = (now() AT TIME ZONE COALESCE(p.timezone, 'Asia/Kolkata'))::date) AS skip_today,
-         (r.skip_until > (now() AT TIME ZONE COALESCE(p.timezone, 'Asia/Kolkata'))::date) AS skip_future,
-         e.status AS enr, f.question_type = 'concept_card' AS concept,
-         (f.user_id = r.user_id) AS own, f.visibility AS vis,
-         EXISTS (SELECT 1 FROM public.friendships fr WHERE fr.status = 'accepted' AND r.user_id IN (fr.user_id, fr.friend_id)
-                 AND f.user_id IN (fr.user_id, fr.friend_id) AND fr.user_id <> fr.friend_id) AS friend_accepted,
-         EXISTS (SELECT 1 FROM public.friendships fr WHERE fr.status <> 'accepted' AND r.user_id IN (fr.user_id, fr.friend_id)
-                 AND f.user_id IN (fr.user_id, fr.friend_id) AND fr.user_id <> fr.friend_id) AS friend_not_accepted,
-         (p.course_level IS NULL) AS course_null, (f.target_course IS NULL) AS card_course_null,
-         (p.course_level IS NOT NULL AND f.target_course = p.course_level) AS course_equal,
-         (p.course_level IS NOT NULL AND f.target_course IS NOT NULL AND f.target_course <> p.course_level) AS course_different
-  FROM public.reviews r
-  JOIN public.flashcards f ON f.id = r.flashcard_id
-  LEFT JOIN public.profiles p ON p.id = r.user_id
-  LEFT JOIN public.my_cards_enrollment e ON e.user_id = r.user_id AND e.flashcard_id = r.flashcard_id
-),
-cov AS (
-  SELECT 'review_status_active' AS cat, count(*) FILTER (WHERE rstatus = 'active') AS n FROM x
-  UNION ALL SELECT 'review_status_suspended', count(*) FILTER (WHERE rstatus = 'suspended') FROM x
-  UNION ALL SELECT 'review_status_mastered', count(*) FILTER (WHERE rstatus = 'mastered') FROM x
-  UNION ALL SELECT 'active_review_enrollment_active', count(*) FILTER (WHERE rstatus = 'active' AND enr = 'active') FROM x
-  UNION ALL SELECT 'active_review_enrollment_removed', count(*) FILTER (WHERE rstatus = 'active' AND enr = 'removed') FROM x
-  UNION ALL SELECT 'active_review_enrollment_other_status', count(*) FILTER (WHERE rstatus = 'active' AND enr IS NOT NULL AND enr NOT IN ('active', 'removed')) FROM x
-  UNION ALL SELECT 'active_review_no_enrollment_row', count(*) FILTER (WHERE rstatus = 'active' AND enr IS NULL) FROM x
-  UNION ALL SELECT 'enrolled_active_review_own_card', count(*) FILTER (WHERE rstatus = 'active' AND enr = 'active' AND own) FROM x
-  UNION ALL SELECT 'enrolled_active_review_public_card_not_own', count(*) FILTER (WHERE rstatus = 'active' AND enr = 'active' AND NOT own AND vis = 'public') FROM x
-  UNION ALL SELECT 'enrolled_active_review_friends_card_accepted_friendship', count(*) FILTER (WHERE rstatus = 'active' AND enr = 'active' AND NOT own AND vis = 'friends' AND friend_accepted) FROM x
-  UNION ALL SELECT 'enrolled_active_review_friends_card_friendship_not_accepted', count(*) FILTER (WHERE rstatus = 'active' AND enr = 'active' AND NOT own AND vis = 'friends' AND NOT friend_accepted AND friend_not_accepted) FROM x
-  UNION ALL SELECT 'enrolled_active_review_private_card_not_own', count(*) FILTER (WHERE rstatus = 'active' AND enr = 'active' AND NOT own AND COALESCE(vis, '') NOT IN ('public', 'friends')) FROM x
-  UNION ALL SELECT 'active_review_concept_card', count(*) FILTER (WHERE rstatus = 'active' AND concept) FROM x
-  UNION ALL SELECT 'active_review_course_both_sides_null_or_card_null', count(*) FILTER (WHERE rstatus = 'active' AND (course_null OR card_course_null)) FROM x
-  UNION ALL SELECT 'active_review_course_equal', count(*) FILTER (WHERE rstatus = 'active' AND course_equal) FROM x
-  UNION ALL SELECT 'active_review_course_different', count(*) FILTER (WHERE rstatus = 'active' AND course_different) FROM x
-  UNION ALL SELECT 'active_review_skip_null', count(*) FILTER (WHERE rstatus = 'active' AND skip_null) FROM x
-  UNION ALL SELECT 'active_review_skip_in_the_past', count(*) FILTER (WHERE rstatus = 'active' AND skip_past) FROM x
-  UNION ALL SELECT 'active_review_skip_today', count(*) FILTER (WHERE rstatus = 'active' AND skip_today) FROM x
-  UNION ALL SELECT 'active_review_skip_in_the_future', count(*) FILTER (WHERE rstatus = 'active' AND skip_future) FROM x
-  UNION ALL SELECT 'active_review_null_date', count(*) FILTER (WHERE rstatus = 'active' AND null_date) FROM x
-)
-SELECT jsonb_build_object(
-  'run', 'T5',
-  'coverage_counts', (SELECT jsonb_object_agg(cat, n ORDER BY cat) FROM cov),
-  'NOT_COVERED_by_live_data', (SELECT COALESCE(jsonb_agg(cat ORDER BY cat), '[]'::jsonb) FROM cov WHERE n = 0),
-  'timezone_edges', jsonb_build_object(
-      'plus_14h_Pacific_Kiritimati_local_date_equals_UTC_plus_14h',
-         ((now() AT TIME ZONE 'Pacific/Kiritimati')::date = ((now() AT TIME ZONE 'UTC') + interval '14 hours')::date),
-      'minus_12h_Etc_GMT_plus_12_local_date_equals_UTC_minus_12h',
-         ((now() AT TIME ZONE 'Etc/GMT+12')::date = ((now() AT TIME ZONE 'UTC') - interval '12 hours')::date),
-      'Asia_Kolkata_local_date_equals_UTC_plus_5h30',
-         ((now() AT TIME ZONE 'Asia/Kolkata')::date = ((now() AT TIME ZONE 'UTC') + interval '5 hours 30 minutes')::date))
-) AS result;

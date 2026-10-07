@@ -1,12 +1,16 @@
--- Name: [TEST] T-001 C-02 TEST (v1) - verification of the new study-heatmap function get_study_heatmap_split (brief C v6, C-7.5 items 1 to 5)
+-- Name: [TEST] T-001 C-02 TEST (v2) - verification of the new study-heatmap function get_study_heatmap_split (brief C v6, C-7.5 items 1 to 5)
 --
 -- Description: VERIFICATION, run AFTER C-02_FUNCTIONS_study-heatmap-split.sql has been executed (before that it reports the function missing or fails).
--- It changes NOTHING that persists: four runs; each ends in one SELECT that returns a single jsonb cell named `result` (U2 and U3 first create
--- TEMPORARY functions in pg_temp, which vanish with the session; U1 and U4 are a single SELECT). No INSERT, UPDATE, DELETE or DDL on any application
+-- It changes NOTHING that persists: three runs; each ends in one SELECT that returns a single jsonb cell named `result` (U2 and U3 first create
+-- TEMPORARY functions in pg_temp, which vanish with the session; U1 is a single SELECT). v2 (supersedes v1 fe815adb6cbd, never authorized or run; QA Round 94):
+-- U1 now compares COMPLETE, deterministically ordered sets of EXECUTE holders with the approved ceiling (exactly authenticated, postgres and service_role, for
+-- the new and for the live function) instead of an order-dependent comparison with the live function; and the coverage run U4 of v1 is REMOVED, because the
+-- exact coverage of the C-7.5 item 5 boundary cases, restricted to the days the 90-day window actually exercises, the exact +14 h and -12 h users, and the
+-- complete upper-end count over ALL THREE sources are now measured BEFORE Gate 2 by the read-only diagnostic 10 v2, run P4. No INSERT, UPDATE, DELETE or DDL on any application
 -- object. Role switches use SET LOCAL ROLE inside a temporary function and are reset before it returns. No user id, date, card id or text is returned:
 -- only labels, counts and pass flags. Run only after QA has passed this exact file by hash and the Founder has authorized running that hash.
 -- HOW TO RUN: select ONE run (from its banner line to the closing SELECT ... AS result;), click Run, copy the single result cell, and paste it into one
--- Notepad file under its label (U1 to U4), unchanged. Save as docs/discussions/evidence/T-001_C02-test-raw_<dd-mm-yyyy>.raw.txt. An error is evidence:
+-- Notepad file under its label (U1 to U3), unchanged. Save as docs/discussions/evidence/T-001_C02-test-raw_<dd-mm-yyyy>.raw.txt. An error is evidence:
 -- save the error text under its label, do not edit and re-run (stop and report instead).
 --
 -- What each run proves (the brief C v6 clause in brackets):
@@ -28,11 +32,9 @@
 --       (4) the boundary delta: the rows that exist on only one side (outside the common set) are counted with their review and study totals, and every
 --           such row is already proven equal to its own side's independent recomputation by (1) and (2), so the delta consists of exactly the source rows in
 --           the symmetric difference of the two windows and nothing else.  [C-7.5 item 3]
---   U4  coverage and edges: how many profiles and days exist for each boundary case (a study-only day, a review-only day, a day with all sources, a day
---       with every known source), the number of old-function rows dated after the profile's local today (what the new upper end drops), the number of
---       profiles whose local date differs from the server's CURRENT_DATE, and the local-date formula at +14 hours and -12 hours; a case with no live
---       rows is reported as NOT COVERED by live data.  [C-7.5 item 5]
--- Not proven here, stated: categories reported NOT COVERED by U4 need rolled-back fixtures or another environment (a decision for QA and the Founder);
+--   (no U4: coverage of the boundary cases is measured exactly, before Gate 2, by diagnostic 10 v2 run P4; U3 then exercises every case that has live rows.)
+-- Not proven here, stated: a case that diagnostic 10 v2 P4 reports NOT COVERED by live data (for example a user at exactly +14 or -12 hours) is not exercised
+-- and needs a decision of the Founder (accept the residual gap, or approve a safe fixture environment) before Gate 2;
 -- the frontend (C-7.4, accessibility and date handling) is part of C-03 and is not touched; real-role tests use SET LOCAL ROLE with a JWT claim.
 
 -- ===== RUN U1: catalogue and ACL assertions =====
@@ -57,11 +59,12 @@ chk AS (
          NOT COALESCE((SELECT bool_or(has_function_privilege('anon', n.oid, 'EXECUTE')) FROM n), true)
   UNION ALL SELECT 'new_function_executable_by_authenticated_and_service_role',
          COALESCE((SELECT bool_and(has_function_privilege('authenticated', n.oid, 'EXECUTE') AND has_function_privilege('service_role', n.oid, 'EXECUTE')) FROM n), false)
-  UNION ALL SELECT 'new_function_execute_roles_equal_live_function_execute_roles',
-         (SELECT COALESCE(jsonb_agg(DISTINCT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee) END), '[]'::jsonb)
-            FROM n, aclexplode(COALESCE(n.proacl, acldefault('f', n.proowner))) x WHERE x.privilege_type = 'EXECUTE')
-         = (SELECT COALESCE(jsonb_agg(DISTINCT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee) END), '[]'::jsonb)
-              FROM o, aclexplode(COALESCE(o.proacl, acldefault('f', o.proowner))) x WHERE x.privilege_type = 'EXECUTE')
+  UNION ALL SELECT 'new_function_execute_set_is_exactly_authenticated_postgres_service_role',
+         COALESCE((SELECT (SELECT array_agg(DISTINCT s.g ORDER BY s.g) FROM (SELECT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee)::text END AS g FROM aclexplode(COALESCE(n.proacl, acldefault('f', n.proowner))) x WHERE x.privilege_type = 'EXECUTE') s) = ARRAY['authenticated', 'postgres', 'service_role'] FROM n), false)
+  UNION ALL SELECT 'live_function_execute_set_is_exactly_authenticated_postgres_service_role',
+         COALESCE((SELECT (SELECT array_agg(DISTINCT s.g ORDER BY s.g) FROM (SELECT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee)::text END AS g FROM aclexplode(COALESCE(o.proacl, acldefault('f', o.proowner))) x WHERE x.privilege_type = 'EXECUTE') s) = ARRAY['authenticated', 'postgres', 'service_role'] FROM o), false)
+  UNION ALL SELECT 'new_function_execute_set_equals_live_function_execute_set',
+         COALESCE((SELECT (SELECT array_agg(DISTINCT s.g ORDER BY s.g) FROM (SELECT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee)::text END AS g FROM aclexplode(COALESCE(n.proacl, acldefault('f', n.proowner))) x WHERE x.privilege_type = 'EXECUTE') s) FROM n) = (SELECT (SELECT array_agg(DISTINCT s.g ORDER BY s.g) FROM (SELECT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee)::text END AS g FROM aclexplode(COALESCE(o.proacl, acldefault('f', o.proowner))) x WHERE x.privilege_type = 'EXECUTE') s) FROM o), false)
   UNION ALL SELECT 'live_function_still_exists_once', (SELECT count(*) FROM o) = 1
   UNION ALL SELECT 'new_function_owner_equals_live_function_owner', (SELECT n.proowner FROM n) = (SELECT o.proowner FROM o)
 )
@@ -70,8 +73,7 @@ SELECT jsonb_build_object(
   'checks', (SELECT jsonb_agg(jsonb_build_object('check', name, 'pass', pass) ORDER BY name) FROM chk),
   'all_passed', (SELECT bool_and(pass) FROM chk),
   'live_get_study_heatmap_definition_md5', (SELECT md5(pg_get_functiondef(o.oid)) FROM o),
-  'new_function_execute_roles', (SELECT COALESCE(jsonb_agg(DISTINCT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee) END), '[]'::jsonb)
-                                 FROM n, aclexplode(COALESCE(n.proacl, acldefault('f', n.proowner))) x WHERE x.privilege_type = 'EXECUTE')
+  'new_function_execute_roles', (SELECT to_jsonb((SELECT array_agg(DISTINCT s.g ORDER BY s.g) FROM (SELECT CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee)::text END AS g FROM aclexplode(COALESCE(n.proacl, acldefault('f', n.proowner))) x WHERE x.privilege_type = 'EXECUTE') s)) FROM n)
 ) AS result;
 
 -- ===== RUN U2: real roles =====
@@ -296,50 +298,3 @@ BEGIN
 END;
 $$;
 SELECT pg_temp.c02_u3() AS result;
-
--- ===== RUN U4: coverage of the C-7.5 item 5 boundary cases by live data, and the time-zone edges =====
-WITH pr AS (
-  SELECT p.id, COALESCE(p.timezone, 'Asia/Kolkata') AS tz, (now() AT TIME ZONE COALESCE(p.timezone, 'Asia/Kolkata'))::date AS today
-  FROM public.profiles p
-),
-rd AS (SELECT a.user_id AS uid, a.activity_date AS d FROM public.user_activity_log a WHERE a.activity_type = 'review'),
-sd AS (
-  SELECT s.user_id AS uid, s.session_date AS d, bool_or(s.source = 'manual') AS has_manual,
-         bool_or(s.source IN ('study_mode', 'practice_mode')) AS has_in_app
-  FROM public.study_sessions s GROUP BY 1, 2
-),
-dd AS (
-  SELECT COALESCE(rd.uid, sd.uid) AS uid, COALESCE(rd.d, sd.d) AS d, (rd.uid IS NOT NULL) AS has_review_day, (sd.uid IS NOT NULL) AS has_study,
-         COALESCE(sd.has_manual, false) AS has_manual, COALESCE(sd.has_in_app, false) AS has_in_app
-  FROM rd FULL OUTER JOIN sd ON rd.uid = sd.uid AND rd.d = sd.d
-),
-cov AS (
-  SELECT 'day_with_study_only' AS cat, count(*) FILTER (WHERE has_study AND NOT has_review_day) AS n FROM dd
-  UNION ALL SELECT 'day_with_review_activity_only', count(*) FILTER (WHERE has_review_day AND NOT has_study) FROM dd
-  UNION ALL SELECT 'day_with_review_activity_and_study', count(*) FILTER (WHERE has_review_day AND has_study) FROM dd
-  UNION ALL SELECT 'day_with_manual_and_in_app_study', count(*) FILTER (WHERE has_manual AND has_in_app) FROM dd
-  UNION ALL SELECT 'day_with_manual_study_only', count(*) FILTER (WHERE has_manual AND NOT has_in_app) FROM dd
-  UNION ALL SELECT 'day_with_in_app_study_only', count(*) FILTER (WHERE has_in_app AND NOT has_manual) FROM dd
-  UNION ALL SELECT 'profile_with_local_date_different_from_server_current_date', count(*) FILTER (WHERE true) FROM pr WHERE pr.today <> CURRENT_DATE
-  UNION ALL SELECT 'profile_with_utc_offset_at_or_above_plus_12h',
-         count(*) FROM pr JOIN pg_timezone_names z ON lower(z.name) = lower(pr.tz) WHERE z.utc_offset >= interval '12 hours'
-  UNION ALL SELECT 'profile_with_utc_offset_at_or_below_minus_5h',
-         count(*) FROM pr JOIN pg_timezone_names z ON lower(z.name) = lower(pr.tz) WHERE z.utc_offset <= interval '-5 hours'
-  UNION ALL SELECT 'study_sessions_dated_after_profile_local_today_that_the_new_upper_end_drops',
-         count(*) FROM public.study_sessions s JOIN pr ON pr.id = s.user_id WHERE s.session_date > pr.today
-  UNION ALL SELECT 'review_activity_days_dated_after_profile_local_today_that_the_new_upper_end_drops',
-         count(*) FROM rd JOIN pr ON pr.id = rd.uid WHERE rd.d > pr.today
-)
-SELECT jsonb_build_object(
-  'run', 'U4',
-  'coverage_counts', (SELECT jsonb_object_agg(cat, n ORDER BY cat) FROM cov),
-  'NOT_COVERED_by_live_data', (SELECT COALESCE(jsonb_agg(cat ORDER BY cat), '[]'::jsonb) FROM cov WHERE n = 0 AND cat NOT LIKE '%that_the_new_upper_end_drops'),
-  'rows_the_new_upper_end_drops_are_zero',
-     ((SELECT n FROM cov WHERE cat = 'study_sessions_dated_after_profile_local_today_that_the_new_upper_end_drops') = 0
-      AND (SELECT n FROM cov WHERE cat = 'review_activity_days_dated_after_profile_local_today_that_the_new_upper_end_drops') = 0),
-  'timezone_edges', jsonb_build_object(
-      'plus_14h_Pacific_Kiritimati_local_date_equals_UTC_plus_14h',
-         ((now() AT TIME ZONE 'Pacific/Kiritimati')::date = ((now() AT TIME ZONE 'UTC') + interval '14 hours')::date),
-      'minus_12h_Etc_GMT_plus_12_local_date_equals_UTC_minus_12h',
-         ((now() AT TIME ZONE 'Etc/GMT+12')::date = ((now() AT TIME ZONE 'UTC') - interval '12 hours')::date))
-) AS result;
