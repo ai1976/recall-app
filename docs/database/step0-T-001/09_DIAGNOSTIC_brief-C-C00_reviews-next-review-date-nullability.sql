@@ -1,22 +1,29 @@
--- Name: [DIAGNOSTIC] T-001 brief C file C-00 (v2) - live nullability and data check for reviews.next_review_date, and the live write contract of reviews
+-- Name: [DIAGNOSTIC] T-001 brief C file C-00 (v3) - live nullability and data check for reviews.next_review_date, and the live write contract of reviews
 --
--- Description: READ-ONLY, revised after QA Round 80 (v2; supersedes v1 1d11ff59c2b7, which was never authorized or run). Implements file C-00 of brief C v5
+-- Description: READ-ONLY, revised after QA Rounds 80 and 82 (v3; supersedes v2 3ad702447657 and v1 1d11ff59c2b7, neither of which was authorized or run). Implements file C-00 of brief C v5
 -- (8cb1fddbe9af, Gate 1 given by the Founder on 07/10/2026): the precondition that must be measured before any SQL for the shared due-eligibility
 -- helper (C-01) is authored. The repository schema documents reviews.next_review_date as nullable (DATABASE_SCHEMA.md:425) but the live catalog has not
 -- been checked, and the live get_due_forecast_buckets sends a null date to bucket 7 while the cumulative counts never count it (brief C C-6.2).
 -- DECISION RULE (declared before the run, QA Round 80 non-blocking 1): if N2 shows ANY null next_review_date, the behaviour for a null date is defined in
 -- C-01 before it is written, whatever the partial count says; the partial eligibility count in N2 is triage, not proof, because it does not apply
 -- enrollment, course or visibility. Only "the column is NOT NULL live" (N1) or "zero nulls" (N2) lets C-01 treat the case as test-only.
--- What changed from v1 (each answers a QA Round 80 finding):
+-- What changed from v2 (QA Round 82): (a) BLOCKING: N1 returned only the name, event and INSTEAD flag of each non-SELECT rewrite rule, which cannot show
+--   what the rule writes. It now returns pg_get_ruledef for every such rule and a lexical flag whether the definition mentions next_review_date.
+--   (b) Non-blocking 3, taken in advance: for every trigger function and every rule, N1 also returns the public routines whose names occur in the
+--   definition (whole-identifier match after lower-casing and removing double quotes, every overload, an over-approximation), so a delegated write can
+--   be followed without a second diagnostic. (c) Non-blocking 1: the time-zone counts are of REVIEW ROWS whose joined profile has a null, missing or
+--   unlisted time zone (not of profiles); the wording below is corrected. (d) Non-blocking 2: any non-zero unlisted count is a C-01 input requiring
+--   explicit review; it is not a parity validation.
+-- What changed from v1 to v2 (each answers a QA Round 80 finding):
 --   * Blocking 1. A trigger definition does not show what the trigger function writes. N1 now returns, for every non-internal trigger on reviews, the
 --     trigger function's identity, language, owner, SECURITY DEFINER flag and FULL definition (pg_get_functiondef), plus a lexical flag whether that
---     definition mentions next_review_date. N1 also returns the non-SELECT rewrite rules on reviews (a rule could rewrite a write) and whether each
+--     definition mentions next_review_date. N1 also returns the non-SELECT rewrite rules on reviews (a rule could rewrite a write; v3 adds each rule's full definition) and whether each
 --     column is generated or identity. The flag is lexical: a function that reaches the column only through another function is NOT cleared by it, and
 --     the full bodies are returned so the reading can be audited.
 --   * Blocking 2. N2 no longer builds any JSON key from a possibly null value and uses no sentinel string. Breakdowns by status and by question_type
 --     aggregate only non-null values; the rows with a null status, or a null question_type, or no matching flashcard, are separate counts.
---   * Non-blocking 2. A profile time zone that is not a listed name no longer aborts the run: N2 reports how many profiles have a null time zone and
---     how many have a non-null value that is not in pg_timezone_names (case-insensitive; no value is returned), and uses the approved default
+--   * Non-blocking 2. A profile time zone that is not a listed name no longer aborts the run: N2 reports how many review rows have a null or missing profile
+--     time zone and how many have a non-null value that is not in pg_timezone_names (case-insensitive; no value is returned), and uses the approved default
 --     Asia/Kolkata for the local date of those rows in this diagnostic only. A valid zone written in a form pg_timezone_names does not list (for
 --     example a POSIX string) would be counted as unlisted and measured with the default; this approximation is stated in the result.
 --   * Non-blocking 3. N1 returns expected and found counts and the named missing columns for profiles.timezone and profiles.course_level.
@@ -30,7 +37,7 @@
 --     and latest created_at of null rows; time-zone validity counts. No user id, flashcard id, card text or row identity is returned.
 -- Safety: every RUN is one SELECT or WITH ... SELECT. No INSERT, UPDATE, DELETE, DDL, transaction control, dynamic SQL or application-function call.
 -- Only catalog views and functions (pg_class, pg_namespace, pg_attribute, pg_attrdef, pg_constraint, pg_trigger, pg_rewrite, pg_index, pg_proc,
--- pg_language, pg_timezone_names, pg_get_expr, pg_get_constraintdef, pg_get_triggerdef, pg_get_indexdef, pg_get_functiondef, pg_get_userbyid,
+-- pg_language, pg_timezone_names, pg_get_expr, pg_get_constraintdef, pg_get_triggerdef, pg_get_indexdef, pg_get_functiondef, pg_get_ruledef, pg_get_userbyid,
 -- format_type) and plain reads of public.reviews, public.flashcards and public.profiles.
 -- Blind spots, stated: counts are one statement's view at its run time (N1 and N2 are separate statements, not one snapshot); row-level security does
 -- not apply to the SQL Editor role the way it applies to a student, which is intended (the whole table is measured); the result does not say why a null
@@ -78,7 +85,12 @@ SELECT jsonb_build_object(
                 'function_security_definer', p.prosecdef,
                 'function_definition', pg_get_functiondef(p.oid),
                 'function_definition_mentions_next_review_date',
-                  position('next_review_date' IN lower(replace(pg_get_functiondef(p.oid), '"', ''))) > 0)
+                  position('next_review_date' IN lower(replace(pg_get_functiondef(p.oid), '"', ''))) > 0,
+                'public_routines_named_in_function_definition',
+                  (SELECT COALESCE(jsonb_agg(p2.proname || '(' || pg_get_function_identity_arguments(p2.oid) || ')' ORDER BY p2.proname, p2.oid), '[]'::jsonb)
+                   FROM pg_proc p2 JOIN pg_namespace n2 ON n2.oid = p2.pronamespace
+                   WHERE n2.nspname = 'public' AND p2.oid <> p.oid AND p2.proname ~ '^[a-z0-9_]+$'
+                     AND lower(replace(pg_get_functiondef(p.oid), '"', '')) ~ ('(^|[^a-z0-9_])' || p2.proname || '([^a-z0-9_]|$)')))
                 ORDER BY g.tgname)
               FROM pg_trigger g JOIN rv ON g.tgrelid = rv.oid
               JOIN pg_proc p ON p.oid = g.tgfoid
@@ -86,7 +98,15 @@ SELECT jsonb_build_object(
               JOIN pg_language l ON l.oid = p.prolang
               WHERE NOT g.tgisinternal),
   'non_select_rules', (SELECT jsonb_agg(jsonb_build_object(
-                'name', w.rulename, 'event', w.ev_type, 'instead', w.is_instead)
+                'name', w.rulename, 'event', w.ev_type, 'instead', w.is_instead,
+                'definition', pg_get_ruledef(w.oid),
+                'definition_mentions_next_review_date',
+                  position('next_review_date' IN lower(replace(pg_get_ruledef(w.oid), '"', ''))) > 0,
+                'public_routines_named_in_definition',
+                  (SELECT COALESCE(jsonb_agg(p2.proname || '(' || pg_get_function_identity_arguments(p2.oid) || ')' ORDER BY p2.proname, p2.oid), '[]'::jsonb)
+                   FROM pg_proc p2 JOIN pg_namespace n2 ON n2.oid = p2.pronamespace
+                   WHERE n2.nspname = 'public' AND p2.proname ~ '^[a-z0-9_]+$'
+                     AND lower(replace(pg_get_ruledef(w.oid), '"', '')) ~ ('(^|[^a-z0-9_])' || p2.proname || '([^a-z0-9_]|$)')))
                 ORDER BY w.rulename)
               FROM pg_rewrite w JOIN rv ON w.ev_class = rv.oid WHERE w.ev_type <> '1'),
   'indexes', (SELECT jsonb_agg(jsonb_build_object(
