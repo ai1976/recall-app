@@ -1,0 +1,483 @@
+{
+ "run": "W2",
+ "policies": [
+  {
+   "policy": "Admins can insert own audit logs",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "a",
+   "relation": "admin_audit_log"
+  },
+  {
+   "policy": "Admins can view audit logs",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "r",
+   "relation": "admin_audit_log"
+  },
+  {
+   "policy": "Super admin can delete badge definitions",
+   "callees": [
+    {
+     "token": "is_super_admin",
+     "resolved": [
+      {
+       "name": "is_super_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "d",
+   "relation": "badge_definitions"
+  },
+  {
+   "policy": "Super admin can insert badge definitions",
+   "callees": [
+    {
+     "token": "is_super_admin",
+     "resolved": [
+      {
+       "name": "is_super_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "a",
+   "relation": "badge_definitions"
+  },
+  {
+   "policy": "Super admin can update badge definitions",
+   "callees": [
+    {
+     "token": "is_super_admin",
+     "resolved": [
+      {
+       "name": "is_super_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "w",
+   "relation": "badge_definitions"
+  },
+  {
+   "policy": "Admins can manage content creators",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "*",
+   "relation": "content_creators"
+  },
+  {
+   "policy": "admin_insert_disciplines",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "a",
+   "relation": "disciplines"
+  },
+  {
+   "policy": "decks_delete_admin",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "d",
+   "relation": "flashcard_decks"
+  },
+  {
+   "policy": "decks_select_admin",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "r",
+   "relation": "flashcard_decks"
+  },
+  {
+   "policy": "decks_update_admin",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "w",
+   "relation": "flashcard_decks"
+  },
+  {
+   "policy": "Admins can delete any flashcards",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "d",
+   "relation": "flashcards"
+  },
+  {
+   "policy": "Admins can update any flashcards",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "w",
+   "relation": "flashcards"
+  },
+  {
+   "policy": "Admins can view all flashcards",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "r",
+   "relation": "flashcards"
+  },
+  {
+   "policy": "flashcards_gate_verdict_types_insert",
+   "callees": [
+    {
+     "token": "is_professor_or_admin",
+     "resolved": [
+      {
+       "name": "is_professor_or_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "a",
+   "relation": "flashcards"
+  },
+  {
+   "policy": "flashcards_gate_verdict_types_update",
+   "callees": [
+    {
+     "token": "is_professor_or_admin",
+     "resolved": [
+      {
+       "name": "is_professor_or_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "w",
+   "relation": "flashcards"
+  },
+  {
+   "policy": "Admins can delete any notes",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "d",
+   "relation": "notes"
+  },
+  {
+   "policy": "Admins can update any notes",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "w",
+   "relation": "notes"
+  },
+  {
+   "policy": "Admins can view all notes",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "r",
+   "relation": "notes"
+  },
+  {
+   "policy": "Super admin can view all notifications",
+   "callees": [
+    {
+     "token": "is_super_admin",
+     "resolved": [
+      {
+       "name": "is_super_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "r",
+   "relation": "notifications"
+  },
+  {
+   "policy": "pc_select_admin",
+   "callees": [
+    {
+     "token": "is_admin",
+     "resolved": [
+      {
+       "name": "is_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "r",
+   "relation": "profile_courses"
+  },
+  {
+   "policy": "Super admins can update any profile",
+   "callees": [
+    {
+     "token": "is_super_admin",
+     "resolved": [
+      {
+       "name": "is_super_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "w",
+   "relation": "profiles"
+  },
+  {
+   "policy": "Super admins can view all reviews",
+   "callees": [
+    {
+     "token": "is_super_admin",
+     "resolved": [
+      {
+       "name": "is_super_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "r",
+   "relation": "reviews"
+  },
+  {
+   "policy": "Super admins can insert role changes",
+   "callees": [
+    {
+     "token": "is_super_admin",
+     "resolved": [
+      {
+       "name": "is_super_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "a",
+   "relation": "role_change_log"
+  },
+  {
+   "policy": "Super admins can view role changes",
+   "callees": [
+    {
+     "token": "is_super_admin",
+     "resolved": [
+      {
+       "name": "is_super_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "r",
+   "relation": "role_change_log"
+  },
+  {
+   "policy": "Super admins can view all role permissions",
+   "callees": [
+    {
+     "token": "is_super_admin",
+     "resolved": [
+      {
+       "name": "is_super_admin",
+       "schema": "public",
+       "language": "sql",
+       "security_definer": true,
+       "loose_due_write_leads": []
+      }
+     ]
+    }
+   ],
+   "command": "r",
+   "relation": "role_permissions"
+  }
+ ],
+ "policy_count_total": 109,
+ "policy_callee_pairs": 25,
+ "policies_with_callees": 25
+}
