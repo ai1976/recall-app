@@ -1441,6 +1441,31 @@ All three `SECURITY DEFINER`, `SET search_path TO public, extensions`.
 
 ---
 
+## fn_due_eligible_dates (T-001 C-01, 07/10/2026)
+
+```sql
+fn_due_eligible_dates(p_user_id uuid, p_today date) RETURNS TABLE(due_date date)
+```
+- The one definition of which reviews are due for a user: active review, not skipped past today, not a concept card, course rule (profile `course_level` null, or card `target_course` null or equal), visibility (own / public / accepted friends), active `my_cards_enrollment`; a review with a null `next_review_date` is not due and is excluded everywhere (D-C5).
+- `SECURITY DEFINER`, `search_path = public, extensions`; execute granted to the owner `postgres` only (`get_due_forecast` and `get_due_forecast_buckets` are the callers).
+- `get_due_forecast(p_user_id)` and `get_due_forecast_buckets(p_user_id)` were replaced by C-01 to read this helper; signatures, guards and grants (`authenticated`, `postgres`, `service_role`) unchanged.
+- Files: `docs/database/t001/C-01_FUNCTIONS_due-eligibility-helper-and-forecast-functions.sql` (applied), `C-01_TEST_...` v4 (T1-T5 pass), `C-01_ROLLBACK_...` v3 (never run). Evidence: `docs/discussions/evidence/T-001_C01-*`.
+
+---
+
+## get_study_heatmap_split (T-001 C-02, 07/10/2026)
+
+```sql
+get_study_heatmap_split(p_user_id uuid, p_days integer DEFAULT 90)
+RETURNS TABLE(review_date date, review_count integer, in_app_seconds integer, offline_seconds integer, study_seconds integer, other_seconds integer)
+```
+- Window: the student's local today minus `p_days` up to local today, for reviews, `user_activity_log` and `study_sessions` alike. `in_app_seconds` = sources `study_mode` + `practice_mode`; `offline_seconds` = `manual`; `study_seconds` = all sources; `other_seconds` = the remainder (must be 0).
+- Guard: caller must be the target or `is_admin()`; `SECURITY DEFINER`; `anon` refused. Read by `StudyHeatmap.jsx`.
+- The old `get_study_heatmap` (md5 `4424845e2ec0cf2a1cbeefaa5df9d3c4`) stays deployed and unused by the frontend until the new one is live-verified.
+- Files: `docs/database/t001/C-02_FUNCTIONS_study-heatmap-split.sql` (applied), `C-02_TEST_...` v4 (U1-U4 pass), `C-02_ROLLBACK_...` (never run). Evidence: `docs/discussions/evidence/T-001_C02-*`.
+
+---
+
 ## get_study_heatmap (Sprint 8.8.5b, v2 — 29/09/2026)
 
 ```sql

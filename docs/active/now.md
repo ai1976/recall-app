@@ -1,6 +1,11 @@
 # NOW - Current Development Status
 
-**Last Updated:** 01/10/2026
+**Last Updated:** 07/10/2026
+
+## T-001 slice 1 (points 6 + 7: Review badge and heatmap) - SQL applied and verified; frontend committed (`36e36a7`) and pushed 07/10/2026; Gate 7 live verification pending (07/10/2026)
+
+One definition of "due" now feeds the nav Review badge, the Progress tiles, the Dashboard strip and the Forward Load chart (`DueSnapshotContext`; unknown is null, never 0). Every due-changing call goes through `src/lib/dueSet.js`; `scripts/dueSetGuard.mjs` fails the build on an unclassified database call. The heatmap reads `get_study_heatmap_split` (in-app vs offline) with keyboard/touch-accessible days. Thread: `docs/discussions/T-001_pre-8.8.6-backlog_admission-progress-access.md` (Rounds up to 136+); exact approved diff `docs/discussions/T-001_C03_frontend-patch-v2_07-10-2026.patch` (`5dea3daa956c`).
+**Next:** Gate 7 (Founder live check on revisop.com with the amended plan of Round 134 section D: unknown-state and refresh-failure behaviour, review/pause/resume/remove/course/friend/delete flows, heatmap by keyboard and touch, a negative-UTC browser). Then brief B (points 5 and 10), then brief A (batch groups). Open and recorded, not repaired: 103 reviews without an enrollment row, 671 null-date reviews.
 
 ## Sprint 8.8.5d: professor <-> batch assignment (D-53) - COMPLETE: SQL deployed (`07` all PASS), independent audit PASSED, frontend pushed (`4652999`) and live-verified as super admin and as a real professor (01/10/2026). Optional leftovers: plain-admin check, professor invite-link check.
 

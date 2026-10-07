@@ -74,6 +74,7 @@ recall-app
 │   │   ├── AuthContext.jsx                      ← auth state (identity-stable user), timezone sync (1×/session), updateUserTimezone
 │   │   ├── CourseContext.jsx                    ← multi-course teaching context for professors/admins; activeCourse session state; exposes role/courseLevel
 │   │   ├── NavDataContext.jsx                   ← Sprint 7.0, extended 7.2-F: one instance of useRole/useNotifications/useFriendRequestCount/useDueForecast for the whole app; useNavData() + useRole shim
+│   │   ├── DueSnapshotContext.jsx               ← T-001 C-03 (07/10/2026): ONE snapshot of get_due_forecast + get_due_forecast_buckets (nav badge, Progress tiles, Dashboard strip and chart); null = unknown; refresh on dueSet signal / visibility / page entry (60 s)
 │   │   ├── StudySessionContext.jsx              ← Sprint 7.1: boolean inStudySession (StudyMode sets it) so NavBottomTabs hides during the card loop
 │   │   ├── StudyTimerContext.jsx                ← Sprint 7.3-C: app-wide manual-timer state + 3-tier stale-session policy; own localStorage key; cross-tab storage-event sync. Sprint 8.5: pendingLog state (own localStorage key) — duration finalized but category not yet chosen; confirmCategory() does the actual insert
 │   │   └── ExamDateContext.jsx                  ← Sprint 8.4: exam_date/exam_month/has_dismissed_exam_prompt fetch-once + mutators (saveExamDate, dismissPrompt), shared by nav chip/Dashboard card/prompt modal/Profile Settings
@@ -88,7 +89,6 @@ recall-app
 │   │   ├── use-toast.js                         ← shadcn toast hook
 │   │   ├── useActivityFeed.js                   ← recent content feed for dashboard activity section
 │   │   ├── useBadges.js                         ← badge data fetching (get_unnotified_badges RPC)
-│   │   ├── useDueForecast.js                    ← Sprint 7.2-F: get_due_forecast wrapper (dueToday/dueNext7/dueNext30), consumed via NavDataContext
 │   │   ├── useFriendRequestCount.js             ← realtime pending friend request count
 │   │   ├── useNotifications.js                  ← realtime notifications (INSERT + UPDATE subscriptions)
 │   │   ├── usePushNotifications.js              ← Web Push: permission, VAPID subscribe/unsubscribe, iOS detect
@@ -299,6 +299,11 @@ recall-app
 
 ### Supabase / Backend
 - `src/lib/supabase.js` — Supabase client
+- `src/lib/dueSet.js` — T-001 C-03 (07/10/2026): the ONLY place that changes what is due (wrappers signal a refresh on success; `subscribeReviewDataChanged`, `notifyReviewDataChanged`, `flushReviewDataChanged`)
+- `src/lib/heatmapGrid.js` — T-001 C-03: local calendar-date helpers and the heatmap grid builder (no UTC parsing, no `toISOString()`)
+- `src/contexts/DueSnapshotContext.jsx` — T-001 C-03: the shared due snapshot; `src/components/progress/ForecastCard.jsx` — the Progress forecast tile (unknown = dash, neutral tone)
+- `scripts/dueSetGuard.mjs`, `scripts/dueSetGuard.run.mjs`, `scripts/dueSetManifest.json`, `scripts/dueSetRpcClassification.json` — T-001 C-03: the fail-closed guard (`npm run guard:due`, `prebuild`), the classification of every database call and the per-RPC classification from the W1/W2 evidence
+- Removed 07/10/2026: `src/hooks/useDueForecast.js` (replaced by `DueSnapshotContext`)
 - `src/lib/studyTracker.js` — shared Study/Practice time tracker (Sprint 8.8.5b2, D-46): versioned persisted session, heartbeat active-time counting, hidden/idle pause, 4-hour stop, idempotent save by `session_id`, 7-day recovery, one-timed-session-per-browser lock. Plain JS, tested by `studyTracker.test.js`
 - `src/hooks/useStudyTracker.js` — React binding for the tracker (used by StudyMode + PracticeMode); registers `beforeunload` only while a session is live
 - `src/components/profile/ChangeEmail.jsx` — self-service secure email change inside Profile Settings (Sprint 8.8.5b6, D-50): Supabase `updateUser({ email })`, pending-confirmation note, neutral errors; profile copy + audit are written by the DB trigger

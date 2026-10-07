@@ -1,7 +1,7 @@
 # REVISOP — MASTER BLUEPRINT
 
 **Prepared:** December 2025  
-**Last Updated:** 16/09/2026  
+**Last Updated:** 07/10/2026  
 **Stack:** React 19 + Vite 7 · TailwindCSS + shadcn/ui · Supabase (PostgreSQL + Auth + RLS + Storage + Edge Functions) · Vercel  
 **Live URL:** https://www.revisop.com (redirects from https://www.recallapp.co.in)  
 **Repository:** https://github.com/ai1976/recall-app
@@ -578,6 +578,8 @@ No formal migration files exist (direct Supabase SQL editor). Milestones by spri
 | `get_my_friends_with_stats()` | Accepted friends with weekly stats | MyFriends.jsx |
 | `get_batch_group_member_stats(p_group_id)` | Professor view of batch member activity (live, relative to `CURRENT_DATE`). **Sprint 8.1 (D-16):** unchanged — reused as-is inside `archive_batch_group`'s snapshot capture. | ProfessorAnalytics.jsx, GroupDetail.jsx |
 | `get_study_time_stats(p_user_id, p_local_date)` | Today/week study time — combined + in-app/offline split (Sprint 7.3-C, additive columns) | Dashboard.jsx |
+| `get_study_heatmap_split(p_user_id, p_days)` | **T-001 C-02 (07/10/2026)** — per local date: review_count, in_app_seconds, offline_seconds, study_seconds, other_seconds (always 0); window = local today − p_days .. local today; target or admin only | StudyHeatmap.jsx |
+| `fn_due_eligible_dates(p_user_id, p_today)` | **T-001 C-01 (07/10/2026)** — the one definition of the due set (SECURITY DEFINER, owner-only execute); `get_due_forecast` and `get_due_forecast_buckets` read it | internal (forecast functions) |
 | `follow_user(p_followee_id)` | Idempotent follow + fires notification | AuthorProfile.jsx |
 | `unfollow_user(p_followee_id)` | DELETE from follows | AuthorProfile.jsx, Following.jsx |
 | `get_follow_status(p_target_id)` | Is caller following target? | AuthorProfile.jsx |
@@ -950,6 +952,8 @@ Key pages with data flows:
 | File | Purpose |
 |------|---------|
 | `src/lib/supabase.js` | Supabase client (singleton). Always import as `import { supabase } from '@/lib/supabase'`. |
+| `src/lib/dueSet.js` | **T-001 C-03 (07/10/2026)** — the only place that changes what is due: wrappers for the 34 due-changing RPCs plus profile, friendship, card, note, deck and flashcard-update writes; each signals `notifyReviewDataChanged()` only on success (graded answers debounced 1.5 s). Enforced by `scripts/dueSetGuard.mjs` (`npm run guard:due`, `prebuild`) against `scripts/dueSetManifest.json` and `scripts/dueSetRpcClassification.json`. |
+| `src/lib/heatmapGrid.js` | **T-001 C-03** — heatmap grid and local calendar-date helpers (`ymd`, `parseYmd`, `buildGrid`, `longestStreakOf`); no UTC parsing, no `toISOString()`. |
 | `src/lib/noteStorage.js` | **New, 16/09/2026** — `extractNoteStoragePath(imageUrl)` (public-URL → bucket path) and `deleteNoteStorageImage(imageUrl)` (best-effort `storage.remove()`, warns not throws). Shared by `MyNotes.jsx` and `AdminDashboard.jsx`'s note-delete handlers so deleting a note also removes its image — `NoteEdit.jsx`'s own inline extractor (image *replace* path) was left as-is, out of scope for this fix. |
 | `src/lib/utils.js` | `cn()` utility (clsx + `extendTailwindMerge` — `rv-*` radius/shadow/colour families merge last-wins, Sprint 7.0) |
 | `src/lib/navActive.js` | **Sprint 7.1** — pure `(pathname) => boolean` active-route predicates shared by `NavDesktop` + `NavBottomTabs`: `isExact`, `underAny`, `isCreateActive`, `isStudyActive`, `isManageActive`, `isGroupsActive` (behaviour locked to the Sprint 6.0/6.2 output) + `isReviewTabActive` (bottom-bar "Review" tab). No Supabase, no React. |
@@ -966,6 +970,7 @@ Key pages with data flows:
 | `src/contexts/StudySessionContext.jsx` | **Sprint 7.1** — one boolean `inStudySession`; `StudyMode` sets it on mount / clears on unmount so `NavBottomTabs` can hide during the full-screen card loop (regardless of entry route). `useStudySession()` is safe outside the provider (no-op). |
 | `src/contexts/StudyTimerContext.jsx` | **Sprint 7.3-C** — app-wide home for the manual "offline study" timer, mounted in `App.jsx` alongside `StudySessionProvider`. Owns the 3-tier stale-session policy (<4h auto-resume / 4-16h honest-session prompt / >16h silent discard), now classified ONCE on app mount via lazy `useState` initializers (not an effect) instead of being gated behind whichever page happened to host the old `StudyTimerWidget`. Own localStorage key `revisop_manual_timer_started_at` — no longer shared with `StudyMode.jsx`'s `revisop_session_started_at`/`revisop_session_source` pair (the fix for the cross-feature localStorage collision). `window.addEventListener('storage', …)` syncs start/stop across tabs. Exposes `{ isRunning, startedAt, elapsedMs, recoveryPrompt, start(), stop(), stopAndLog(durationSeconds), discard() }`; `useStudyTimer()` throws outside the provider. |
 | `src/contexts/NavDataContext.jsx` | **Sprint 7.0**, extended **7.2-F** — `<NavDataProvider>` (mounted once, above the router) owns `useRole()` / `useNotifications(5)` / `useFriendRequestCount()` / `useDueForecast()` as ONE instance each, so nav consumers read a shared context instead of re-fetching. Exposes a drop-in `useRole()` shim + the full `useNavData()` bundle (role, notifications, friend count, `dueToday`/`dueNext7`/`dueNext30`). |
+| `src/contexts/DueSnapshotContext.jsx` | **T-001 C-03 (07/10/2026)** — `<DueSnapshotProvider>` (above `NavDataProvider`): ONE snapshot of `get_due_forecast` + `get_due_forecast_buckets` read by the nav badge, Progress tiles, Dashboard strip and Forward Load chart; numbered requests, stale answers discarded, previous numbers kept on failure, unknown = `null`; refresh on a dueSet signal, tab visibility and page entry when older than 60 s. `NavDataContext` reads it (replaces `useDueForecast`). |
 
 #### Hooks (all in `src/hooks/`)
 | File | Purpose |
@@ -973,7 +978,7 @@ Key pages with data flows:
 | `useRole.js` | Role check helpers (isAdmin, isProfessor, etc.) |
 | `useNotifications.js` | Realtime notification subscription + unread count badge |
 | `useFriendRequestCount.js` | Realtime pending friend request count |
-| `useDueForecast.js` | **Sprint 7.2-F** — wraps `get_due_forecast` (the same lightweight 3-int RPC `Progress.jsx` uses); consumed as a `NavDataContext` singleton by the Review-tab due badge (7.2-F) and the professor's own due count (7.2-A) |
+| ~~`useDueForecast.js`~~ | **Removed 07/10/2026 (T-001 C-03)** — replaced by `DueSnapshotContext`. |
 | `useActivityFeed.js` | Recent content feed for dashboard ActivityFeed widget |
 | `useBadges.js` | Badge data fetching + unnotified badge check |
 | `usePushNotifications.js` | Push notification permission request + subscription management |

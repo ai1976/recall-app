@@ -1,5 +1,12 @@
 # Bug Tracking
 
+## T-001 slice 1 - 07/10/2026 (Review badge and heatmap)
+
+### [07/10/2026] The nav badge, the Progress "due today" tile and the Dashboard strip could disagree about what is due; the heatmap showed only 85-91 of its 90 days and mislabelled months - FIXED in code (Gate 6); live verification (Gate 7) pending
+- **Cause (confirmed from live function bodies and the frontend):** three separate fetches (`NavDataContext`, `Progress`, `Dashboard`) plus a different count on the Dashboard strip (`get_study_queue` length); several due-changing calls did not refresh anything; the heatmap grid started on the Sunday 12 weeks before the last Sunday, so the oldest days of the 90-day window were missing on most weekdays, and the month label used the month of the first day of the week.
+- **Fix:** brief C v6 - one SQL helper for the due set (C-01), one snapshot context, wrapper-routed due changes with a fail-closed guard (C-03), a split heatmap RPC (C-02) and a grid that covers the whole window.
+- **Open:** cross-user/device changes are eventually consistent (60 s); 103 reviews without an enrollment row and 671 null-date reviews are recorded, not repaired; live checks (Gate 7) pending.
+
 ## Sprint 8.8.5d - 01/10/2026 (professor <-> batch assignment)
 
 ### [01/10/2026] Every professor could see every active batch and its student report; staff appeared as student rows; a professor could join any batch through an invite link as an active member - FIXED and VERIFIED (SQL deployed, `07` all PASS, independent audit passed; frontend live; verified live as super admin and as a real professor on 01/10/2026)

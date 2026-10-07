@@ -1,6 +1,36 @@
 # Changelog
 
 ---
+## [07/10/2026] feat(T-001 brief C, points 6 + 7): one definition of "due" for the Review badge, Progress and Dashboard; due changes routed through wrappers with a fail-closed guard; heatmap split into in-app and offline study
+
+### Added
+- SQL (applied in production 07/10/2026; Founder Gates 2-4, QA-audited): `docs/database/t001/C-01_FUNCTIONS_due-eligibility-helper-and-forecast-functions.sql` (`fn_due_eligible_dates(p_user_id, p_today)`, SECURITY DEFINER, execute for the owner only; `get_due_forecast` and `get_due_forecast_buckets` now read it, same signatures and grants), `C-02_FUNCTIONS_study-heatmap-split.sql` (`get_study_heatmap_split(p_user_id, p_days)`: review_date, review_count, in_app_seconds, offline_seconds, study_seconds, other_seconds), their real-role TEST files (all pass), ROLLBACK files (never run). Evidence under `docs/discussions/evidence/` (`T-001_C00-*`, `C-slice1-*`, `C01-*`, `C02-*`, `C03-W-*` and `C03-W2-*`).
+- `src/lib/dueSet.js`: the only place that changes what is due. Every wrapper returns the same `{ data, error }` as the call it replaces and signals a refresh only on success (graded answers debounced 1.5 s; bulk My Cards once after the last chunk and after a partial failure; profile writes only for `course_level` or `timezone`).
+- `scripts/dueSetGuard.mjs` (+ `.run.mjs`, test), `scripts/dueSetManifest.json` (211 call sites, each with a reason and basis), `scripts/dueSetRpcClassification.json` (136 RPC names: 102 not-due-changing, 34 due-changing, built from live-body analysis W1 and W2): the guard parses `src/` with espree and fails on an unclassified call, an unresolved target, a due-changing call outside the wrapper module, and the other rules listed in the test. Runs on `npm run guard:due` and `prebuild`.
+- `src/contexts/DueSnapshotContext.jsx`: one snapshot of `get_due_forecast` + `get_due_forecast_buckets` for the nav badge, the Progress tiles, the Dashboard zero-state strip and the Forward Load chart. Numbered requests (stale answers discarded), previous numbers kept on a failed refresh, refresh on a wrapper signal, on tab visibility and on page entry when older than 60 s. Unknown is `null`, never 0.
+- `src/lib/heatmapGrid.js`, `src/components/progress/ForecastCard.jsx` and tests.
+
+### Changed
+- `StudyHeatmap.jsx` reads `get_study_heatmap_split`: each day is a button with an accessible name (date, in-app, offline, total, reviews), one tab stop with arrow keys, hover/focus card, tap/Enter/Space pins it, Escape/second tap/focus loss/outside press closes it, no native `title`, `motion-safe` only. Dates are local calendar dates built from parts (no `new Date('YYYY-MM-DD')`, no `toISOString()`).
+- 22 further RPCs (W1 showed they write due-input tables, or could not be cleared) and the flashcard-update, deck-delete and friendship writes now go through the wrappers; `AdminDashboard` aliases four wrappers (`...Rpc`) because it has same-named local functions.
+- `NavDataContext` reads the snapshot; `Progress`, `Dashboard` and `StudyMode` use it. The Dashboard strip no longer uses the length of `get_study_queue`.
+
+### Fixed
+- Heatmap grid showed only 85 to 91 of the 90 days depending on the weekday (now always the whole window, 13 or 14 columns; days outside it are not drawn); month label named the previous month when the 1st fell mid-week.
+- Nav badge, Progress and Dashboard could disagree about what is due (three separate fetches and a different count on the strip).
+
+### Known / not changed
+- A change made by another user or on another device cannot signal this tab; the numbers catch up after 60 s on visibility or page entry.
+- The classification is bound to the W1/W2 evidence snapshot (lexical analysis, not a behavioural proof); a changed routine, policy, trigger, rule, cascade or frontend call returns to review. The old `get_study_heatmap` stays deployed (unused by the frontend). 103 reviews without an enrollment row and 671 null-date reviews are recorded and not repaired.
+- Browser, negative-UTC, screen-reader and touch checks are Gate 7 (live verification), not yet run.
+
+### Verification (07/10/2026)
+- On a clean checkout of the base with the patch applied and again on `main`: 170 tests pass, guard passes (211 calls), build passes, lint 30 problems (the same 30 as the base; none new).
+
+### Files Changed
+- Exact diff: `docs/discussions/T-001_C03_frontend-patch-v2_07-10-2026.patch` (sha256 `5dea3daa956c`, 46 files: `package.json`, `scripts/dueSet*`, `src/lib/dueSet*.js`, `src/lib/heatmapGrid*.js`, `src/contexts/DueSnapshotContext*`, `src/contexts/NavDataContext.jsx`, `src/components/progress/{StudyHeatmap,ForecastCard}*`, `src/hooks/useDueForecast.js` removed, and the call sites in `src/App.jsx`, `Dashboard.jsx`, `Progress.jsx`, `StudyMode.jsx`, `MyCards.jsx`, `PracticeMode.jsx`, the admin, friends, groups, content and public pages).
+
+---
 ## [01/10/2026] feat(sprint-8.8.5d): explicit professor <-> batch assignment; students-only batch reports (D-53)
 
 ### Added
