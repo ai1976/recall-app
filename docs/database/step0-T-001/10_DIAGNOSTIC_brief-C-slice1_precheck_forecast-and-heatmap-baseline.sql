@@ -1,4 +1,4 @@
--- Name: [DIAGNOSTIC] T-001 brief C slice 1 pre-check (v2) - live baseline of the forecast, queue and heatmap functions and the tables C-01 and C-02 rely on
+-- Name: [DIAGNOSTIC] T-001 brief C slice 1 pre-check (v3) - live baseline of the forecast, queue and heatmap functions and the tables C-01 and C-02 rely on
 --
 -- Description: READ-ONLY. The pre-check required before the slice 1 SQL files C-01 and C-02 (brief C v6, 20647dbce877, Gate 1 given by the Founder on
 -- 07/10/2026) are executed. Two jobs: (1) capture, from the live catalog, the exact current definitions and ACLs of get_due_forecast and
@@ -6,6 +6,14 @@
 -- not byte-identical to the live cell, so it is not a safe rollback source by itself), and confirm that the new routine names do not already exist;
 -- (2) confirm the facts the new SQL assumes, from the catalog and not from repository documents (CLAUDE.md database rules): the columns, unique
 -- constraints and check constraints it reads, and a few aggregate counts that decide what the TEST files can and cannot cover.
+-- v3 (supersedes v2 90c29b00cea3 and v1 e0d3cb3fef94, neither authorized or run; QA Round 96): P4 now uses one fixed day meaning for every category (see its
+-- banner) and a calendar spine, so it counts the EMPTY day, a study-only day that has no activity row and no active review, a review-only day that has an
+-- activity row and active reviews and no study, and the all-sources day, exactly; the +14 h and -12 h case is measured as a CONJUNCTION (a profile at exactly
+-- that offset with a listed day exactly on a window edge: today minus 90, today minus 30 or today); the review-activity days are deduplicated; the exact
+-- +14 h and -12 h profile counts of P3 and P4 are now rows of the same fail-closed coverage array (NOT_COVERED_by_live_data) as every other category; and the
+-- P3 category that was labelled private is renamed to what it counts (not own and neither public nor friends, including null or unexpected values).
+-- STOP RULE (QA Round 96 non-blocking 5): if P2 reports any null or unlisted profile time zone, C-01 and C-02 do not go to Gate 2, because P3 and P4 substitute
+-- Asia/Kolkata for an unlisted value while the persistent functions and the TEST files use the stored value directly.
 -- v2 (supersedes v1 e0d3cb3fef94, which QA recommended in Round 94 but which was never authorized or run): the pre-check now also settles, BEFORE Gate 2,
 -- what QA Round 94 said v1 could not: P1 also returns the default ACLs for functions (so the exact post-C-01 ACLs can be predicted), a deterministically
 -- ordered execute-role list per function and a flag whether each of the five application functions has exactly the approved ceiling (authenticated, postgres,
@@ -218,6 +226,9 @@ z AS (
   SELECT y.*, ((NOT y.a_ok)::int + (NOT y.b_ok)::int + (NOT y.c_ok)::int + (NOT y.d_ok)::int + (NOT y.e_ok)::int + (NOT y.f_ok)::int + (NOT y.g_ok)::int) AS fails
   FROM y
 ),
+tzp AS (
+  SELECT pr.id, t.utc_offset FROM pr JOIN pg_timezone_names t ON lower(t.name) = lower(pr.tz)
+),
 cov AS (
   SELECT 'review_status_active' AS cat, count(*) FILTER (WHERE (z.fails - (NOT z.a_ok)::int) = 0 AND (z.rstatus = 'active')) AS n FROM z
 UNION ALL
@@ -245,7 +256,7 @@ UNION ALL
 UNION ALL
   SELECT 'visibility_friends_no_friendship_row' AS cat, count(*) FILTER (WHERE (z.fails - (NOT z.e_ok)::int) = 0 AND (NOT z.own AND z.vis = 'friends' AND NOT z.fr_any)) AS n FROM z
 UNION ALL
-  SELECT 'visibility_private_not_own' AS cat, count(*) FILTER (WHERE (z.fails - (NOT z.e_ok)::int) = 0 AND (NOT z.own AND COALESCE(z.vis, '') NOT IN ('public', 'friends'))) AS n FROM z
+  SELECT 'visibility_not_own_and_not_public_or_friends_including_null_or_unexpected_values' AS cat, count(*) FILTER (WHERE (z.fails - (NOT z.e_ok)::int) = 0 AND (NOT z.own AND COALESCE(z.vis, '') NOT IN ('public', 'friends'))) AS n FROM z
 UNION ALL
   SELECT 'card_is_concept_card' AS cat, count(*) FILTER (WHERE (z.fails - (NOT z.c_ok)::int) = 0 AND (z.qt = 'concept_card')) AS n FROM z
 UNION ALL
@@ -282,9 +293,14 @@ UNION ALL
   SELECT 'eligible_with_next_review_date_overdue' AS cat, count(*) FILTER (WHERE z.fails = 0 AND z.nrd < z.today) AS n FROM z
 UNION ALL
   SELECT 'eligible_with_next_review_date_later_than_3_days' AS cat, count(*) FILTER (WHERE z.fails = 0 AND z.nrd > z.today + 3) AS n FROM z
-),
-tzp AS (
-  SELECT pr.id, t.utc_offset FROM pr JOIN pg_timezone_names t ON lower(t.name) = lower(pr.tz)
+UNION ALL
+  SELECT 'profile_at_current_utc_offset_exactly_plus_14h', (SELECT count(*) FROM tzp WHERE utc_offset = interval '14 hours')
+UNION ALL
+  SELECT 'profile_at_current_utc_offset_exactly_minus_12h', (SELECT count(*) FROM tzp WHERE utc_offset = interval '-12 hours')
+UNION ALL
+  SELECT 'plus_14h_profile_with_at_least_one_review_row', (SELECT count(DISTINCT r.user_id) FROM public.reviews r JOIN tzp ON tzp.id = r.user_id WHERE tzp.utc_offset = interval '14 hours')
+UNION ALL
+  SELECT 'minus_12h_profile_with_at_least_one_review_row', (SELECT count(DISTINCT r.user_id) FROM public.reviews r JOIN tzp ON tzp.id = r.user_id WHERE tzp.utc_offset = interval '-12 hours')
 )
 SELECT jsonb_build_object(
   'run', 'P3',
@@ -300,17 +316,24 @@ SELECT jsonb_build_object(
       'enrollment_statuses_present', (SELECT COALESCE(jsonb_agg(DISTINCT COALESCE(e.status, '(null)') ORDER BY COALESCE(e.status, '(null)')), '[]'::jsonb) FROM public.my_cards_enrollment e))
 ) AS result;
 
--- ===== RUN P4: exact coverage of the brief C v6 C-7.5 item 5 boundary cases by live data, restricted to the days the 90-day window exercises, and the complete upper-end count (counts only; used to judge C-02_TEST U3) =====
+-- ===== RUN P4: exact coverage of the brief C v6 C-7.5 item 5 boundary cases by live data, over the 91 calendar days the 90-day window exercises, and the complete upper-end count (counts only; used to judge C-02_TEST U3) =====
+-- Day meanings, used identically in every category (a "day" is one local calendar date of one profile inside [local today - 90, local today]):
+--   has_ral    = a user_activity_log row with activity_type 'review' exists for that date (deduplicated: one per profile and date)
+--   has_rev    = at least one ACTIVE review row has its profile-local created date on that date
+--   has_study  = at least one study_sessions row has that session_date; has_manual, has_in_app, has_other describe its sources
+--   LISTED     = has_ral OR has_study (the live and new functions list exactly these days)
+--   empty day  = none of has_ral, has_rev, has_study
 WITH tzl AS MATERIALIZED (
   SELECT lower(z.name) AS nm, z.utc_offset FROM pg_timezone_names z
 ),
-pr AS (
+pt AS (
   SELECT p.id,
-         CASE WHEN p.timezone IS NOT NULL AND lower(p.timezone) IN (SELECT nm FROM tzl) THEN p.timezone ELSE 'Asia/Kolkata' END AS tz
+         CASE WHEN p.timezone IS NOT NULL AND lower(p.timezone) IN (SELECT nm FROM tzl) THEN p.timezone ELSE 'Asia/Kolkata' END AS tz,
+         (now() AT TIME ZONE CASE WHEN p.timezone IS NOT NULL AND lower(p.timezone) IN (SELECT nm FROM tzl) THEN p.timezone ELSE 'Asia/Kolkata' END)::date AS today
   FROM public.profiles p
 ),
-pt AS (
-  SELECT pr.id, pr.tz, (now() AT TIME ZONE pr.tz)::date AS today FROM pr
+tzp AS (
+  SELECT pt.id, t.utc_offset FROM pt JOIN pg_timezone_names t ON lower(t.name) = lower(pt.tz)
 ),
 rvd AS (
   SELECT pt.id AS uid, (r.created_at AT TIME ZONE pt.tz)::date AS d, count(*) AS c
@@ -319,7 +342,7 @@ rvd AS (
   GROUP BY 1, 2
 ),
 rd AS (
-  SELECT a.user_id AS uid, a.activity_date AS d FROM public.user_activity_log a WHERE a.activity_type = 'review'
+  SELECT DISTINCT a.user_id AS uid, a.activity_date AS d FROM public.user_activity_log a WHERE a.activity_type = 'review'
 ),
 sd AS (
   SELECT s.user_id AS uid, s.session_date AS d,
@@ -328,54 +351,62 @@ sd AS (
          bool_or(s.source IS NULL OR s.source NOT IN ('manual', 'study_mode', 'practice_mode')) AS has_other
   FROM public.study_sessions s GROUP BY 1, 2
 ),
-dd AS (
-  SELECT COALESCE(rd.uid, sd.uid) AS uid, COALESCE(rd.d, sd.d) AS d,
-         (rd.uid IS NOT NULL) AS has_ral, (sd.uid IS NOT NULL) AS has_study,
-         COALESCE(sd.has_manual, false) AS has_manual, COALESCE(sd.has_in_app, false) AS has_in_app, COALESCE(sd.has_other, false) AS has_other
-  FROM rd FULL OUTER JOIN sd ON rd.uid = sd.uid AND rd.d = sd.d
+spine AS (
+  SELECT pt.id AS uid, (pt.today - 90 + g.i) AS d, pt.today
+  FROM pt CROSS JOIN generate_series(0, 90) AS g(i)
 ),
 w AS (
-  SELECT dd.*, pt.today,
-         EXISTS (SELECT 1 FROM rvd WHERE rvd.uid = dd.uid AND rvd.d = dd.d) AS has_rev
-  FROM dd JOIN pt ON pt.id = dd.uid
-  WHERE dd.d BETWEEN pt.today - 90 AND pt.today
+  SELECT spine.uid, spine.d, spine.today,
+         (rd.uid IS NOT NULL) AS has_ral,
+         (rvd.uid IS NOT NULL) AS has_rev,
+         (sd.uid IS NOT NULL) AS has_study,
+         COALESCE(sd.has_manual, false) AS has_manual,
+         COALESCE(sd.has_in_app, false) AS has_in_app,
+         COALESCE(sd.has_other, false) AS has_other
+  FROM spine
+  LEFT JOIN rd ON rd.uid = spine.uid AND rd.d = spine.d
+  LEFT JOIN rvd ON rvd.uid = spine.uid AND rvd.d = spine.d
+  LEFT JOIN sd ON sd.uid = spine.uid AND sd.d = spine.d
 ),
 cov AS (
-  SELECT 'day_with_study_only_in_90d_window' AS cat, count(*) FILTER (WHERE has_study AND NOT has_ral) AS n FROM w
-  UNION ALL SELECT 'day_with_review_activity_only_in_90d_window', count(*) FILTER (WHERE has_ral AND NOT has_study) FROM w
-  UNION ALL SELECT 'day_with_review_activity_and_study_in_90d_window', count(*) FILTER (WHERE has_ral AND has_study) FROM w
-  UNION ALL SELECT 'day_with_manual_study_only_in_90d_window', count(*) FILTER (WHERE has_manual AND NOT has_in_app) FROM w
-  UNION ALL SELECT 'day_with_in_app_study_only_in_90d_window', count(*) FILTER (WHERE has_in_app AND NOT has_manual) FROM w
-  UNION ALL SELECT 'day_with_manual_and_in_app_study_in_90d_window', count(*) FILTER (WHERE has_manual AND has_in_app) FROM w
-  UNION ALL SELECT 'day_with_all_sources_review_rows_activity_row_manual_and_in_app_in_90d_window',
-         count(*) FILTER (WHERE has_rev AND has_ral AND has_manual AND has_in_app) FROM w
-  UNION ALL SELECT 'day_exactly_at_window_start_today_minus_90_with_any_row', count(*) FILTER (WHERE d = today - 90) FROM w
-  UNION ALL SELECT 'day_exactly_today_minus_30_with_any_row', count(*) FILTER (WHERE d = today - 30) FROM w
-  UNION ALL SELECT 'day_exactly_today_with_any_row', count(*) FILTER (WHERE d = today) FROM w
+  SELECT 'empty_day_no_activity_row_no_active_review_no_study' AS cat,
+         count(*) FILTER (WHERE NOT has_ral AND NOT has_rev AND NOT has_study) AS n FROM w
+  UNION ALL SELECT 'study_only_day_study_and_no_activity_row_and_no_active_review',
+         count(*) FILTER (WHERE has_study AND NOT has_ral AND NOT has_rev) FROM w
+  UNION ALL SELECT 'review_only_day_activity_row_and_active_review_and_no_study',
+         count(*) FILTER (WHERE has_ral AND has_rev AND NOT has_study) FROM w
+  UNION ALL SELECT 'review_and_study_day_activity_row_and_active_review_and_study',
+         count(*) FILTER (WHERE has_ral AND has_rev AND has_study) FROM w
+  UNION ALL SELECT 'manual_study_only_day', count(*) FILTER (WHERE has_manual AND NOT has_in_app) FROM w
+  UNION ALL SELECT 'in_app_study_only_day', count(*) FILTER (WHERE has_in_app AND NOT has_manual) FROM w
+  UNION ALL SELECT 'manual_and_in_app_study_same_day', count(*) FILTER (WHERE has_manual AND has_in_app) FROM w
+  UNION ALL SELECT 'all_sources_day_activity_row_and_active_review_and_manual_and_in_app',
+         count(*) FILTER (WHERE has_ral AND has_rev AND has_manual AND has_in_app) FROM w
+  UNION ALL SELECT 'listed_day_exactly_at_window_start_today_minus_90', count(*) FILTER (WHERE d = today - 90 AND (has_ral OR has_study)) FROM w
+  UNION ALL SELECT 'listed_day_exactly_at_30d_window_start_today_minus_30', count(*) FILTER (WHERE d = today - 30 AND (has_ral OR has_study)) FROM w
+  UNION ALL SELECT 'listed_day_exactly_today', count(*) FILTER (WHERE d = today AND (has_ral OR has_study)) FROM w
+  UNION ALL SELECT 'profile_at_current_utc_offset_exactly_plus_14h', (SELECT count(*) FROM tzp WHERE utc_offset = interval '14 hours')
+  UNION ALL SELECT 'profile_at_current_utc_offset_exactly_minus_12h', (SELECT count(*) FROM tzp WHERE utc_offset = interval '-12 hours')
+  UNION ALL SELECT 'plus_14h_profile_with_a_listed_day_on_a_window_edge_today_minus_90_or_minus_30_or_today',
+         count(*) FROM w JOIN tzp ON tzp.id = w.uid
+         WHERE tzp.utc_offset = interval '14 hours' AND (w.has_ral OR w.has_study) AND w.d IN (w.today - 90, w.today - 30, w.today)
+  UNION ALL SELECT 'minus_12h_profile_with_a_listed_day_on_a_window_edge_today_minus_90_or_minus_30_or_today',
+         count(*) FROM w JOIN tzp ON tzp.id = w.uid
+         WHERE tzp.utc_offset = interval '-12 hours' AND (w.has_ral OR w.has_study) AND w.d IN (w.today - 90, w.today - 30, w.today)
 ),
 info AS (
-  SELECT 'days_in_90d_window_with_an_unknown_or_null_source_expected_0' AS k, count(*) FILTER (WHERE has_other) AS n FROM w
-  UNION ALL SELECT 'days_in_90d_window_with_active_review_rows_but_no_activity_row_and_no_study_not_listed_by_the_live_or_new_function',
-         (SELECT count(*) FROM rvd JOIN pt ON pt.id = rvd.uid
-          WHERE rvd.d BETWEEN pt.today - 90 AND pt.today
-            AND NOT EXISTS (SELECT 1 FROM rd WHERE rd.uid = rvd.uid AND rd.d = rvd.d)
-            AND NOT EXISTS (SELECT 1 FROM sd WHERE sd.uid = rvd.uid AND sd.d = rvd.d))
-),
-tzp AS (
-  SELECT pt.id, t.utc_offset FROM pt JOIN pg_timezone_names t ON lower(t.name) = lower(pt.tz)
+  SELECT 'days_with_an_unknown_or_null_study_source_expected_0' AS k, count(*) FILTER (WHERE has_other) AS n FROM w
+  UNION ALL SELECT 'days_with_activity_row_but_no_active_review_row', count(*) FILTER (WHERE has_ral AND NOT has_rev) FROM w
+  UNION ALL SELECT 'days_with_active_review_rows_but_no_activity_row_and_no_study_NOT_listed_by_the_live_or_new_function',
+         count(*) FILTER (WHERE has_rev AND NOT has_ral AND NOT has_study) FROM w
+  UNION ALL SELECT 'days_examined', count(*) FROM w
+  UNION ALL SELECT 'profiles_whose_local_date_differs_from_the_server_CURRENT_DATE', (SELECT count(*) FROM pt WHERE pt.today <> CURRENT_DATE)
 )
 SELECT jsonb_build_object(
   'run', 'P4',
   'coverage_counts', (SELECT jsonb_object_agg(cat, n ORDER BY cat) FROM cov),
   'NOT_COVERED_by_live_data', (SELECT COALESCE(jsonb_agg(cat ORDER BY cat), '[]'::jsonb) FROM cov WHERE n = 0),
   'informational_counts', (SELECT jsonb_object_agg(k, n ORDER BY k) FROM info),
-  'profiles_with_current_utc_offset_exactly_plus_14h', (SELECT count(*) FROM tzp WHERE utc_offset = interval '14 hours'),
-  'profiles_with_current_utc_offset_exactly_minus_12h', (SELECT count(*) FROM tzp WHERE utc_offset = interval '-12 hours'),
-  'profiles_with_current_utc_offset_exactly_plus_14h_and_a_study_or_activity_row_in_90d_window',
-     (SELECT count(DISTINCT w.uid) FROM w JOIN tzp ON tzp.id = w.uid WHERE tzp.utc_offset = interval '14 hours'),
-  'profiles_with_current_utc_offset_exactly_minus_12h_and_a_study_or_activity_row_in_90d_window',
-     (SELECT count(DISTINCT w.uid) FROM w JOIN tzp ON tzp.id = w.uid WHERE tzp.utc_offset = interval '-12 hours'),
-  'profiles_whose_local_date_differs_from_the_server_CURRENT_DATE', (SELECT count(*) FROM pt WHERE pt.today <> CURRENT_DATE),
   'upper_end_rows_the_new_window_drops_ALL_THREE_SOURCES', jsonb_build_object(
       'study_sessions_dated_after_profile_local_today', (SELECT count(*) FROM public.study_sessions s JOIN pt ON pt.id = s.user_id WHERE s.session_date > pt.today),
       'review_activity_log_days_dated_after_profile_local_today', (SELECT count(*) FROM rd JOIN pt ON pt.id = rd.uid WHERE rd.d > pt.today),
