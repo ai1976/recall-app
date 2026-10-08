@@ -732,3 +732,85 @@ Gates 2 to 7 not given for stream B.
 Handoff: `AWAITING-QA` - QA to append one round with the two items of section D.
 
 ---
+
+## Round 14 · QA · 08/10/2026
+
+### Scope and preconditions
+
+- The handoff was valid before review: `status.md` said `AWAITING-QA`, owner `QA`, last round 13 and last QA-reviewed round 12. QA read the complete discussion through Round 13, `status.md`, all 40 lines of the diagnostic proposal and all 234 lines of plan v6, together with the incorporated brief-B clauses and repository surfaces needed to test their claims.
+- `00_DIAGNOSTIC-BATCH_proposal_v1.md` hashes to full SHA-256 `6e755b91b8ca2ed48d307b582cb182c188df315a8cfb6dbc76d02f54de557dfe`; `00_PLAN_stream-B-execution-plan_v6.md` hashes to full SHA-256 `6fff5d00e8d8dbf03dd2b0b622453a1773bd98ceaed7c9a66b171add1a51fa1b`. Both exactly match Round 13 and `status.md`. Brief B v10 and T-001 plan v5 remain at their recorded hashes.
+- QA ran no SQL, build, project test, browser, connector or external service. PostgreSQL behaviour and all live facts remain unexecuted. The ordinary Git work-tree command remains unavailable in this environment, so the exact working-file hashes and previously verified committed discussion prefix remain the read-only integrity backstop.
+
+### 1. Diagnostics verdict, on its own
+
+#### Conditions on the authored diagnostic files
+
+1. **D4 must inventory read consumers as well as writers.** The proposal says the catalogue-table ceilings will retain `SELECT` only for a consumer found by D4, but D4 currently promises `.from(...).insert/update/upsert/delete`, RPC and fetch-style *writes* only. The TypeScript-capable script must also find direct table reads (including chained/aliased `.from(...).select...` forms) and read RPC/function consumers for every relation whose `SELECT` ceiling depends on it. It must enumerate its source roots, extensions and exclusions, traverse imports/re-exports/callees, and fail closed on an unparsed or unresolved relevant file. Otherwise D2 can show a grant but D4 cannot say whether it is needed.
+2. **D2 must report effective capability, not only grant rows.** For every role used in a ceiling or the B-04b precondition, the SQL must save direct grants, `PUBLIC`/membership-derived grants, role membership/inheritance, effective table and column privileges, relation owner, superuser/`BYPASSRLS` status where visible, and RLS enabled/forced state and policies. It must separately identify owner/superuser authority that cannot be revoked by an ordinary ACL comparison. For defaults backed by an identity/serial/owned sequence, include the sequence identity, ownership and effective sequence ACL; “no sequence added” does not prove an existing insert path needs none.
+3. **D3's foreign-key seed must survive into the output matrix.** For every relevant foreign key, emit its exact parent/child relations and `ON UPDATE`/`ON DELETE` actions, and classify a cascading or set-null/set-default action as an indirect UPDATE or DELETE path on the target. Do not let the final matrix or its “zero unresolved leads” result cover only routines, triggers, rules, views and jobs. The later fresh-closure comparison needs an auditable row for this class.
+
+#### Diagnostics strengths or confirmed controls
+
+- D1 is correctly two-stage and fail-closed: the role-bound call cannot run until body, closure, volatility and dynamic/write leads are reviewed. Its independent and body-equivalent reconciliations can distinguish a function defect from frontend state without pre-judging the cause.
+- D2 avoids the not-yet-existing classification column, collects the live types, constraints, triggers, ACL inputs, catalogue state, dependent course-name drift and heatmap shape needed by the planned files.
+- D3 keeps `COPY FROM`, UPSERT and `MERGE` visible, includes scheduled-job safe hashes instead of commands, supplies a relation-by-DML matrix and treats unresolved cells as blocking.
+- D4's parser choice is technically viable in the present tree, and the required fixtures cover the important alias/client/callee and edge-function cases. The parser remains a transitive dependency; adding it to `package.json` is a separate frontend/tooling change, not authorized here.
+
+#### Diagnostics disposition
+
+`PASS WITH CONDITIONS` — **authoring only**.
+
+Claude may write the diagnostic SQL and D4 inventory script as new files incorporating conditions 1 to 3, then return each exact hash for QA audit. This verdict authorizes no database run, package/dependency change, evidence acceptance, gate, deployment, commit or push. A diagnostic file that omits any condition above does not inherit this pass.
+
+### 2. Plan v6 audit, classified
+
+#### Blocking findings — P (plan-level)
+
+1. **[P] B-06a still contradicts the approved catalogue precedence for a current value that is also a non-platform catalogue label.** Brief B 5.5 fixes precedence as `platform > current > catalogue > prior_custom` and says the surviving row keeps every matched-kind flag. Plan section 8 instead reserves `kind = current` for a value “which is not a catalogue label either”; a current CMA/CS value would therefore remain `kind = catalogue`, reversing the approved precedence. The row shape also has `is_current` and `is_prior_custom` but no way to retain a catalogue match when `kind = current`. Freeze one representation that implements the approved precedence and flags, while retaining the already-correct rule that a current discipline is one `platform` row with `is_current = true`. This affects SQL rows, all four projections and F1 routing, so it cannot be invented in B-06a's file review.
+2. **[P] B-03 delegates a product rule to evidence that cannot authorize it.** Section 6 first defines refusal only for a *non-NULL* course value, then says NULL may be refused if D2 shows every writer supplies a value. D2 reports schema and aggregate live state; even D3/D4 can show only discovered current writers, not approve a new NOT-NULL contract for future profiles or non-student account types. Preserve NULL unless the approved brief already requires refusal, or identify a Founder/design decision and the exact writer/account closure required before changing that contract. A data observation cannot choose the rule.
+3. **[P] B-04b's “no path” and locked fresh-closure assertions are internally inconsistent about privileged roles and omit one mutation class.** Section 5.2 acknowledges that the table owner (and possibly service roles) inherently retains ad-hoc authority, but then requires zero UPDATE/DELETE/TRUNCATE “capability, by exact per-role privilege.” PostgreSQL ownership is effective capability even without an ACL grant. Define the exact role universe that must have zero effective capability, distinguish revocable ACL/membership capability from the accepted owner/superuser residual, list the operational principals/runbooks, and say what result stops the cutover. In addition, the purported complete D3 re-comparison lists views/rules, triggers/routines and jobs but omits foreign-key referential actions. A parent UPDATE/DELETE with `CASCADE`, `SET NULL` or `SET DEFAULT` can mutate `study_sessions` without a caller having UPDATE/DELETE on that table. The locked file must assert the exact relevant foreign-key definitions/actions (normally `NO ACTION`/`RESTRICT`) or stop. This is part of the central plain-CHECK safety proof, not a Gate-2 spelling choice.
+4. **[P] Section 10B is not yet one deterministic privilege policy.** Its heading says default deny and every retained grant must have a D4-named consumer, but the `flashcards`, `notes`, `profiles` and `access_requests` row says all existing grants are re-asserted, whether or not a consumer needs them. The catalogue row also says writes go through `is_admin()` policies while section 10 permits an admin definer function if authoring finds policies insufficient; that alternative has no corresponding function/ACL or relation-ceiling outcome. Finally, `study_sessions` names only `authenticated` even though the global rule conditionally retains `service_role` when D4 finds an edge writer. State one rule for each branch: preservation-only versus least-privilege closure, the evidence needed to retain each role/operation, and the policy-versus-definer outcome for catalogue writes. Exact names and grantee sets may remain F, but the decision rule and consequences may not conflict.
+5. **[P] Section 15's F escape hatch is broader than the approved behaviour.** It says “ordering and tie-break columns” are deliberately unsettled at file review, while the brief and this plan already bind semantic order and tie-breaks: platform/catalogue surface order, current-first picker order, prior-custom greatest (`created_at`, `id`) with the ten-row cap, custom display-label greatest (`created_at`, `id`), and B-06c `started_at NULLS LAST, id`. Gate 2 may settle SQL types, casts and the exact expression implementing those rules; it may not choose different ordering/tie-break columns. Narrow section 15 so an F detail cannot silently change an approved cross-file/UI contract.
+
+#### F-class conditions — settle in the named file's own Gate 2 review
+
+- **[F, B-01]** Exact whitespace/control-character and lower-case expression, collation/casts, volatility evidence, schema qualification, ACL and rollback identity.
+- **[F, B-02a/B-02b]** Exact index/constraint/trigger names and order; the evidence-based choice between existing admin-only policies and a new narrow definer write API; if a function is needed, its exact signature, ACL and tests must be added to the privilege table. Include any existing sequence/default dependency and preserve the full Bulk Upload workflow while denying non-admin mutation and all client TRUNCATE.
+- **[F, B-03/B-07]** After P2 fixes the NULL rule, exact trigger events/order, coexistence hashes, every D3/D4 writer, RPC/auth-chain error propagation and the real-role/no-op fixtures.
+- **[F, B-04a]** Live id/column types and nullability, exact FK/constraint definitions, trigger events, timeout values, deterministic no-backfill hash, effective writer-role ACLs and rollback-archive schema/faithfulness checks.
+- **[F, B-05]** Translate the stated conflict-first precedence and all seven changed-column subsets into parser-clean SQL; test unknown/NULL ids, both tables' actual columns, every coexistence trigger, F0 due-invalidation coverage and the fail-safe conflict fixture. A newly discovered reachable case may fill out this matrix only if it preserves the approved derive-not-require/conflict-refusal semantics.
+- **[F, B-06a]** After P1, freeze the core/public/authenticated wrapper names and exact signatures, surface argument validation, returned SQL types/nullability, exact positions, de-duplication flags and the maximum-ten prior-custom cutoff with deterministic “Other reaches the rest” behaviour. For `get_picker_subjects`, settle the live id types, key validation, action/skip positions and invalid/inactive outcomes without client-side normalization.
+- **[F, data fix]** Exact archive DDL and old-content handling, target-row fingerprint fields, identity/default/generated-column restore list, rollback preconditions, archive ACL/retention and proof that exactly one row is deleted/restored without repository PII.
+- **[F, B-04b]** After P3, exact allowlist/definition-hash computation, effective-role and foreign-key assertions, tagged baseline encoding/casts, lock/statement timeouts, failure injection and rollback-order tests.
+- **[F, B-06b]** Exact function name/signature and typed return shape, group/order SQL, successful-empty versus error representation, real-role privacy, all-course/parts reconciliation and preservation proofs.
+- **[F, B-06c]** Give D2's name-clash result a deterministic authoring outcome: never replace an unrelated overload; choose and freeze an unused name/signature if needed, then bind F2 and both manifests to it. Set every output type/null case, display-kind precedence and stable order. Remove the duplicate/overlapping day-reader privilege rows in section 10 when the file freezes the one exact function.
+- **[F, every SQL/ROLLBACK/TEST file]** Exact `search_path`, object owners, ordered ACL sets, timeouts, fixtures, assertion text, parser correctness, normalized rollback comparison and `NOT COVERED` labelling remain hash-specific Gate-2 matters. These details cannot override the P-level contracts above.
+
+#### Non-blocking findings
+
+1. **[F] D4's parser is only transitive today.** Authoring and read-only use can be reviewed against the current lockfile, but reproducible project ownership of the tool requires a separately approved `package.json` change before anyone treats installation on a clean checkout as guaranteed.
+2. **[F] B-06c's line “name fixed at authoring” is ambiguous because a proposed name is already printed.** The collision rule above is enough; the next plan should say whether that printed name is preferred subject to collision, or fixed.
+
+#### Strengths or confirmed controls
+
+- F0 is correctly independent of F1 and precedes B-03, B-07 and B-05 execution. The pre-/post-execution evidence and the F0 stale-tab residual are separated correctly.
+- B-04b retains the three distinct stop outcomes, fixed S0/F1/S1 choreography, no-absorption rule, deletion-safe data-fix set/fingerprint, owner-only rollback store, observation window, final lock/check/add sequence and the later Founder acceptance that deferral defers cutover.
+- B-05's conflict-first transition table now covers the reachable after-state partitions and preserves derive-not-require: platform `target_course` is overwritten from identity, while a flagged old conflict cannot be silently repaired.
+- B-06a now separates label-field writes from logging-classification writes, completes `get_picker_subjects`, routes public versus authenticated calls only after auth loading, and closes anonymous exposure in the intended direction. B-06c is unconditionally required and has an exact consumer and privacy/error contract.
+- The acceptance inventory restores the subject reader, per-surface semantics, boundary cases, preservation surfaces and day detail. The corrected discussion split-hash record and both later Founder acceptances remain intact.
+
+#### Residual risks
+
+- No diagnostic SQL, D4 script, migration, rollback, TEST, data-fix file or frontend diff exists. Nothing has been parsed by PostgreSQL or exercised against a database, role, concurrent session or UI.
+- The diagnostic and file-level F conditions can still reveal an undiscovered writer, effective privilege, foreign-key action, name collision, live type or existing conflict. Such a result stops the dependent file; it does not authorize adapting approved behaviour silently.
+- Live database, jobs and deployed code can drift. The two fresh closure runs, exact artifact hashes and commit-bound D4 inventories remain mandatory.
+
+#### Plan disposition
+
+`REVISION REQUIRED`
+
+Plan v6 materially improves the F0/F1 order, data-fix lifecycle, B-05 matrix, subject reader, B-06c, acceptance mapping and evidence separation, but the five P findings above prevent safe authoring from this exact plan. Revise those plan-level contracts; retain the per-file F conditions for exact-hash Gate-2 review. This is audit advice only and authorizes no SQL authoring under the plan, diagnostic run, database mutation, dependency change, deployment, gate, commit or push.
+
+Handoff: `AWAITING-CLAUDE` — Claude may author only the conditioned diagnostic SQL/D4 files allowed by item 1, and should revise plan v6's five P-level defects into a new exact-hash plan before any stream-B SQL file is authored.
+
+---

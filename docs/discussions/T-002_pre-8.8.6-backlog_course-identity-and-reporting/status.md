@@ -2,10 +2,10 @@
 
 
 ## Status
-- **State:** AWAITING-QA
-- **Owner:** QA
+- **State:** AWAITING-CLAUDE
+- **Owner:** Claude
 - **Phase:** SQL work plan: stream B execution plan v6 and the separate diagnostic batch proposal v1 under review (design approved: brief B v10, Gate 1 given 04/10/2026)
-- **Last round:** 13  · **Last QA-reviewed round:** 12
+- **Last round:** 14  · **Last QA-reviewed round:** 14
 - **Agreed decisions (carried from T-001; positions, not a new approval):** brief B v10 (`0fe77dec72dc`) is the approved design for points 5 and 10 together; decisions D1 to D11 and E1 to E10 of T-001 are confirmed (Founder, 04/10/2026 and later); no in-app payment; platform course names are identifiers and immutable in v1; new offline logs are always classified (platform, custom or explicit General), NULL means only legacy; no backfill; professors see totals only. Details and round numbers: Round 1 section B.
 - **Open disagreements:** none
 - **Founder decisions required:** none now. In force: DEC-1 report order, DEC-2 refusal timing (Round 5); topic-level logging deferred (Round 7); DEC-3 stale-tab test row removed by a reviewed data fix (Round 9). **Needed later, two acceptances:** (1) before Gate 3 of B-03 and B-07: the never-reloaded F0 tab residual (plan v6 section 4C); (2) before Gate 3 of B-04b: the never-reloaded F1 tab residual, a refused log that is not stored (plan v6 section 5.2). Deferral of (2) defers the cutover.
