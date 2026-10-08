@@ -1330,3 +1330,74 @@ QA Round 22 checked line by line; D-04 v5 and D-05 v3 self-tests run (49 of 49 a
 Gates 2 to 7 not given for stream B.
 
 Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v5, D-04 v5, D-05 v3 (D-02 v3 unchanged), plan v11, and the design question of section D.
+
+---
+
+## Round 24 · QA · 08/10/2026
+
+**Scope and method.** I audited the whole Round 23 response and each artifact at the exact hashes stated there. The working-file SHA-256 values match: D-03 v5 `482c28d315a8`, D-04 v5 `80f38730f974`, D-05 v3 `1087cb8f7907`, unchanged D-02 v3 `874a8bddb578`, and plan v11 `6db4d9d72eac`. I read the SQL statement by statement; no SQL or database operation was run. `node --check` and the supplied self-tests passed for D-04 (49/49) and D-05 (51/51). No reviewed run can write to the database; D-04/D-05's optional report-file output is not a database write.
+
+### 1. Diagnostic verdicts
+
+#### D-02 v3 — PASS WITH CONDITIONS
+
+The unchanged verdict stands. Gate 2 still requires all five raw cells, ACL-derived PUBLIC handling, every-role sequence checks, and evidence that a missing or visibility-unresolved cell is a stop. No new defect was found in this unchanged file during this round.
+
+#### D-03 v5 — REVISION REQUIRED
+
+Blocking or material file conditions:
+
+1. **[F] P7 does not make row visibility fail closed.** The orphan aggregate is `count(*)` over `public.study_sessions` and `auth.users`, and the catalogue outputs RLS facts, but there is no assertion that the executing diagnostic principal could see the complete two relations. A restricted or RLS-filtered execution could report zero orphans and an incomplete FK/caller catalogue. P7 needs an explicit privileged/visibility assertion (or an equivalent unresolved stop) before its zero-orphan and closure results can be used.
+2. **[F] The FK OID is narrowed with `k.oid::int`.** PostgreSQL OIDs are not restricted to the signed 32-bit range. A valid larger OID can error or lose exact identity, so the OID must be emitted without a lossy cast and compared in a non-lossy representation.
+
+The Round 23 changes that are closed are the whole-identifier P4 lead, SHA-256 extension identity-set construction with count, and P7 validated/system-trigger/orphan fields. The SQL is read-only, but these two conditions prevent a clean diagnostic verdict.
+
+#### D-04 v5 — REVISION REQUIRED
+
+1. **[F] Unresolved named/default re-exports are disposable.** An unresolved `export { x } from './missing'` or `export { default } from './missing'` becomes `import_not_in_scanned_roots`, which `applyDispositions` permits to be cleared. Only unresolved `export *` is in `UNDISPOSABLE`. An unknown re-export source can therefore hide a client-bearing module. Every unresolved re-export source, regardless of export form, must be an undisposable/fail-closed lead.
+2. **[F] The `reexportLeads` shortcut skips specifiers containing `supabase`.** For a local source such as `export { db as handle } from './supabase/client'` or a default re-export from that file, the local graph edge is made but `reexportLeads` returns early; if the current module has no locally named client, no client re-export lead is guaranteed. The arbitrary-alias/default fixture must cover this path, or the shortcut must be removed/limited to a proven direct lead.
+
+The parser remains source-only and its 49/49 self-test passes, but those tests do not prove the two fail-closed cases above.
+
+#### D-05 v3 — REVISION REQUIRED
+
+1. **[F] The P1 `study_sessions` sink key is not exact.** It remains `foreign_key:<ancestor>:<event>-><result>`, without constraint name/OID, definition hash, actions or validation. Distinct FK paths can collide and one allowlist entry can clear more than one object. The sink key must bind the actual FK identity, or the matrix must require the corresponding exact P7 key for every such sink.
+2. **[F] P6 frontier shape is not validated.** `frontier_edges_outside_closure` is `arr(ANY)`, while only its length is used. Malformed or incomplete frontier evidence can therefore be accepted as an empty/advisory frontier. Validate its required object fields and fail closed on malformed input.
+3. **[F] P5 completeness is not established.** The schema has no count or completeness assertion for `auth_users_triggers`; the one-way check only ensures that listed trigger functions appear in `chain_functions`. An omitted trigger list (or omitted chain member not named by a listed trigger) can pass validation. Add a completeness/count binding or make the raw P5 catalogue itself an unresolved stop when incomplete.
+4. **[F] The cascade proof trusts weak trigger-row shape.** It checks only that the cascade row has at least one enabled trigger, not that the rows are the complete referential-integrity triggers for that constraint or that their function/table identity is the expected RI trigger set. The proof must bind those fields/counts, or treat unverified trigger evidence as `cascade_foreign_key_not_proven`.
+5. **[F] Extension-row types are too permissive.** `extversion` is nullable and the clearance-key expression allows an empty version (`@.*`); `routines` accepts any finite number, including fractional or negative values. Require a non-empty version and a non-negative integer count consistently in the input schema and clearance key.
+
+The recursive probes, exact auth.users FK fields, trigger enabled state, extension SHA-256/count fields, unused-entry stop and 51/51 self-test are positive controls, but they do not close these residual fail-open inputs. The script itself performs no database write; its optional `--out`/`--md` files are ordinary report outputs.
+
+### 2. Plan v11 audit, classified P/F
+
+#### Blocking findings — P (plan-level)
+
+1. **[P] DEC-4 has a time-of-check/time-of-use provenance gap.** Section 5.2 proves the cascade FK at the diagnostic/anchor and again at cutover, but it does not prove that the FK remained validated, unchanged and trigger-enabled at the instant each ledger removal occurred. A malicious or accidental window could disable/drop the FK, remove a row, then restore the FK before the final assertion; the ledger and set assertion would record the removal but would not establish its causal path. DEC-4 needs event-time FK state bound into the ledger, an unbroken DDL/constraint guard/audit covering the observation window, or an equivalent transaction-correlated proof. Current-state reassertion alone is insufficient.
+2. **[P] Section 5.2 still names the wrong matrix artifact.** The fresh-closure comparison says it is produced by `D-05_writer-matrix_v2.mjs` (line 89), while the exact artifact under review and the canonical contract are v3. This makes the executable source and hash ambiguous; the plan must name v3 and its exact hash.
+
+#### File-level conditions — F
+
+- **[F, D-02]:** retain the five raw cells, PUBLIC ACL derivation, every-role sequence checks and fail-closed visibility handling.
+- **[F, D-03]:** add P7 visibility/completeness assertion and remove the lossy OID cast; retain the validated FK, enabled system-trigger, zero-orphan, P7 caller and extension conditions.
+- **[F, D-04]:** make every unresolved re-export form undisposable and prove arbitrary alias/default re-exports from local `supabase`-named paths; retain the passed-builder and re-export fixtures.
+- **[F, D-05]:** exact-bind every study-session FK sink; validate P6 frontier and P5 catalogue completeness; strengthen cascade trigger evidence; require non-empty extension versions and integer counts. The already-correct recursive checks, hash formats, unused-entry stop and result hash remain required.
+- **[F, B-04a/B-04b]:** preserve the exact key schema, fresh closure, SA and stop outcomes, but add the event-time/continuous FK provenance demanded by the P finding before DEC-4 can be used.
+
+### 3. DEC-4 ruling
+
+**REVISION REQUIRED before Founder approval.** The shrink-only ledger, owner-gone token and SA are useful controls, but a diagnostic proof plus a later cutover re-check is not enough to attribute each removal to the cascade. DEC-4 is conditionally designable only after an event-time or continuously enforced FK-state proof is specified and implemented; no Gate 2/3 or B-04b authorization follows from this round.
+
+### 4. Answer to Round 23 section D
+
+**No, not as currently stated.** Taking the cascade-key proof at diagnostic time and reasserting it at cutover is acceptable only if the ledger also carries an unforgeable FK identity/definition/validation/trigger-state observation for each removal, or a continuously enforced DDL/constraint guard makes any intervening change impossible and auditable. The ledger's one-row-per-removal rule and SA prove set shrinkage, not the causal provenance of a deletion during an unobserved interval.
+
+### Strengths and residual risks
+
+The exact hashes, D-04/D-05 parser checks, read-only boundaries, P4 whole-name coverage, extension SHA-256/count design, fresh all-caller intent, and shrink-only/unused-entry stops are confirmed. No SQL, live catalogue, FK state, orphan count, extension set, deployed SHA or concurrent observation was exercised. D1b and all Gate 2-to-7 evidence remain open.
+
+### Disposition
+
+D-02 v3: **PASS WITH CONDITIONS**. D-03 v5: **REVISION REQUIRED**. D-04 v5: **REVISION REQUIRED**. D-05 v3: **REVISION REQUIRED**. Plan v11: **REVISION REQUIRED** for the two P findings; the listed F conditions remain file-Gate-2 prerequisites. DEC-4: **REVISION REQUIRED**. This is audit advice only; no diagnostic run, Gate 2/3, data fix, B-04b authoring, deployment, commit or push is authorized.
+
+Handoff: `AWAITING-CLAUDE` — revise the diagnostic fail-closed/completeness contracts, correct the v3 matrix reference, and add event-time or continuously enforced FK provenance for DEC-4, then return exact hashes for the next complete QA review.
