@@ -1,0 +1,397 @@
+{
+ "run": "D2-P3",
+ "definitions": [
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "auto_resolve_content_error_flags",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.auto_resolve_content_error_flags()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SECURITY DEFINER\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nDECLARE\\r\\n  v_content_type text := TG_ARGV[0];  -- 'note' or 'flashcard'\\r\\nBEGIN\\r\\n  UPDATE content_flags\\r\\n  SET\\r\\n    status          = 'resolved',\\r\\n    resolved_by     = NULL,\\r\\n    resolution_note = 'Content updated by creator',\\r\\n    resolved_at     = now()\\r\\n  WHERE content_id  = NEW.id\\r\\n    AND content_type = v_content_type\\r\\n    AND reason       = 'content_error'\\r\\n    AND status       = 'pending';\\r\\n\\r\\n  RETURN NEW;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "fc71c61445272492d3ea0ea14c77d13a",
+   "execute_grantees": [
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "fn_autoclear_featured_on_visibility_change",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_autoclear_featured_on_visibility_change()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nBEGIN\\r\\n  IF NEW.visibility <> 'public' THEN\\r\\n    NEW.is_featured_on_landing := false;\\r\\n    NEW.featured_nominated_by := NULL;\\r\\n    NEW.featured_nominated_at := NULL;\\r\\n    NEW.featured_approved_by := NULL;\\r\\n    NEW.featured_approved_at := NULL;\\r\\n  END IF;\\r\\n  RETURN NEW;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "78ba5fd952eda980cd6686a089ecae0f",
+   "execute_grantees": [
+    "authenticated",
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": false
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "fn_badge_check_flashcards",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_badge_check_flashcards()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SECURITY DEFINER\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nDECLARE\\r\\n  v_total_flashcards INTEGER;\\r\\n  v_subject_count    INTEGER;\\r\\nBEGIN\\r\\n  -- Read counter updated by trg_aaa_counter_flashcards (fired first)\\r\\n  SELECT total_flashcards\\r\\n  INTO v_total_flashcards\\r\\n  FROM user_stats\\r\\n  WHERE user_id = NEW.user_id;\\r\\n\\r\\n  -- Memory Architect: 10 flashcards total\\r\\n  IF v_total_flashcards >= 10 THEN\\r\\n    PERFORM award_badge(NEW.user_id, 'memory_architect');\\r\\n  END IF;\\r\\n\\r\\n  -- Deck Builder: 50 flashcards total\\r\\n  IF v_total_flashcards >= 50 THEN\\r\\n    PERFORM award_badge(NEW.user_id, 'deck_builder');\\r\\n  END IF;\\r\\n\\r\\n  -- Subject Expert: 20 flashcards in the SAME subject\\r\\n  -- Only runs COUNT for the specific subject_id of the new card.\\r\\n  IF NEW.subject_id IS NOT NULL THEN\\r\\n    SELECT COUNT(*)\\r\\n    INTO v_subject_count\\r\\n    FROM flashcards\\r\\n    WHERE user_id   = NEW.user_id\\r\\n      AND subject_id = NEW.subject_id;\\r\\n\\r\\n    IF v_subject_count >= 20 THEN\\r\\n      PERFORM award_badge(NEW.user_id, 'subject_expert');\\r\\n    END IF;\\r\\n  END IF;\\r\\n\\r\\n  RETURN NULL;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "aeae81ca67c80824ffd60b32361b469d",
+   "execute_grantees": [
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "fn_badge_check_new_profile",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_badge_check_new_profile()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SECURITY DEFINER\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nBEGIN\\r\\n  -- Ensure user_stats row exists for new user (defensive; counter triggers also upsert)\\r\\n  INSERT INTO user_stats (user_id)\\r\\n  VALUES (NEW.id)\\r\\n  ON CONFLICT (user_id) DO NOTHING;\\r\\n\\r\\n  -- Pioneer: registered before March 1, 2026\\r\\n  IF NEW.created_at < '2026-03-01 00:00:00+00'::TIMESTAMPTZ THEN\\r\\n    PERFORM award_badge(NEW.id, 'pioneer');\\r\\n  END IF;\\r\\n\\r\\n  RETURN NULL;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "4cd16d713e84415d922fde89d52d33f1",
+   "execute_grantees": [
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "fn_badge_check_notes",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_badge_check_notes()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SECURITY DEFINER\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nDECLARE\\r\\n  v_total_notes INTEGER;\\r\\nBEGIN\\r\\n  -- Read counter updated by trg_aaa_counter_notes (fired first)\\r\\n  SELECT total_notes\\r\\n  INTO v_total_notes\\r\\n  FROM user_stats\\r\\n  WHERE user_id = NEW.user_id;\\r\\n\\r\\n  -- Digitalizer: first note uploaded\\r\\n  IF v_total_notes >= 1 THEN\\r\\n    PERFORM award_badge(NEW.user_id, 'digitalizer');\\r\\n  END IF;\\r\\n\\r\\n  -- Prolific Writer: 5 notes\\r\\n  IF v_total_notes >= 5 THEN\\r\\n    PERFORM award_badge(NEW.user_id, 'prolific_writer');\\r\\n  END IF;\\r\\n\\r\\n  RETURN NULL;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "9f3d84b70ca3ca65fda494c5de4e8efe",
+   "execute_grantees": [
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "fn_cleanup_orphan_batch_provenance",
+   "owner": "postgres",
+   "config": [
+    "search_path=pg_catalog, public"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_cleanup_orphan_batch_provenance()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SECURITY DEFINER\\n SET search_path TO 'pg_catalog', 'public'\\nAS $function$\\r\\nBEGIN\\r\\n  -- Ordinary updates (no batch_id actually changed) return immediately.\\r\\n  IF NOT EXISTS (SELECT 1 FROM old_rows o JOIN new_rows n ON n.id = o.id\\r\\n                  WHERE o.batch_id IS DISTINCT FROM n.batch_id) THEN\\r\\n    RETURN NULL;\\r\\n  END IF;\\r\\n\\r\\n  -- One batch-level pass: source batches that lost cards and now have zero cards left.\\r\\n  DELETE FROM public.flashcard_batch_provenance p\\r\\n   WHERE p.batch_id IN (SELECT DISTINCT o.batch_id\\r\\n                          FROM old_rows o JOIN new_rows n ON n.id = o.id\\r\\n                         WHERE o.batch_id IS NOT NULL\\r\\n                           AND o.batch_id IS DISTINCT FROM n.batch_id)\\r\\n     AND NOT EXISTS (SELECT 1 FROM public.flashcards f WHERE f.batch_id = p.batch_id);\\r\\n\\r\\n  RETURN NULL;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "bd5c413e32698f617cc03eec69cfa45d",
+   "execute_grantees": [
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "fn_course_change_archive_restore",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_course_change_archive_restore()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SECURITY DEFINER\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nBEGIN\\r\\n  IF NEW.role IS DISTINCT FROM 'student' THEN\\r\\n    RETURN NULL;\\r\\n  END IF;\\r\\n\\r\\n  UPDATE public.my_cards_enrollment e\\r\\n     SET status = 'course_archived',\\r\\n         archived_course = a.card_course,\\r\\n         archived_at = now()\\r\\n    FROM public.course_change_affected(NEW.id, OLD.course_level, NEW.course_level) a\\r\\n   WHERE e.id = a.enrollment_id AND a.action = 'archive';\\r\\n\\r\\n  UPDATE public.my_cards_enrollment e\\r\\n     SET status = 'active',\\r\\n         archived_course = NULL,\\r\\n         archived_at = NULL\\r\\n    FROM public.course_change_affected(NEW.id, OLD.course_level, NEW.course_level) a\\r\\n   WHERE e.id = a.enrollment_id AND a.action = 'restore';\\r\\n\\r\\n  RETURN NULL;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "2d468ddd14fd69571074f7b6811cb880",
+   "execute_grantees": [
+    "PUBLIC",
+    "anon",
+    "authenticated",
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "fn_guard_flashcard_batch_move",
+   "owner": "postgres",
+   "config": [
+    "search_path=pg_catalog, public"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_guard_flashcard_batch_move()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SECURITY DEFINER\\n SET search_path TO 'pg_catalog', 'public'\\nAS $function$\\r\\nDECLARE\\r\\n  o_has  boolean;\\r\\n  n_has  boolean;\\r\\n  o_type text;\\r\\n  o_name text;\\r\\n  n_type text;\\r\\n  n_name text;\\r\\nBEGIN\\r\\n  IF OLD.batch_id IS NULL OR NEW.batch_id IS NULL THEN\\r\\n    RAISE EXCEPTION 'MERGE_TARGET_INVALID: cards without a batch cannot be merged or moved into or out of a batch.'\\r\\n      USING ERRCODE = 'RV601';\\r\\n  END IF;\\r\\n\\r\\n  -- Target batch must already exist and be held only by this card's owner (owner data, not auth.uid()).\\r\\n  IF NOT EXISTS (SELECT 1 FROM public.flashcards f\\r\\n                  WHERE f.batch_id = NEW.batch_id AND f.user_id = OLD.user_id AND f.id <> OLD.id)\\r\\n     OR EXISTS (SELECT 1 FROM public.flashcards f\\r\\n                 WHERE f.batch_id = NEW.batch_id AND f.user_id <> OLD.user_id) THEN\\r\\n    RAISE EXCEPTION 'MERGE_TARGET_INVALID: cards can only be merged into an existing batch that belongs to the same owner.'\\r\\n      USING ERRCODE = 'RV601';\\r\\n  END IF;\\r\\n\\r\\n  SELECT p.content_source_type, p.content_source_name INTO o_type, o_name\\r\\n    FROM public.flashcard_batch_provenance p WHERE p.batch_id = OLD.batch_id;\\r\\n  o_has := FOUND;\\r\\n  SELECT p.content_source_type, p.content_source_name INTO n_type, n_name\\r\\n    FROM public.flashcard_batch_provenance p WHERE p.batch_id = NEW.batch_id;\\r\\n  n_has := FOUND;\\r\\n\\r\\n  IF o_has <> n_has\\r\\n     OR (o_has AND (o_type IS DISTINCT FROM n_type OR o_name IS DISTINCT FROM n_name)) THEN\\r\\n    RAISE EXCEPTION 'MERGE_PROVENANCE_MISMATCH: these batches cannot be merged because their content sources differ (same source type and source name are required, or both must have no source recorded).'\\r\\n      USING ERRCODE = 'RV601';\\r\\n  END IF;\\r\\n\\r\\n  RETURN NEW;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "fe8d2c5ad729a17e51b851c8398f1e49",
+   "execute_grantees": [
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "fn_guard_flashcards_is_verified",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_guard_flashcards_is_verified()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nBEGIN\\r\\n  IF current_user NOT IN ('authenticated', 'anon') THEN\\r\\n    RETURN NEW;\\r\\n  END IF;\\r\\n  IF NEW.is_verified IS TRUE\\r\\n     AND (TG_OP = 'INSERT' OR OLD.is_verified IS DISTINCT FROM TRUE)\\r\\n     AND NOT public.is_professor_or_admin() THEN\\r\\n    RAISE EXCEPTION 'Not permitted: only an educator or admin can mark content verified' USING ERRCODE = '42501';\\r\\n  END IF;\\r\\n  RETURN NEW;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "c84b06a30d23b2f6198991d161878447",
+   "execute_grantees": [
+    "PUBLIC",
+    "anon",
+    "authenticated",
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": false
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "fn_guard_notes_decks_privileged_columns",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_guard_notes_decks_privileged_columns()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nDECLARE\\r\\n  v_new jsonb := to_jsonb(NEW);\\r\\n  v_old jsonb := CASE WHEN TG_OP = 'UPDATE' THEN to_jsonb(OLD) ELSE '{}'::jsonb END;\\r\\n  k text;\\r\\nBEGIN\\r\\n  IF current_user NOT IN ('authenticated', 'anon') THEN\\r\\n    RETURN NEW;\\r\\n  END IF;\\r\\n  IF public.is_admin() THEN\\r\\n    RETURN NEW;\\r\\n  END IF;\\r\\n\\r\\n  -- Featured flag: may only be cleared, never set.\\r\\n  IF (v_new->>'is_featured_on_landing') = 'true' AND (v_old->>'is_featured_on_landing') IS DISTINCT FROM 'true' THEN\\r\\n    RAISE EXCEPTION 'Not permitted: featuring is decided by curation, not by the content owner' USING ERRCODE = '42501';\\r\\n  END IF;\\r\\n\\r\\n  -- Nomination / approval stamps: may only be cleared, never set or changed.\\r\\n  FOREACH k IN ARRAY ARRAY['featured_nominated_by', 'featured_nominated_at', 'featured_approved_by', 'featured_approved_at'] LOOP\\r\\n    IF (v_new->>k) IS NOT NULL AND (v_new->>k) IS DISTINCT FROM (v_old->>k) THEN\\r\\n      RAISE EXCEPTION 'Not permitted: % is set by the curation workflow only', k USING ERRCODE = '42501';\\r\\n    END IF;\\r\\n  END LOOP;\\r\\n\\r\\n  -- Server-maintained counters.\\r\\n  FOREACH k IN ARRAY ARRAY['upvote_count', 'view_count'] LOOP\\r\\n    IF v_new ? k THEN\\r\\n      IF TG_OP = 'INSERT' AND COALESCE((v_new->>k)::int, 0) <> 0 THEN\\r\\n        RAISE EXCEPTION 'Not permitted: % starts at 0', k USING ERRCODE = '42501';\\r\\n      END IF;\\r\\n      IF TG_OP = 'UPDATE' AND (v_new->>k) IS DISTINCT FROM (v_old->>k) THEN\\r\\n        RAISE EXCEPTION 'Not permitted: % is maintained by the platform', k USING ERRCODE = '42501';\\r\\n      END IF;\\r\\n    END IF;\\r\\n  END LOOP;\\r\\n\\r\\n  RETURN NEW;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "e93044b6569480321e615e14d8d5a1ef",
+   "execute_grantees": [
+    "PUBLIC",
+    "anon",
+    "authenticated",
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": false
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "fn_guard_profiles_protected_columns",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_guard_profiles_protected_columns()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nBEGIN\\r\\n  -- Only direct client writes are constrained (see header).\\r\\n  IF current_user NOT IN ('authenticated', 'anon') THEN\\r\\n    RETURN NEW;\\r\\n  END IF;\\r\\n\\r\\n  IF NEW.id IS DISTINCT FROM OLD.id THEN\\r\\n    RAISE EXCEPTION 'Not permitted: profiles.id is immutable' USING ERRCODE = '42501';\\r\\n  END IF;\\r\\n\\r\\n  IF NEW.role IS DISTINCT FROM OLD.role AND NOT public.is_super_admin() THEN\\r\\n    RAISE EXCEPTION 'Not permitted: only a super admin can change a role' USING ERRCODE = '42501';\\r\\n  END IF;\\r\\n\\r\\n  IF (NEW.account_type IS DISTINCT FROM OLD.account_type\\r\\n      OR NEW.status IS DISTINCT FROM OLD.status\\r\\n      OR NEW.email IS DISTINCT FROM OLD.email\\r\\n      OR NEW.access_request_ref IS DISTINCT FROM OLD.access_request_ref)\\r\\n     AND NOT public.is_admin() THEN\\r\\n    RAISE EXCEPTION 'Not permitted: account_type, status, email and access_request_ref are managed by admins'\\r\\n      USING ERRCODE = '42501';\\r\\n  END IF;\\r\\n\\r\\n  RETURN NEW;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "89506401664d56ea909da7ebd829cc3c",
+   "execute_grantees": [
+    "PUBLIC",
+    "anon",
+    "authenticated",
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": false
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "fn_require_note_provenance",
+   "owner": "postgres",
+   "config": [
+    "search_path=pg_catalog, public"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_require_note_provenance()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SET search_path TO 'pg_catalog', 'public'\\nAS $function$\\r\\nBEGIN\\r\\n  IF NEW.content_source_type IS NULL\\r\\n     OR NEW.content_source_name IS NULL\\r\\n     OR btrim(NEW.content_source_name) = '' THEN\\r\\n    RAISE EXCEPTION 'content_source_type and content_source_name are required on note creation';\\r\\n  END IF;\\r\\n  RETURN NEW;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "110d466f186c88e325ae6aa315418569",
+   "execute_grantees": [
+    "PUBLIC",
+    "anon",
+    "authenticated",
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": false
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "fn_update_flashcards_counter",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_update_flashcards_counter()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SECURITY DEFINER\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nBEGIN\\r\\n  IF TG_OP = 'INSERT' THEN\\r\\n    INSERT INTO user_stats (user_id, total_flashcards, updated_at)\\r\\n    VALUES (NEW.user_id, 1, NOW())\\r\\n    ON CONFLICT (user_id) DO UPDATE\\r\\n      SET total_flashcards = user_stats.total_flashcards + 1,\\r\\n          updated_at        = NOW();\\r\\n\\r\\n  ELSIF TG_OP = 'DELETE' THEN\\r\\n    UPDATE user_stats\\r\\n    SET total_flashcards = GREATEST(0, total_flashcards - 1),\\r\\n        updated_at        = NOW()\\r\\n    WHERE user_id = OLD.user_id;\\r\\n  END IF;\\r\\n\\r\\n  RETURN NULL;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "dd7101f5fa629c32107f548104939a2a",
+   "execute_grantees": [
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "fn_update_notes_counter",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_update_notes_counter()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SECURITY DEFINER\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nBEGIN\\r\\n  IF TG_OP = 'INSERT' THEN\\r\\n    INSERT INTO user_stats (user_id, total_notes, updated_at)\\r\\n    VALUES (NEW.user_id, 1, NOW())\\r\\n    ON CONFLICT (user_id) DO UPDATE\\r\\n      SET total_notes = user_stats.total_notes + 1,\\r\\n          updated_at  = NOW();\\r\\n\\r\\n  ELSIF TG_OP = 'DELETE' THEN\\r\\n    UPDATE user_stats\\r\\n    SET total_notes = GREATEST(0, total_notes - 1),\\r\\n        updated_at  = NOW()\\r\\n    WHERE user_id = OLD.user_id;\\r\\n  END IF;\\r\\n\\r\\n  RETURN NULL;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "843ff38bb32743fd9aa0d82409178b9e",
+   "execute_grantees": [
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true
+  },
+  {
+   "why": "named_function",
+   "args": "p_user_id uuid, p_days integer",
+   "name": "get_study_heatmap_split",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.get_study_heatmap_split(p_user_id uuid, p_days integer DEFAULT 90)\\n RETURNS TABLE(review_date date, review_count integer, in_app_seconds integer, offline_seconds integer, study_seconds integer, other_seconds integer)\\n LANGUAGE plpgsql\\n STABLE SECURITY DEFINER\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nBEGIN\\r\\n  IF p_user_id IS DISTINCT FROM auth.uid() AND NOT public.is_admin() THEN\\r\\n    RAISE EXCEPTION 'Access denied: cannot read another user''s data';\\r\\n  END IF;\\r\\n\\r\\n  RETURN QUERY\\r\\n  WITH user_tz AS (\\r\\n    SELECT COALESCE((SELECT pr.timezone FROM public.profiles pr WHERE pr.id = p_user_id), 'Asia/Kolkata') AS tz\\r\\n  ),\\r\\n  win AS (\\r\\n    SELECT (now() AT TIME ZONE ut.tz)::date AS today FROM user_tz ut\\r\\n  ),\\r\\n  aggregated_reviews AS (\\r\\n    SELECT (rv.created_at AT TIME ZONE ut.tz)::date AS rdate, COUNT(*)::integer AS cnt\\r\\n    FROM public.reviews rv\\r\\n    CROSS JOIN user_tz ut\\r\\n    CROSS JOIN win w\\r\\n    WHERE rv.user_id = p_user_id\\r\\n      AND rv.status = 'active'\\r\\n      AND (rv.created_at AT TIME ZONE ut.tz)::date BETWEEN w.today - p_days AND w.today\\r\\n    GROUP BY 1\\r\\n  ),\\r\\n  review_days AS (\\r\\n    SELECT ual.activity_date AS day\\r\\n    FROM public.user_activity_log ual\\r\\n    CROSS JOIN win w\\r\\n    WHERE ual.user_id = p_user_id\\r\\n      AND ual.activity_type = 'review'\\r\\n      AND ual.activity_date BETWEEN w.today - p_days AND w.today\\r\\n  ),\\r\\n  study_days AS (\\r\\n    SELECT ss.session_date AS day,\\r\\n           SUM(ss.duration_seconds)::integer AS tot_secs,\\r\\n           (SUM(ss.duration_seconds) FILTER (WHERE ss.source IN ('study_mode', 'practice_mode')))::integer AS in_secs,\\r\\n           (SUM(ss.duration_seconds) FILTER (WHERE ss.source = 'manual'))::integer AS off_secs\\r\\n    FROM public.study_sessions ss\\r\\n    CROSS JOIN win w\\r\\n    WHERE ss.user_id = p_user_id\\r\\n      AND ss.session_date BETWEEN w.today - p_days AND w.today\\r\\n    GROUP BY ss.session_date\\r\\n  ),\\r\\n  all_days AS (\\r\\n    SELECT rd.day FROM review_days rd\\r\\n    UNION\\r\\n    SELECT sd.day FROM study_days sd\\r\\n  )\\r\\n  SELECT ad.day,\\r\\n         COALESCE(ar.cnt, 0),\\r\\n         COALESCE(s.in_secs, 0),\\r\\n         COALESCE(s.off_secs, 0),\\r\\n         COALESCE(s.tot_secs, 0),\\r\\n         COALESCE(s.tot_secs, 0) - COALESCE(s.in_secs, 0) - COALESCE(s.off_secs, 0)\\r\\n  FROM all_days ad\\r\\n  LEFT JOIN aggregated_reviews ar ON ar.rdate = ad.day\\r\\n  LEFT JOIN study_days s ON s.day = ad.day\\r\\n  ORDER BY ad.day;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "TABLE(review_date date, review_count integer, in_app_seconds integer, offline_seconds integer, study_seconds integer, other_seconds integer)",
+   "definition_md5": "fae7dfec1d948584f859367b376dc69c",
+   "execute_grantees": [
+    "authenticated",
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true
+  },
+  {
+   "why": "named_function",
+   "args": "",
+   "name": "is_admin",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.is_admin()\\n RETURNS boolean\\n LANGUAGE sql\\n STABLE SECURITY DEFINER\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\n  SELECT EXISTS (\\r\\n    SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')\\r\\n  );\\r\\n$function$\\n",
+   "result_type": "boolean",
+   "definition_md5": "48f3d12d8d0e8d54ed1d745bd66a1cff",
+   "execute_grantees": [
+    "PUBLIC",
+    "anon",
+    "authenticated",
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true
+  },
+  {
+   "why": "trigger_function",
+   "args": "",
+   "name": "update_deck_card_count",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "definition": "CREATE OR REPLACE FUNCTION public.update_deck_card_count()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nBEGIN\\r\\n  IF TG_OP = 'INSERT' THEN\\r\\n    UPDATE flashcard_decks\\r\\n    SET card_count = card_count + 1,\\r\\n        visibility = CASE\\r\\n          WHEN (CASE visibility     WHEN 'public' THEN 2 WHEN 'friends' THEN 1 ELSE 0 END)\\r\\n             < (CASE NEW.visibility WHEN 'public' THEN 2 WHEN 'friends' THEN 1 ELSE 0 END)\\r\\n          THEN NEW.visibility\\r\\n          ELSE visibility\\r\\n        END\\r\\n    WHERE user_id = NEW.user_id\\r\\n      AND (subject_id     IS NOT DISTINCT FROM NEW.subject_id)\\r\\n      AND (topic_id       IS NOT DISTINCT FROM NEW.topic_id)\\r\\n      AND (custom_subject IS NOT DISTINCT FROM NEW.custom_subject)\\r\\n      AND (custom_topic   IS NOT DISTINCT FROM NEW.custom_topic);\\r\\n\\r\\n    IF NOT FOUND THEN\\r\\n      INSERT INTO flashcard_decks (\\r\\n        user_id, subject_id, topic_id,\\r\\n        custom_subject, custom_topic,\\r\\n        target_course, visibility, card_count\\r\\n      ) VALUES (\\r\\n        NEW.user_id, NEW.subject_id, NEW.topic_id,\\r\\n        NEW.custom_subject, NEW.custom_topic,\\r\\n        NEW.target_course, NEW.visibility, 1\\r\\n      );\\r\\n    END IF;\\r\\n\\r\\n  ELSIF TG_OP = 'DELETE' THEN\\r\\n    UPDATE flashcard_decks\\r\\n    SET card_count = GREATEST(card_count - 1, 0)\\r\\n    WHERE user_id = OLD.user_id\\r\\n      AND (subject_id     IS NOT DISTINCT FROM OLD.subject_id)\\r\\n      AND (topic_id       IS NOT DISTINCT FROM OLD.topic_id)\\r\\n      AND (custom_subject IS NOT DISTINCT FROM OLD.custom_subject)\\r\\n      AND (custom_topic   IS NOT DISTINCT FROM OLD.custom_topic);\\r\\n\\r\\n    -- Auto-delete deck when it becomes empty\\r\\n    DELETE FROM flashcard_decks\\r\\n    WHERE user_id = OLD.user_id\\r\\n      AND (subject_id     IS NOT DISTINCT FROM OLD.subject_id)\\r\\n      AND (topic_id       IS NOT DISTINCT FROM OLD.topic_id)\\r\\n      AND (custom_subject IS NOT DISTINCT FROM OLD.custom_subject)\\r\\n      AND (custom_topic   IS NOT DISTINCT FROM OLD.custom_topic)\\r\\n      AND card_count = 0;\\r\\n\\r\\n  END IF;\\r\\n\\r\\n  RETURN NULL;\\r\\nEND;\\r\\n$function$\\n",
+   "result_type": "trigger",
+   "definition_md5": "451ff58b2c6c543413aef1bbc87964e1",
+   "execute_grantees": [
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": false
+  }
+ ],
+ "routines_naming_study_sessions": [
+  {
+   "args": "p_group_id uuid",
+   "name": "get_batch_group_member_stats",
+   "schema": "public",
+   "language": "plpgsql",
+   "result_type": "TABLE(user_id uuid, full_name text, reviews_this_week bigint, streak_days integer, study_time_this_week_seconds bigint, last_active_date date)",
+   "returns_set": true
+  },
+  {
+   "args": "",
+   "name": "get_following_leaderboard",
+   "schema": "public",
+   "language": "plpgsql",
+   "result_type": "TABLE(rank integer, user_id uuid, full_name text, is_self boolean, reviews_this_week bigint, study_time_this_week_seconds bigint)",
+   "returns_set": true
+  },
+  {
+   "args": "",
+   "name": "get_following_with_stats",
+   "schema": "public",
+   "language": "plpgsql",
+   "result_type": "TABLE(user_id uuid, full_name text, course_level text, role text, reviews_this_week bigint, streak_days integer, study_time_this_week_seconds bigint, following_since timestamp with time zone)",
+   "returns_set": true
+  },
+  {
+   "args": "",
+   "name": "get_friends_leaderboard",
+   "schema": "public",
+   "language": "plpgsql",
+   "result_type": "TABLE(rank integer, user_id uuid, full_name text, is_self boolean, reviews_this_week bigint, study_time_this_week_seconds bigint)",
+   "returns_set": true
+  },
+  {
+   "args": "",
+   "name": "get_my_friends_with_stats",
+   "schema": "public",
+   "language": "plpgsql",
+   "result_type": "TABLE(friendship_id uuid, user_id uuid, full_name text, masked_email text, course_level text, role text, reviews_this_week bigint, streak_days integer, study_time_this_week_seconds bigint, friends_since timestamp without time zone)",
+   "returns_set": true
+  },
+  {
+   "args": "p_user_id uuid, p_days integer",
+   "name": "get_study_heatmap",
+   "schema": "public",
+   "language": "plpgsql",
+   "result_type": "TABLE(review_date date, review_count integer, study_seconds integer)",
+   "returns_set": true
+  },
+  {
+   "args": "p_user_id uuid, p_days integer",
+   "name": "get_study_heatmap_split",
+   "schema": "public",
+   "language": "plpgsql",
+   "result_type": "TABLE(review_date date, review_count integer, in_app_seconds integer, offline_seconds integer, study_seconds integer, other_seconds integer)",
+   "returns_set": true
+  },
+  {
+   "args": "p_user_id uuid, p_local_date date",
+   "name": "get_study_time_stats",
+   "schema": "public",
+   "language": "plpgsql",
+   "result_type": "TABLE(today_seconds bigint, week_seconds bigint, today_sessions bigint, week_sessions bigint, today_seconds_in_app bigint, today_seconds_offline bigint, week_seconds_in_app bigint, week_seconds_offline bigint)",
+   "returns_set": true
+  }
+ ]
+}

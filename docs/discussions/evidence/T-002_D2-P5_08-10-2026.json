@@ -1,0 +1,177 @@
+{
+ "run": "D2-P5",
+ "subjects": {
+  "total": 17,
+  "per_discipline": [
+   {
+    "subjects": 5,
+    "discipline": "CA Final",
+    "active_subjects": 5
+   },
+   {
+    "subjects": 4,
+    "discipline": "CA Foundation",
+    "active_subjects": 4
+   },
+   {
+    "subjects": 8,
+    "discipline": "CA Intermediate",
+    "active_subjects": 8
+   }
+  ],
+  "without_discipline": 0
+ },
+ "disciplines": [
+  {
+   "name": "CA Final",
+   "length": 8,
+   "is_active": true,
+   "normalized": "ca final",
+   "has_control_char": false,
+   "has_outer_whitespace": false
+  },
+  {
+   "name": "CA Foundation",
+   "length": 13,
+   "is_active": true,
+   "normalized": "ca foundation",
+   "has_control_char": false,
+   "has_outer_whitespace": false
+  },
+  {
+   "name": "CA Intermediate",
+   "length": 15,
+   "is_active": true,
+   "normalized": "ca intermediate",
+   "has_control_char": false,
+   "has_outer_whitespace": false
+  }
+ ],
+ "topics_total": 392,
+ "study_sessions": {
+  "total": 1904,
+  "by_source": [
+   {
+    "rows": 1267,
+    "source": "manual"
+   },
+   {
+    "rows": 212,
+    "source": "practice_mode"
+   },
+   {
+    "rows": 425,
+    "source": "study_mode"
+   }
+  ],
+  "manual_rows": 1267,
+  "null_counts": {
+   "id": 0,
+   "source": 0,
+   "user_id": 0,
+   "category": 1068,
+   "ended_at": 0,
+   "created_at": 0,
+   "started_at": 0,
+   "session_date": 0,
+   "duration_seconds": 0
+  },
+  "manual_rows_without_category": 431
+ },
+ "cards_and_notes_by_class": [
+  {
+   "rows": 2849,
+   "class": "consistent_legacy_subject_only",
+   "table": "flashcards"
+  },
+  {
+   "rows": 126,
+   "class": "consistent_legacy_subject_only",
+   "table": "notes"
+  },
+  {
+   "rows": 1,
+   "class": "custom_or_unassigned",
+   "table": "notes"
+  },
+  {
+   "rows": 2,
+   "class": "no_subject_no_discipline_target_equals_a_discipline_name",
+   "table": "notes"
+  }
+ ],
+ "profiles_course_level_shapes": [
+  {
+   "null": 1,
+   "role": "admin",
+   "profiles": 1,
+   "account_type": "enrolled",
+   "control_char": 0,
+   "over_120_chars": 0,
+   "blank_after_trim": 0,
+   "outer_whitespace": 0,
+   "repeated_internal_whitespace": 0,
+   "equals_other_after_normalization": 0
+  },
+  {
+   "null": 0,
+   "role": "professor",
+   "profiles": 4,
+   "account_type": "enrolled",
+   "control_char": 0,
+   "over_120_chars": 0,
+   "blank_after_trim": 0,
+   "outer_whitespace": 0,
+   "repeated_internal_whitespace": 0,
+   "equals_other_after_normalization": 0
+  },
+  {
+   "null": 0,
+   "role": "student",
+   "profiles": 263,
+   "account_type": "enrolled",
+   "control_char": 0,
+   "over_120_chars": 0,
+   "blank_after_trim": 0,
+   "outer_whitespace": 0,
+   "repeated_internal_whitespace": 0,
+   "equals_other_after_normalization": 0
+  },
+  {
+   "null": 0,
+   "role": "student",
+   "profiles": 14,
+   "account_type": "self_registered",
+   "control_char": 0,
+   "over_120_chars": 0,
+   "blank_after_trim": 0,
+   "outer_whitespace": 0,
+   "repeated_internal_whitespace": 0,
+   "equals_other_after_normalization": 0
+  },
+  {
+   "null": 1,
+   "role": "super_admin",
+   "profiles": 1,
+   "account_type": "enrolled",
+   "control_char": 0,
+   "over_120_chars": 0,
+   "blank_after_trim": 0,
+   "outer_whitespace": 0,
+   "repeated_internal_whitespace": 0,
+   "equals_other_after_normalization": 0
+  }
+ ],
+ "access_requests_course_shapes": {
+  "null": 0,
+  "requests": 6,
+  "max_length": 15,
+  "control_char": 0,
+  "over_120_chars": 0,
+  "blank_after_trim": 0,
+  "outer_whitespace": 0,
+  "repeated_internal_whitespace": 0,
+  "equals_other_after_normalization": 0
+ },
+ "discipline_normalized_name_collisions": []
+}

@@ -1,0 +1,2177 @@
+{
+ "run": "D2-P4",
+ "roles": [
+  {
+   "name": "anon",
+   "inherit": true,
+   "bypassrls": false,
+   "can_login": false,
+   "superuser": false
+  },
+  {
+   "name": "authenticated",
+   "inherit": true,
+   "bypassrls": false,
+   "can_login": false,
+   "superuser": false
+  },
+  {
+   "name": "authenticator",
+   "inherit": false,
+   "bypassrls": false,
+   "can_login": true,
+   "superuser": false
+  },
+  {
+   "name": "cli_login_postgres",
+   "inherit": false,
+   "bypassrls": false,
+   "can_login": true,
+   "superuser": false
+  },
+  {
+   "name": "dashboard_user",
+   "inherit": true,
+   "bypassrls": false,
+   "can_login": false,
+   "superuser": false
+  },
+  {
+   "name": "pgbouncer",
+   "inherit": true,
+   "bypassrls": false,
+   "can_login": true,
+   "superuser": false
+  },
+  {
+   "name": "postgres",
+   "inherit": true,
+   "bypassrls": true,
+   "can_login": true,
+   "superuser": false
+  },
+  {
+   "name": "service_role",
+   "inherit": true,
+   "bypassrls": true,
+   "can_login": false,
+   "superuser": false
+  },
+  {
+   "name": "supabase_admin",
+   "inherit": true,
+   "bypassrls": true,
+   "can_login": true,
+   "superuser": true
+  },
+  {
+   "name": "supabase_auth_admin",
+   "inherit": false,
+   "bypassrls": false,
+   "can_login": true,
+   "superuser": false
+  },
+  {
+   "name": "supabase_etl_admin",
+   "inherit": true,
+   "bypassrls": true,
+   "can_login": true,
+   "superuser": false
+  },
+  {
+   "name": "supabase_functions_admin",
+   "inherit": false,
+   "bypassrls": false,
+   "can_login": true,
+   "superuser": false
+  },
+  {
+   "name": "supabase_privileged_role",
+   "inherit": true,
+   "bypassrls": false,
+   "can_login": false,
+   "superuser": false
+  },
+  {
+   "name": "supabase_read_only_user",
+   "inherit": true,
+   "bypassrls": true,
+   "can_login": true,
+   "superuser": false
+  },
+  {
+   "name": "supabase_realtime_admin",
+   "inherit": false,
+   "bypassrls": false,
+   "can_login": false,
+   "superuser": false
+  },
+  {
+   "name": "supabase_replication_admin",
+   "inherit": true,
+   "bypassrls": false,
+   "can_login": true,
+   "superuser": false
+  },
+  {
+   "name": "supabase_storage_admin",
+   "inherit": false,
+   "bypassrls": false,
+   "can_login": true,
+   "superuser": false
+  }
+ ],
+ "table_acl": [
+  {
+   "owner": "postgres",
+   "table": "access_requests",
+   "grants": [
+    "anon:DELETE",
+    "anon:INSERT",
+    "anon:MAINTAIN",
+    "anon:REFERENCES",
+    "anon:SELECT",
+    "anon:TRIGGER",
+    "anon:TRUNCATE",
+    "anon:UPDATE",
+    "authenticated:DELETE",
+    "authenticated:INSERT",
+    "authenticated:MAINTAIN",
+    "authenticated:REFERENCES",
+    "authenticated:SELECT",
+    "authenticated:TRIGGER",
+    "authenticated:TRUNCATE",
+    "authenticated:UPDATE",
+    "postgres:DELETE",
+    "postgres:INSERT",
+    "postgres:MAINTAIN",
+    "postgres:REFERENCES",
+    "postgres:SELECT",
+    "postgres:TRIGGER",
+    "postgres:TRUNCATE",
+    "postgres:UPDATE",
+    "service_role:DELETE",
+    "service_role:INSERT",
+    "service_role:MAINTAIN",
+    "service_role:REFERENCES",
+    "service_role:SELECT",
+    "service_role:TRIGGER",
+    "service_role:TRUNCATE",
+    "service_role:UPDATE"
+   ]
+  },
+  {
+   "owner": "postgres",
+   "table": "disciplines",
+   "grants": [
+    "anon:DELETE",
+    "anon:INSERT",
+    "anon:MAINTAIN",
+    "anon:REFERENCES",
+    "anon:SELECT",
+    "anon:TRIGGER",
+    "anon:TRUNCATE",
+    "anon:UPDATE",
+    "authenticated:DELETE",
+    "authenticated:INSERT",
+    "authenticated:MAINTAIN",
+    "authenticated:REFERENCES",
+    "authenticated:SELECT",
+    "authenticated:TRIGGER",
+    "authenticated:TRUNCATE",
+    "authenticated:UPDATE",
+    "postgres:DELETE",
+    "postgres:INSERT",
+    "postgres:MAINTAIN",
+    "postgres:REFERENCES",
+    "postgres:SELECT",
+    "postgres:TRIGGER",
+    "postgres:TRUNCATE",
+    "postgres:UPDATE",
+    "service_role:DELETE",
+    "service_role:INSERT",
+    "service_role:MAINTAIN",
+    "service_role:REFERENCES",
+    "service_role:SELECT",
+    "service_role:TRIGGER",
+    "service_role:TRUNCATE",
+    "service_role:UPDATE"
+   ]
+  },
+  {
+   "owner": "postgres",
+   "table": "flashcards",
+   "grants": [
+    "anon:DELETE",
+    "anon:INSERT",
+    "anon:MAINTAIN",
+    "anon:REFERENCES",
+    "anon:SELECT",
+    "anon:TRIGGER",
+    "anon:TRUNCATE",
+    "anon:UPDATE",
+    "authenticated:DELETE",
+    "authenticated:INSERT",
+    "authenticated:MAINTAIN",
+    "authenticated:REFERENCES",
+    "authenticated:SELECT",
+    "authenticated:TRIGGER",
+    "authenticated:TRUNCATE",
+    "authenticated:UPDATE",
+    "postgres:DELETE",
+    "postgres:INSERT",
+    "postgres:MAINTAIN",
+    "postgres:REFERENCES",
+    "postgres:SELECT",
+    "postgres:TRIGGER",
+    "postgres:TRUNCATE",
+    "postgres:UPDATE",
+    "service_role:DELETE",
+    "service_role:INSERT",
+    "service_role:MAINTAIN",
+    "service_role:REFERENCES",
+    "service_role:SELECT",
+    "service_role:TRIGGER",
+    "service_role:TRUNCATE",
+    "service_role:UPDATE"
+   ]
+  },
+  {
+   "owner": "postgres",
+   "table": "notes",
+   "grants": [
+    "anon:DELETE",
+    "anon:INSERT",
+    "anon:MAINTAIN",
+    "anon:REFERENCES",
+    "anon:SELECT",
+    "anon:TRIGGER",
+    "anon:TRUNCATE",
+    "anon:UPDATE",
+    "authenticated:DELETE",
+    "authenticated:INSERT",
+    "authenticated:MAINTAIN",
+    "authenticated:REFERENCES",
+    "authenticated:SELECT",
+    "authenticated:TRIGGER",
+    "authenticated:TRUNCATE",
+    "authenticated:UPDATE",
+    "postgres:DELETE",
+    "postgres:INSERT",
+    "postgres:MAINTAIN",
+    "postgres:REFERENCES",
+    "postgres:SELECT",
+    "postgres:TRIGGER",
+    "postgres:TRUNCATE",
+    "postgres:UPDATE",
+    "service_role:DELETE",
+    "service_role:INSERT",
+    "service_role:MAINTAIN",
+    "service_role:REFERENCES",
+    "service_role:SELECT",
+    "service_role:TRIGGER",
+    "service_role:TRUNCATE",
+    "service_role:UPDATE"
+   ]
+  },
+  {
+   "owner": "postgres",
+   "table": "profiles",
+   "grants": [
+    "authenticated:DELETE",
+    "authenticated:INSERT",
+    "authenticated:UPDATE",
+    "postgres:DELETE",
+    "postgres:INSERT",
+    "postgres:MAINTAIN",
+    "postgres:REFERENCES",
+    "postgres:SELECT",
+    "postgres:TRIGGER",
+    "postgres:TRUNCATE",
+    "postgres:UPDATE",
+    "service_role:DELETE",
+    "service_role:INSERT",
+    "service_role:MAINTAIN",
+    "service_role:REFERENCES",
+    "service_role:SELECT",
+    "service_role:TRIGGER",
+    "service_role:TRUNCATE",
+    "service_role:UPDATE"
+   ]
+  },
+  {
+   "owner": "postgres",
+   "table": "study_sessions",
+   "grants": [
+    "authenticated:INSERT",
+    "authenticated:MAINTAIN",
+    "authenticated:SELECT",
+    "postgres:DELETE",
+    "postgres:INSERT",
+    "postgres:MAINTAIN",
+    "postgres:REFERENCES",
+    "postgres:SELECT",
+    "postgres:TRIGGER",
+    "postgres:TRUNCATE",
+    "postgres:UPDATE",
+    "service_role:DELETE",
+    "service_role:INSERT",
+    "service_role:MAINTAIN",
+    "service_role:REFERENCES",
+    "service_role:SELECT",
+    "service_role:TRIGGER",
+    "service_role:TRUNCATE",
+    "service_role:UPDATE"
+   ]
+  },
+  {
+   "owner": "postgres",
+   "table": "subjects",
+   "grants": [
+    "anon:DELETE",
+    "anon:INSERT",
+    "anon:MAINTAIN",
+    "anon:REFERENCES",
+    "anon:SELECT",
+    "anon:TRIGGER",
+    "anon:TRUNCATE",
+    "anon:UPDATE",
+    "authenticated:DELETE",
+    "authenticated:INSERT",
+    "authenticated:MAINTAIN",
+    "authenticated:REFERENCES",
+    "authenticated:SELECT",
+    "authenticated:TRIGGER",
+    "authenticated:TRUNCATE",
+    "authenticated:UPDATE",
+    "postgres:DELETE",
+    "postgres:INSERT",
+    "postgres:MAINTAIN",
+    "postgres:REFERENCES",
+    "postgres:SELECT",
+    "postgres:TRIGGER",
+    "postgres:TRUNCATE",
+    "postgres:UPDATE",
+    "service_role:DELETE",
+    "service_role:INSERT",
+    "service_role:MAINTAIN",
+    "service_role:REFERENCES",
+    "service_role:SELECT",
+    "service_role:TRIGGER",
+    "service_role:TRUNCATE",
+    "service_role:UPDATE"
+   ]
+  },
+  {
+   "owner": "postgres",
+   "table": "topics",
+   "grants": [
+    "anon:DELETE",
+    "anon:INSERT",
+    "anon:MAINTAIN",
+    "anon:REFERENCES",
+    "anon:SELECT",
+    "anon:TRIGGER",
+    "anon:TRUNCATE",
+    "anon:UPDATE",
+    "authenticated:DELETE",
+    "authenticated:INSERT",
+    "authenticated:MAINTAIN",
+    "authenticated:REFERENCES",
+    "authenticated:SELECT",
+    "authenticated:TRIGGER",
+    "authenticated:TRUNCATE",
+    "authenticated:UPDATE",
+    "postgres:DELETE",
+    "postgres:INSERT",
+    "postgres:MAINTAIN",
+    "postgres:REFERENCES",
+    "postgres:SELECT",
+    "postgres:TRIGGER",
+    "postgres:TRUNCATE",
+    "postgres:UPDATE",
+    "service_role:DELETE",
+    "service_role:INSERT",
+    "service_role:MAINTAIN",
+    "service_role:REFERENCES",
+    "service_role:SELECT",
+    "service_role:TRIGGER",
+    "service_role:TRUNCATE",
+    "service_role:UPDATE"
+   ]
+  }
+ ],
+ "column_acl": [
+  {
+   "table": "profiles",
+   "column": "id",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "full_name",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "course_level",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "institution",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "created_at",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "updated_at",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "role",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "timezone",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "account_type",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "has_seen_onboarding",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "status",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "daily_review_goal",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "daily_study_goal_minutes",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "has_dismissed_goal_prompt",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "exam_date",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "exam_month",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  },
+  {
+   "table": "profiles",
+   "column": "has_dismissed_exam_prompt",
+   "grants": [
+    "authenticated:SELECT"
+   ]
+  }
+ ],
+ "memberships": [
+  {
+   "role": "anon",
+   "member": "authenticator",
+   "set_option": true,
+   "admin_option": false,
+   "inherit_option": false
+  },
+  {
+   "role": "anon",
+   "member": "postgres",
+   "set_option": true,
+   "admin_option": true,
+   "inherit_option": true
+  },
+  {
+   "role": "authenticated",
+   "member": "authenticator",
+   "set_option": true,
+   "admin_option": false,
+   "inherit_option": false
+  },
+  {
+   "role": "authenticated",
+   "member": "postgres",
+   "set_option": true,
+   "admin_option": true,
+   "inherit_option": true
+  },
+  {
+   "role": "authenticator",
+   "member": "postgres",
+   "set_option": true,
+   "admin_option": true,
+   "inherit_option": true
+  },
+  {
+   "role": "authenticator",
+   "member": "supabase_storage_admin",
+   "set_option": true,
+   "admin_option": false,
+   "inherit_option": false
+  },
+  {
+   "role": "postgres",
+   "member": "cli_login_postgres",
+   "set_option": true,
+   "admin_option": false,
+   "inherit_option": false
+  },
+  {
+   "role": "service_role",
+   "member": "authenticator",
+   "set_option": true,
+   "admin_option": false,
+   "inherit_option": false
+  },
+  {
+   "role": "service_role",
+   "member": "postgres",
+   "set_option": true,
+   "admin_option": true,
+   "inherit_option": true
+  },
+  {
+   "role": "supabase_privileged_role",
+   "member": "postgres",
+   "set_option": true,
+   "admin_option": false,
+   "inherit_option": true
+  },
+  {
+   "role": "supabase_privileged_role",
+   "member": "supabase_etl_admin",
+   "set_option": true,
+   "admin_option": false,
+   "inherit_option": true
+  }
+ ],
+ "default_acls": [
+  {
+   "acl": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+   "role": "postgres",
+   "schema": "storage",
+   "object_type": "f"
+  },
+  {
+   "acl": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+   "role": "postgres",
+   "schema": "public",
+   "object_type": "f"
+  },
+  {
+   "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+   "role": "postgres",
+   "schema": "storage",
+   "object_type": "r"
+  },
+  {
+   "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+   "role": "postgres",
+   "schema": "public",
+   "object_type": "r"
+  },
+  {
+   "acl": "{postgres=rwU/postgres,anon=rwU/postgres,authenticated=rwU/postgres,service_role=rwU/postgres}",
+   "role": "postgres",
+   "schema": "public",
+   "object_type": "S"
+  },
+  {
+   "acl": "{postgres=rwU/postgres,anon=rwU/postgres,authenticated=rwU/postgres,service_role=rwU/postgres}",
+   "role": "postgres",
+   "schema": "storage",
+   "object_type": "S"
+  },
+  {
+   "acl": "{postgres=X/supabase_admin,dashboard_user=X/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "realtime",
+   "object_type": "f"
+  },
+  {
+   "acl": "{postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "public",
+   "object_type": "f"
+  },
+  {
+   "acl": "{postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "graphql_public",
+   "object_type": "f"
+  },
+  {
+   "acl": "{postgres=X*/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "extensions",
+   "object_type": "f"
+  },
+  {
+   "acl": "{postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "graphql",
+   "object_type": "f"
+  },
+  {
+   "acl": "{postgres=X*/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "cron",
+   "object_type": "f"
+  },
+  {
+   "acl": "{postgres=a*r*w*d*D*x*t*m*/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "cron",
+   "object_type": "r"
+  },
+  {
+   "acl": "{postgres=arwdDxtm/supabase_admin,anon=arwdDxtm/supabase_admin,authenticated=arwdDxtm/supabase_admin,service_role=arwdDxtm/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "graphql_public",
+   "object_type": "r"
+  },
+  {
+   "acl": "{postgres=arwdDxtm/supabase_admin,anon=arwdDxtm/supabase_admin,authenticated=arwdDxtm/supabase_admin,service_role=arwdDxtm/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "graphql",
+   "object_type": "r"
+  },
+  {
+   "acl": "{postgres=a*r*wdDxtm/supabase_admin,dashboard_user=arwdDxtm/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "realtime",
+   "object_type": "r"
+  },
+  {
+   "acl": "{postgres=a*r*w*d*D*x*t*m*/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "extensions",
+   "object_type": "r"
+  },
+  {
+   "acl": "{postgres=arwdDxtm/supabase_admin,anon=arwdDxtm/supabase_admin,authenticated=arwdDxtm/supabase_admin,service_role=arwdDxtm/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "public",
+   "object_type": "r"
+  },
+  {
+   "acl": "{postgres=rwU/supabase_admin,dashboard_user=rwU/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "realtime",
+   "object_type": "S"
+  },
+  {
+   "acl": "{postgres=rwU/supabase_admin,anon=rwU/supabase_admin,authenticated=rwU/supabase_admin,service_role=rwU/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "public",
+   "object_type": "S"
+  },
+  {
+   "acl": "{postgres=rwU/supabase_admin,anon=rwU/supabase_admin,authenticated=rwU/supabase_admin,service_role=rwU/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "graphql_public",
+   "object_type": "S"
+  },
+  {
+   "acl": "{postgres=r*w*U*/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "cron",
+   "object_type": "S"
+  },
+  {
+   "acl": "{postgres=r*w*U*/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "extensions",
+   "object_type": "S"
+  },
+  {
+   "acl": "{postgres=rwU/supabase_admin,anon=rwU/supabase_admin,authenticated=rwU/supabase_admin,service_role=rwU/supabase_admin}",
+   "role": "supabase_admin",
+   "schema": "graphql",
+   "object_type": "S"
+  },
+  {
+   "acl": "{postgres=X/supabase_auth_admin,dashboard_user=X/supabase_auth_admin}",
+   "role": "supabase_auth_admin",
+   "schema": "auth",
+   "object_type": "f"
+  },
+  {
+   "acl": "{postgres=arwdDxtm/supabase_auth_admin,dashboard_user=arwdDxtm/supabase_auth_admin}",
+   "role": "supabase_auth_admin",
+   "schema": "auth",
+   "object_type": "r"
+  },
+  {
+   "acl": "{postgres=rwU/supabase_auth_admin,dashboard_user=rwU/supabase_auth_admin}",
+   "role": "supabase_auth_admin",
+   "schema": "auth",
+   "object_type": "S"
+  }
+ ],
+ "sequences_behind_columns": [],
+ "effective_table_privileges": [
+  {
+   "role": "anon",
+   "table": "access_requests",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "anon",
+   "table": "disciplines",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "anon",
+   "table": "flashcards",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "anon",
+   "table": "notes",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "anon",
+   "table": "profiles",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "anon",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "anon",
+   "table": "subjects",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "anon",
+   "table": "topics",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "authenticated",
+   "table": "access_requests",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "authenticated",
+   "table": "disciplines",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "authenticated",
+   "table": "flashcards",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "authenticated",
+   "table": "notes",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "authenticated",
+   "table": "profiles",
+   "delete": true,
+   "insert": true,
+   "select": false,
+   "update": true,
+   "truncate": false
+  },
+  {
+   "role": "authenticated",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": true,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "authenticated",
+   "table": "subjects",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "authenticated",
+   "table": "topics",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "authenticator",
+   "table": "access_requests",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "authenticator",
+   "table": "disciplines",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "authenticator",
+   "table": "flashcards",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "authenticator",
+   "table": "notes",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "authenticator",
+   "table": "profiles",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "authenticator",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "authenticator",
+   "table": "subjects",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "authenticator",
+   "table": "topics",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "cli_login_postgres",
+   "table": "access_requests",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "cli_login_postgres",
+   "table": "disciplines",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "cli_login_postgres",
+   "table": "flashcards",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "cli_login_postgres",
+   "table": "notes",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "cli_login_postgres",
+   "table": "profiles",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "cli_login_postgres",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "cli_login_postgres",
+   "table": "subjects",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "cli_login_postgres",
+   "table": "topics",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "dashboard_user",
+   "table": "access_requests",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "dashboard_user",
+   "table": "disciplines",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "dashboard_user",
+   "table": "flashcards",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "dashboard_user",
+   "table": "notes",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "dashboard_user",
+   "table": "profiles",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "dashboard_user",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "dashboard_user",
+   "table": "subjects",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "dashboard_user",
+   "table": "topics",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "pgbouncer",
+   "table": "access_requests",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "pgbouncer",
+   "table": "disciplines",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "pgbouncer",
+   "table": "flashcards",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "pgbouncer",
+   "table": "notes",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "pgbouncer",
+   "table": "profiles",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "pgbouncer",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "pgbouncer",
+   "table": "subjects",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "pgbouncer",
+   "table": "topics",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "postgres",
+   "table": "access_requests",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "postgres",
+   "table": "disciplines",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "postgres",
+   "table": "flashcards",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "postgres",
+   "table": "notes",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "postgres",
+   "table": "profiles",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "postgres",
+   "table": "study_sessions",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "postgres",
+   "table": "subjects",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "postgres",
+   "table": "topics",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "service_role",
+   "table": "access_requests",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "service_role",
+   "table": "disciplines",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "service_role",
+   "table": "flashcards",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "service_role",
+   "table": "notes",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "service_role",
+   "table": "profiles",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "service_role",
+   "table": "study_sessions",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "service_role",
+   "table": "subjects",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "service_role",
+   "table": "topics",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "supabase_admin",
+   "table": "access_requests",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "supabase_admin",
+   "table": "disciplines",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "supabase_admin",
+   "table": "flashcards",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "supabase_admin",
+   "table": "notes",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "supabase_admin",
+   "table": "profiles",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "supabase_admin",
+   "table": "study_sessions",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "supabase_admin",
+   "table": "subjects",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "supabase_admin",
+   "table": "topics",
+   "delete": true,
+   "insert": true,
+   "select": true,
+   "update": true,
+   "truncate": true
+  },
+  {
+   "role": "supabase_auth_admin",
+   "table": "access_requests",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_auth_admin",
+   "table": "disciplines",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_auth_admin",
+   "table": "flashcards",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_auth_admin",
+   "table": "notes",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_auth_admin",
+   "table": "profiles",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_auth_admin",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_auth_admin",
+   "table": "subjects",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_auth_admin",
+   "table": "topics",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_etl_admin",
+   "table": "access_requests",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_etl_admin",
+   "table": "disciplines",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_etl_admin",
+   "table": "flashcards",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_etl_admin",
+   "table": "notes",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_etl_admin",
+   "table": "profiles",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_etl_admin",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_etl_admin",
+   "table": "subjects",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_etl_admin",
+   "table": "topics",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_functions_admin",
+   "table": "access_requests",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_functions_admin",
+   "table": "disciplines",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_functions_admin",
+   "table": "flashcards",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_functions_admin",
+   "table": "notes",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_functions_admin",
+   "table": "profiles",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_functions_admin",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_functions_admin",
+   "table": "subjects",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_functions_admin",
+   "table": "topics",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_privileged_role",
+   "table": "access_requests",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_privileged_role",
+   "table": "disciplines",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_privileged_role",
+   "table": "flashcards",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_privileged_role",
+   "table": "notes",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_privileged_role",
+   "table": "profiles",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_privileged_role",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_privileged_role",
+   "table": "subjects",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_privileged_role",
+   "table": "topics",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_read_only_user",
+   "table": "access_requests",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_read_only_user",
+   "table": "disciplines",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_read_only_user",
+   "table": "flashcards",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_read_only_user",
+   "table": "notes",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_read_only_user",
+   "table": "profiles",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_read_only_user",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_read_only_user",
+   "table": "subjects",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_read_only_user",
+   "table": "topics",
+   "delete": false,
+   "insert": false,
+   "select": true,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_realtime_admin",
+   "table": "access_requests",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_realtime_admin",
+   "table": "disciplines",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_realtime_admin",
+   "table": "flashcards",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_realtime_admin",
+   "table": "notes",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_realtime_admin",
+   "table": "profiles",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_realtime_admin",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_realtime_admin",
+   "table": "subjects",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_realtime_admin",
+   "table": "topics",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_replication_admin",
+   "table": "access_requests",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_replication_admin",
+   "table": "disciplines",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_replication_admin",
+   "table": "flashcards",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_replication_admin",
+   "table": "notes",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_replication_admin",
+   "table": "profiles",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_replication_admin",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_replication_admin",
+   "table": "subjects",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_replication_admin",
+   "table": "topics",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_storage_admin",
+   "table": "access_requests",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_storage_admin",
+   "table": "disciplines",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_storage_admin",
+   "table": "flashcards",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_storage_admin",
+   "table": "notes",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_storage_admin",
+   "table": "profiles",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_storage_admin",
+   "table": "study_sessions",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_storage_admin",
+   "table": "subjects",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  },
+  {
+   "role": "supabase_storage_admin",
+   "table": "topics",
+   "delete": false,
+   "insert": false,
+   "select": false,
+   "update": false,
+   "truncate": false
+  }
+ ],
+ "study_sessions_effective_column_privileges": [
+  {
+   "role": "anon",
+   "column": "id",
+   "insert": false,
+   "update": false
+  },
+  {
+   "role": "anon",
+   "column": "user_id",
+   "insert": false,
+   "update": false
+  },
+  {
+   "role": "anon",
+   "column": "started_at",
+   "insert": false,
+   "update": false
+  },
+  {
+   "role": "anon",
+   "column": "ended_at",
+   "insert": false,
+   "update": false
+  },
+  {
+   "role": "anon",
+   "column": "duration_seconds",
+   "insert": false,
+   "update": false
+  },
+  {
+   "role": "anon",
+   "column": "session_date",
+   "insert": false,
+   "update": false
+  },
+  {
+   "role": "anon",
+   "column": "source",
+   "insert": false,
+   "update": false
+  },
+  {
+   "role": "anon",
+   "column": "created_at",
+   "insert": false,
+   "update": false
+  },
+  {
+   "role": "anon",
+   "column": "category",
+   "insert": false,
+   "update": false
+  },
+  {
+   "role": "anon",
+   "column": "session_id",
+   "insert": false,
+   "update": false
+  },
+  {
+   "role": "authenticated",
+   "column": "id",
+   "insert": true,
+   "update": false
+  },
+  {
+   "role": "authenticated",
+   "column": "user_id",
+   "insert": true,
+   "update": false
+  },
+  {
+   "role": "authenticated",
+   "column": "started_at",
+   "insert": true,
+   "update": false
+  },
+  {
+   "role": "authenticated",
+   "column": "ended_at",
+   "insert": true,
+   "update": false
+  },
+  {
+   "role": "authenticated",
+   "column": "duration_seconds",
+   "insert": true,
+   "update": false
+  },
+  {
+   "role": "authenticated",
+   "column": "session_date",
+   "insert": true,
+   "update": false
+  },
+  {
+   "role": "authenticated",
+   "column": "source",
+   "insert": true,
+   "update": false
+  },
+  {
+   "role": "authenticated",
+   "column": "created_at",
+   "insert": true,
+   "update": false
+  },
+  {
+   "role": "authenticated",
+   "column": "category",
+   "insert": true,
+   "update": false
+  },
+  {
+   "role": "authenticated",
+   "column": "session_id",
+   "insert": true,
+   "update": false
+  },
+  {
+   "role": "service_role",
+   "column": "id",
+   "insert": true,
+   "update": true
+  },
+  {
+   "role": "service_role",
+   "column": "user_id",
+   "insert": true,
+   "update": true
+  },
+  {
+   "role": "service_role",
+   "column": "started_at",
+   "insert": true,
+   "update": true
+  },
+  {
+   "role": "service_role",
+   "column": "ended_at",
+   "insert": true,
+   "update": true
+  },
+  {
+   "role": "service_role",
+   "column": "duration_seconds",
+   "insert": true,
+   "update": true
+  },
+  {
+   "role": "service_role",
+   "column": "session_date",
+   "insert": true,
+   "update": true
+  },
+  {
+   "role": "service_role",
+   "column": "source",
+   "insert": true,
+   "update": true
+  },
+  {
+   "role": "service_role",
+   "column": "created_at",
+   "insert": true,
+   "update": true
+  },
+  {
+   "role": "service_role",
+   "column": "category",
+   "insert": true,
+   "update": true
+  },
+  {
+   "role": "service_role",
+   "column": "session_id",
+   "insert": true,
+   "update": true
+  }
+ ]
+}

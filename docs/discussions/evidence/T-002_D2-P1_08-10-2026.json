@@ -1,0 +1,2055 @@
+{
+ "run": "D2-P1",
+ "columns": [
+  {
+   "num": 1,
+   "type": "uuid",
+   "table": "access_requests",
+   "column": "id",
+   "default": "gen_random_uuid()",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 2,
+   "type": "text",
+   "table": "access_requests",
+   "column": "name",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 3,
+   "type": "text",
+   "table": "access_requests",
+   "column": "whatsapp_number",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 4,
+   "type": "text",
+   "table": "access_requests",
+   "column": "course",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 5,
+   "type": "uuid",
+   "table": "access_requests",
+   "column": "content_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 6,
+   "type": "text",
+   "table": "access_requests",
+   "column": "content_type",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 7,
+   "type": "text",
+   "table": "access_requests",
+   "column": "content_name",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 8,
+   "type": "uuid",
+   "table": "access_requests",
+   "column": "requester_user_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 9,
+   "type": "timestamp with time zone",
+   "table": "access_requests",
+   "column": "requested_at",
+   "default": "now()",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 10,
+   "type": "text",
+   "table": "access_requests",
+   "column": "status",
+   "default": "'pending'::text",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 11,
+   "type": "text",
+   "table": "access_requests",
+   "column": "email",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 12,
+   "type": "uuid",
+   "table": "access_requests",
+   "column": "ref_token",
+   "default": "gen_random_uuid()",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 13,
+   "type": "text",
+   "table": "access_requests",
+   "column": "request_type",
+   "default": "'student_access'::text",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 14,
+   "type": "text",
+   "table": "access_requests",
+   "column": "message",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 1,
+   "type": "uuid",
+   "table": "disciplines",
+   "column": "id",
+   "default": "uuid_generate_v4()",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 2,
+   "type": "text",
+   "table": "disciplines",
+   "column": "name",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 3,
+   "type": "text",
+   "table": "disciplines",
+   "column": "code",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 4,
+   "type": "text",
+   "table": "disciplines",
+   "column": "level",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 5,
+   "type": "integer",
+   "table": "disciplines",
+   "column": "order_num",
+   "default": "0",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 6,
+   "type": "boolean",
+   "table": "disciplines",
+   "column": "is_active",
+   "default": "true",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 7,
+   "type": "timestamp with time zone",
+   "table": "disciplines",
+   "column": "created_at",
+   "default": "now()",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 8,
+   "type": "integer",
+   "table": "disciplines",
+   "column": "order",
+   "default": "1",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 1,
+   "type": "uuid",
+   "table": "flashcards",
+   "column": "id",
+   "default": "uuid_generate_v4()",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 2,
+   "type": "uuid",
+   "table": "flashcards",
+   "column": "user_id",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 3,
+   "type": "uuid",
+   "table": "flashcards",
+   "column": "note_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 4,
+   "type": "text",
+   "table": "flashcards",
+   "column": "front_text",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 5,
+   "type": "text",
+   "table": "flashcards",
+   "column": "front_image_url",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 6,
+   "type": "text",
+   "table": "flashcards",
+   "column": "back_text",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 7,
+   "type": "text",
+   "table": "flashcards",
+   "column": "back_image_url",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 8,
+   "type": "uuid",
+   "table": "flashcards",
+   "column": "discipline_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 9,
+   "type": "uuid",
+   "table": "flashcards",
+   "column": "subject_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 10,
+   "type": "uuid",
+   "table": "flashcards",
+   "column": "topic_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 11,
+   "type": "timestamp with time zone",
+   "table": "flashcards",
+   "column": "created_at",
+   "default": "now()",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 12,
+   "type": "text[]",
+   "table": "flashcards",
+   "column": "tags",
+   "default": "'{}'::text[]",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 13,
+   "type": "text",
+   "table": "flashcards",
+   "column": "custom_subject",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 14,
+   "type": "text",
+   "table": "flashcards",
+   "column": "custom_topic",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 16,
+   "type": "uuid",
+   "table": "flashcards",
+   "column": "contributed_by",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 17,
+   "type": "text",
+   "table": "flashcards",
+   "column": "target_course",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 18,
+   "type": "text",
+   "table": "flashcards",
+   "column": "difficulty",
+   "default": "'medium'::text",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 19,
+   "type": "boolean",
+   "table": "flashcards",
+   "column": "is_verified",
+   "default": "false",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 20,
+   "type": "uuid",
+   "table": "flashcards",
+   "column": "batch_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 21,
+   "type": "text",
+   "table": "flashcards",
+   "column": "batch_description",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 26,
+   "type": "uuid",
+   "table": "flashcards",
+   "column": "creator_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 27,
+   "type": "uuid",
+   "table": "flashcards",
+   "column": "content_creator_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 28,
+   "type": "text",
+   "table": "flashcards",
+   "column": "visibility",
+   "default": "'private'::text",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 29,
+   "type": "uuid",
+   "table": "flashcards",
+   "column": "deck_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 30,
+   "type": "text",
+   "table": "flashcards",
+   "column": "question_type",
+   "default": "'flashcard'::text",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 31,
+   "type": "jsonb",
+   "table": "flashcards",
+   "column": "options",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 32,
+   "type": "text",
+   "table": "flashcards",
+   "column": "correct_answer",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 33,
+   "type": "jsonb",
+   "table": "flashcards",
+   "column": "hints",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 34,
+   "type": "jsonb",
+   "table": "flashcards",
+   "column": "points_to_remember",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 35,
+   "type": "text",
+   "table": "flashcards",
+   "column": "scenario",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 36,
+   "type": "text",
+   "table": "flashcards",
+   "column": "subtype",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 37,
+   "type": "text",
+   "table": "flashcards",
+   "column": "source",
+   "default": "'manual'::text",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 38,
+   "type": "jsonb",
+   "table": "flashcards",
+   "column": "explanation",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 1,
+   "type": "uuid",
+   "table": "notes",
+   "column": "id",
+   "default": "uuid_generate_v4()",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 2,
+   "type": "uuid",
+   "table": "notes",
+   "column": "user_id",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 3,
+   "type": "uuid",
+   "table": "notes",
+   "column": "discipline_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 4,
+   "type": "uuid",
+   "table": "notes",
+   "column": "subject_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 5,
+   "type": "uuid",
+   "table": "notes",
+   "column": "topic_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 6,
+   "type": "text",
+   "table": "notes",
+   "column": "title",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 7,
+   "type": "text",
+   "table": "notes",
+   "column": "content_type",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 8,
+   "type": "text",
+   "table": "notes",
+   "column": "image_url",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 9,
+   "type": "text",
+   "table": "notes",
+   "column": "extracted_text",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 10,
+   "type": "text[]",
+   "table": "notes",
+   "column": "tags",
+   "default": "'{}'::text[]",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 12,
+   "type": "integer",
+   "table": "notes",
+   "column": "view_count",
+   "default": "0",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 13,
+   "type": "integer",
+   "table": "notes",
+   "column": "upvote_count",
+   "default": "0",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 14,
+   "type": "timestamp with time zone",
+   "table": "notes",
+   "column": "created_at",
+   "default": "now()",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 15,
+   "type": "timestamp with time zone",
+   "table": "notes",
+   "column": "updated_at",
+   "default": "now()",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 19,
+   "type": "text",
+   "table": "notes",
+   "column": "custom_subject",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 20,
+   "type": "text",
+   "table": "notes",
+   "column": "custom_topic",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 21,
+   "type": "text",
+   "table": "notes",
+   "column": "description",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 22,
+   "type": "uuid",
+   "table": "notes",
+   "column": "contributed_by",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 23,
+   "type": "text",
+   "table": "notes",
+   "column": "target_course",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 24,
+   "type": "text",
+   "table": "notes",
+   "column": "visibility",
+   "default": "'private'::text",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 25,
+   "type": "boolean",
+   "table": "notes",
+   "column": "is_featured_on_landing",
+   "default": "false",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 26,
+   "type": "uuid",
+   "table": "notes",
+   "column": "featured_nominated_by",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 27,
+   "type": "timestamp with time zone",
+   "table": "notes",
+   "column": "featured_nominated_at",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 28,
+   "type": "uuid",
+   "table": "notes",
+   "column": "featured_approved_by",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 29,
+   "type": "timestamp with time zone",
+   "table": "notes",
+   "column": "featured_approved_at",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 30,
+   "type": "text",
+   "table": "notes",
+   "column": "content_source_type",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 31,
+   "type": "text",
+   "table": "notes",
+   "column": "content_source_name",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 1,
+   "type": "uuid",
+   "table": "profiles",
+   "column": "id",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 2,
+   "type": "text",
+   "table": "profiles",
+   "column": "email",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 3,
+   "type": "text",
+   "table": "profiles",
+   "column": "full_name",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 4,
+   "type": "text",
+   "table": "profiles",
+   "column": "course_level",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 5,
+   "type": "text",
+   "table": "profiles",
+   "column": "institution",
+   "default": "'In-house'::text",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 6,
+   "type": "timestamp with time zone",
+   "table": "profiles",
+   "column": "created_at",
+   "default": "now()",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 7,
+   "type": "timestamp with time zone",
+   "table": "profiles",
+   "column": "updated_at",
+   "default": "now()",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 8,
+   "type": "text",
+   "table": "profiles",
+   "column": "role",
+   "default": "'student'::text",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 10,
+   "type": "text",
+   "table": "profiles",
+   "column": "timezone",
+   "default": "'Asia/Kolkata'::text",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 11,
+   "type": "text",
+   "table": "profiles",
+   "column": "account_type",
+   "default": "'self_registered'::text",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 12,
+   "type": "boolean",
+   "table": "profiles",
+   "column": "has_seen_onboarding",
+   "default": "false",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 13,
+   "type": "uuid",
+   "table": "profiles",
+   "column": "access_request_ref",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 14,
+   "type": "text",
+   "table": "profiles",
+   "column": "status",
+   "default": "'active'::text",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 15,
+   "type": "integer",
+   "table": "profiles",
+   "column": "daily_review_goal",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 16,
+   "type": "integer",
+   "table": "profiles",
+   "column": "daily_study_goal_minutes",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 17,
+   "type": "boolean",
+   "table": "profiles",
+   "column": "has_dismissed_goal_prompt",
+   "default": "false",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 18,
+   "type": "date",
+   "table": "profiles",
+   "column": "exam_date",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 19,
+   "type": "date",
+   "table": "profiles",
+   "column": "exam_month",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 20,
+   "type": "boolean",
+   "table": "profiles",
+   "column": "has_dismissed_exam_prompt",
+   "default": "false",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 1,
+   "type": "uuid",
+   "table": "study_sessions",
+   "column": "id",
+   "default": "gen_random_uuid()",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 2,
+   "type": "uuid",
+   "table": "study_sessions",
+   "column": "user_id",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 3,
+   "type": "timestamp with time zone",
+   "table": "study_sessions",
+   "column": "started_at",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 4,
+   "type": "timestamp with time zone",
+   "table": "study_sessions",
+   "column": "ended_at",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 5,
+   "type": "integer",
+   "table": "study_sessions",
+   "column": "duration_seconds",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 6,
+   "type": "date",
+   "table": "study_sessions",
+   "column": "session_date",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 7,
+   "type": "text",
+   "table": "study_sessions",
+   "column": "source",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 8,
+   "type": "timestamp with time zone",
+   "table": "study_sessions",
+   "column": "created_at",
+   "default": "now()",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 9,
+   "type": "text",
+   "table": "study_sessions",
+   "column": "category",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 10,
+   "type": "uuid",
+   "table": "study_sessions",
+   "column": "session_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 1,
+   "type": "uuid",
+   "table": "subjects",
+   "column": "id",
+   "default": "uuid_generate_v4()",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 2,
+   "type": "uuid",
+   "table": "subjects",
+   "column": "discipline_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 3,
+   "type": "text",
+   "table": "subjects",
+   "column": "name",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 4,
+   "type": "text",
+   "table": "subjects",
+   "column": "code",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 5,
+   "type": "integer",
+   "table": "subjects",
+   "column": "order_num",
+   "default": "0",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 6,
+   "type": "boolean",
+   "table": "subjects",
+   "column": "is_active",
+   "default": "true",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 7,
+   "type": "timestamp with time zone",
+   "table": "subjects",
+   "column": "created_at",
+   "default": "now()",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 8,
+   "type": "integer",
+   "table": "subjects",
+   "column": "order",
+   "default": "1",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 1,
+   "type": "uuid",
+   "table": "topics",
+   "column": "id",
+   "default": "uuid_generate_v4()",
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 2,
+   "type": "uuid",
+   "table": "topics",
+   "column": "subject_id",
+   "default": null,
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 3,
+   "type": "text",
+   "table": "topics",
+   "column": "name",
+   "default": null,
+   "identity": "",
+   "not_null": true,
+   "generated": ""
+  },
+  {
+   "num": 4,
+   "type": "integer",
+   "table": "topics",
+   "column": "order_num",
+   "default": "0",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 5,
+   "type": "boolean",
+   "table": "topics",
+   "column": "is_active",
+   "default": "true",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 6,
+   "type": "timestamp with time zone",
+   "table": "topics",
+   "column": "created_at",
+   "default": "now()",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  },
+  {
+   "num": 7,
+   "type": "integer",
+   "table": "topics",
+   "column": "order",
+   "default": "1",
+   "identity": "",
+   "not_null": false,
+   "generated": ""
+  }
+ ],
+ "indexes": [
+  {
+   "name": "access_requests_pkey",
+   "table": "access_requests",
+   "definition": "CREATE UNIQUE INDEX access_requests_pkey ON public.access_requests USING btree (id)"
+  },
+  {
+   "name": "idx_access_requests_status",
+   "table": "access_requests",
+   "definition": "CREATE INDEX idx_access_requests_status ON public.access_requests USING btree (status)"
+  },
+  {
+   "name": "idx_access_requests_user",
+   "table": "access_requests",
+   "definition": "CREATE INDEX idx_access_requests_user ON public.access_requests USING btree (requester_user_id)"
+  },
+  {
+   "name": "disciplines_pkey",
+   "table": "disciplines",
+   "definition": "CREATE UNIQUE INDEX disciplines_pkey ON public.disciplines USING btree (id)"
+  },
+  {
+   "name": "flashcards_pkey",
+   "table": "flashcards",
+   "definition": "CREATE UNIQUE INDEX flashcards_pkey ON public.flashcards USING btree (id)"
+  },
+  {
+   "name": "idx_flashcards_batch_id",
+   "table": "flashcards",
+   "definition": "CREATE INDEX idx_flashcards_batch_id ON public.flashcards USING btree (batch_id)"
+  },
+  {
+   "name": "idx_flashcards_deck_id",
+   "table": "flashcards",
+   "definition": "CREATE INDEX idx_flashcards_deck_id ON public.flashcards USING btree (deck_id)"
+  },
+  {
+   "name": "idx_flashcards_question_type",
+   "table": "flashcards",
+   "definition": "CREATE INDEX idx_flashcards_question_type ON public.flashcards USING btree (question_type)"
+  },
+  {
+   "name": "idx_flashcards_source",
+   "table": "flashcards",
+   "definition": "CREATE INDEX idx_flashcards_source ON public.flashcards USING btree (source)"
+  },
+  {
+   "name": "idx_flashcards_user_batch",
+   "table": "flashcards",
+   "definition": "CREATE INDEX idx_flashcards_user_batch ON public.flashcards USING btree (user_id, batch_id)"
+  },
+  {
+   "name": "idx_flashcards_user_id",
+   "table": "flashcards",
+   "definition": "CREATE INDEX idx_flashcards_user_id ON public.flashcards USING btree (user_id)"
+  },
+  {
+   "name": "idx_flashcards_visibility",
+   "table": "flashcards",
+   "definition": "CREATE INDEX idx_flashcards_visibility ON public.flashcards USING btree (visibility)"
+  },
+  {
+   "name": "idx_notes_course_user",
+   "table": "notes",
+   "definition": "CREATE INDEX idx_notes_course_user ON public.notes USING btree (target_course, user_id)"
+  },
+  {
+   "name": "idx_notes_featured",
+   "table": "notes",
+   "definition": "CREATE INDEX idx_notes_featured ON public.notes USING btree (is_featured_on_landing) WHERE (is_featured_on_landing = true)"
+  },
+  {
+   "name": "idx_notes_subject_id",
+   "table": "notes",
+   "definition": "CREATE INDEX idx_notes_subject_id ON public.notes USING btree (subject_id)"
+  },
+  {
+   "name": "idx_notes_user_id",
+   "table": "notes",
+   "definition": "CREATE INDEX idx_notes_user_id ON public.notes USING btree (user_id)"
+  },
+  {
+   "name": "idx_notes_visibility",
+   "table": "notes",
+   "definition": "CREATE INDEX idx_notes_visibility ON public.notes USING btree (visibility)"
+  },
+  {
+   "name": "notes_pkey",
+   "table": "notes",
+   "definition": "CREATE UNIQUE INDEX notes_pkey ON public.notes USING btree (id)"
+  },
+  {
+   "name": "idx_profiles_role",
+   "table": "profiles",
+   "definition": "CREATE INDEX idx_profiles_role ON public.profiles USING btree (role)"
+  },
+  {
+   "name": "idx_profiles_timezone",
+   "table": "profiles",
+   "definition": "CREATE INDEX idx_profiles_timezone ON public.profiles USING btree (timezone)"
+  },
+  {
+   "name": "profiles_email_key",
+   "table": "profiles",
+   "definition": "CREATE UNIQUE INDEX profiles_email_key ON public.profiles USING btree (email)"
+  },
+  {
+   "name": "profiles_email_lower_key",
+   "table": "profiles",
+   "definition": "CREATE UNIQUE INDEX profiles_email_lower_key ON public.profiles USING btree (lower(email))"
+  },
+  {
+   "name": "profiles_pkey",
+   "table": "profiles",
+   "definition": "CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)"
+  },
+  {
+   "name": "idx_study_sessions_user_date",
+   "table": "study_sessions",
+   "definition": "CREATE INDEX idx_study_sessions_user_date ON public.study_sessions USING btree (user_id, session_date)"
+  },
+  {
+   "name": "study_sessions_pkey",
+   "table": "study_sessions",
+   "definition": "CREATE UNIQUE INDEX study_sessions_pkey ON public.study_sessions USING btree (id)"
+  },
+  {
+   "name": "study_sessions_user_session_uidx",
+   "table": "study_sessions",
+   "definition": "CREATE UNIQUE INDEX study_sessions_user_session_uidx ON public.study_sessions USING btree (user_id, session_id) WHERE (session_id IS NOT NULL)"
+  },
+  {
+   "name": "subjects_pkey",
+   "table": "subjects",
+   "definition": "CREATE UNIQUE INDEX subjects_pkey ON public.subjects USING btree (id)"
+  },
+  {
+   "name": "topics_pkey",
+   "table": "topics",
+   "definition": "CREATE UNIQUE INDEX topics_pkey ON public.topics USING btree (id)"
+  }
+ ],
+ "relations": [
+  {
+   "kind": "r",
+   "name": "access_requests",
+   "owner": "postgres",
+   "rls_forced": false,
+   "rls_enabled": true,
+   "table_bytes": 8192,
+   "total_bytes": 65536,
+   "estimated_rows": 5
+  },
+  {
+   "kind": "r",
+   "name": "disciplines",
+   "owner": "postgres",
+   "rls_forced": false,
+   "rls_enabled": true,
+   "table_bytes": 8192,
+   "total_bytes": 32768,
+   "estimated_rows": -1
+  },
+  {
+   "kind": "r",
+   "name": "flashcards",
+   "owner": "postgres",
+   "rls_forced": false,
+   "rls_enabled": true,
+   "table_bytes": 2129920,
+   "total_bytes": 5644288,
+   "estimated_rows": 2838
+  },
+  {
+   "kind": "r",
+   "name": "notes",
+   "owner": "postgres",
+   "rls_forced": false,
+   "rls_enabled": true,
+   "table_bytes": 73728,
+   "total_bytes": 212992,
+   "estimated_rows": 129
+  },
+  {
+   "kind": "r",
+   "name": "profiles",
+   "owner": "postgres",
+   "rls_forced": false,
+   "rls_enabled": true,
+   "table_bytes": 65536,
+   "total_bytes": 237568,
+   "estimated_rows": 284
+  },
+  {
+   "kind": "r",
+   "name": "study_sessions",
+   "owner": "postgres",
+   "rls_forced": false,
+   "rls_enabled": true,
+   "table_bytes": 229376,
+   "total_bytes": 483328,
+   "estimated_rows": 1741
+  },
+  {
+   "kind": "r",
+   "name": "subjects",
+   "owner": "postgres",
+   "rls_forced": false,
+   "rls_enabled": true,
+   "table_bytes": 8192,
+   "total_bytes": 32768,
+   "estimated_rows": -1
+  },
+  {
+   "kind": "r",
+   "name": "topics",
+   "owner": "postgres",
+   "rls_forced": false,
+   "rls_enabled": true,
+   "table_bytes": 49152,
+   "total_bytes": 122880,
+   "estimated_rows": 392
+  }
+ ],
+ "constraints": [
+  {
+   "name": "access_requests_content_type_check",
+   "type": "c",
+   "table": "access_requests",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((content_type = ANY (ARRAY['flashcard_deck'::text, 'note'::text])))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "access_requests_pkey",
+   "type": "p",
+   "table": "access_requests",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "PRIMARY KEY (id)",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "access_requests_request_type_check",
+   "type": "c",
+   "table": "access_requests",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((request_type = ANY (ARRAY['student_access'::text, 'institute_inquiry'::text, 'educator_application'::text])))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "access_requests_requester_user_id_fkey",
+   "type": "f",
+   "table": "access_requests",
+   "fk_parent": "profiles",
+   "validated": true,
+   "definition": "FOREIGN KEY (requester_user_id) REFERENCES profiles(id) ON DELETE SET NULL",
+   "fk_on_delete": "n",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "access_requests_status_check",
+   "type": "c",
+   "table": "access_requests",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((status = ANY (ARRAY['pending'::text, 'contacted'::text, 'enrolled'::text, 'approved'::text, 'rejected'::text, 'dismissed'::text])))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "disciplines_pkey",
+   "type": "p",
+   "table": "disciplines",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "PRIMARY KEY (id)",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "chk_flashcards_question_type",
+   "type": "c",
+   "table": "flashcards",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((question_type = ANY (ARRAY['flashcard'::text, 'mcq'::text, 'correct_incorrect'::text, 'theory'::text, 'case_study_mcq'::text, 'match_the_following'::text, 'fitb'::text, 'concept_card'::text, 'mcq_multi'::text])))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "chk_flashcards_source",
+   "type": "c",
+   "table": "flashcards",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((source = ANY (ARRAY['manual'::text, 'gemini_import'::text, 'bulk_upload'::text])))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "flashcards_content_creator_id_fkey",
+   "type": "f",
+   "table": "flashcards",
+   "fk_parent": "content_creators",
+   "validated": true,
+   "definition": "FOREIGN KEY (content_creator_id) REFERENCES content_creators(id)",
+   "fk_on_delete": "a",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "flashcards_contributed_by_fkey",
+   "type": "f",
+   "table": "flashcards",
+   "fk_parent": "profiles",
+   "validated": true,
+   "definition": "FOREIGN KEY (contributed_by) REFERENCES profiles(id) ON DELETE SET NULL",
+   "fk_on_delete": "n",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "flashcards_creator_id_fkey",
+   "type": "f",
+   "table": "flashcards",
+   "fk_parent": "profiles",
+   "validated": true,
+   "definition": "FOREIGN KEY (creator_id) REFERENCES profiles(id) ON DELETE SET NULL",
+   "fk_on_delete": "n",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "flashcards_deck_id_fkey",
+   "type": "f",
+   "table": "flashcards",
+   "fk_parent": "flashcard_decks",
+   "validated": true,
+   "definition": "FOREIGN KEY (deck_id) REFERENCES flashcard_decks(id) ON DELETE SET NULL",
+   "fk_on_delete": "n",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "flashcards_difficulty_check",
+   "type": "c",
+   "table": "flashcards",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((difficulty = ANY (ARRAY['easy'::text, 'medium'::text, 'hard'::text])))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "flashcards_discipline_id_fkey",
+   "type": "f",
+   "table": "flashcards",
+   "fk_parent": "disciplines",
+   "validated": true,
+   "definition": "FOREIGN KEY (discipline_id) REFERENCES disciplines(id)",
+   "fk_on_delete": "a",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "flashcards_note_id_fkey",
+   "type": "f",
+   "table": "flashcards",
+   "fk_parent": "notes",
+   "validated": true,
+   "definition": "FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE SET NULL",
+   "fk_on_delete": "n",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "flashcards_pkey",
+   "type": "p",
+   "table": "flashcards",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "PRIMARY KEY (id)",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "flashcards_subject_id_fkey",
+   "type": "f",
+   "table": "flashcards",
+   "fk_parent": "subjects",
+   "validated": true,
+   "definition": "FOREIGN KEY (subject_id) REFERENCES subjects(id)",
+   "fk_on_delete": "a",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "flashcards_topic_id_fkey",
+   "type": "f",
+   "table": "flashcards",
+   "fk_parent": "topics",
+   "validated": true,
+   "definition": "FOREIGN KEY (topic_id) REFERENCES topics(id)",
+   "fk_on_delete": "a",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "flashcards_user_id_fkey",
+   "type": "f",
+   "table": "flashcards",
+   "fk_parent": "auth.users",
+   "validated": true,
+   "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+   "fk_on_delete": "c",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "flashcards_visibility_check",
+   "type": "c",
+   "table": "flashcards",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((visibility = ANY (ARRAY['private'::text, 'friends'::text, 'public'::text])))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "notes_check",
+   "type": "c",
+   "table": "notes",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK (((is_featured_on_landing = false) OR (visibility = 'public'::text)))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "notes_content_source_type_check",
+   "type": "c",
+   "table": "notes",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK (((content_source_type IS NULL) OR (content_source_type = ANY (ARRAY['official_body'::text, 'original_creator'::text]))))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "notes_content_type_check",
+   "type": "c",
+   "table": "notes",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((content_type = ANY (ARRAY['text'::text, 'table'::text, 'math'::text, 'diagram'::text, 'mixed'::text])))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "notes_contributed_by_fkey",
+   "type": "f",
+   "table": "notes",
+   "fk_parent": "profiles",
+   "validated": true,
+   "definition": "FOREIGN KEY (contributed_by) REFERENCES profiles(id) ON DELETE SET NULL",
+   "fk_on_delete": "n",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "notes_discipline_id_fkey",
+   "type": "f",
+   "table": "notes",
+   "fk_parent": "disciplines",
+   "validated": true,
+   "definition": "FOREIGN KEY (discipline_id) REFERENCES disciplines(id)",
+   "fk_on_delete": "a",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "notes_featured_approved_by_fkey",
+   "type": "f",
+   "table": "notes",
+   "fk_parent": "profiles",
+   "validated": true,
+   "definition": "FOREIGN KEY (featured_approved_by) REFERENCES profiles(id) ON DELETE SET NULL",
+   "fk_on_delete": "n",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "notes_featured_nominated_by_fkey",
+   "type": "f",
+   "table": "notes",
+   "fk_parent": "profiles",
+   "validated": true,
+   "definition": "FOREIGN KEY (featured_nominated_by) REFERENCES profiles(id) ON DELETE SET NULL",
+   "fk_on_delete": "n",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "notes_pkey",
+   "type": "p",
+   "table": "notes",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "PRIMARY KEY (id)",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "notes_subject_id_fkey",
+   "type": "f",
+   "table": "notes",
+   "fk_parent": "subjects",
+   "validated": true,
+   "definition": "FOREIGN KEY (subject_id) REFERENCES subjects(id)",
+   "fk_on_delete": "a",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "notes_topic_id_fkey",
+   "type": "f",
+   "table": "notes",
+   "fk_parent": "topics",
+   "validated": true,
+   "definition": "FOREIGN KEY (topic_id) REFERENCES topics(id)",
+   "fk_on_delete": "a",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "notes_user_id_fkey",
+   "type": "f",
+   "table": "notes",
+   "fk_parent": "auth.users",
+   "validated": true,
+   "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+   "fk_on_delete": "c",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "notes_visibility_check",
+   "type": "c",
+   "table": "notes",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((visibility = ANY (ARRAY['private'::text, 'friends'::text, 'public'::text])))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "profiles_account_type_check",
+   "type": "c",
+   "table": "profiles",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((account_type = ANY (ARRAY['enrolled'::text, 'self_registered'::text])))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "profiles_course_level_check",
+   "type": "c",
+   "table": "profiles",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK (((course_level = ANY (ARRAY['CA Foundation'::text, 'CA Intermediate'::text, 'CA Final'::text, 'CMA Foundation'::text, 'CMA Intermediate'::text, 'CMA Final'::text, 'CS Foundation'::text, 'CS Executive'::text, 'CS Professional'::text])) OR (course_level IS NULL) OR (length(course_level) > 0)))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "profiles_daily_review_goal_check",
+   "type": "c",
+   "table": "profiles",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK (((daily_review_goal > 0) AND (daily_review_goal <= 200)))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "profiles_daily_study_goal_minutes_check",
+   "type": "c",
+   "table": "profiles",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK (((daily_study_goal_minutes > 0) AND (daily_study_goal_minutes <= 480)))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "profiles_email_key",
+   "type": "u",
+   "table": "profiles",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "UNIQUE (email)",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "profiles_email_normalized",
+   "type": "c",
+   "table": "profiles",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK (((email IS NULL) OR (email = lower(btrim(email)))))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "profiles_exam_month_check",
+   "type": "c",
+   "table": "profiles",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK (((exam_month IS NULL) OR (EXTRACT(day FROM exam_month) = (1)::numeric)))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "profiles_id_fkey",
+   "type": "f",
+   "table": "profiles",
+   "fk_parent": "auth.users",
+   "validated": true,
+   "definition": "FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE",
+   "fk_on_delete": "c",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "profiles_pkey",
+   "type": "p",
+   "table": "profiles",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "PRIMARY KEY (id)",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "profiles_status_check",
+   "type": "c",
+   "table": "profiles",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'suspended'::text])))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "valid_role",
+   "type": "c",
+   "table": "profiles",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((role = ANY (ARRAY['super_admin'::text, 'admin'::text, 'professor'::text, 'student'::text])))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "study_sessions_category_check",
+   "type": "c",
+   "table": "study_sessions",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK (((category IS NULL) OR (category = ANY (ARRAY['reading'::text, 'writing_practice'::text, 'lecture_viewing'::text, 'paper_solving'::text, 'mock_test'::text]))))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "study_sessions_duration_floor",
+   "type": "c",
+   "table": "study_sessions",
+   "fk_parent": null,
+   "validated": false,
+   "definition": "CHECK (((source <> 'manual'::text) OR (duration_seconds >= 600))) NOT VALID",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "study_sessions_duration_seconds_check",
+   "type": "c",
+   "table": "study_sessions",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((duration_seconds > 0))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "study_sessions_machine_duration_max",
+   "type": "c",
+   "table": "study_sessions",
+   "fk_parent": null,
+   "validated": false,
+   "definition": "CHECK (((source = 'manual'::text) OR (duration_seconds <= 14400))) NOT VALID",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "study_sessions_machine_time_integrity",
+   "type": "c",
+   "table": "study_sessions",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK (((source = 'manual'::text) OR ((ended_at >= started_at) AND ((duration_seconds)::numeric <= (EXTRACT(epoch FROM (ended_at - started_at)) + (2)::numeric)))))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "study_sessions_manual_requires_category",
+   "type": "c",
+   "table": "study_sessions",
+   "fk_parent": null,
+   "validated": false,
+   "definition": "CHECK (((source <> 'manual'::text) OR (category IS NOT NULL))) NOT VALID",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "study_sessions_pkey",
+   "type": "p",
+   "table": "study_sessions",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "PRIMARY KEY (id)",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "study_sessions_source_check",
+   "type": "c",
+   "table": "study_sessions",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "CHECK ((source = ANY (ARRAY['manual'::text, 'study_mode'::text, 'practice_mode'::text])))",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "study_sessions_user_id_fkey",
+   "type": "f",
+   "table": "study_sessions",
+   "fk_parent": "auth.users",
+   "validated": true,
+   "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+   "fk_on_delete": "c",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "subjects_discipline_id_fkey",
+   "type": "f",
+   "table": "subjects",
+   "fk_parent": "disciplines",
+   "validated": true,
+   "definition": "FOREIGN KEY (discipline_id) REFERENCES disciplines(id) ON DELETE CASCADE",
+   "fk_on_delete": "c",
+   "fk_on_update": "a"
+  },
+  {
+   "name": "subjects_pkey",
+   "type": "p",
+   "table": "subjects",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "PRIMARY KEY (id)",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "topics_pkey",
+   "type": "p",
+   "table": "topics",
+   "fk_parent": null,
+   "validated": true,
+   "definition": "PRIMARY KEY (id)",
+   "fk_on_delete": null,
+   "fk_on_update": null
+  },
+  {
+   "name": "topics_subject_id_fkey",
+   "type": "f",
+   "table": "topics",
+   "fk_parent": "subjects",
+   "validated": true,
+   "definition": "FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE",
+   "fk_on_delete": "c",
+   "fk_on_update": "a"
+  }
+ ],
+ "server_version": "PostgreSQL 17.6 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 13.2.0, 64-bit",
+ "relations_found": 8,
+ "relations_expected": 8,
+ "sha256_of_empty_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
