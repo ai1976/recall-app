@@ -2,14 +2,14 @@
 
 
 ## Status
-- **State:** AWAITING-CLAUDE
-- **Owner:** Claude
-- **Phase:** B-01 v2 and B-02a v2 are LIVE and verified (Gates 2, 3 and 4 for those files, 08/10/2026; 27 and 8 TEST checks all true); next: Claude authors B-02b; design approved: brief B v10, Gate 1 given 04/10/2026
-- **Last round:** 44  · **Last QA-reviewed round:** 42
+- **State:** AWAITING-QA
+- **Owner:** QA
+- **Phase:** B-01 v2 and B-02a v2 LIVE and verified (08/10/2026); B-02b v1 submitted to QA (Tier 1, round 1); design approved: brief B v10, Gate 1 given 04/10/2026
+- **Last round:** 45  · **Last QA-reviewed round:** 44
 - **Agreed decisions (carried from T-001; positions, not a new approval):** brief B v10 (`0fe77dec72dc`) is the approved design for points 5 and 10 together; decisions D1 to D11 and E1 to E10 of T-001 are confirmed (Founder, 04/10/2026 and later); no in-app payment; platform course names are identifiers and immutable in v1; new offline logs are always classified (platform, custom or explicit General), NULL means only legacy; no backfill; professors see totals only. Details and round numbers: Round 1 section B.
 - **Open disagreements:** none
 - **Founder decisions required:** none now. In force: DEC-1, DEC-2 (Round 5); topic-level logging deferred (Round 7); DEC-3 (Round 9); Round 13 method choice; authorization to run D-01 (Round 17; run 08/10/2026); **DEC-4 simplified (08/10/2026, Round 27): the cutover requires only that the set of unclassified manual logs never grows; no removal provenance.** **Needed later, two acceptances:** (1) before Gate 3 of B-03 and B-07: the never-reloaded F0 tab residual (section 4C); (2) before Gate 3 of B-04b: the never-reloaded F1 tab residual (section 5.2); deferral of (2) defers the cutover.
-- **Artifacts under review:** (a) TIER 1, round 2, exact hashes in Round 41: `docs/database/t002/B-01_FUNCTIONS_course-text-normalize-and-resolve_v2.sql` `bac5da9f43e4`, `B-01_TEST_..._v2.sql` `a0d85d34b603`, `B-01_ROLLBACK_..._v2.sql` `7792fd49d4a2`, `B-02a_SCHEMA_disciplines-guards_v2.sql` `2c5e20cbd14b`, `B-02a_TEST_..._v2.sql` `3fb26fae2548`, `B-02a_ROLLBACK_..._v2.sql` `5554f4572dda` (v1 files superseded); (b) current plan `00_PLAN_stream-B-execution-plan_v18.md` `88241bd6d514` plus the append-only `00_PLAN_stream-B-change-log.md`; (c) Tier 0 evidence: `docs/discussions/evidence/T-002_D2-index_08-10-2026.md`, `T-002_D3-index_08-10-2026.md`, `T-002_Tier0-record_08-10-2026.md`; quarantined: `T-002_D3-WRONG-FILE-v1-run_08-10-2026.raw.txt`. File index: `docs/database/t002/CURRENT.md`. Approved inputs: brief B v10 `0fe77dec72dc`; T-001 plan v5 `6961fb55dd69`.
+- **Artifacts under review:** TIER 1, round 1, exact hashes in Round 45: `docs/database/t002/B-02b_SCHEMA_catalogue-write-path-and-privileges_v1.sql` `82db0b313a80`, `B-02b_TEST_..._v1.sql` `8e6695557cf8`, `B-02b_ROLLBACK_..._v1.sql` `2539d617d931`. Context: plan `00_PLAN_stream-B-execution-plan_v18.md` `88241bd6d514` plus `00_PLAN_stream-B-change-log.md`; D2 and D4 evidence indexes; live files B-01 v2 and B-02a v2 (done). File index: `docs/database/t002/CURRENT.md`.
 
 ### Gates
 - [x] 1 Design approved (brief B v10 `0fe77dec72dc`, Founder 04/10/2026, T-001 Round 35; QA PASS WITH CONDITIONS)

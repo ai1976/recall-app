@@ -2344,3 +2344,31 @@ Claude authors B-02b (catalogue write path and privilege closure for `discipline
 Gates 5 to 7 not given. B-02b onward not yet authored.
 
 Handoff: `AWAITING-CLAUDE` - Claude to author B-02b and submit it to QA.
+
+---
+
+## Round 45 · Claude · 08/10/2026
+**Scope.** Submits the next Tier 1 file, B-02b (catalogue write path and privilege closure for `disciplines`, `subjects`, `topics`), built on the saved D2 policies and the D4 writer list. Tier 1 round 1: QA is asked to list EVERY defect, each marked blocker or non-blocking (README "Tiered checking"). Not run: no database engine; the SQL was read statement by statement.
+
+### A. Files and exact hashes
+| File (in `docs/database/t002/`) | Short | Full sha256 |
+|---|---|---|
+| `B-02b_SCHEMA_catalogue-write-path-and-privileges_v1.sql` | `82db0b313a80` | `82db0b313a805dd11c227c24136fd88a65e567cd2c087e0fe04d616fd58ac166` |
+| `B-02b_TEST_catalogue-write-path-and-privileges_v1.sql` | `8e6695557cf8` | `8e6695557cf835252e89a7721db2cddf68af218da5e0b1a3797cb9772efe825d` |
+| `B-02b_ROLLBACK_catalogue-write-path-and-privileges_v1.sql` | `2539d617d931` | `2539d617d931cacc313ac05dadcc7f19d0ecac9c211ba1e0124b79d5135ff86f` |
+
+### B. What B-02b does, and the evidence it rests on
+- **Live state (D2 v3, 08/10/2026):** RLS is on for all three tables; policies are `disciplines`: read (authenticated) and `admin_insert_disciplines`; `subjects` and `topics`: read only. `anon`, `authenticated` and `service_role` hold all eight table privileges on all three. D4 v13: the only code writes are `BulkUploadTopics.jsx` (INSERT disciplines line 216, INSERT subjects 632, UPDATE subjects `order_num` 654, INSERT topics 691); no code updates a discipline or topic and none deletes.
+- **Policies added** (TO authenticated, through `is_admin()`, the live `admin_insert_disciplines` pattern): `admin_insert_subjects`, `admin_update_subjects`, `admin_insert_topics`. No DELETE policy, no UPDATE policy for disciplines or topics.
+- **Privileges:** `anon` keeps SELECT only (removed later with the Signup wrapper, B-06a/F1); `authenticated` keeps SELECT and INSERT on all three and UPDATE on `subjects` only; every other privilege (UPDATE on disciplines and topics, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN) is revoked from `anon` and `authenticated`; `service_role` is unchanged. Result: no client role can DELETE or TRUNCATE any of the three tables, and every client write left goes through `is_admin()`.
+- **Fail-closed pre-flight:** aborts if B-02a or `is_admin()` is absent, or if the live policy set is not exactly the one D2 recorded; plain CREATE POLICY; `lock_timeout` 5 s, `statement_timeout` 30 s.
+- **TEST (rollback-only):** exact policy set, RLS, exact privileges per role, no PUBLIC grant, and REAL-ROLE behaviour with the JWT claims Supabase uses and `SET LOCAL ROLE authenticated`: an actual admin profile can insert a discipline, insert and update a subject, insert a topic, and a title-cased duplicate discipline is refused with 23505 (the message BulkUploadTopics must show); an actual student profile is refused every write (RLS 42501) and still reads; UPDATE on disciplines and topics, DELETE and TRUNCATE are refused by privilege even for an admin.
+- **ROLLBACK:** drops the three policies and grants ALL back to `anon` and `authenticated` (their state before, D2 P4); order for the stream B-06a, B-05, B-04a, B-07, B-03, B-02b, B-02a, B-01.
+- **A finding the Founder should know (OPEN, verify after the run):** the live policy list says NO client role could insert or update subjects or topics through RLS before this file, although BulkUploadTopics does exactly that. So either the bulk upload of subjects and topics was already failing for administrators, or it works some other way I cannot see in D2. B-02b makes it work for administrators only. After the run the Founder does one real admin upload to confirm; that is an acceptance step, not a blocker for this file.
+
+### C. Requests to QA (one round)
+List EVERY defect in B-02b, each marked blocker or non-blocking, by exact hash. Consider in particular: whether keeping `anon` SELECT and leaving `service_role` unchanged are acceptable for this file; whether withholding UPDATE on disciplines and topics (so deactivation stays an owner action) is acceptable; and the real-role TEST method.
+
+Gates 2 to 7 not given for B-02b.
+
+Handoff: `AWAITING-QA` - QA to append one round.
