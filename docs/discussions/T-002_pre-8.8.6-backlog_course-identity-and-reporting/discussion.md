@@ -863,7 +863,6 @@ Gates 2 to 7 not given for stream B.
 Handoff: `AWAITING-QA` - QA to append one round with the two items of section F.
 
 ---
-
 ## Round 16 · QA · 08/10/2026
 
 ### Scope and preconditions
@@ -1010,3 +1009,69 @@ Stream B Gates 2 to 7 not given.
 Handoff: `AWAITING-QA` - QA to append one round with the two items of section F.
 
 ---
+
+## Round 18 · QA · 08/10/2026
+
+### Scope and preconditions
+
+- The handoff was valid: status.md was AWAITING-QA, owner QA, last round 17 and last QA-reviewed round 16. Per convention this round returns Last QA-reviewed round 17.
+- Supplied hashes match: D-02 v2 0f12ba342fa5..., D-03 v2 0218d615ba64..., D-04 v2 58865e55b1c6..., and plan v8 6b3be6ab43a2... (the full values are recorded in Round 17 and were rechecked).
+- No SQL, database or external service was run. SQL was read statement by statement without a PostgreSQL engine. node --check and D-04 --self-test are read-only and returned 34/34; targeted alias, passed-builder and direct re-export probes passed.
+
+### 1. Diagnostic verdicts
+
+#### D-02 D-02_DIAGNOSTIC_D2_live-state_v2.sql — REVISION REQUIRED
+
+All five statements are read-only catalogue queries. P4 now covers all eight relations, non-system roles, memberships, effective column matrices and sequence discovery, but:
+
+1. It passes r.rolname = public to has_table_privilege, has_column_privilege and has_sequence_privilege. PUBLIC is a pseudo-role, not a nameable role for these role-argument functions; the repository's existing privilege test records the same rule for has_function_privilege at docs/database/sprint8.7/03_TEST_verify_sprint8.7.1.sql:417-418. Including the public row can therefore make P4 error instead of producing a result. Handle PUBLIC through ACL/effective-role expansion without calling these functions with public.
+2. Sequence effective privileges are limited to anon, authenticated, service_role and public although the role universe and ceilings include other non-system and inherited roles. An effective INSERT role outside that subset can remain uncomputed. Cover every relevant role or fail closed for the omitted set.
+
+No reviewed statement can write, but D-02 is not runnable at this hash.
+
+#### D-03 D-03_DIAGNOSTIC_D3_writer-closure_v2.sql — REVISION REQUIRED
+
+All six runs are read-only. P1 now carries event kind, OID paths, cap and frontier; P2 includes dynamic-SQL and compiled/unreadable identities; P3 is transitive with rule metadata; P4 asserts cron visibility; P6 adds callee closure. Remaining defects:
+
+1. P6 is not exact callee closure. It infers edges from case-folded source substrings and only routines with names of length at least six; it does not resolve call syntax, overloads, quoted/schema-qualified calls, aliases or short names. A short/non-matching writer can disappear without an unresolved lead. The frontier is only a count, not auditable identities/edges.
+2. The file emits raw leads, not the promised deterministic relation-by-DML-kind matrix for every target and INSERT, UPDATE, UPSERT/ON CONFLICT DO UPDATE, MERGE, COPY FROM, DELETE and TRUNCATE cell. Leaving that matrix to an un-hashed manual assembly means the fresh B-04b comparison is not reproducible from this exact artifact.
+
+D-03 cannot yet support B-04b or DEC-4, although no run can write.
+
+#### D-04 D-04_code-inventory_v2.mjs — REVISION REQUIRED
+
+The syntax check, 34/34 self-test, alias, passed-builder and direct re-export probes pass; the script has no database/network access and only the optional --out file write. Remaining defects:
+
+1. Re-export detection checks the local name or source path for supabase but not the exported name. export { db as supabase } from './client' produces no lead, so an aliased re-export can be silent.
+2. functions.invoke binds writes only from files under supabase/functions/<name>/. Writes in imported _shared or other local helpers are not included in writes_in_that_function. The transport lead blocks a clean run, but a disposition could accept an incomplete closure unless imported writes are recursively collected or the missing closure remains explicitly undisposable.
+
+#### 2. Plan v8 audit, classified P/F
+
+Blocking P findings:
+
+1. DEC-4 SA proves that a row was removed and has pathway fields, not that it was removed by the exact allowlisted account-deletion routine/FK cascade. An owner/SQL-editor delete would trigger the same ledger and satisfy SA. Require transaction-correlated/unforgeable account-deletion provenance, or stop when provenance is unavailable.
+2. The second exception permits any effective DELETE of auth.users through the FK, not only an approved account-deletion caller. The plan does not assert routine EXECUTE ACL/security or parent-delete caller authority. Bind permitted callers or treat other entry points as stop outcomes.
+3. The two allowlists do not include the complete transitive writer closure. admin_delete_user_data or an auth.users trigger can call helper routines/triggers that delete sessions; D3 is meant to discover those, while section 5.2 rejects any writer outside the allowlists. Allowlist the exact closure (identity/hash) or require the root to contain the only delete.
+
+F conditions for the file reviews:
+
+- D-02 must replace PUBLIC role-argument calls and cover every INSERT-relevant sequence role (or unresolved fail-closed output).
+- D-03 must make callee/frontier edges auditable and retain a deterministic relation-by-DML matrix with FK and unresolved cells.
+- D-04 must detect exported-name aliases and recursively bind imported invoke-helper writes.
+- B-04a/B-04b/data-fix Gate 2 must implement the approved SA, ledger/TRUNCATE, hashes, rollback and no-PII conditions without weakening the P contracts.
+
+### 3. DEC-4 design ruling
+
+DEC-4 is REVISION REQUIRED before Founder approval. The monotonic-removal principle, ledger write-failure stop, TRUNCATE guard and SA shape are sound, but the ledger is not provenance, callers are not constrained, and the full writer closure is not allowlisted. These three conditions must be explicit before the proposal goes to the Founder; QA's ruling is not Founder approval.
+
+### Strengths and residual risks
+
+Round 16's principal diagnostic additions are materially present and all reviewed runs remain read-only. F0/F1 ordering, the anchor/data-fix/observation sequence and the no-absorption rule remain coherent. No live roles, concurrent sessions, deployed code or UI were exercised; the 73 undisposed D-04 development leads remain evidence work.
+
+### Disposition
+
+Diagnostics: D-02 v2 REVISION REQUIRED; D-03 v2 REVISION REQUIRED; D-04 v2 REVISION REQUIRED.
+
+Plan v8: REVISION REQUIRED for the three P findings; the F conditions remain Gate-2 prerequisites. DEC-4: REVISION REQUIRED before Founder review. No diagnostic run, Gate 2/3, data fix, B-04b authoring, deployment, commit or push is authorized by this audit.
+
+Handoff: AWAITING-CLAUDE — Claude to revise D-02, D-03, D-04 and the DEC-4 provenance/allowlist contracts, then return new exact hashes for one complete QA review. Founder decision on DEC-4 remains required.
