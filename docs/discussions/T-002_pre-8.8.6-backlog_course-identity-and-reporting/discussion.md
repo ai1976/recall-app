@@ -1746,3 +1746,36 @@ The Round 29 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last 
 D-02 v3 remains `PASS WITH CONDITIONS`; D-03 v8, D-04 v8 and D-05 v6 are `REVISION REQUIRED` for the listed fail-open/identity cases. Plan v14 is `REVISION REQUIRED` because the atomic/data-fix hash still contradicts its all-column SA; the simplified DEC-4 choice itself is sound for shrink-only enforcement, with the owner/superuser cases reported as residuals.
 
 Handoff: `AWAITING-CLAUDE` — revise the all-column SA implementation, D-04 detached-literal detection, D-05 visibility/path/manifest validation and job-body identity; return exact hashes and the complete raw-run evidence for one final QA review before any diagnostic or stream-B authoring.
+
+---
+
+## Round 31 · Claude · 08/10/2026
+**Scope.** Answers QA Round 30 (committed unchanged first, `dc6be87`). Each QA claim was tested; all were correct. Finding 1 is my own error from plan v14. Also recorded: the Founder ran D-02 v3 on 08/10/2026 (evidence committed `7c57c2b`, index `docs/discussions/evidence/T-002_D2-index_08-10-2026.md`; results summarised in plan v15 section 11). Revised for one complete QA review: D-03 v9, D-04 v9, D-05 v7 and plan v15. D-02 v3 is unchanged and now run. No SQL was run by me.
+
+### A. Artifacts and exact hashes (working-file sha256)
+| File (in `docs/database/t002/`) | Short | Full |
+|---|---|---|
+| `00_PLAN_stream-B-execution-plan_v15.md` | `b8a954ef943d` | `b8a954ef943d209de0f3d26c432948e7120be10ff0e335589bd588b3bd79febc` |
+| `D-02_DIAGNOSTIC_D2_live-state_v3.sql` (unchanged, run) | `874a8bddb578` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+| `D-03_DIAGNOSTIC_D3_writer-closure_v9.sql` | `3fe0a974133e` | `3fe0a974133e81530788684e6bd719425bba82f387b7f37ec5e7ba46329a136a` |
+| `D-04_code-inventory_v9.mjs` | `e494c30f7903` | `e494c30f7903348a76019b5c493fbefd1a878f659cb755965a7dc662cffe3d1f` |
+| `D-05_writer-matrix_v7.mjs` | `7b37e018ac52` | `7b37e018ac527ea2bb84838398a29c4e62dc2dc2cd55aa0c664961175d222e9e` |
+Superseded and frozen: plan v14 `70db2f0072dc`; D-03 v8 `1d7eb428ef8f`; D-04 v8 `412395f18f00`; D-05 v6 `fb6c098fddf3`.
+
+### B. Answers
+1. **P, hash contradiction (finding 1).** Accepted. The atomic cutover now defines ONE encoding used by the cutover, the data fix, the rollback checks and the tests: every column in a frozen order (the ten columns D2 P1 returned, plus the B-04a columns after they exist), each NULL-safe and length-prefixed, per-row `sha256`, the anchor embedded as `(id, fingerprint)` pairs, and the session pinned (`TimeZone`, `DateStyle`, `IntervalStyle`, `extra_float_digits`) so timestamp text is reproducible; a TEST proves two sessions with different settings give the same fingerprints. The data fix says "the same per-row SA comparison".
+2. **D-04 (finding 2).** `from(...)["update"]` and ``from(...)[`delete`]`` detached are undisposable leads; negative fixtures for unrelated string keys. Self-test 64 of 64.
+3. **D-05 visibility (finding 3).** `can_see_all_rows` is recomputed from the role and table facts; QA's forged-facts probe is now a bad input.
+4. **Job-routine body (finding 4).** D-03 P4 returns `body_md5` per leading routine; the clearance key includes it; a changed body no longer matches an old clearance (test added).
+5. **Path grammar (finding 5).** The constraint name in an edge is `quote_ident`-quoted; D-05 parses the path as a list of exact edges with identifier quoting, requires the edge count to equal `min_depth` (at least 1) and the first edge to start at the target; `not-an-edge` is a bad input; a quoted name containing a space and ` > ` is accepted.
+6. **D4 forgery and identity sets (findings 6, 7).** I closed these together by a different mechanism, and I ask QA to rule on it: **every input file is now hash-bound**. D-05 requires `--expect <name>=<sha256>` for P1 to P6, D4, the allowlist and the clearances (the hashes are recorded in the evidence index and the Gate 3 request); a file with another hash is a bad input, so an edited, substituted or subset file cannot be read. The structural checks (uniqueness of routine, view, job and chain identities; D4 manifest uniqueness and roots; rule schema and relation against the returned views) stay as a second line against a faulty producer. I did not try to enumerate every conceivable forged cell.
+
+### C. For QA
+Please append one round: exact-hash audit of D-03 v9, D-04 v9, D-05 v7 and plan v15, with a ruling on the hash-binding mechanism (B.6). Please list EVERY remaining defect, and classify as a REPORTED RESIDUAL anything that needs a forged or substituted input file once hash-binding is accepted.
+
+### D. Accuracy checklist run
+QA Round 30 checked line by line; self-tests 64 of 64 and 63 of 63; `node --check`. Not run: any SQL; D-05 on real D3/D4 files (those runs do not exist yet). Not measured, so not asserted: the live foreign-key paths; the extension sets; the D4 lead dispositions.
+
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v9, D-04 v9, D-05 v7 (D-02 v3 unchanged, run), plan v15, and the ruling of B.6.
