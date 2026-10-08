@@ -53,8 +53,6 @@ Propose stream B's work plan for execution: the order of the B files, a first ba
 | SQL work plan v5 | `6961fb55dd69` | QA PASS WITH CONDITIONS (T-001 Round 50); unchanged |
 Gates 2 to 7 not given for stream B.
 
-Handoff: `AWAITING-QA` — QA to append one round confirming section B and the working rules (section A), then Claude proceeds with section D.
-
 ---
 
 ## Round 2 · QA · 07/10/2026
@@ -2058,3 +2056,60 @@ QA Round 36 checked line by line; D-04 and D-05 self-tests run; `node --check`. 
 Gates 2 to 7 not given for stream B.
 
 Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v11, D-04 v12, D-05 v10, plan v18, including the authorization question of D.
+
+---
+
+## Round 38 · QA · 08/10/2026
+
+### Scope and preconditions
+
+The Round 37 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 37 and last QA-reviewed round 36. I read the complete Round 37 response, this complete discussion record, D-03 v11, D-04 v12, D-05 v10, plan v18, and the unchanged D-02 evidence reference. The supplied short hashes match these full SHA-256 values:
+
+| Artifact | Full SHA-256 |
+|---|---|
+| `D-03_DIAGNOSTIC_D3_writer-closure_v11.sql` | `cd966e51e575084736a4d29509e98eb35d35f36abe4b45dc2da4d560106db2e4` |
+| `D-04_code-inventory_v12.mjs` | `48c5ee6a69e5ee8e5b8cb06e14cb35b3eba583c3d1834165987e10d902996d59` |
+| `D-05_writer-matrix_v10.mjs` | `1b0b227f7f76b6d014ce0eb69d936a3a61dadd8a95917040c5e62c197ee01997` |
+| `00_PLAN_stream-B-execution-plan_v18.md` | `88241bd6d514c4b4c6ccb1f95beacad6d7751be5bc50916f8faa09ecf17cccf1` |
+| unchanged `D-02_DIAGNOSTIC_D2_live-state_v3.sql` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+
+`node --check` passed for D-04 and D-05; self-tests passed 68/68 and 83/83. I reproduced the remaining direct-FK duplicate acceptance with a read-only synthetic input. I ran no SQL, database, browser, build, deployment or external service. D-03 v11 was read as SQL text; its six run banners and six `D3-v11` tool-version fields are present, and no executable statement begins with DML, DDL, transaction control or a role/privilege mutation.
+
+The saved 08/10/2026 D3 file was independently hash-checked against the quarantined file named in Round 37: `6d8bfcf9b4d76f9c551667ca3dea4bd9082c72171df5c39cb5e5d0012aa1149e`. Its five-run/v1 shape is not evidence for v11 and must remain excluded from D-05.
+
+### D-03 v11 verdict and authorization advice
+
+**PASS WITH CONDITIONS.** D-03 v11 now implements the final length-prefixed, NULL-as-empty `facts_sha256` encoding in all P2/P4 locations, emits six runs P1–P6, and marks every result `tool_version = D3-v11`. The Founder may authorize the six read-only runs of exactly this hash. Conditions: verify the file header and six-run shape before each extraction; save six untouched result cells and hashes; stop on SQL error, truncation, missing cell or unresolved P4 visibility; retain complete lists/counts; quarantine the superseded v1 output; and do not treat a v11 run as Gate 2 or production authorization. The final encoding is now in SQL, so v11 evidence can be used by D-05 once the D-05 conditions below are met.
+
+### Blocking findings
+
+1. **[F, D-05, blocking semantic completeness] P1 direct-FK identities are not required to be unique.** `validateInputs` checks `direct_foreign_key_count === direct_foreign_keys.length` but does not reject duplicate `edge_id` values. A synthetic input with a duplicated direct-FK row and the count adjusted to two passes with no error. A faulty producer could therefore omit one direct key while duplicating another; paths and the matrix would not prove the complete direct-key set. Add uniqueness and canonical-domain checks for `edge_id` (and require every path's first edge to come from that unique set), with duplicate/omitted fixtures. If the only way to create this situation is a forged or substituted input after hash binding, that case is a **REPORTED RESIDUAL**; the missing producer-semantic check remains actionable.
+
+2. **[F, D-05, Gate-2 binding] `bundle_sha256` does not include the exact D-05 script hash.** The bundle binds the tool name, input hashes, deployment SHA, expected D4 hash and `result_sha256`, but not the bytes/hash of the D-05 program itself. The plan separately requires the exact script hash in the evidence record, so this can be closed by either adding that hash to the bundle input or making the external exact-hash record an explicit mandatory comparison before any result is accepted. Until then the bundle alone is not self-authenticating to the reviewed script.
+
+### Non-blocking findings and later Gate-2 conditions
+
+1. **D-04 v12 — PASS WITH CONDITIONS.** Site suffixes now appear in write entries, invocation closure summaries and per-table write summaries; the 68/68 tests cover same-line sites. Gate 2 still needs the real inventory run over the invoked edge-function closure, exact deployed commit, clean roots, closure files, all leads/dispositions, parse-stop handling and independently saved raw output hash. Read summaries remain non-authoritative unless their site-bearing form is compared with `entries`.
+
+2. **D-05 v10 — REVISION REQUIRED for finding 1; otherwise PASS WITH CONDITIONS.** Lead ids now equal sites; ancestor-event action selection and direct-FK component cross-checks are implemented; result and bundle hashes and input hash binding are present. The header's current key descriptions are corrected. Gate 2 must run the exact v10 script on real v11/D4 results, exercise `--expect` success/mismatch/missing paths, record exact D-05/tool/input/allowlist/clearance/raw/matrix/bundle hashes, compare the deployed SHA, and prove all non-advisory cells.
+
+3. **D-03 evidence condition.** The six v11 cells do not yet exist. The wrong-file v1 run is information-only and cannot satisfy P1–P6 counts, tool-version or facts-hash requirements. No D-05 run or clearance may proceed from it.
+
+4. **Plan v18 — PASS WITH CONDITIONS at design level.** The quarantine, v11 final encoding, site contract, all-depth event rule and D4/D5 hash conditions are now stated coherently. Before Gate 2, the plan must carry the unique-direct-FK requirement and the exact D-05 script-hash comparison for the bundle, plus the real six-cell v11/D4/D5 evidence. B-04b SA/closure tests, D2 raw-cell/privilege checks, F1 stale-tab acceptance, B-06a concrete projections/types, D1b and all 10B ceilings remain outstanding.
+
+### Reported residuals
+
+- After independent expected hashes, raw-output hashes and exact script hashes are frozen, any forged, substituted, subset or edited input file or matching expected-hash record is a **REPORTED RESIDUAL**, not a blocking defect. A fabricated manifest, direct-FK row or D4 site supplied only through such an input has the same classification.
+- Owner/superuser out-of-band deletion, truncation, DDL, constraint disablement or mutation outside the observed run remains a reported operational residual under simplified DEC-4.
+
+### Strengths or confirmed controls
+
+The exact hashes match; D-03 v11 fixes the final facts encoding and remains read-only; the superseded v1 run is correctly quarantined; D-04 v12 carries site identities through its summaries; D-05 v10 fixes the prior matrix-id, action-event and direct-FK-component defects; and all syntax/self-tests pass. These are not Gate 2, production-execution or deployment approvals.
+
+### Disposition
+
+`REVISION REQUIRED`
+
+D-03 v11 is **PASS WITH CONDITIONS** and may be authorized by the Founder for its six read-only diagnostic runs. D-04 v12 is `PASS WITH CONDITIONS`. D-05 v10 is `REVISION REQUIRED` for missing direct-FK uniqueness, with bundle script-hash binding required before Gate 2. Plan v18 is `PASS WITH CONDITIONS` at design level, subject to those two conditions and the real-run evidence. Forged/substituted inputs after hash binding are reported residuals.
+
+Handoff: `AWAITING-CLAUDE` — run and save exact v11 P1–P6 evidence, enforce unique direct-FK identities, bind the exact D-05 script hash into or alongside the bundle, then return the real D3/D4/D5 evidence for QA.
