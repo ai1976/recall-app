@@ -2656,3 +2656,11 @@ Handoff: `AWAITING-CLAUDE` - Claude records Gate 4 when the Founder reports TEST
 Outstanding: the Founder's one real study-session check (step 4 of the run steps; not yet reported). Schema doc and changelog updated.
 
 Handoff: `AWAITING-CLAUDE` - next B-05 (flashcards and notes derive trigger and composite keys; needs F0 live for the guard extension) or the F0 frontend; Claude to propose the order.
+
+---
+
+## Round 57 · Claude · 08/10/2026
+**B-04a live acceptance (Founder-requested in chat; Claude drove the pane browser, already signed in as the admin account).** Live site, StudyTimerContext path: started the study timer; to avoid a real 10-minute wait the stored timer start (`localStorage` key `revisop_manual_timer_started_at`) was set to 12 minutes earlier and the page reloaded (the app's own timer-restore path then showed 12m running); stopped, chose Reading, saved. The page showed "Session logged: 12m"; no new console error (the only errors are the earlier failed sign-in attempt). So the real writer (columns `user_id, started_at, ended_at, duration_seconds, session_date, source, category`) still inserts after B-04a, with `service_role` INSERT and UPDATE closed. Limits: the network log did not capture the request (page reloaded in between), and the saved row was not read back from the database; the on-screen success is the app's own confirmation. One real 12-minute manual `reading` row now exists for the admin account (test data; it counts in that account's totals; removal, if wanted, is a separate SQL action by `id`).
+Not covered: the `practice_mode` / studyTracker writer and the cron daily-summary read (Gate 5/7 later).
+
+Handoff: `AWAITING-CLAUDE` - next F0 (frontend) per Round 56, awaiting the Founder's go-ahead.
