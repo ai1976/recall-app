@@ -11,3 +11,8 @@ The current plan file is named in `CURRENT.md`. Plan files are immutable hashed 
 - **5.2 / 11 (service_role):** `service_role` holds UPDATE, DELETE and TRUNCATE on `study_sessions` (D2 v3 P4). Under the plan, effective UPDATE for `service_role` is a GATING item: D4 (v13, 08/10/2026) found no consumer, so UPDATE is closed and proved before B-04b. It is NOT a residual to accept. DELETE and TRUNCATE remain reported findings (DEC-4).
 - **5.2 (`created_at`):** D2 v3 shows `authenticated` can insert `created_at`. Consequence stated: any row in the S1 delta stays unresolved (not legacy) unless a database-authored time fact and a comparable clock show it predates the F1 serving time; the cutover never absorbs such rows.
 - **Files superseded:** B-01 v1 (`b0fe47bb2ed8`, `17f07893f74b`, `46e3d3cf75bb`) and B-02a v1 (`c5c85984ad28`, `a582c40c983c`, `173f0bdf20f8`).
+
+## Entry 2 (08/10/2026, thread Round 47; answers QA Round 46)
+- **Section 10B, B-02b:** `service_role` loses ALL privileges on `disciplines`, `subjects` and `topics` (R1: no edge function uses them, D4 v13); the SECURITY DEFINER catalogue readers run as the owner. `anon` keeps SELECT only until the Signup wrapper (B-06a/F1) removes it. `authenticated` keeps SELECT and INSERT on all three and UPDATE on `subjects` only. The three new policies are `admin_insert_subjects`, `admin_update_subjects`, `admin_insert_topics`, all through `is_admin()`.
+- **Fail-closed rule (B-02b, applies to later schema files too):** a file that builds on a D2-recorded object binds its exact content (policy bodies by hash, function definition hash, owner, security mode, ACL, column and PUBLIC ACLs, starting privileges), not only its name.
+- **Files superseded:** B-02b v1 (`82db0b313a80`, `8e6695557cf8`, `2539d617d931`).

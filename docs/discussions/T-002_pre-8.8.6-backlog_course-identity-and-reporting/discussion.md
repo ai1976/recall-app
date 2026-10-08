@@ -2422,3 +2422,37 @@ Owner/superuser out-of-band DDL, privilege changes, and forged or substituted fi
 The `anon` transitional SELECT, owner-only deactivation choice and simulated real-role method are acceptable only with the listed Gate 2/Gate 7 conditions. The two blocking privilege/preflight defects must be corrected before B-02b can proceed to Founder Gate 2.
 
 Handoff: `AWAITING-CLAUDE` — close or obtain a Founder decision on the `service_role` catalogue grants, bind the exact existing policy and `is_admin()` contracts, and return all three files for Tier 1 round 2.
+
+---
+
+## Round 47 · Claude · 08/10/2026
+**Scope.** Tier 1 round 2 for B-02b, answering QA Round 46 (committed unchanged first, `53fc523`). Both blockers accepted and fixed; the non-blocking items that belong in the files are folded in. Not run (no database engine; read statement by statement).
+
+### A. Files and exact hashes (v1 files `82db0b313a80`, `8e6695557cf8`, `2539d617d931` are superseded)
+| File (in `docs/database/t002/`) | Short | Full sha256 |
+|---|---|---|
+| `B-02b_SCHEMA_catalogue-write-path-and-privileges_v2.sql` | `097e0f3a0453` | `097e0f3a045312f9a17a8e1a02b20be7a09756f0088c72fed4066376d1ffb26b` |
+| `B-02b_TEST_catalogue-write-path-and-privileges_v2.sql` | `135f68d54db3` | `135f68d54db34c2f9555c495f9c271e40886a5549702c719d22af352e5ea7a20` |
+| `B-02b_ROLLBACK_catalogue-write-path-and-privileges_v2.sql` | `9e1a20469231` | `9e1a20469231a65acfb8a2a87d6af95e42506891aa533f235ac05baad880e161` |
+
+### B. Blockers
+1. **`service_role` grants (accepted).** Plan 10B R1 retains `service_role` only for an edge function that D4 finds; D4 v13 finds no edge function that reads or writes `disciplines`, `subjects` or `topics` (checked again for this round: no entry and no RPC under `supabase/functions` touches them). B-02b v2 therefore revokes ALL privileges on the three tables from `service_role`. The SECURITY DEFINER functions that read the catalogue run as the owner, not as `service_role`. The TEST now requires no privilege for `service_role`; the rollback restores all eight to `anon`, `authenticated` and `service_role`.
+2. **Pre-flight bound only names (accepted).** v2 aborts unless: the complete B-02a object set exists (index, three triggers enabled, three functions); the live policies equal the four D2 recorded, compared by an MD5 over table, name, command, permissive mode, roles, USING and WITH CHECK; `public.is_admin()` has the D2 definition hash (`md5(pg_get_functiondef)` `48f3d12d8d0e`), owner `postgres`, SECURITY DEFINER and the D2 execute grantees (compared in byte order, so the database collation cannot change the answer); RLS is on; no column carries its own ACL; no PUBLIC grant; and `anon`, `authenticated` and `service_role` each hold exactly the eight privileges D2 recorded. The TEST replaces the substring match with equality on the three new policy expressions.
+
+### C. Non-blocking items folded in
+- **QA 1 (anon):** kept as a transitional SELECT (to be removed with the Signup wrapper, B-06a/F1); the TEST now proves the effective anonymous boundary: as `anon`, the three tables return no rows and an insert is refused.
+- **QA 4 (column and PUBLIC ACLs):** checked in the pre-flight and the TEST.
+- **QA 5 (B-02a set):** bound in the pre-flight.
+- **QA 6 (single execution):** results are materialised once in a temporary table and read twice.
+- **QA 7 (brittle fixtures):** baseline counts recorded, the fixture discipline is taken from the live rows (no assumption of three rows or of "CA Final"), fixture names carry a clock-based tag.
+- **QA 8 (rollback):** header says run as one selection; verification steps listed after it; `service_role` restored.
+- **Carried, not changed:** QA 2 (no UPDATE on disciplines and topics): accepted as is; QA 3 (real HTTP path and the browser upload): the Founder's real admin upload after the run is an acceptance step.
+- **A bug of my own, caught before sending:** my first draft compared the `is_admin()` execute grantees as a collation-sorted string; under the database collation `en_US.UTF-8` the order would not have matched and the file would have aborted. v2 compares in byte order.
+- **Evidence note:** the decoded D2 definition text is not byte-faithful (the paste doubles the backslashes of line breaks), so the pre-flight uses the hash the database itself computed (`definition_md5` in D2), never a hash of the decoded text.
+
+### D. Request to QA (round 2, closure)
+For the three v2 files by exact hash: state whether each Round 46 blocker is closed and list any NEW blocker introduced by the changed bytes only. If none, PASS or PASS WITH CONDITIONS so the files can go to the Founder for Gate 2.
+
+Gates 2 to 7 not given for B-02b.
+
+Handoff: `AWAITING-QA` - QA to append one round answering D.
