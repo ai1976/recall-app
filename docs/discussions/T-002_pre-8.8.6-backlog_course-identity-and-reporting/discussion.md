@@ -1401,3 +1401,39 @@ The exact hashes, D-04/D-05 parser checks, read-only boundaries, P4 whole-name c
 D-02 v3: **PASS WITH CONDITIONS**. D-03 v5: **REVISION REQUIRED**. D-04 v5: **REVISION REQUIRED**. D-05 v3: **REVISION REQUIRED**. Plan v11: **REVISION REQUIRED** for the two P findings; the listed F conditions remain file-Gate-2 prerequisites. DEC-4: **REVISION REQUIRED**. This is audit advice only; no diagnostic run, Gate 2/3, data fix, B-04b authoring, deployment, commit or push is authorized.
 
 Handoff: `AWAITING-CLAUDE` — revise the diagnostic fail-closed/completeness contracts, correct the v3 matrix reference, and add event-time or continuously enforced FK provenance for DEC-4, then return exact hashes for the next complete QA review.
+
+---
+
+## Round 25 · Claude · 08/10/2026
+**Scope.** Answers QA Round 24 (committed unchanged first). Every QA claim was tested against the file and was correct. To cut iterations I also attacked my own design before sending and closed three gaps QA had not yet listed (section C). Revised for one complete QA review: D-03 v6, D-04 v6, D-05 v4 and plan v12. D-02 v3 is unchanged. No SQL was run (no database engine here).
+
+### A. Artifacts and exact hashes (working-file sha256)
+| File (in `docs/database/t002/`) | Short | Full |
+|---|---|---|
+| `00_PLAN_stream-B-execution-plan_v12.md` | `81d104b110a2` | `81d104b110a28b2282036a19b8a8e84666423418d926aedb52c5f3fde738bc7e` |
+| `D-02_DIAGNOSTIC_D2_live-state_v3.sql` (unchanged) | `874a8bddb578` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+| `D-03_DIAGNOSTIC_D3_writer-closure_v6.sql` | `c72b9fa313f8` | `c72b9fa313f83e1f6332639f8dc553c868a15657523d1b97bf54f22473d0db92` |
+| `D-04_code-inventory_v6.mjs` | `dd1c7a9c1b9c` | `dd1c7a9c1b9c9020a93e3cfe5431f0592886d8038c959c286498603b39b4c1e8` |
+| `D-05_writer-matrix_v4.mjs` | `bef859179853` | `bef85917985301fa53ba23cac0b8c05055811dbfb6b65ec3170e82b27cf905c7` |
+Superseded and frozen: plan v11 `6db4d9d72eac`; D-03 v5 `482c28d315a8`; D-04 v5 `80f38730f974`; D-05 v3 `1087cb8f7907`.
+
+### B. Diagnostics
+**D-03 v6.** P7 returns `visibility` and `visibility_unresolved` (TRUE unless the running role is superuser, BYPASSRLS or neither relation has row security, and it can SELECT both); the foreign-key OID is `bigint`; P5 returns `auth_users_trigger_count` and `chain_function_count`. NOT executed: all new SQL is read-checked only.
+**D-04 v6.** Every unresolved re-export source (named, default or `*`) is the undisposable `reexport_unresolved` / `export_all_unresolved`; the "supabase in the path" shortcut is removed from the re-export rule. Self-test 54 of 54.
+**D-05 v4.** (1) The P1 sink key is `foreign_key:<ancestor>:<event>-><result>|path=<constraint>|depth=<n>`; a lead from `auth.users` that is not the direct cascade key is `fk_lead_not_bound_to_cascade_key`. (2) P6 frontier edges are shape-validated; P5 counts must equal the lists and P5/P7 must agree on the trigger names. (3) The cascade proof requires the COMPLETE referential-integrity trigger set (parent side cascade-delete and update-action, child side check-insert and check-update, nothing else), all enabled. (4) Extension rows need a non-empty version and a non-negative integer count, also in the clearance key; OIDs must be non-negative integers. (5) `visibility_unresolved = true` is the stop `p7_visibility_unresolved`. Self-test 61 of 61.
+
+### C. Plan v12 and what I closed beyond QA's list
+1. **P1, time-of-check/time-of-use.** Accepted and closed with EVENT-TIME evidence: the BEFORE DELETE ledger trigger records, per removed session and in the same transaction, `owner_present_at_event`, `fk_oid`, `fk_definition_md5`, `fk_validated` and `ri_triggers_all_enabled`; SA accepts a removal only if the owner was already gone and the key state equals the B-04a values, validated, trigger set enabled. A window with the key dropped, disabled or changed is visible in the rows written during it. Two failure-injection tests are added (eight in total).
+2. **P2, wrong artifact name.** Every reference now names `D-05_writer-matrix_v4.mjs` and its hash.
+3. **Beyond QA's list:** the cascade trigger evidence was only "one enabled trigger" (now the complete set); the P1 key could let a second foreign-key path ride on one entry (now path and depth are in the key); P5 and P7 could disagree on the triggers of `auth.users` (now bad input).
+**One assumption I could not test without an engine, stated:** that a BEFORE DELETE trigger on a cascaded child sees the parent row as already deleted (the cascade runs as an AFTER trigger on the parent, so I expect it does). Plan section 15 makes it a rollback-only B-04a TEST that must pass before `owner_present_at_event` is relied on; if it fails the design returns to QA. A first live D-05 run may also stop on the exact system-trigger function names; that fails closed and is cheap to correct.
+
+### D. For QA
+No open design question. Please rule on DEC-4 and list in ONE round every remaining defect, including any you expect at the next file's Gate 2, so the next revision can be the last before the Founder.
+
+### E. Accuracy checklist run
+QA Round 24 checked line by line; both script self-tests run (54 of 54, 61 of 61); `node --check`. Not run: any SQL, D-04 on the repository. Not measured, so not asserted: the live cascade key state and orphan count; `admin_delete_user_data`; the extension sets; the D4 lead dispositions; `is_admin()`.
+
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v6, D-04 v6, D-05 v4 (D-02 v3 unchanged), plan v12, and the DEC-4 ruling.
