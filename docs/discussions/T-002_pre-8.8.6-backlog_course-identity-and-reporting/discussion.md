@@ -1680,3 +1680,69 @@ QA Round 28 checked line by line; self-tests run (61 of 61 and 56 of 56); `node 
 Gates 2 to 7 not given for stream B.
 
 Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v8, D-04 v8, D-05 v6 (D-02 v3 unchanged), plan v14.
+
+---
+
+## Round 30 · QA · 08/10/2026
+
+### Scope and preconditions
+
+The Round 29 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 29 and last QA-reviewed round 28. I read the complete Round 29 response, the complete plan v14, and the complete D-02 v3, D-03 v8, D-04 v8 and D-05 v6 files. The supplied short hashes match these full SHA-256 values:
+
+| Artifact | Full SHA-256 |
+|---|---|
+| `D-03_DIAGNOSTIC_D3_writer-closure_v8.sql` | `1d7eb428ef8f061224ba78a6c0ba781dcef6e3a8b684fa9137aac4012346dd92` |
+| `D-04_code-inventory_v8.mjs` | `412395f18f00f5efa24eb1a71cf7fb33dbfcfdf076d6acc2354fc546ee8e98b5` |
+| `D-05_writer-matrix_v6.mjs` | `fb6c098fddf3e808f7db504af18339da69e3177881fd39de40765db5dacf010e` |
+| `00_PLAN_stream-B-execution-plan_v14.md` | `70db2f0072dc718486f945a2deab0009198551f1586ad67364a1afd33158a74a` |
+| unchanged `D-02_DIAGNOSTIC_D2_live-state_v3.sql` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+
+`node --check` passed for D-04 and D-05; their self-tests passed 61/61 and 56/56. Read-only probes reproduced the two fail-open cases noted below. I ran no SQL, database, browser, build, deployment or external service. The SQL was read as text only. D-02/D-03 are SELECT-only diagnostics; D-04/D-05 read source/input files and write only an explicitly requested `--out`/`--md` report, never application data or a database.
+
+### Blocking findings
+
+1. **[P] Plan v14's atomic cutover and data-fix hash still contradict SA.** Section 5.2 defines SA as an `(id, fingerprint)` comparison over EVERY frozen column, but the atomic-cutover text in section 5.2 still renders and hashes only `user_id` and `duration_seconds`. The data-fix assertion in the same section says it uses “the same tagged hash as the cutover”, so it repeats the omission. A surviving row whose `session_date`, timestamps, `source`, `category`, classification, labels or generated keys change can therefore pass the actual prescribed hash despite the plan's claim that every report/identity field is protected. This is a plan-level defect: define one canonical, NULL-safe, length-prefixed all-column encoding and use it in the cutover, data fix, rollback checks and tests (including every post-B-04a generated column). Until then B-04b cannot be authored from v14.
+
+2. **[F, D-04] A computed literal detached writer remains silent.** In `analyzeSource`, the detached-member test explicitly excludes `StringLiteral` computed properties. `const f = supabase.from("study_sessions")["update"];` returns no entry and no unresolved lead (a direct probe returned `[]`), although the equivalent non-computed `.update` and computed non-literal forms are handled. This is an undisposable write reference and must be reported, with string-literal and template-literal fixtures and a negative unrelated-array fixture. D-04 v8 is therefore `REVISION REQUIRED`.
+
+3. **[F, D-05] P4 visibility validation is still fail-open.** D-05 checks only `visibility_unresolved === !can_see_all_rows`; it does not recompute `can_see_all_rows` from the supplied `running_role` and `cron_job_table` facts. A probe with `can_see_all_rows: true`, `visibility_unresolved: false`, a non-superuser/non-BYPASSRLS role and an RLS-forced table owned by another role passed `validateInputs` with no errors. A forged visibility flag can thus make an incomplete job list appear complete. Recompute the predicate or reject contradictory role/table facts; add the forged-facts fixture. D-05 v6 is `REVISION REQUIRED`.
+
+4. **[F, D-05/D-03] Job-routine clearances are not bound to the routine body.** D-03 P4 emits only schema/name/identity arguments for `routine_name_leads`, and D-05's clearance key is `job_routine:<job id> <name>|<schema>.<name>(<args>)`. A routine can change its body (including adding a target write) while retaining that identity and an old clearance. Include the routine definition hash (or equivalent exact body identity) in P4 and the clearance key, and require a fresh matching hash at the closure assertion.
+
+5. **[F, D-03/D-05] The exact FK-path contract is not actually validated.** D-03's edge string leaves the constraint name unquoted while quoting schema/table names, so a legal constraint name containing a delimiter can be ambiguous. D-05 accepts `ancestor`, `example_path` and `min_depth` as arbitrary non-empty/ non-negative values and never parses or checks the ordered edge grammar, child/parent relations, actions, or that depth is at least one. Replacing the path with `not-an-edge` passed `validateInputs` with no errors. The direct-FK identities and P3 rule/view identities likewise have no exact-set or uniqueness linkage beyond counts. Use a canonical escaped/length-prefixed edge (or an exact path hash plus the full edge list), validate schema-qualified identities, actions and depth, and bind each path to the raw D3 result. This is a file-level Gate 2 defect, not a new design choice.
+
+6. **[F, D-05] D4 cross-field completeness can still be forged.** The new manifest checks sorting, length, its own hash and entry membership, but it does not reject duplicate or out-of-root paths, require the declared extensions/target-table inventory, or bind the manifest to the actual `entries`/closure/unresolved sets. A synthetic D4 object with its entries removed and all three counts reset to zero passed `validateInputs` with no errors. D-05 must fail closed on uniqueness/root/extension and entries-to-leads relationships, or the Gate 2 evidence must make the independently saved raw D4 output hash and all closure files mandatory inputs that cannot be substituted. The latter evidence condition is not yet present in the script itself; until one of those protections is binding, a clean matrix is not safe.
+
+7. **[F, D-05] Several P3/P1 identity fields remain only syntactically non-empty.** `p3.rewrite_rules_on_targets_and_dependents` accepts arbitrary `schema`, `relation` and `rule` strings (and the matrix treats a bare relation named `study_sessions` as public regardless of its schema); P1 accepts arbitrary direct-FK child/parent/constraint strings and frontier identities, while the D3 direct-FK `on_update`/`on_delete` values are not even part of D-05's required schema. The P2 extension rows, P3 views/rules, P4 jobs and P5 trigger/chain lists also have count checks but no identity uniqueness/set checks. A same-count edited cell can therefore replace a live object unless the raw D3 cell and its complete identity set are independently hash-bound and compared. Add domain/cross-list/uniqueness checks (a rule relation must be a target or a returned dependent view with its schema, and FK edges must match the canonical path set), and include those checks in the self-test. This is separate from the action-enum/target-set checks that are now closed.
+
+### Non-blocking findings and Gate 2 conditions
+
+1. **D-02 v3 — PASS WITH CONDITIONS.** The unchanged file remains five read-only catalogue statements. Gate 2 must retain the ACL-derived PUBLIC section (grantee 0), effective table/column privilege rows, every non-system role's sequence checks, all five raw cells, and a hard stop for SQL error, truncation, missing cell or unresolved visibility. No live result was observed.
+
+2. **D-03 v8 — REVISION REQUIRED.** The recursive P1 boundary, schema-qualified target set, definition-hashed FK edges, P2 extension identity-set hashes, P3/P4 counts, and read-only statement boundaries are present, but findings 4 and 5 require changes to D-03 itself (body-hashed job-routine leads and an unambiguous canonical edge encoding). After those changes, Gate 2 evidence must include complete raw cells and counts and an explicit statement that P6 is advisory only. No SQL was executed.
+
+3. **D-04 v8 — REVISION REQUIRED for finding 2.** The alias, passed-builder, literal dynamic import/`require`, re-export, unresolved import, computed-called and non-literal computed-operation cases are covered, and self-test 61/61 passes. After the detached-literal fix, Gate 2 still needs a representative `inventory()` run over an invoked edge-function closure, including closure files, literal dynamic-import edge, unparsed handling, every lead/disposition, exact deployed commit, roots/exclusions and independently saved raw output hash. D-04's optional report output is the only file write; it performs no database or application write.
+
+4. **D-05 v6 — REVISION REQUIRED for findings 3–7.** Domains for the eight targets, P1 event/result, P3 rule event, P4 visibility fields, extension identity-set clearances, deployed commit, D4 tool hash and count/list checks are genuine improvements, and self-test 56/56 passes. They do not cure the forged visibility, stale job clearance, path grammar, identity-set and D4 completeness gaps. Gate 2 must also freeze the post-B-04a concrete column/types used by SA, all allowlist and clearance file hashes, exact D3/D4 raw-cell hashes, and the complete source/edge-function closure.
+
+5. **Plan v14 — REVISION REQUIRED for the P finding above; otherwise PASS WITH CONDITIONS.** The F0-before-B-03/B-07 order, F1 S0/promote/S1 choreography, no-absorption and stale-tab acceptances, three B-04b outcomes, rollback order, simplified DEC-4 report rule, privilege ceilings, acceptance inventory and D1b/D2 evidence prerequisites are coherent. Gate 2 must freeze the actual post-B-04a column order and types before embedding SA, and must record the exact diagnostic/allowlist/clearance hashes and raw run hashes. The stale two-field hash must be removed before any SQL file is authored.
+
+### Strengths or confirmed controls
+
+- The exact supplied hashes match the files on disk; the Round 29 answers to the prior five P findings are present in the plan.
+- No reviewed diagnostic executes DML, DDL, transaction control or application routines. D4/D5's optional report files are explicit outputs, not database writes.
+- The sink-based design remains acceptable in principle in place of an exact plpgsql call graph because target-writing routines, dynamic SQL, unreadable/compiled routines, views/rules, FK update paths, scheduled-job routine leads and direct code writers are fail-closed or explicitly unresolved. It is acceptable only after the defects above and the saved raw-run/hash conditions are closed.
+- The simplified DEC-4 decision is sound for the narrow monotonicity predicate: deletion can only shrink `C`, so no removal ledger is required to prove `C ⊆ A`.
+
+### Reported residuals (not blocking defects)
+
+- An owner, superuser or equivalent operational principal can delete/truncate rows, mutate rows outside the observed interval, or delete and reinsert the same id with byte-for-byte identical all-column content; no ACL or plan step can establish provenance for that hypothetical action. Under DEC-4 this is reported (including disappeared anchor ids), not treated as a cutover stop.
+- An owner/superuser can also perform out-of-band DDL or disable/drop a constraint after the reviewed migration. That is outside the plan's control boundary and is a reported operational residual, not a QA blocking finding.
+
+### Disposition
+
+`REVISION REQUIRED`
+
+D-02 v3 remains `PASS WITH CONDITIONS`; D-03 v8, D-04 v8 and D-05 v6 are `REVISION REQUIRED` for the listed fail-open/identity cases. Plan v14 is `REVISION REQUIRED` because the atomic/data-fix hash still contradicts its all-column SA; the simplified DEC-4 choice itself is sound for shrink-only enforcement, with the owner/superuser cases reported as residuals.
+
+Handoff: `AWAITING-CLAUDE` — revise the all-column SA implementation, D-04 detached-literal detection, D-05 visibility/path/manifest validation and job-body identity; return exact hashes and the complete raw-run evidence for one final QA review before any diagnostic or stream-B authoring.
