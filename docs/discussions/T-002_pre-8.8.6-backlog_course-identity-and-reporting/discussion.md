@@ -1779,3 +1779,66 @@ QA Round 30 checked line by line; self-tests 64 of 64 and 63 of 63; `node --chec
 Gates 2 to 7 not given for stream B.
 
 Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v9, D-04 v9, D-05 v7 (D-02 v3 unchanged, run), plan v15, and the ruling of B.6.
+
+---
+
+## Round 32 · QA · 08/10/2026
+
+### Scope and preconditions
+
+The Round 31 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 31 and last QA-reviewed round 30. I read the complete Round 31 response, this complete discussion record, plan v15, D-03 v9, D-04 v9, D-05 v7, and the unchanged D-02 v3 evidence index. The supplied short hashes match these full SHA-256 values:
+
+| Artifact | Full SHA-256 |
+|---|---|
+| `D-03_DIAGNOSTIC_D3_writer-closure_v9.sql` | `3fe0a974133e81530788684e6bd719425bba82f387b7f37ec5e7ba46329a136a` |
+| `D-04_code-inventory_v9.mjs` | `e494c30f7903348a76019b5c493fbefd1a878f659cb755965a7dc662cffe3d1f` |
+| `D-05_writer-matrix_v7.mjs` | `7b37e018ac527ea2bb84838398a29c4e62dc2dc2cd55aa0c664961175d222e9e` |
+| `00_PLAN_stream-B-execution-plan_v15.md` | `b8a954ef943d209de0f3d26c432948e7120be10ff0e335589bd588b3bd79febc` |
+| unchanged `D-02_DIAGNOSTIC_D2_live-state_v3.sql` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+
+`node --check` passed for D-04 and D-05; their self-tests passed 64/64 and 63/63. A read-only probe reproduced the D-04 collision and a D-05 same-key allowlist collision. I ran no SQL, database, browser, build, deployment or external service. D-03/D-02 were read as SQL text and no run can write: D-03 states every run is one `SELECT`/`WITH ... SELECT`; D-04/D-05 write only an explicitly requested report file.
+
+### Hash-binding ruling (Round 31 B.6)
+
+**PASS WITH CONDITIONS.** D-05 reads bytes, computes SHA-256, rejects each P1–P6, D-04, allowlist and supplied-clearance file whose hash differs from the required `--expect name=sha256`, and records the actual hashes in its output. This is an adequate integrity boundary against an edited, substituted or subset input file when the expected hashes are independently frozen in the Founder/QA evidence index and Gate-3 request, the exact D-05 script hash is itself recorded, and raw D-03/D-04 outputs are linked to those hashes. It does not establish that a fresh live run was made, that the deployment SHA is correct, or that the producer's semantics are correct. The CLI success, mismatch and missing-expect paths still need a Gate-2 fixture. Once those independent hash records are in force, any forged/substituted input file or altered matching hash record is a **REPORTED RESIDUAL**, not a blocking finding under this round's rule.
+
+### Blocking findings
+
+1. **[F, D-04, blocking] Disposition IDs are not occurrence-unique.** `leadId` is only `file:line:kind`. Two different unresolved leads on one source line therefore receive the same id. A read-only probe with `fetch('/a'); fetch('/b');` produced two `fetch_transport_lead` items, and one disposition for `probe.ts:1:fetch_transport_lead` disposed both. The same-line case can hide a second transport, unknown-writer, re-export or other disposable lead. Use a stable occurrence discriminator (column, AST ordinal or source-span/hash) in the id and add a same-line multiplicity fixture; D-04 v9 remains `REVISION REQUIRED`.
+
+2. **[F, D-05, blocking unless explicitly made a reviewed function-level contract] Direct code-writer allowlisting is not site-unique.** The key is `file|table|op|enclosing function`, while the lead id is only `file:line`; two writes in one function can therefore be cleared by one allowlist entry without evidence that each site was reviewed. A synthetic matrix with two `study_sessions` INSERTs at distinct occurrences but the same file/table/op/function returned no unresolved item from one entry. Either bind the allowlist to a stable site id and test same-function multiplicity, or state and prove that one function-level review covers every occurrence (including payload and operation identity). As written, the contract is fail-open for an omitted site; D-05 v7 remains `REVISION REQUIRED`.
+
+3. **[F, D-05/D-03, blocking] Non-readable routine clearances can outlive the facts they cleared.** `unreadable_language_routines` and compiled non-extension routines are keyed only by routine identity (schema/name/args, with language/owner present in the input but absent from the clearance key). A new D-03 run can report changed owner, security-definer/config/search-path or ACL facts while the old identity-only clearance still matches. Dynamic-SQL clearances bind `src_md5`, but likewise do not bind the security/config/ACL facts that affect execution. Bind every clearance to a canonical hash of all write-relevant routine facts (or make such clearances single-run, raw-D3-hash-bound and non-reusable); otherwise an old clearance can suppress a new writer. This is not a forged-file case and remains a blocking Gate-2 contract defect.
+
+4. **[F, D-05, Gate-2 closure condition] FK path validation is syntactic, not relational.** `PATH_RE` verifies quoted edge syntax, edge count and that the first edge starts at the target, but does not verify adjacent child/parent continuity, that the final parent equals `ancestor`, or that the edge actions agree with `ancestor_event`/`target_result`. A faulty producer could therefore emit a disconnected path that receives a sink key. Add those semantic checks and a disconnected-path fixture. If the only way to obtain such a row is to forge/substitute a D-03 input, that particular case is a **REPORTED RESIDUAL** after hash binding; the producer-semantics check itself remains required.
+
+### Non-blocking findings and later Gate-2 conditions
+
+1. **D-02 v3 — PASS WITH CONDITIONS.** The Founder run is now evidenced by all five raw cells and the saved hashes. Gate 2 must retain the raw cells, effective table/column privileges, ACL-derived PUBLIC rows, every non-system role's sequence checks, and hard stops for missing, truncated, SQL-error or visibility-unresolved cells.
+
+2. **D-03 v9 — PASS WITH CONDITIONS, not yet runnable evidence.** The read-only boundary, schema-qualified eight-target set, quoted definition-hashed FK edges and P4 `body_md5` are present. No SQL run was supplied. Gate 2 must save complete P1–P6 raw cells, counts and identity sets, verify P6's exact identity/language/security closure, and bind the resulting raw hashes to D-05. D-03 v9's job-routine body hash does not by itself solve the broader clearance-freshness defect above.
+
+3. **D-04 v9 — REVISION REQUIRED for finding 1; then Gate 2 conditions remain.** The computed string/template detached-operation cases, alias/passed-builder, dynamic import/`require`, re-export, unresolved import and clean-tree/parse-stop controls are covered. After occurrence IDs are fixed, Gate 2 still needs an `inventory()` run over the invoked edge-function closure, literal dynamic-import and re-export fixtures, unparsed-file handling, exact deployed commit, roots/exclusions, every lead and disposition, closure files and an independently saved raw output hash.
+
+4. **D-05 v7 — REVISION REQUIRED for findings 2–4; then Gate 2 conditions remain.** Visibility recomputation, target/action domains, duplicate checks, manifest checks, body-hashed job leads, extension identity-set hashes and `--expect` input binding are genuine controls. Gate 2 must run the exact script against real D-03/D-04 outputs; record all input, script, allowlist, clearance, raw-output and matrix-result hashes; exercise `--expect` success/mismatch/missing paths; compare the deployed SHA; and prove the complete D4 manifest/closure and all non-advisory matrix cells. Hash binding is not a substitute for those live-run and semantic checks.
+
+5. **B-04b and plan conditions.** Before authoring SQL, Gate 2 must freeze the post-B-04a column order/types used by the one NULL-safe all-column SA encoding; test empty/NULL/added/removed/altered/same-id cases; assert the fresh closure immediately before execution; and run the two-connection lock/concurrent-insert test or obtain the explicitly documented Founder acceptance of the `NOT COVERED` residual before Gate 3. The F1 stale-tab acceptance still gates B-04b. B-06a concrete types/nullability/enums/actions/wrapper projections, D1b, D4 deployment evidence and all 10B privilege ceilings remain unverified.
+
+6. **Plan v15 documentation defects (non-blocking but must be corrected before the plan is the handoff record).** Section 1/11 still calls DEC-4 “proposed” before saying it was decided; section 11's D-03/D-04/D-05 table still labels the v9/v7 artifacts with the superseded v8/v6 QA states; the table says “Full hashes ... Round 29” although the reviewed hashes are recorded in Round 31; and the stale D-04 v3 development-run paragraph (178 files/73 leads) is not labelled as historical or replaced with the current v9 position. These do not alter the mechanism, but they can misdirect a Gate-2 evidence review.
+
+### Reported residuals
+
+- After the accepted hash-binding boundary is independently frozen, a forged, substituted, subset or otherwise edited input file, or a correspondingly edited expected-hash record, is a **REPORTED RESIDUAL**, not a blocking defect in this audit.
+- Owner/superuser out-of-band deletion, truncation, DDL, constraint disablement, or mutation outside the observed run remains a reported operational residual under simplified DEC-4; no plan step can prevent that hypothetical action. A same-id byte-for-byte reinsert is likewise indistinguishable by the permitted fingerprint and is reported, not treated as a new application writer.
+
+### Strengths or confirmed controls
+
+The supplied hashes are exact; D-02's run index matches the five raw-cell hashes; D-03 is read-only; D-04 and D-05 are syntax-valid and their self-tests pass; D-04 now catches literal/template computed detached operations; D-05 recomputes visibility, validates target/action domains, hashes every declared input and binds job-routine leads to `body_md5`; the v15 all-column SA and simplified DEC-4 direction are coherent as design choices. None of those facts is a Gate 2, execution or deployment approval.
+
+### Disposition
+
+`REVISION REQUIRED`
+
+D-02 v3 is `PASS WITH CONDITIONS`; D-03 v9 is `PASS WITH CONDITIONS` pending its raw run and the clearance-freshness contract; D-04 v9 and D-05 v7 are `REVISION REQUIRED` for the occurrence/allowlist collisions and clearance/path conditions above. Plan v15 is `PASS WITH CONDITIONS` at the design level but its stale evidence/status references must be corrected before it is a reliable handoff record. Hash binding is accepted conditionally; forged/substituted-input cases are reported residuals only after the independent hash record and exact-script run requirements are met.
+
+Handoff: `AWAITING-CLAUDE` — fix the D-04 occurrence identity, make D-05 code-writer allowlisting site-safe or explicitly prove the function-level contract, define clearance freshness for unreadable/compiled and dynamic routines, add FK path semantic checks, correct the stale plan references, and return the exact real-run evidence for the next QA review.
