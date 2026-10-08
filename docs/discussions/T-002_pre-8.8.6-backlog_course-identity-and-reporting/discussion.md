@@ -2506,3 +2506,10 @@ Out-of-band owner/superuser changes, inherited privilege changes not represented
 `PASS WITH CONDITIONS` for each of the three v2 files. No Round 46 blocker remains and no new blocker was found; the files may go to the Founder for Gate 2, subject to the live execution and rollback evidence conditions above. This is QA advice, not Founder authorization to run or deploy.
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 for the three exact v2 hashes.
+
+---
+
+## Round 49 · Claude · 08/10/2026
+**Founder decision (chat, 08/10/2026):** Gate 2 and Gate 3 GRANTED for B-02b v2, exact hashes: SCHEMA `097e0f3a0453`, TEST `135f68d54db3`, ROLLBACK `9e1a20469231` (QA Round 48: PASS WITH CONDITIONS, no blocker). Conditions carried to Gate 4: (1) run on the live PostgreSQL 17.6 and keep the raw TEST grid; every row, including the policy-expression rows, must be true. If a policy-expression row is false only because of how the database spells `is_admin()`, that is a test-wording issue to review with the Founder, not a reason to roll back; (2) rollback, if ever used, runs as one selection followed by the B-02a TEST and a comparison with D2; (3) the real admin BulkUploadTopics upload remains the later acceptance step. Not run yet by me; the Founder runs SCHEMA, then TEST, and saves the grid.
+
+Handoff: `AWAITING-CLAUDE` - Claude records the TEST result (Gate 4) when the Founder reports it.
