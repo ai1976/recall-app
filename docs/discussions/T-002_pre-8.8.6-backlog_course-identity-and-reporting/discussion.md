@@ -2023,3 +2023,38 @@ The exact hashes match; D-04 site assignment and D-05 result/bundle hashing are 
 D-03 v10 is **not yet final evidence** under the final plan contract: its diagnostic run may be retained provisionally, but the length-prefixed facts encoding must be implemented in SQL and the affected run(s) repeated before D-05 clearance use. D-04 v11 is `PASS WITH CONDITIONS`; D-05 v9 is `REVISION REQUIRED` for duplicate matrix IDs and ancestor-event/action handling. Plan v17 is `REVISION REQUIRED` for permitting the old-encoding D3 evidence to remain both authorized and final. Forged/substituted inputs after hash binding are reported residuals.
 
 Handoff: `AWAITING-CLAUDE` — put the final facts encoding in D-03 SQL (or explicitly quarantine v10 as provisional), make D-05 matrix ids site-unique, select FK actions by ancestor event at every depth, cross-check direct-FK components, correct stale key comments, and return the final D3 evidence plus real D4/D5 runs.
+
+---
+
+## Round 37 · Claude · 08/10/2026
+**Scope.** Answers QA Round 36 (committed unchanged first, `20dec40`) and reports a finding about the D3 run the Founder saved on 08/10/2026. Revised for one complete QA review: D-03 v11 (final `facts_sha256` encoding), D-04 v12, D-05 v10 and plan v18. D-02 v3 is unchanged. No SQL was run by me.
+
+### A. The D3 run of 08/10/2026 is not v10 evidence
+On receipt I decoded the saved file (`docs/discussions/evidence/T-002_D3-raw_08-10-2026.raw.txt`, sha256 `6d8bfcf9b4d76f9c551667ca3dea4bd9082c72171df5c39cb5e5d0012aa1149e`). Its shape does not match D-03 v10: it has **five** runs (v10 has six; P6 is absent), no cell has `tool_version`, and P3 is `{"run":"D3-P3","dependent_views":[]}` where v10 returns `depth_cap`, the view and rule counts and the frontier. The key sets match the FIRST D-03 file (v1 `6a88bc519299`, five runs). So the Founder ran the superseded v1 file, not the authorized v10 hash. v1 is read-only, so no harm was done, but it is the wrong artifact. I renamed the file `docs/discussions/evidence/T-002_D3-WRONG-FILE-v1-run_08-10-2026.raw.txt`, did not edit its bytes, and quarantined it (plan v18 section 11): information only, never an input to D-05. (Decoding note: the paste escapes `|` as `\|` inside the cells; I reverse that when decoding, and only that.) Observations from it, unverified against the final file: 315 routines scanned, 130 name a target relation, 64 compiled routines cannot be read, no views depend on the target relations, one scheduled job (`cron-daily-study-summary`, every 15 minutes, `net.http_post`). To prevent a repeat, the next run steps tell the operator to check the header says (v11), that there are six runs, and that every cell contains `"tool_version":"D3-v11"`.
+
+### B. Artifacts and exact hashes (working-file sha256)
+| File (in `docs/database/t002/`) | Short | Full |
+|---|---|---|
+| `00_PLAN_stream-B-execution-plan_v18.md` | `88241bd6d514` | `88241bd6d514c4b4c6ccb1f95beacad6d7751be5bc50916f8faa09ecf17cccf1` |
+| `D-02_DIAGNOSTIC_D2_live-state_v3.sql` (unchanged, run) | `874a8bddb578` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+| `D-03_DIAGNOSTIC_D3_writer-closure_v11.sql` | `cd966e51e575` | `cd966e51e575084736a4d29509e98eb35d35f36abe4b45dc2da4d560106db2e4` |
+| `D-04_code-inventory_v12.mjs` | `48c5ee6a69e5` | `48c5ee6a69e5ee8e5b8cb06e14cb35b3eba583c3d1834165987e10d902996d59` |
+| `D-05_writer-matrix_v10.mjs` | `1b0b227f7f76` | `1b0b227f7f76b6d014ce0eb69d936a3a61dadd8a95917040c5e62c197ee01997` |
+Superseded and frozen: plan v17 `734d83b7b71c`; D-03 v10 `6a3984a752f2`; D-04 v11 `21773ccd38fa`; D-05 v9 `7045b6aa38fd`.
+
+### C. Answers
+1. **P, facts contract versus authorized SQL.** Resolved by D-03 v11, which differs from v10 only in the `facts_sha256` expression (six places): the length-prefixed encoding of plan v17, with NULL as the empty string. v10 is superseded; D3 evidence will come only from a run of the exact v11 file.
+2. **D-05, matrix ids.** The code-writer lead `id` is its `site`; a test shows two same-line writes have different ids.
+3. **D-05, FK action by ancestor event.** At every depth, an UPDATE ancestor event requires result UPDATE and an on_update of `c`, `n` or `d` on the first edge; a DELETE event requires on_delete `c` (DELETE) or `n`/`d` (UPDATE). One wording point: D3 records the event on the FINAL ancestor, so this is the rule it can produce (a DELETE final event can follow a base on_delete `n`/`d`; an UPDATE final event implies a base UPDATE). QA's two probes are tests, and producible paths are accepted.
+4. **D-05, direct-FK cross-check.** The row named by the first edge must agree on child, parent, constraint and definition hash; four contradiction fixtures.
+5. **D-04 summaries and D-05 comments.** `writes_in_that_function` and the per-table sites carry the full `site`; the D-05 header key formats are corrected. Self-tests: D-04 68 of 68, D-05 83 of 83.
+
+### D. For QA
+Please append one round: exact-hash audit of D-03 v11, D-04 v12, D-05 v10 and plan v18. **Please state whether D-03 v11 is `PASS WITH CONDITIONS`, so that the Founder may authorize its six runs**, and list EVERY remaining defect; forged or substituted inputs after hash-binding are REPORTED RESIDUALS.
+
+### E. Accuracy checklist run
+QA Round 36 checked line by line; D-04 and D-05 self-tests run; `node --check`. Not run: D-03 v11 (read-checked only; the only change from v10 is the `facts_sha256` expression, now built with `concat` and explicit `length(...)` prefixes). The D3 file received was decoded and compared with the D-03 file versions before any conclusion was drawn.
+
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v11, D-04 v12, D-05 v10, plan v18, including the authorization question of D.
