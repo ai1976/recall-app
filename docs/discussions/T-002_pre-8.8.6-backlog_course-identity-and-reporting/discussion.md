@@ -2726,3 +2726,24 @@ The already disclosed stale-tab residual remains: a tab that has not reloaded si
 `PASS WITH CONDITIONS` for the exact F0 patch, with no blocker found in this Tier 1 round 1. The patch may go to the Founder for Gate 5 decision only with the listed conditions carried forward: resolve the `Other` contract, provide the required visible blank-input behaviour, reconcile the character/control boundary, check existing Signup options, and preserve exact build/test/live evidence. This is QA advice, not frontend approval or authorization to commit, push or deploy.
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide the F0 Gate 5 path and the `Other` contract; no Tier 1 blocker remains.
+
+---
+
+## Round 60 · Claude · 08/10/2026
+**Scope.** Tier 1 round 2 for the F0 frontend patch, answering QA Round 59 (committed unchanged first, `65a922d`). No blocker was found; all eight non-blocking findings are addressed in patch v2: `docs/discussions/T-002_F0_frontend-patch-v2_08-10-2026.patch`, short `098a7ebb4b9a`, full sha256 `098a7ebb4b9a5d3a5c2ab2f8b9ebf3cb191a7a7d227ff82901c586d1582dae14`, base `05677aa`; index `docs/discussions/T-002_F0_frontend-patch-v2-index_08-10-2026.md`; raw verification output `docs/discussions/evidence/T-002_F0-v2-verification-raw_08-10-2026.txt`. v1 (`f0cf524ed4f0`) is superseded. Nothing was committed to the app code or pushed.
+
+**Answers (QA numbering).**
+1. **The word "Other".** Removed. A typed "Other" is an ordinary label, as plan v18 section 6 says. No Founder decision is now needed on it.
+2. **Visible blank message.** Both Signup and the access form show the message under the field as soon as the box holds anything invalid, including whitespace only. An empty untouched box keeps the button disabled (access form) or shows the browser's required message (Signup). Tests cover whitespace-only on both.
+3. **Edge control characters.** Refused with the message; only ordinary outer spaces are trimmed. Tests: `CFA<tab>`, `CFA<newline>`, `<tab>CFA`, `CFA<U+2028>`.
+4. **Character count.** Code points (`Array.from`), matching PostgreSQL `char_length`; tests with 60, 120 and 121 emoji (the message reports the real count).
+5. **Signup options from existing content.** Names that fail the rule, are untrimmed, or equal "Other" are not offered (`isSelectableCourseName`); a component test feeds such rows. I did not read the live data to see whether any exist (no database read was done in this round).
+6. **Stale wording.** The guard failure text and the old test title now name all five columns.
+7. **Coverage.** Added a Signup component test (4 cases) and more access-form and helper cases. Profile Settings has no component test: its check is a single guarded call in `collectProfileValues`, only on a changed course, reviewed in the diff; the Gate 7 live test covers it.
+8. **Evidence.** Raw output saved and hashed (see above).
+
+**Request to QA (round 2, closure).** Audit patch v2 by exact hash: state whether each Round 59 finding is closed and list any NEW blocker introduced by the changed bytes only. If none, PASS or PASS WITH CONDITIONS for the Founder's Gate 5.
+
+Gates 5, 6, 7 not given.
+
+Handoff: `AWAITING-QA` - QA to append one round answering the request.

@@ -1,0 +1,611 @@
+diff --git a/scripts/dueSetGuard.mjs b/scripts/dueSetGuard.mjs
+index aa39905..118de4a 100644
+--- a/scripts/dueSetGuard.mjs
++++ b/scripts/dueSetGuard.mjs
+@@ -32,7 +32,7 @@ export const DUE_MUTATING_RPCS = new Set([
+ ]);
+ export const DUE_PROFILE_COLUMNS = new Set(['course_level', 'timezone']);
+ // Flashcard columns that can change what is due (the course rule, concept cards, visibility): an update of any of them, or of a payload whose keys cannot be read, must live in the wrapper module.
+-export const DUE_FLASHCARD_COLUMNS = new Set(['target_course', 'question_type', 'visibility']);
++export const DUE_FLASHCARD_COLUMNS = new Set(['target_course', 'question_type', 'visibility', 'subject_id', 'discipline_id']);
+ 
+ // Per-name classification of every RPC the frontend calls, built from the accepted live-body evidence (T-001 diagnostics 11 v4 and 12): { names: { <rpc>: { classification, ... } } }.
+ export function loadRpcClassification(file) {
+@@ -297,7 +297,7 @@ export function evaluateGuard(calls, manifest, rpcClass = null) {
+       }
+       if (c.kind === 'table-write' && c.target === 'flashcards' && c.method === 'update') {
+         if (!c.payload || !c.payload.resolved) failures.push(`flashcards update with a payload whose keys cannot be read from literals, outside the wrapper module: ${c.id} (line ${c.line})`);
+-        else if (c.payload.keys.some(k => DUE_FLASHCARD_COLUMNS.has(k))) failures.push(`flashcards update of a due-relevant column (target_course, question_type, visibility) outside the wrapper module: ${c.id} (line ${c.line})`);
++        else if (c.payload.keys.some(k => DUE_FLASHCARD_COLUMNS.has(k))) failures.push(`flashcards update of a due-relevant column (target_course, question_type, visibility, subject_id, discipline_id) outside the wrapper module: ${c.id} (line ${c.line})`);
+       }
+       if (c.kind === 'table-write' && c.target === 'flashcard_decks' && c.method === 'delete') {
+         failures.push(`deck delete outside the wrapper module (it cascades to the deck's cards): ${c.id} (line ${c.line})`);
+diff --git a/scripts/dueSetGuard.test.mjs b/scripts/dueSetGuard.test.mjs
+index 0428d0c..a56f11a 100644
+--- a/scripts/dueSetGuard.test.mjs
++++ b/scripts/dueSetGuard.test.mjs
+@@ -214,8 +214,8 @@ describe('per-name RPC classification and the new table rules', () => {
+     expect(evaluateGuard(inside, [entry(inside[0].id, 'due-changing')], rpcClass).join('\n')).toMatch(/must be classified due-changing/);
+   });
+ 
+-  it('a flashcards update of target_course, question_type or visibility, or of an unreadable payload, outside the wrapper module', () => {
+-    for (const payload of ["{ target_course: 'CA Final' }", "{ question_type: 'concept_card' }", "{ visibility: 'public' }"]) {
++  it('a flashcards update of target_course, question_type, visibility, subject_id or discipline_id, or of an unreadable payload, outside the wrapper module', () => {
++    for (const payload of ["{ target_course: 'CA Final' }", "{ question_type: 'concept_card' }", "{ visibility: 'public' }", "{ subject_id: 's1' }", "{ discipline_id: 'd1' }"]) {
+       const { failures } = failuresFor('src/pages/X.jsx', `${IMPORT}export async function f(){ await supabase.from('flashcards').update(${payload}).eq('id', 1); }`);
+       expect(failures.join('\n')).toMatch(/flashcards update of a due-relevant column/);
+     }
+diff --git a/src/components/ui/ContentPreviewWall.jsx b/src/components/ui/ContentPreviewWall.jsx
+index 747e095..78005a2 100644
+--- a/src/components/ui/ContentPreviewWall.jsx
++++ b/src/components/ui/ContentPreviewWall.jsx
+@@ -3,6 +3,7 @@ import { submitAccessRequest } from '@/lib/dueSet';
+ import { useAuth } from '@/contexts/AuthContext';
+ import { useToast } from '@/hooks/use-toast';
+ import { Lock } from 'lucide-react';
++import { validateCourseLabel } from '@/lib/courseLabel';
+ import { Button } from '@/components/ui/button';
+ import { Input } from '@/components/ui/input';
+ import { Label } from '@/components/ui/label';
+@@ -24,9 +25,11 @@ const COURSES = [
+   'CS Foundation',
+   'CS Executive',
+   'CS Professional',
+-  'Other',
+ ];
+ 
++// The dropdown's own option for a course that is not in the list; it is never sent as the course.
++const OTHER_OPTION = '__other__';
++
+ export default function ContentPreviewWall({ contentId, contentType, contentName }) {
+   const { user } = useAuth();
+   const { toast } = useToast();
+@@ -35,9 +38,15 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
+   const [whatsapp, setWhatsapp] = useState('');
+   const [whatsappWarning, setWhatsappWarning] = useState('');
+   const [course, setCourse] = useState('');
++  const [customCourse, setCustomCourse] = useState('');
+   const [loading, setLoading] = useState(false);
+   const [submitted, setSubmitted] = useState(false);
+ 
++  // Shown while typing, before submit (an empty box keeps the button disabled).
++  const customCourseError = course === OTHER_OPTION && customCourse !== '' && !validateCourseLabel(customCourse).ok
++    ? validateCourseLabel(customCourse).error
++    : '';
++
+   const normalizeWhatsapp = (raw) => {
+     const digits = raw.replace(/\D/g, '');
+     if (raw.startsWith('+')) return raw; // already has country code
+@@ -61,12 +70,20 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
+     const normalizedWhatsapp = normalizeWhatsapp(whatsapp.trim());
+     if (!name.trim() || !email.trim() || !normalizedWhatsapp || !course) return;
+ 
++    // The course sent is either a listed course or the typed text, trimmed and checked by the same rule as Signup (never the dropdown's own entry).
++    let courseToSend = course;
++    if (course === OTHER_OPTION) {
++      const check = validateCourseLabel(customCourse);
++      if (!check.ok) return;
++      courseToSend = check.value;
++    }
++
+     setLoading(true);
+     try {
+       const { error } = await submitAccessRequest({
+         p_name: name.trim(),
+         p_whatsapp_number: normalizedWhatsapp,
+-        p_course: course,
++        p_course: courseToSend,
+         p_email: email.trim() || null,
+         p_content_id: contentId || null,
+         p_content_type: contentType || null,
+@@ -155,12 +172,29 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
+                     {c}
+                   </SelectItem>
+                 ))}
++                <SelectItem value={OTHER_OPTION}>Other (type your course)</SelectItem>
+               </SelectContent>
+             </Select>
+           </div>
++          {course === OTHER_OPTION && (
++            <div className="space-y-1">
++              <Label htmlFor="preview-custom-course">Your course</Label>
++              <Input
++                id="preview-custom-course"
++                value={customCourse}
++                onChange={(e) => setCustomCourse(e.target.value)}
++                placeholder="e.g. CFA Level 1"
++                aria-invalid={customCourseError ? 'true' : 'false'}
++                aria-describedby={customCourseError ? 'preview-custom-course-error' : undefined}
++              />
++              {customCourseError && (
++                <p id="preview-custom-course-error" role="alert" className="text-xs text-red-600">{customCourseError}</p>
++              )}
++            </div>
++          )}
+           <Button
+             type="submit"
+-            disabled={loading || !name.trim() || !email.trim() || !whatsapp.trim() || !course}
++            disabled={loading || !name.trim() || !email.trim() || !whatsapp.trim() || !course || (course === OTHER_OPTION && !validateCourseLabel(customCourse).ok)}
+             className="w-full"
+           >
+             {loading ? 'Submitting...' : 'Notify me when available'}
+diff --git a/src/components/ui/ContentPreviewWall.test.jsx b/src/components/ui/ContentPreviewWall.test.jsx
+new file mode 100644
+index 0000000..6a5ab46
+--- /dev/null
++++ b/src/components/ui/ContentPreviewWall.test.jsx
+@@ -0,0 +1,87 @@
++import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
++import { render, screen, fireEvent, waitFor } from '@testing-library/react';
++import ContentPreviewWall from '@/components/ui/ContentPreviewWall';
++
++const submitAccessRequest = vi.fn();
++vi.mock('@/lib/dueSet', () => ({ submitAccessRequest: (...a) => submitAccessRequest(...a) }));
++vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
++vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
++
++beforeAll(() => {
++  // Radix Select needs these in jsdom.
++  window.HTMLElement.prototype.hasPointerCapture = () => false;
++  window.HTMLElement.prototype.releasePointerCapture = () => {};
++  window.HTMLElement.prototype.scrollIntoView = () => {};
++});
++
++beforeEach(() => {
++  submitAccessRequest.mockReset();
++  submitAccessRequest.mockResolvedValue({ error: null });
++});
++
++function fillBasics() {
++  fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Asha' } });
++  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'asha@example.com' } });
++  fireEvent.change(screen.getByLabelText('WhatsApp Number'), { target: { value: '+919876543210' } });
++}
++
++function chooseOther() {
++  fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
++  fireEvent.click(screen.getByRole('option', { name: 'Other (type your course)' }));
++}
++
++describe('ContentPreviewWall course field (T-002 F0)', () => {
++  it('offers a real text input instead of the literal Other, and sends the trimmed typed course', async () => {
++    render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
++    fillBasics();
++    chooseOther();
++    const button = screen.getByRole('button', { name: /Notify me/ });
++    expect(button).toBeDisabled();
++    fireEvent.change(screen.getByLabelText('Your course'), { target: { value: '  CFA Level 1  ' } });
++    expect(button).not.toBeDisabled();
++    fireEvent.click(button);
++    await waitFor(() => expect(submitAccessRequest).toHaveBeenCalledTimes(1));
++    expect(submitAccessRequest.mock.calls[0][0].p_course).toBe('CFA Level 1');
++  });
++
++  it('blocks a whitespace-only, over-long or control-character course with a visible message and no request', () => {
++    render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
++    fillBasics();
++    chooseOther();
++    const input = screen.getByLabelText('Your course');
++    const button = screen.getByRole('button', { name: /Notify me/ });
++    const cases = [
++      ['   ', /enter your course name/],
++      ['x'.repeat(121), /too long/],
++      ['ab\tc', /control characters/],
++      ['CFA\t', /control characters/],
++    ];
++    for (const [value, message] of cases) {
++      fireEvent.change(input, { target: { value } });
++      expect(button).toBeDisabled();
++      expect(screen.getByRole('alert').textContent).toMatch(message);
++    }
++    fireEvent.submit(button.closest('form'));
++    expect(submitAccessRequest).not.toHaveBeenCalled();
++  });
++
++  it('accepts the word Other as a typed course (no reserved word) and never sends the dropdown value', async () => {
++    render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
++    fillBasics();
++    chooseOther();
++    fireEvent.change(screen.getByLabelText('Your course'), { target: { value: 'Other' } });
++    fireEvent.click(screen.getByRole('button', { name: /Notify me/ }));
++    await waitFor(() => expect(submitAccessRequest).toHaveBeenCalledTimes(1));
++    expect(submitAccessRequest.mock.calls[0][0].p_course).toBe('Other');
++  });
++
++  it('still sends a listed course unchanged', async () => {
++    render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
++    fillBasics();
++    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
++    fireEvent.click(screen.getByRole('option', { name: 'CA Final' }));
++    fireEvent.click(screen.getByRole('button', { name: /Notify me/ }));
++    await waitFor(() => expect(submitAccessRequest).toHaveBeenCalledTimes(1));
++    expect(submitAccessRequest.mock.calls[0][0].p_course).toBe('CA Final');
++  });
++});
+diff --git a/src/lib/courseLabel.js b/src/lib/courseLabel.js
+new file mode 100644
+index 0000000..54e02ec
+--- /dev/null
++++ b/src/lib/courseLabel.js
+@@ -0,0 +1,50 @@
++// T-002 F0 - the one rule for a typed course label (brief B v10, 5.1 and 5.2): trimmed, 1 to 120 characters, no control characters, never truncated.
++// Used by Signup, Profile Settings and the access-request form. The database applies the same rule (profiles trigger B-03, access_requests trigger B-07,
++// study_sessions label guard B-04a); this check only shows the error before the request is sent.
++
++export const COURSE_LABEL_MAX = 120;
++
++// C0 controls (tab and line breaks included), DEL, C1 controls, and the Unicode line and paragraph separators.
++function hasControlCharacter(text) {
++  for (let i = 0; i < text.length; i += 1) {
++    const code = text.charCodeAt(i);
++    if (code <= 0x1f || (code >= 0x7f && code <= 0x9f) || code === 0x2028 || code === 0x2029) return true;
++  }
++  return false;
++}
++
++// PostgreSQL char_length counts characters (code points), not UTF-16 code units: an emoji is one character.
++function characterCount(text) {
++  return Array.from(text).length;
++}
++
++/**
++ * Check a typed course label. Returns { ok: true, value } with the text to send, or { ok: false, error } with a message for the student.
++ * A control character anywhere, including at the edges, is refused (the database refuses it too); only ordinary outer spaces are removed,
++ * and the text is never shortened (an over-long label is refused, not cut). A typed course named "Other" is an ordinary label (no reserved word).
++ */
++export function validateCourseLabel(raw) {
++  const text = typeof raw === 'string' ? raw : '';
++  if (hasControlCharacter(text)) {
++    return { ok: false, error: 'Your course name cannot contain line breaks, tabs or other control characters.' };
++  }
++  const value = text.trim();
++  if (value === '') {
++    return { ok: false, error: 'Please enter your course name.' };
++  }
++  const length = characterCount(value);
++  if (length > COURSE_LABEL_MAX) {
++    return { ok: false, error: `Your course name is too long (${length} characters). Please use ${COURSE_LABEL_MAX} characters or fewer.` };
++  }
++  return { ok: true, value };
++}
++
++/**
++ * A course name read from existing content that may be offered as a Signup dropdown option: it must already be a valid, trimmed label, and it must not
++ * be the word "Other", which is the dropdown's own "add a custom course" entry (so one option value is never ambiguous).
++ */
++export function isSelectableCourseName(name) {
++  if (typeof name !== 'string') return false;
++  const check = validateCourseLabel(name);
++  return check.ok && check.value === name && name.toLowerCase() !== 'other';
++}
+diff --git a/src/lib/courseLabel.test.js b/src/lib/courseLabel.test.js
+new file mode 100644
+index 0000000..6f424a8
+--- /dev/null
++++ b/src/lib/courseLabel.test.js
+@@ -0,0 +1,70 @@
++import { describe, it, expect } from 'vitest';
++import { validateCourseLabel, isSelectableCourseName, COURSE_LABEL_MAX } from '@/lib/courseLabel';
++
++describe('validateCourseLabel (T-002 F0, brief B 5.1)', () => {
++  it('refuses empty, missing and blank-after-trim values with a message', () => {
++    for (const v of ['', '   ', undefined, null]) {
++      const r = validateCourseLabel(v);
++      expect(r.ok).toBe(false);
++      expect(r.error).toMatch(/enter your course name/);
++    }
++  });
++
++  it('accepts 1 and 120 characters and refuses 121, without truncating', () => {
++    expect(validateCourseLabel('x')).toEqual({ ok: true, value: 'x' });
++    const at = 'y'.repeat(COURSE_LABEL_MAX);
++    expect(validateCourseLabel(at)).toEqual({ ok: true, value: at });
++    const over = validateCourseLabel('z'.repeat(COURSE_LABEL_MAX + 1));
++    expect(over.ok).toBe(false);
++    expect(over.value).toBeUndefined();
++  });
++
++  it('counts the trimmed text: 120 characters plus outer spaces is accepted and stored trimmed', () => {
++    const at = 'a'.repeat(120);
++    expect(validateCourseLabel(`  ${at}  `)).toEqual({ ok: true, value: at });
++  });
++
++  it('counts characters like the database (code points), not UTF-16 units', () => {
++    const emoji60 = '\u{1F4DA}'.repeat(60); // 120 UTF-16 units, 60 characters
++    const emoji120 = '\u{1F4DA}'.repeat(120); // 240 units, 120 characters
++    const emoji121 = '\u{1F4DA}'.repeat(121);
++    expect(validateCourseLabel(emoji60).ok).toBe(true);
++    expect(validateCourseLabel(emoji120)).toEqual({ ok: true, value: emoji120 });
++    const over = validateCourseLabel(emoji121);
++    expect(over.ok).toBe(false);
++    expect(over.error).toMatch(/121 characters/);
++  });
++
++  it('trims outer spaces and keeps inner spacing as typed', () => {
++    expect(validateCourseLabel('  CFA   Level 1  ')).toEqual({ ok: true, value: 'CFA   Level 1' });
++  });
++
++  it('refuses a control character anywhere, including at the edges (nothing is silently removed)', () => {
++    const samples = ['ab\tc', 'ab\ncd', 'ab\u0000c', 'ab\u007Fc', 'ab\u0085c', 'ab c', 'CFA\t', 'CFA\n', '\tCFA', 'CFA ', '  \t  '];
++    for (const v of samples) {
++      const r = validateCourseLabel(v);
++      expect(r.ok).toBe(false);
++      expect(r.error).toMatch(/control characters/);
++    }
++  });
++
++  it('treats the word Other as an ordinary custom label (no reserved word, plan v18 section 6)', () => {
++    expect(validateCourseLabel('Other')).toEqual({ ok: true, value: 'Other' });
++    expect(validateCourseLabel('Other Course').ok).toBe(true);
++  });
++
++  it('accepts ordinary custom and non-Latin course names', () => {
++    expect(validateCourseLabel('CFA Level 1').ok).toBe(true);
++    expect(validateCourseLabel('एमबीए प्रथम वर्ष').ok).toBe(true);
++  });
++});
++
++describe('isSelectableCourseName (Signup options read from existing content)', () => {
++  it('keeps clean labels and drops over-long, control-character, blank, untrimmed, non-text and the dropdown word Other', () => {
++    expect(isSelectableCourseName('CFA Level 1')).toBe(true);
++    const bad = ['x'.repeat(121), 'a\tb', '', '   ', ' CFA ', 'Other', 'OTHER', null, undefined, 42];
++    for (const v of bad) {
++      expect(isSelectableCourseName(v)).toBe(false);
++    }
++  });
++});
+diff --git a/src/lib/dueSet.js b/src/lib/dueSet.js
+index 3eead10..089c2ab 100644
+--- a/src/lib/dueSet.js
++++ b/src/lib/dueSet.js
+@@ -188,7 +188,7 @@ export async function upsertFriendRequest(row) {
+ 
+ // Flashcard columns that can change what is due: target_course (the course rule), question_type (concept cards are never due) and visibility (who can see
+ // the card; the owner's own cards stay eligible, other users' due sets cannot be signalled from this tab).
+-export const DUE_FLASHCARD_COLUMNS = ['target_course', 'question_type', 'visibility'];
++export const DUE_FLASHCARD_COLUMNS = ['target_course', 'question_type', 'visibility', 'subject_id', 'discipline_id'];
+ 
+ /** Update every card of a batch (course, subject, topic and description edits of a group of cards). */
+ export async function updateFlashcardsByBatch(batchId, updates) {
+diff --git a/src/lib/dueSet.test.js b/src/lib/dueSet.test.js
+index 1053875..cb505d8 100644
+--- a/src/lib/dueSet.test.js
++++ b/src/lib/dueSet.test.js
+@@ -340,7 +340,7 @@ describe('deck, friend-request and flashcard-update writes', () => {
+     expect(calls).toBe(1);
+   });
+ 
+-  it('updateFlashcardsByBatch signals only when it sets target_course, question_type or visibility', async () => {
++  it('updateFlashcardsByBatch signals only when it sets a due-relevant column (target_course, question_type, visibility; subject_id and discipline_id are covered next)', async () => {
+     const b = builder(OK);
+     supabase.from.mockReturnValue(b);
+     await updateFlashcardsByBatch('b1', { batch_description: 'x', topic_id: 't' });
+@@ -353,6 +353,17 @@ describe('deck, friend-request and flashcard-update writes', () => {
+     expect(calls).toBe(1);
+   });
+ 
++  it('updateFlashcardsByBatch also signals when it sets subject_id or discipline_id (T-002 F0)', async () => {
++    supabase.from.mockReturnValue(builder(OK));
++    await updateFlashcardsByBatch('b1', { subject_id: 's1' });
++    expect(calls).toBe(1);
++    await updateFlashcardsByBatch('b1', { discipline_id: 'd1', topic_id: 't' });
++    expect(calls).toBe(2);
++    supabase.from.mockReturnValue(builder(FAIL));
++    await updateFlashcardsByBatch('b1', { subject_id: 's1' });
++    expect(calls).toBe(2);
++  });
++
+   it('updateFlashcardVisibility and updateFlashcardsVisibility set only the visibility and signal on success', async () => {
+     const b = builder(OK);
+     supabase.from.mockReturnValue(b);
+diff --git a/src/pages/auth/Signup.jsx b/src/pages/auth/Signup.jsx
+index e62172e..e009266 100644
+--- a/src/pages/auth/Signup.jsx
++++ b/src/pages/auth/Signup.jsx
+@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
+ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+ import { useAuth } from '@/contexts/AuthContext';
+ import { supabase } from '@/lib/supabase';
++import { validateCourseLabel, isSelectableCourseName } from '@/lib/courseLabel';
+ 
+ export default function Signup() {
+   const [email, setEmail] = useState('');
+@@ -26,6 +27,11 @@ export default function Signup() {
+     if (ref) localStorage.setItem('revisop_access_ref', ref);
+   }, []);
+ 
++  // Shown while typing, before submit: the same rule the database applies (an empty box is reported by the form on submit).
++  const customCourseError = courseLevel === 'Other' && customCourse !== '' && !validateCourseLabel(customCourse).ok
++    ? validateCourseLabel(customCourse).error
++    : '';
++
+   const fetchAllCourses = async () => {
+     try {
+       const { data: noteCourses, error: noteError } = await supabase
+@@ -63,7 +69,7 @@ export default function Signup() {
+       ])];
+ 
+       const uniqueCustomCourses = allCustomCourses.filter(
+-        course => !predefinedCourses.includes(course)
++        course => !predefinedCourses.includes(course) && isSelectableCourseName(course)
+       );
+ 
+       const mergedCourses = [...predefinedCourses, ...uniqueCustomCourses.sort()];
+@@ -100,15 +106,20 @@ export default function Signup() {
+       return;
+     }
+ 
+-    if (courseLevel === 'Other' && !customCourse.trim()) {
+-      setError('Please specify your course');
+-      return;
++    let customCourseValue = null;
++    if (courseLevel === 'Other') {
++      const check = validateCourseLabel(customCourse);
++      if (!check.ok) {
++        setError(check.error);
++        return;
++      }
++      customCourseValue = check.value;
+     }
+ 
+     setLoading(true);
+ 
+     try {
+-      const finalCourseLevel = courseLevel === 'Other' ? customCourse : courseLevel;
++      const finalCourseLevel = courseLevel === 'Other' ? customCourseValue : courseLevel;
+       
+       const result = await signUp(email, password, fullName, finalCourseLevel);
+ 
+@@ -282,9 +293,14 @@ export default function Signup() {
+                 required
+                 value={customCourse}
+                 onChange={(e) => setCustomCourse(e.target.value)}
++                aria-invalid={customCourseError ? 'true' : 'false'}
++                aria-describedby={customCourseError ? 'customCourseError' : undefined}
+                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+                 placeholder="e.g., CFA Level 1, ACCA, JEE, NEET, MSc Economics, etc."
+               />
++              {customCourseError && (
++                <p id="customCourseError" role="alert" className="text-xs text-red-600 mt-1">{customCourseError}</p>
++              )}
+               <p className="text-xs text-gray-500 mt-1">
+                 This course will be saved and available for future users
+               </p>
+diff --git a/src/pages/auth/Signup.test.jsx b/src/pages/auth/Signup.test.jsx
+new file mode 100644
+index 0000000..07a3a86
+--- /dev/null
++++ b/src/pages/auth/Signup.test.jsx
+@@ -0,0 +1,99 @@
++import { describe, it, expect, vi, beforeEach } from 'vitest';
++import { render, screen, fireEvent, waitFor } from '@testing-library/react';
++import { MemoryRouter } from 'react-router-dom';
++import Signup from '@/pages/auth/Signup';
++
++const signUp = vi.fn();
++vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ signUp: (...a) => signUp(...a) }) }));
++
++let courseRows = [];
++vi.mock('@/lib/supabase', () => ({
++  supabase: {
++    from: () => ({
++      select: () => ({ not: () => Promise.resolve({ data: courseRows, error: null }) }),
++    }),
++  },
++}));
++
++beforeEach(() => {
++  signUp.mockReset();
++  signUp.mockResolvedValue({ user: { identities: [{ id: 1 }] } });
++  vi.spyOn(window, 'alert').mockImplementation(() => {});
++  courseRows = [];
++});
++
++function renderSignup() {
++  return render(<MemoryRouter><Signup /></MemoryRouter>);
++}
++
++function fillBasics() {
++  fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Asha' } });
++  fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'asha@example.com' } });
++  fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'secret123' } });
++}
++
++async function chooseCustom() {
++  const select = await screen.findByLabelText(/which course/i);
++  fireEvent.change(select, { target: { value: 'Other' } });
++  return screen.findByLabelText(/specify your course/i);
++}
++
++describe('Signup custom course (T-002 F0)', () => {
++  it('sends the trimmed custom course to signUp', async () => {
++    renderSignup();
++    fillBasics();
++    const input = await chooseCustom();
++    fireEvent.change(input, { target: { value: '  CFA Level 1  ' } });
++    expect(screen.queryByRole('alert')).toBeNull();
++    fireEvent.submit(input.closest('form'));
++    await waitFor(() => expect(signUp).toHaveBeenCalledTimes(1));
++    expect(signUp).toHaveBeenCalledWith('asha@example.com', 'secret123', 'Asha', 'CFA Level 1');
++  });
++
++  it('shows a visible message and sends nothing for whitespace-only, 121-character and control-character courses', async () => {
++    renderSignup();
++    fillBasics();
++    const input = await chooseCustom();
++    const cases = [
++      ['   ', /enter your course name/],
++      ['x'.repeat(121), /too long/],
++      ['ab\tc', /control characters/],
++      ['CFA\t', /control characters/],
++    ];
++    for (const [value, message] of cases) {
++      fireEvent.change(input, { target: { value } });
++      expect(screen.getAllByRole('alert')[0].textContent).toMatch(message);
++      fireEvent.submit(input.closest('form'));
++      await waitFor(() => expect(screen.getAllByText(message).length).toBeGreaterThan(1));
++    }
++    expect(signUp).not.toHaveBeenCalled();
++  });
++
++  it('accepts exactly 120 characters', async () => {
++    renderSignup();
++    fillBasics();
++    const input = await chooseCustom();
++    fireEvent.change(input, { target: { value: 'y'.repeat(120) } });
++    fireEvent.submit(input.closest('form'));
++    await waitFor(() => expect(signUp).toHaveBeenCalledTimes(1));
++    expect(signUp.mock.calls[0][3]).toBe('y'.repeat(120));
++  });
++
++  it('does not offer existing course names that fail the rule, or the word Other, as dropdown options', async () => {
++    courseRows = [
++      { target_course: 'CFA Level 1' },
++      { target_course: 'x'.repeat(121) },
++      { target_course: 'bad\tname' },
++      { target_course: 'Other' },
++      { target_course: ' padded ' },
++    ];
++    renderSignup();
++    const select = await screen.findByLabelText(/which course/i);
++    await waitFor(() => expect(Array.from(select.options).map((o) => o.value)).toContain('CFA Level 1'));
++    const values = Array.from(select.options).map((o) => o.value);
++    expect(values).not.toContain('x'.repeat(121));
++    expect(values).not.toContain('bad\tname');
++    expect(values).not.toContain(' padded ');
++    expect(values.filter((v) => v === 'Other')).toHaveLength(1);
++  });
++});
+diff --git a/src/pages/dashboard/Profile/ProfileSettings.jsx b/src/pages/dashboard/Profile/ProfileSettings.jsx
+index 14b25a3..1db46c7 100644
+--- a/src/pages/dashboard/Profile/ProfileSettings.jsx
++++ b/src/pages/dashboard/Profile/ProfileSettings.jsx
+@@ -24,6 +24,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
+ import { useExamDateContext } from '@/contexts/ExamDateContext';
+ import { MONTH_NAMES, buildExamMonthValue, daysUntilExamDate } from '@/lib/examDate';
+ import ChangeEmail from '@/components/profile/ChangeEmail';
++import { validateCourseLabel } from '@/lib/courseLabel';
+ 
+ const CURRENT_YEAR = new Date().getFullYear();
+ const EXAM_YEAR_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2];
+@@ -226,6 +227,20 @@ export default function ProfileSettings() {
+       });
+       return null;
+     }
++
++    // The same course rule as Signup and the access form (T-002 F0), checked only when the course is being changed: a saved value the student
++    // does not touch is never re-validated or rewritten here (the database trigger also fires only when the course changes).
++    if (courseLevel && courseLevel !== originalCourse) {
++      const courseCheck = validateCourseLabel(courseLevel);
++      if (!courseCheck.ok) {
++        toast({
++          title: 'Course not valid',
++          description: courseCheck.error,
++          variant: 'destructive',
++        });
++        return null;
++      }
++    }
+     return { trimmedName, finalInstitution };
+   };
+ 

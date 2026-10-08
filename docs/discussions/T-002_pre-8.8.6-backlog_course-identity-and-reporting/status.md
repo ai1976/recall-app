@@ -2,14 +2,14 @@
 
 
 ## Status
-- **State:** AWAITING-FOUNDER
-- **Owner:** Founder
-- **Phase:** B-01, B-02a, B-02b, B-04a LIVE and verified (08/10/2026); F0 frontend draft submitted to QA for exact-diff audit (Round 58); design approved: brief B v10, Gate 1 given 04/10/2026
-- **Last round:** 59  · **Last QA-reviewed round:** 58
+- **State:** AWAITING-QA
+- **Owner:** QA
+- **Phase:** B-01, B-02a, B-02b, B-04a LIVE and verified (08/10/2026); F0 frontend patch v2 submitted to QA for Tier 1 round 2 (Round 60); design approved: brief B v10, Gate 1 given 04/10/2026
+- **Last round:** 60  · **Last QA-reviewed round:** 59
 - **Agreed decisions (carried from T-001; positions, not a new approval):** brief B v10 (`0fe77dec72dc`) is the approved design for points 5 and 10 together; decisions D1 to D11 and E1 to E10 of T-001 are confirmed (Founder, 04/10/2026 and later); no in-app payment; platform course names are identifiers and immutable in v1; new offline logs are always classified (platform, custom or explicit General), NULL means only legacy; no backfill; professors see totals only. Details and round numbers: Round 1 section B.
 - **Open disagreements:** none
 - **Founder decisions required:** none now. In force: DEC-1, DEC-2 (Round 5); topic-level logging deferred (Round 7); DEC-3 (Round 9); Round 13 method choice; authorization to run D-01 (Round 17; run 08/10/2026); **DEC-4 simplified (08/10/2026, Round 27): the cutover requires only that the set of unclassified manual logs never grows; no removal provenance.** **Needed later, two acceptances:** (1) before Gate 3 of B-03 and B-07: the never-reloaded F0 tab residual (section 4C); (2) before Gate 3 of B-04b: the never-reloaded F1 tab residual (section 5.2); deferral of (2) defers the cutover.
-- **Artifacts under review:** F0 frontend patch `docs/discussions/T-002_F0_frontend-patch_08-10-2026.patch` `f0cf524ed4f0` (index `docs/discussions/T-002_F0_frontend-patch-index_08-10-2026.md`), base `05677aa`; context: plan v18 section 2 (F0) and 4, brief B v10 section 5. File index for SQL: `docs/database/t002/CURRENT.md`.
+- **Artifacts under review:** F0 frontend patch v2 `docs/discussions/T-002_F0_frontend-patch-v2_08-10-2026.patch` `098a7ebb4b9a` (index `docs/discussions/T-002_F0_frontend-patch-v2-index_08-10-2026.md`; raw verification `docs/discussions/evidence/T-002_F0-v2-verification-raw_08-10-2026.txt`), base `05677aa`; v1 `f0cf524ed4f0` superseded. Context: plan v18 sections 2 and 4, brief B v10 section 5.
 
 ### Gates
 - [x] 1 Design approved (brief B v10 `0fe77dec72dc`, Founder 04/10/2026, T-001 Round 35; QA PASS WITH CONDITIONS)

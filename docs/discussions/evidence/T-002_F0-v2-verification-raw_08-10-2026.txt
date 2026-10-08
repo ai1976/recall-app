@@ -1,0 +1,28 @@
+# T-002 F0 v2 verification, raw output, 08/10/2026. Worktree recall-app-f0 (branch t002-f0-draft), base 05677aa, uncommitted draft.
+## node --version
+v24.11.1
+## npm run guard:due
+due-set guard passed: 211 database calls, all classified (211 manifest entries).
+exit=0
+## npx vitest run
+
+ RUN  v5.0.1 C:/Users/Anand/Desktop/recall-app-f0
+
+
+ Test Files  12 passed (12)
+      Tests  188 passed (188)
+   Start at  23:29:19
+   Duration  6.00s (environment 70%, setup 12%, tests 10%, transform 4%, import 3%, worker 1%)
+
+exit=0
+## npx eslint . (summary line)
+  235:5   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+  60:5   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+  28:5  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+✖ 30 problems (23 errors, 7 warnings)
+## baseline on base 05677aa: 30 problems (23 errors, 7 warnings)
+## npx vite build (last lines)
+[2mdist/[22m[36massets/index-Cd_rHIGf.js                      [39m[1m[2m324.45 kB[22m[1m[22m[2m │ gzip:  97.50 kB[22m
+[2mdist/[22m[36massets/BarChart-CjEuZ34N.js                   [39m[1m[2m356.42 kB[22m[1m[22m[2m │ gzip: 106.76 kB[22m
+[32m✓ built in 7.83s[39m
+exit=0

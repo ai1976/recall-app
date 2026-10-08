@@ -15,6 +15,6 @@ Operators: before running anything, find the artifact here and check that the fi
 | B-02b test-row cleanup | `B-02b_CLEANUP_test-subject_v1.sql` `dee0d50789b4` | Round 51 | data | one-off; run by the Founder 08/10/2026 |
 | B-04a study_sessions compatibility | `B-04a_SCHEMA_study-sessions-compatibility-phase_v1.sql` `984b5010b68a` (+ `_TEST_` v2 `5f603e3412f9` [v1 `d926d7ff7339` SUPERSEDED, do not run], `_ROLLBACK_` `f4f6df14d217`) | thread Round 52 | 1 | LIVE and verified 08/10/2026 (TEST 13/13, VERIFY saved) |
 | B-04a verify (read-only) | `B-04a_VERIFY_object-identities_v2.sql` `30a2172e5ecc` [v1 `cb65173d25f1` SUPERSEDED] | Round 54 | 0 | RUN 08/10/2026 |
-| F0 frontend patch (not SQL) | `docs/discussions/T-002_F0_frontend-patch_08-10-2026.patch` `f0cf524ed4f0` | Round 58 | frontend | submitted to QA; Gates 5, 6, 7 not given; not pushed |
+| F0 frontend patch (not SQL) | `docs/discussions/T-002_F0_frontend-patch-v2_08-10-2026.patch` `098a7ebb4b9a` [v1 `f0cf524ed4f0` SUPERSEDED] | Round 60 | frontend | submitted to QA (round 2); Gates 5, 6, 7 not given; not pushed |
 
 Every other `D-0x` and `00_PLAN_*` file in this folder is SUPERSEDED.
