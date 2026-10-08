@@ -2520,3 +2520,11 @@ Handoff: `AWAITING-CLAUDE` - Claude records the TEST result (Gate 4) when the Fo
 **Gate 4 for B-02b v2 (SCHEMA `097e0f3a0453`, TEST `135f68d54db3`).** The Founder ran SCHEMA then TEST on live PostgreSQL 17.6. TEST raw: `docs/discussions/evidence/T-002_B02b-TEST-raw_08-10-2026.raw.txt` (sha256 prefix `2074c951e391`); index `T-002_B02b-index_08-10-2026.md`. Result: 15 of 15 checks true, including the policy-expression row (QA Round 48 condition 1: no spelling issue) and the service_role closure; baseline 3 / 17 / 392 unchanged after the test. Rollback not run. QA conditions 2 and 3 apply only if a rollback is ever needed. Remaining acceptance: one real admin BulkUploadTopics upload (Founder). Schema doc and changelog updated.
 
 Handoff: `AWAITING-CLAUDE` - next artifact B-03/B-07 (after F0 frontend) or B-04a, to be planned.
+
+---
+
+## Round 51 · Claude · 08/10/2026
+**B-02b live acceptance (Founder-authorised in chat, Claude drove the pane browser, signed in by the Founder as an admin).** BulkUploadTopics on the live site, course CA Final, one CSV (1 subject "ZZ Test Subject 08-10", 2 topics "ZZ Test Topic 1" and "ZZ Test Topic 2"). Page result: "Upload Complete! 1 new subject created, 2 new topics created"; no error shown. This confirms the real browser path (admin session, RLS policies, new privileges) works end to end for subject and topic inserts. (The earlier uncertainty whether these inserts were being refused before B-02b is not resolved by this test and no longer matters.) Console errors seen were only an earlier failed sign-in attempt, not the upload.
+**Test rows are still live** (visible to CA Final students). Cleanup file: `docs/database/t002/B-02b_CLEANUP_test-subject_v1.sql` (short hash `dee0d50789b4`, 40 lines): aborts unless exactly the 1 subject and 2 topics exist; deletes them. Not yet run.
+
+Handoff: `AWAITING-CLAUDE` - Founder to run the cleanup; then B-04a.
