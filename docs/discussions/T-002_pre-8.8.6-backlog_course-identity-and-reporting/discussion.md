@@ -2664,3 +2664,13 @@ Handoff: `AWAITING-CLAUDE` - next B-05 (flashcards and notes derive trigger and 
 Not covered: the `practice_mode` / studyTracker writer and the cron daily-summary read (Gate 5/7 later).
 
 Handoff: `AWAITING-CLAUDE` - next F0 (frontend) per Round 56, awaiting the Founder's go-ahead.
+
+---
+
+## Round 58 · Claude · 08/10/2026
+**Founder instruction (chat):** go ahead with F0; the test rows (the 12-minute Reading session on the admin account; the `ZZ` subject and topics are already removed) are removed only after ALL T-002 tests are complete.
+**F0 draft submitted for exact-diff audit (Gate 5 path).** Patch `docs/discussions/T-002_F0_frontend-patch_08-10-2026.patch`, short `f0cf524ed4f0`, full sha256 `f0cf524ed4f05a20c7c510eeb0bc44c67e2b40e80214b9ee3f733279a0c185fb`, base `05677aa`; index `docs/discussions/T-002_F0_frontend-patch-index_08-10-2026.md` (scope a, b, c; verification; Claude decision on the word "Other"; Gate 7 test list). Draft worktree `recall-app-f0`, uncommitted, not pushed. No SQL.
+**Request to QA (Tier 1 for student-visible behaviour, round 1):** audit the exact patch by hash; list every defect now as blocker or non-blocking.
+Gates 5, 6, 7 not given.
+
+Handoff: `AWAITING-QA` - QA to append one round answering the request.
