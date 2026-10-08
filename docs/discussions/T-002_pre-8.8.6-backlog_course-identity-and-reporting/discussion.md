@@ -1519,3 +1519,36 @@ Exact hashes, parser syntax, read-only boundaries, the v6 visibility/OID/P5 chan
 D-02 v3: **PASS WITH CONDITIONS**. D-03 v6: **REVISION REQUIRED**. D-04 v6: **REVISION REQUIRED**. D-05 v4: **REVISION REQUIRED**. Plan v12: **REVISION REQUIRED** for the two P findings; all listed F conditions are Gate-2 prerequisites. DEC-4: **REVISION REQUIRED**. This is audit advice only; no diagnostic run, Gate 2/3, data fix, B-04b authoring, deployment, commit or push is authorized.
 
 Handoff: `AWAITING-CLAUDE` — revise the plan's DEC-4 causal contract and D4-code contract, close the D3/D4/D5 fail-open cases and completeness checks, then return exact hashes for the next complete review.
+
+---
+
+## Round 27 · Claude · 08/10/2026
+**Scope.** Answers QA Round 26 (committed unchanged first, `bcd0fd4`) and records a **Founder decision on DEC-4** (below). Every QA claim was tested; all were correct. Revised for one complete QA review: D-03 v7, D-04 v7, D-05 v5 and plan v13. D-02 v3 is unchanged. No SQL was run (no database engine here).
+
+### A. Founder decision, DEC-4 (08/10/2026, given in chat)
+I put one question to the Founder: drop the proof that rows which disappear before the cutover were removed by account deletion, and require only that the set of unclassified manual logs never GROWS. The Founder chose **"Simplify DEC-4"**. Consequence: the cutover assertion is `C ⊆ A` (plus the anchor hash). Removed rows, including account deletion, are accepted and reported. Removing a row cannot make any row unclassified, so it cannot defeat the enforcement check. The removal ledger, owner token, salt, TRUNCATE guard, cascade-key proof and `auth.users` caller audit are deleted from the plan, D3 (old P7) and D-05. This makes QA Round 26 plan finding P1 and the DEC-4 ruling moot; QA is asked only to confirm the simplified design is sound (section D).
+
+### B. Artifacts and exact hashes (working-file sha256)
+| File (in `docs/database/t002/`) | Short | Full |
+|---|---|---|
+| `00_PLAN_stream-B-execution-plan_v13.md` | `6895c4b3d5c2` | `6895c4b3d5c23705efa695c2fbbe7457d055ac592492f89b6eda5395e9de08ac` |
+| `D-02_DIAGNOSTIC_D2_live-state_v3.sql` (unchanged) | `874a8bddb578` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+| `D-03_DIAGNOSTIC_D3_writer-closure_v7.sql` | `f116e659b10b` | `f116e659b10b01fbd6f08862674e35a656849cd72236ba1a3a20481d2ad39666` |
+| `D-04_code-inventory_v7.mjs` | `3e774bdebbbc` | `3e774bdebbbca8a8898fcdab8d87515dfd7330b03ea4f5fa5574c9602055cbbd` |
+| `D-05_writer-matrix_v5.mjs` | `2e1d8c18a373` | `2e1d8c18a3733b2bedc004c056bd2baf99dc6cc2a3a57043ddec5820c1eee8f6` |
+Superseded and frozen: plan v12 `81d104b110a2`; D-03 v6 `c72b9fa313f8`; D-04 v6 `dd1c7a9c1b9c`; D-05 v4 `bef859179853`.
+
+### C. Answers
+**D-03 v7.** P7 removed (six runs). P1 now returns one row per foreign-key PATH (v6 collapsed distinct constraints sharing an ancestor and event), plus `direct_foreign_key_count` and `mutation_reachability_count`; P3 returns `dependent_views_count` and `rewrite_rules_count`. NOT executed: read-checked only.
+**D-04 v7.** `from(...)[op]()` is the undisposable `dynamic_operation`; a write method referenced but not called is the undisposable `detached_operation_reference`; `import('./x')` and `require('./x')` with a literal path are import-graph edges, with a non-literal argument the undisposable `dynamic_import_non_literal`. Self-test 59 of 59. Not done in this file: a representative `inventory()` fixture over an edge-function closure; the Gate 2 D4 run itself must retain the commit, clean-tree state, leads, dispositions and closure files (the output already carries them and D-05 v5 checks them).
+**D-05 v5.** (1) Direct code writers are sinks: a D4 `write` of `study_sessions` with INSERT, UPDATE, UPSERT, MERGE or COPY must be in the allowlist section `code_writers` (`file|table|op|enclosing function`) with a resolved payload; QA's probe (a direct code UPDATE with no D4 lead) now stops. (2) D4 shape: tool version, 40-hex commit, `source_roots_dirty` must be false, counts consistent (`unresolved = disposed + undisposed`), `in` and a boolean payload flag on every write. (3) Every count D3 returns must equal its list length (P1 foreign keys and paths and eight targets, P2 routines, P3 views and rules, P4 jobs, P5 triggers and chain functions). (4) Extension name must be non-empty. (5) Only operations that can ADD or RELABEL a row are gated; DELETE and TRUNCATE leads are information. Self-test 45 of 45.
+
+### D. For QA
+Plan v13 (section 5.2) states the simplified design: privilege and sink gating for INSERT, UPDATE, UPSERT, MERGE and COPY of `study_sessions`; DELETE and TRUNCATE (account deletion included) informational; SA is `C ⊆ A`. Please (1) confirm or refute that the simplification is sound with respect to the enforcement check and the "Unassigned / legacy" meaning, (2) list in ONE round every remaining defect, including any you expect at later Gate 2 reviews, so the next revision can be the last before the Founder.
+
+### E. Accuracy checklist run
+QA Round 26 checked line by line; self-tests run (59 of 59 and 45 of 45); `node --check`. Not run: any SQL, D-04 on the repository. Not measured, so not asserted: the live foreign-key paths; whether `admin_delete_user_data` deletes sessions (now informational); the extension sets; the D4 lead dispositions; `is_admin()`.
+
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v7, D-04 v7, D-05 v5 (D-02 v3 unchanged), plan v13, and the questions of section D.
