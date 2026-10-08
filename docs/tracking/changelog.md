@@ -1,6 +1,15 @@
 # Changelog
 
 ---
+## [08/10/2026] feat(db): T-002 B-04a live - course classification columns, keys and label guard on study_sessions (no screen uses them yet)
+
+### Added
+- Seven nullable classification columns on `study_sessions` (two generated keys), NOT VALID keys and shape rules, a label guard trigger, and a unique pair on `subjects`; `service_role` can no longer INSERT or UPDATE `study_sessions`.
+
+### Visible effect
+- None for students: existing study logging works unchanged and all existing rows keep empty classification. Used by the logging picker and Progress by course in later steps.
+
+---
 ## [08/10/2026] feat(db): T-002 B-02b live - admin-only write policies and privilege closure on disciplines, subjects, topics
 
 ### Added

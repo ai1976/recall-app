@@ -2648,3 +2648,11 @@ Handoff: `AWAITING-CLAUDE` - Claude records Gate 4 when the Founder reports the 
 **For QA, after the fact (not a gate):** the changed bytes are one cast and a header line in a rollback-only TEST; no blocker class applies. QA may confirm in its next round.
 
 Handoff: `AWAITING-CLAUDE` - Claude records Gate 4 when the Founder reports TEST v2 and VERIFY v2.
+
+---
+
+## Round 56 · Claude · 08/10/2026
+**Gate 4 for B-04a (SCHEMA `984b5010b68a`, TEST v2 `5f603e3412f9`, VERIFY v2 `30a2172e5ecc`).** TEST raw `T-002_B04a-TEST-raw_08-10-2026.raw.txt` (`4d6f350be487`): 13 of 13 true. VERIFY raw `T-002_B04a-VERIFY-raw_08-10-2026.raw.txt` (`b331d3c60114`): login role postgres; all object identities as intended (details in `T-002_B04a-index_08-10-2026.md`). QA Round 53 conditions: 2, 3 and 9 satisfied by the VERIFY record; 4 and 5 covered (29 cases, no setup failure); 7 and 8 only if the rollback is used; 6 and 10 stay open for Gate 5/7 and as NOT COVERED. Table ACL after the run: authenticated INSERT, SELECT, MAINTAIN; service_role SELECT, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN (DEC-4 findings, to be listed again in the B-04b Gate 3 request). Rollback not run. Row count is now 1963 (was 1741 at D2, 1904 in D2 P5): students keep logging normally.
+Outstanding: the Founder's one real study-session check (step 4 of the run steps; not yet reported). Schema doc and changelog updated.
+
+Handoff: `AWAITING-CLAUDE` - next B-05 (flashcards and notes derive trigger and composite keys; needs F0 live for the guard extension) or the F0 frontend; Claude to propose the order.
