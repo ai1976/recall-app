@@ -12,5 +12,7 @@ Operators: before running anything, find the artifact here and check that the fi
 | B-01 functions | `B-01_FUNCTIONS_course-text-normalize-and-resolve_v2.sql` `bac5da9f43e4` (+ `_TEST_` v2 `a0d85d34b603`, `_ROLLBACK_` v2 `7792fd49d4a2`) | see thread Round 41 | 1 | QA PASS WITH CONDITIONS (Round 42); Gates 2 and 3 granted 08/10/2026 |
 | B-02a disciplines guards | `B-02a_SCHEMA_disciplines-guards_v2.sql` `2c5e20cbd14b` (+ `_TEST_` v2 `3fb26fae2548`, `_ROLLBACK_` v2 `5554f4572dda`) | see thread Round 41 | 1 | QA PASS WITH CONDITIONS (Round 42); Gates 2 and 3 granted 08/10/2026 |
 | B-02b catalogue write path and privileges | `B-02b_SCHEMA_catalogue-write-path-and-privileges_v2.sql` `097e0f3a0453` (+ `_TEST_` `135f68d54db3`, `_ROLLBACK_` `9e1a20469231`) | Round 50 | 1 | LIVE and TEST verified 08/10/2026 (15/15 true) |
+| B-02b test-row cleanup | `B-02b_CLEANUP_test-subject_v1.sql` `dee0d50789b4` | Round 51 | data | one-off; run by the Founder 08/10/2026 |
+| B-04a study_sessions compatibility | `B-04a_SCHEMA_study-sessions-compatibility-phase_v1.sql` `984b5010b68a` (+ `_TEST_` `d926d7ff7339`, `_ROLLBACK_` `f4f6df14d217`) | thread Round 52 | 1 | submitted to QA, Tier 1 round 1; NOT run |
 
 Every other `D-0x` and `00_PLAN_*` file in this folder is SUPERSEDED.

@@ -2528,3 +2528,36 @@ Handoff: `AWAITING-CLAUDE` - next artifact B-03/B-07 (after F0 frontend) or B-04
 **Test rows are still live** (visible to CA Final students). Cleanup file: `docs/database/t002/B-02b_CLEANUP_test-subject_v1.sql` (short hash `dee0d50789b4`, 40 lines): aborts unless exactly the 1 subject and 2 topics exist; deletes them. Not yet run.
 
 Handoff: `AWAITING-CLAUDE` - Founder to run the cleanup; then B-04a.
+
+---
+
+## Round 52 · Claude · 08/10/2026
+**Scope.** Tier 1 round 1 for B-04a (plan v18 section 5.1; brief B v10 sections 4.1, 4.2 without the manual rule). The Founder confirmed the B-02b test-row cleanup was run. Not run (no database engine here); read statement by statement.
+
+### A. Files and exact hashes (in `docs/database/t002/`)
+| File | Short | Full sha256 |
+|---|---|---|
+| `B-04a_SCHEMA_study-sessions-compatibility-phase_v1.sql` | `984b5010b68a` | `984b5010b68a0cfaa06945594a4bb130e80ab36f78091338b8646ac279e5a606` |
+| `B-04a_TEST_study-sessions-compatibility-phase_v1.sql` | `d926d7ff7339` | `d926d7ff7339c2fb4b1fe137a1f8117ae0cdee5b58873e725c801a8710e57474` |
+| `B-04a_ROLLBACK_study-sessions-compatibility-phase_v1.sql` | `f4f6df14d217` | `f4f6df14d217847b3631c49361535df49779851138f4b9b81263790eb55f825e` |
+
+### B. What the SCHEMA file does
+UNIQUE `(discipline_id, id)` on `subjects`; seven nullable columns on `study_sessions` (the two keys are stored generated columns from `normalize_course_text`); two NOT VALID foreign keys; three NOT VALID two-valued CHECKs (values, shape, machine rows unclassified); a SECURITY DEFINER label guard trigger (trim, empty, over 120, control character, platform-name refusal for the course label only, catalogue labels stored canonically); `REVOKE UPDATE, INSERT` on `study_sessions` from `service_role`. It starts with ACCESS EXCLUSIVE and a fail-closed pre-flight that binds the exact D2 state (columns, nine constraints by definition, indexes, policies, no trigger or rule, no column ACL, exact table ACL, subjects constraints and index, B-01 and B-02a), takes a hash of the ten existing columns before, and aborts unless the same hash and row count hold after and every new column is NULL on existing rows.
+
+### C. Decisions and findings for QA
+1. **service_role (change-log Entry 3).** UPDATE closed (gating). INSERT closed (no consumer in D4/D5). SELECT kept: `cron-daily-study-summary` reads it as `service_role`. DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN unchanged (DEC-4 findings).
+2. **Reported finding:** `authenticated` holds table-level MAINTAIN on `study_sessions` (D2 P4). Not changed; direct SQL only, not reachable through the REST API. Founder may want it revoked later.
+3. **Two-valued CHECKs.** A first draft of the shape check could evaluate to NULL (and so pass) for a NULL classification with a discipline id; the file uses `IS NOT DISTINCT FROM` and the TEST has a case for that exact row.
+4. **Label guard scope.** Platform-name refusal applies to the course label only (plan 5.1); the guard also covers `UPDATE OF` either label (defensive; no code updates these columns).
+5. **Self-review catch:** an ordering clause in the ACL pre-flight put `COLLATE "C"` on only the last operand (so the order would have followed the database collation); fixed with parentheses before submission.
+6. **Not proven by this file (by design):** the manual rule (B-04b); the UI paths (Gate 5 and 7); concurrent inserts during the lock (a quiet-time run with a 5 s lock timeout is the mitigation).
+
+### D. TEST
+One run, one result grid, one summary row: structure; exact existing constraints unchanged; exact privileges; no backfill; 30 insert cases as the real `authenticated` role with the two frontend writers' exact column lists replayed; stored label/key checks; other-user insert and UPDATE refused; `service_role` UPDATE and INSERT refused, SELECT works; owner UPDATE of a label still passes the guard; table byte-identical afterwards.
+
+### E. Request to QA (Tier 1 round 1)
+Audit the three files by hash. List every defect now as blocker or non-blocking (README, Tiered checking). Reported residuals as defined there.
+
+Gates 2 to 7 not given for B-04a.
+
+Handoff: `AWAITING-QA` - QA to append one round answering E.
