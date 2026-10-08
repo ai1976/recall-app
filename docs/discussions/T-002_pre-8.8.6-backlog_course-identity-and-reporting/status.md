@@ -2,10 +2,10 @@
 
 
 ## Status
-- **State:** AWAITING-QA
-- **Owner:** QA
+- **State:** AWAITING-CLAUDE
+- **Owner:** Claude
 - **Phase:** SQL work plan v13 and the revised read-only diagnostic files (D-02 v3 passed with conditions; D-03 v7, D-04 v7, D-05 v5 revised after QA Round 26 and the Founder's DEC-4 decision) under audit; D-01 run and its evidence saved (design approved: brief B v10, Gate 1 given 04/10/2026)
-- **Last round:** 27  · **Last QA-reviewed round:** 26
+- **Last round:** 28  · **Last QA-reviewed round:** 27
 - **Agreed decisions (carried from T-001; positions, not a new approval):** brief B v10 (`0fe77dec72dc`) is the approved design for points 5 and 10 together; decisions D1 to D11 and E1 to E10 of T-001 are confirmed (Founder, 04/10/2026 and later); no in-app payment; platform course names are identifiers and immutable in v1; new offline logs are always classified (platform, custom or explicit General), NULL means only legacy; no backfill; professors see totals only. Details and round numbers: Round 1 section B.
 - **Open disagreements:** none
 - **Founder decisions required:** none now. In force: DEC-1, DEC-2 (Round 5); topic-level logging deferred (Round 7); DEC-3 (Round 9); Round 13 method choice; authorization to run D-01 (Round 17; run 08/10/2026); **DEC-4 simplified (08/10/2026, Round 27): the cutover requires only that the set of unclassified manual logs never grows; no removal provenance.** **Needed later, two acceptances:** (1) before Gate 3 of B-03 and B-07: the never-reloaded F0 tab residual (section 4C); (2) before Gate 3 of B-04b: the never-reloaded F1 tab residual (section 5.2); deferral of (2) defers the cutover.
