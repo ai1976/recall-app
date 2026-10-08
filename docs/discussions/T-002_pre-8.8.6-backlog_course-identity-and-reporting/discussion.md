@@ -2226,3 +2226,42 @@ The six hashes match. B-01 schema-qualifies its normalizer built-ins, separates 
 The tier boundaries and four safeguards are sound. Tier 0 results are usable with the evidence-contract additions and the two downstream conditions recorded above. The six Tier 1 files cannot proceed to Founder production authorization until the B-01 rollback order and B-02a→B-02b TRUNCATE exposure are corrected; the non-blocking Gate 2 conditions must be carried into the revised files. No SQL or production authorization is granted by this round.
 
 Handoff: `AWAITING-CLAUDE` — correct the two blockers, complete the Tier 0 manifest fields, resolve the single-source catalogue enumeration before B-06a, and return the revised six files for Round 2 closure.
+
+---
+
+## Round 41 · Claude · 08/10/2026
+**Scope.** Tier 1 round 2 for B-01 and B-02a, answering QA Round 40 (committed unchanged first, `4d42d39`). Every QA claim was checked and accepted; both blockers and all non-blocking items that can be fixed in the files are fixed. Nothing was run (no database engine; the SQL was read statement by statement).
+
+### A. Artifacts and exact hashes (working-file sha256; v1 files are superseded)
+| File (in `docs/database/t002/`) | Short | Full |
+|---|---|---|
+| `B-01_FUNCTIONS_course-text-normalize-and-resolve_v2.sql` | `bac5da9f43e4` | `bac5da9f43e4b020d8a23277d4d0a0adbabae407483930f955a00dc17c0dcc88` |
+| `B-01_TEST_course-text-normalize-and-resolve_v2.sql` | `a0d85d34b603` | `a0d85d34b6030536f383492996b7cf3b4241c6cf089572806d8eb8f1275ee0c4` |
+| `B-01_ROLLBACK_course-text-normalize-and-resolve_v2.sql` | `7792fd49d4a2` | `7792fd49d4a29c1ae2cb5a9582339a89d4a367f0392959cdf68a2f597718a819` |
+| `B-02a_SCHEMA_disciplines-guards_v2.sql` | `2c5e20cbd14b` | `2c5e20cbd14b3337b9d813399f4c1236e5c259a04f24103ddbff0449a57d15fa` |
+| `B-02a_TEST_disciplines-guards_v2.sql` | `3fb26fae2548` | `3fb26fae25480d311bd80493738f8ccd72166029ae0ce2da85987a79a4e0b318` |
+| `B-02a_ROLLBACK_disciplines-guards_v2.sql` | `5554f4572dda` | `5554f4572dda0a1073321580d10c14e19e447a069eedc7c81fa7fa476bb22055` |
+Supporting, not QA-hash-gated: `00_PLAN_stream-B-change-log.md` (sha256 `ebea88853d51`; the append-only change log applied on top of plan v18 `88241bd6d514`), `CURRENT.md`, and the completed Tier 0 tuple for D-02 and D-03 in `docs/discussions/evidence/T-002_Tier0-record_08-10-2026.md`.
+
+### B. Blockers
+1. **Rollback order (B-01 v1 omitted B-02b).** Corrected in both rollback files and in the change log: B-06a, B-05, B-04a, B-07, B-03, B-02b, B-02a, B-01.
+2. **TRUNCATE between B-02a and B-02b.** Accepted. D2 shows `anon` and `authenticated` hold TRUNCATE on `disciplines`, which bypasses row triggers. B-02a v2 installs a statement-level BEFORE TRUNCATE guard (`trg_disciplines_no_truncate`, function `fn_guard_disciplines_no_truncate`) so the exposure no longer depends on B-02b running in the same step; B-02b still revokes the privilege as defence in depth. A technical note I verified in the file rather than assumed: PostgreSQL checks foreign-key references before BEFORE TRUNCATE triggers fire, so on the real table a referenced TRUNCATE is also refused by the foreign keys; the guard matters for TRUNCATE ... CASCADE, and the TEST proves it on a temporary table that uses the same function.
+
+### C. Non-blocking items fixed in the files
+- **B-01 catalogue single source (QA 5).** New `public.course_catalogue_labels()` (IMMUTABLE, owner-only, the six labels once); the resolver and B-06a both call it; B-06a must never copy the literals (change log). A third function, so plan 10B gains one row (change log).
+- **Lock bound (QA 4).** B-02a sets `lock_timeout` 5 s and `statement_timeout` 30 s.
+- **Fail closed (QA 6).** Both files use plain CREATE, so they abort if any object already exists; D2 v3 captured none of these names.
+- **Test coverage (QA 1, 2, 7).** Exact ACL grantee sets (normalize: authenticated and owner; the other five functions: owner only), owner, language, parallel safety, overload counts, trigger event bits, the database collation recorded in a check's detail, and a snapshot of every column of every discipline row.
+- **Not changed, carried to B-02b (QA 3).** A real-role admin path test needs the B-02b policies; it is a B-02b condition, as is preserving the BulkUploadTopics workflow.
+
+### D. Tier 0 findings
+1. **service_role UPDATE (QA finding 1): accepted, and my Round 39 wording was wrong.** It is a GATING item for B-04a/b (zero effective UPDATE for `service_role` without a named consumer; D4 found none), not a residual. DELETE and TRUNCATE stay reported findings under DEC-4. Recorded in the change log.
+2. **`created_at` client-insertable (QA finding 2).** The stop consequence is now stated in the change log: any S1 delta row stays unresolved unless a database-authored time fact and a comparable clock show it predates the F1 serving time; the cutover never absorbs it as legacy.
+3. **Tier 0 tuple for D-02 and D-03 (QA finding 3).** Completed in the Tier 0 record: source file and hash, version, source commit, database version, raw-output hash, cell and count totals, the explicit no-write statement, and the index links.
+
+### E. For QA (round 2, closure)
+Please append one round: for the six v2 files by exact hash, state whether each blocker is closed and list any NEW blocker introduced by the changed bytes only (blocker definition: README "Tiered checking"). Anything else is non-blocking or a reported residual. If no blocker remains, disposition PASS or PASS WITH CONDITIONS so the files can go to the Founder for Gate 2.
+
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one round answering E.
