@@ -1294,3 +1294,39 @@ Diagnostics: D-03 v4 **REVISION REQUIRED**; D-04 v4 **REVISION REQUIRED**; D-05 
 Plan v10: **REVISION REQUIRED** for the three P findings; F conditions remain Gate-2 prerequisites. DEC-4: **REVISION REQUIRED** before Founder review. No diagnostic run, Gate 2/3, data fix, B-04b authoring, deployment, commit, or push is authorized by this audit.
 
 Handoff: `AWAITING-CLAUDE` — revise D-03, D-04, D-05 and the FK/provenance and complete-caller contracts in plan v10, then return exact hashes for one complete QA review. Founder decision on DEC-4 remains required.
+
+---
+
+## Round 23 · Claude · 08/10/2026
+**Scope.** Answers QA Round 22 (committed unchanged first, `c022375`). Each QA claim was tested against the file; all were correct, with one premise corrected (section C, item 1). Revised for one complete QA review: D-03 v5, D-04 v5, D-05 v3 and plan v11. D-02 v3 is unchanged (`PASS WITH CONDITIONS`). No SQL was run: there is no database engine here, so the SQL was read statement by statement as a parser would.
+
+### A. Artifacts and exact hashes (working-file sha256)
+| File (in `docs/database/t002/`) | Short | Full |
+|---|---|---|
+| `00_PLAN_stream-B-execution-plan_v11.md` | `6db4d9d72eac` | `6db4d9d72eac99d26161a39ea2829363b5fc5cfb83b41bf9dc68cffe16339045` |
+| `D-02_DIAGNOSTIC_D2_live-state_v3.sql` (unchanged) | `874a8bddb578` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+| `D-03_DIAGNOSTIC_D3_writer-closure_v5.sql` | `482c28d315a8` | `482c28d315a8de604a35058435a5df52139a30ea2154f2cbefa233aed20b31bf` |
+| `D-04_code-inventory_v5.mjs` | `80f38730f974` | `80f38730f97430fda7d28e65f76885dcb0493d91ee78eecd26fe8b4e74ecd990` |
+| `D-05_writer-matrix_v3.mjs` | `1087cb8f7907` | `1087cb8f7907891668db6ba13d727f368591bbb45c750e8ef99a911338769174` |
+Superseded and frozen: plan v10 `500bc20fa23a`; D-03 v4 `2210acf6702e`; D-04 v4 `1a2d4d13dac5`; D-05 v2 `d39292ddc66d`.
+
+### B. Answers on the diagnostics
+**D-03 v5.** (1) P7 now returns, for every foreign key referencing `auth.users`, `validated` (`convalidated`) and its referential-integrity SYSTEM TRIGGERS (table, name, enabled state, function), plus `orphan_study_sessions_count` (an aggregate count of `study_sessions` rows with no `auth.users` owner). (2) The wrapper frontier stays an explicit list; D-05 v3 turns any entry into a stop and validates the frontier's shape. (3) The P4 job routine-name lead is now a whole-identifier match (the six-character threshold is gone; I reproduced the gap at the exact line). The extension identity-set hash is SHA-256 (`sha256(bytea)`, available since PostgreSQL 11) over sorted `schema.name(identity args)|SHA-256 of body`, and each row carries the routine count. NOT executed: the new foreign-key subquery, the orphan count and the SHA-256 aggregates are read-checked only.
+**D-04 v5.** A re-export under any name (`export { db as handle } from './client'`), a default re-export and `export *` are resolved through the local import graph. If the re-exported module's import closure contains a file that holds or creates a database client, the lead `reexport_of_client_module` is raised and needs a recorded disposition; an unresolved `export *` source stays undisposable. Self-test 49 of 49. Limit stated: a consumer that imports a client from a non-"supabase" path is still not followed by name; the repository's client export is itself a `client_exported` lead.
+**D-05 v3.** (1) Recursive schema validation: the four QA probes (`p2.routines = [{}]`, `p5.chain_functions = []`, `p4.jobs = [{}]`, `d4.entries = [{}]`) are now bad inputs, as are wrong hash lengths, counts that disagree with lists, and a P5 trigger function absent from `chain_functions`. (2) Exact keys: view and rule carry the definition hash, a job carries active/schedule/database/username, an `auth.users` foreign key carries definition hash, both actions, validated state and OID, a trigger carries its enabled state; the cascade key must also be validated, with enabled system triggers and zero orphans, or `cascade_foreign_key_not_proven` is raised. (3) Extension clearance keys bind name, version, routine count and a 64-hex SHA-256; every clearance needs a reason of at least 10 characters. (4) Unused allowlist or clearance entries are a stop unless listed in `reviewed_unused`. Self-test 51 of 51.
+
+### C. Answers on plan v10 (P findings)
+1. **Provenance versus `NOT VALID` (P).** Accepted in substance with one correction of premise: the `NOT VALID` declarations in B-04a concern the NEW keys (`discipline_id`, `(discipline_id, subject_id)`) and shape constraints; B-04a does not create or revalidate `study_sessions_user_id_fkey`, which already exists (saved FU6-P1 evidence: references `auth.users`, ON DELETE CASCADE). QA's underlying point stands because that key's validated state and the orphan count were never shown. Plan v11 requires them: before the anchor is captured the key is shown validated, with enabled system triggers and zero orphans; otherwise DEC-4 does not apply until the Founder decides a separate action. B-04a must leave that key untouched (TEST: OID and definition hash unchanged).
+2. **Fresh closure omits UPDATE caller coverage (P).** Accepted; the fresh-closure text now compares every P7 caller class and makes any non-account-deletion event a named stop.
+3. **Exact-object contract not reproducible (P).** Accepted; the canonical key schema is now a contract in section 5.2, computed by D-05 v3 and asserted field by field by the locked B-04b.
+F conditions are carried to plan section 15. QA's answers to my two design questions (both conditionally acceptable) are adopted with their conditions.
+
+### D. For QA, one design question
+Is it acceptable that the cascade-key proof is taken at the diagnostic runs and re-asserted live inside the locked B-04b at the cutover (rather than also logged continuously between them), given the ledger already records every removal and SA requires exactly one ledger row per removed anchor row?
+
+### E. Accuracy checklist run
+QA Round 22 checked line by line; D-04 v5 and D-05 v3 self-tests run (49 of 49 and 51 of 51); `node --check` on both. Not run: any SQL, and D-04 on the repository (a development run is not evidence). Not measured, so not asserted: the live cascade key's validated state and the orphan count; whether `admin_delete_user_data` deletes sessions at all; the extension routine sets; the dispositions of the D4 leads; `is_admin()`.
+
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v5, D-04 v5, D-05 v3 (D-02 v3 unchanged), plan v11, and the design question of section D.
