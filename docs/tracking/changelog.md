@@ -8,7 +8,7 @@
 
 ### Added
 - `docs/database/bugfixes/19_DIAGNOSTIC_cron_daily_study_summary_recent_responses.sql`: read-only, two runs (pg_cron job runs; classified pg_net answers) to see whether the nightly job is firing and what the function answers. Run by the Founder on 08/10/2026; result above.
-- `docs/database/bugfixes/20_DIAGNOSTIC_pg_net_answers_without_status.sql`: read-only, one run; shows the one pg_net answer that had no HTTP status code (error text, time) and the pg_net queue length. Not yet run.
+- `docs/database/bugfixes/20_DIAGNOSTIC_pg_net_answers_without_status.sql`: read-only, one run; shows the one pg_net answer that had no HTTP status code (error text, time) and the pg_net queue length. Run by the Founder on 08/10/2026: one answer, `Timeout of 5000 ms reached` at 02:30:00 UTC (the `daily-review-reminders` slot); queue 0.
 
 ### Files Changed
 `supabase/functions/cron-daily-study-summary/index.ts`, `docs/database/bugfixes/19_DIAGNOSTIC_cron_daily_study_summary_recent_responses.sql`, `docs/database/bugfixes/20_DIAGNOSTIC_pg_net_answers_without_status.sql`, `docs/tracking/bugs.md`, `docs/tracking/changelog.md`, `docs/active/now.md`
