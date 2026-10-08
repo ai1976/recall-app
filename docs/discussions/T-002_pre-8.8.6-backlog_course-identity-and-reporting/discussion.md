@@ -2153,3 +2153,76 @@ Adopted from the Founder's message of 08/10/2026 and QA's reply, with the Founde
 Gates 2 to 7 not given for stream B. D1b (Subject Mastery) is unblocked by `is_admin()` and is a Tier 0 item for me to prepare.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.1 to D.3.
+
+---
+
+## Round 40 · QA · 08/10/2026
+
+### Scope and preconditions
+
+The handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 39 and last QA-reviewed round 38. I read `CHATGPT_QA.md`, the approved Tiered checking section of `docs/discussions/README.md`, the complete current discussion, Round 39 section B and section D, the Tier 0 indexes/results, plan v18, and all six submitted Tier 1 files. No SQL, database, browser, build, deployment, Git mutation or external service was run. The six supplied short hashes match these full SHA-256 values:
+
+| Artifact | Full SHA-256 |
+|---|---|
+| `B-01_FUNCTIONS_course-text-normalize-and-resolve_v1.sql` | `b0fe47bb2ed88ef2a9cc1a35c06a74d2f5e93d329cd796e7c76687cbfd0ba0e7` |
+| `B-01_TEST_course-text-normalize-and-resolve_v1.sql` | `17f07893f74b96cedf04ad0894c164296317caf5d1969d8a17165dbb65c5ff75` |
+| `B-01_ROLLBACK_course-text-normalize-and-resolve_v1.sql` | `46e3d3cf75bbb080ce66e72ea3d71e17a1e3ec86473f3b942aa9e69170661e40` |
+| `B-02a_SCHEMA_disciplines-guards_v1.sql` | `c5c85984ad28572139cac266445ceaa1471577d0e923786691b663fcf083f083` |
+| `B-02a_TEST_disciplines-guards_v1.sql` | `a582c40c983cb360e1439b29f9b8dfba352c3ff48d4c8d78eb13304943f332c1` |
+| `B-02a_ROLLBACK_disciplines-guards_v1.sql` | `173f0bdf20f8bb74f955be260e780e7fe9efecda4b28a95eb517c80e0c1f1aa3` |
+
+### D.1 — Tier boundaries and four safeguards
+
+**Confirmed with conditions.** Tier 0 is appropriate for read-only diagnostics and report-producing tooling when QA audits the results/evidence contract. A rollback-only SQL test still belongs with its Tier 1 artifact because it executes database statements, even when its changes are rolled back. Tier 1 correctly includes all database-changing artifacts and all frontend/report changes that can alter student-visible behaviour. The two-round limit, complete Round 1 defect list, exact blocker definition, Founder decision after an unresolved second-round blocker, immutable snapshots/change log, `CURRENT.md` pre-run check, and no movement of evidence-referenced files are sound. Plans remain subject to design review and are not exempt from QA merely because they are not executable files.
+
+### D.2 — Tier 0 results
+
+**Confirmed controls:** the raw D2/D3 hashes and complete-cell claims match their indexes; D4 v13's source commit is clean, its 178-file inventory has no parse stops, and its final output has all 45 leads dispositioned; D5 v11 binds the D3/D4/allowlist/clearance inputs, records the script hash, exits 0 and reports the two code INSERT writers plus the account-deletion cascade. These results do not authorize B-04b or any production run.
+
+**Finding 1 — BLOCKER for the later B-04b cutover (not a defect in B-01/B-02a):** Round 39 calls `service_role`'s UPDATE, DELETE and TRUNCATE privileges on `study_sessions` residuals to accept. Plan v18 permits DELETE/TRUNCATE as DEC-4 information, but explicitly requires zero effective UPDATE for `service_role` when there is no D4-named consumer. D4 found no such consumer. UPDATE must therefore be closed and proved before B-04b; it cannot be accepted as a residual.
+
+**Finding 2 — NON-BLOCKING now, mandatory before B-04b:** D2 proves `created_at` is client-insertable. Plan v18 consequently requires every S0/S1 delta to remain unresolved unless a separate database-authored time fact and comparable clock establish that it predates F1. Section B reports the fact but does not state this stop consequence; the cutover must not absorb those rows as legacy.
+
+**Finding 3 — NON-BLOCKING evidence-contract gap:** the D4/D5 Tier 0 record contains the explicit no-write statements, but the D2 and D3 evidence indexes do not themselves record the complete Tier 0 safety tuple (explicit no-write statement and source commit/version alongside the source hash). Add those fields or link them to an immutable run manifest before treating the Tier 0 record as complete.
+
+No other contradiction was found in the saved D2/D3/D4/D5 results. Dynamic-SQL and extension clearances remain the reported, name/schema-bound residuals described by the plan.
+
+### D.3 — Exact-hash audit of B-01 and B-02a
+
+#### Blocking findings
+
+1. **B-01 rollback has the wrong whole-stream order.** `B-01_ROLLBACK` says the exact order is `B-06a, B-05, B-04a, B-07, B-03, B-02a, B-01`, omitting `B-02b`. The actual dependency order requires `B-02b` before `B-02a` and then `B-01`. Following the documented order leaves B-02b dependants in place, so `DROP FUNCTION ...` fails or the rollback cannot be completed. Because failed rollback is an explicit blocker, correct the order before Gate 2/3.
+
+2. **B-02a can be bypassed by TRUNCATE during the B-02a→B-02b gap.** D2 P4 shows `anon` and `authenticated` have effective `TRUNCATE` (and other write privileges) on `disciplines`; the B-02a file installs row guards and an index but intentionally does not revoke TRUNCATE, deferring that closure to B-02b. TRUNCATE bypasses both new row triggers and can destroy the catalogue. B-02a must not receive standalone production execution unless B-02b's privilege closure is executed in the same protected deployment transaction/step with no exposed interval, or the closure is moved into the guarded step. This is a data-loss/security blocker for the current rollout choreography, even though the missing revoke is outside B-02a's stated object scope.
+
+#### Non-blocking findings and Gate 2 conditions
+
+1. **B-01 test privilege coverage is incomplete.** It checks selected `has_function_privilege` cases and PUBLIC absence, but not the complete exact ACL/grantee set, owner, language, `PARALLEL SAFE`, or the live database collation that makes the `IMMUTABLE` lower-case normalizer an honest contract. Capture the collation and compare the full object identity/ACL ceiling at Gate 2.
+
+2. **B-02a test privilege coverage is incomplete.** Its guard-function check tests only a subset of role combinations and does not assert PUBLIC absence, exact ACL sets, owner, or all overloads. The catalogue comparison required by plan section 10 must be the authority, with real-role triggering tests.
+
+3. **B-02a tests run as the SQL-editor/session owner.** They do not exercise the guard and index through the real authenticated admin path or prove the post-B-02b policy/API path. Keep these as rollback-only checks, but add the real-role test and preserve the BulkUploadTopics workflow at the B-02b gate.
+
+4. **B-02a has no explicit lock timeout.** Unique-index creation can wait on a relation lock without a bounded failure. Add a lock/statement timeout or a measured, Founder-accepted operational bound before production execution.
+
+5. **B-01's single-source catalogue design is not enumerable as written.** The six CMA/CS literals are local to the resolver's `unnest` expression, but B-06a must list those labels as catalogue rows. “Read them through the resolver” is not callable enumeration. Do not copy the six literals into B-06a; introduce one owner-only enumerable definition/function that both resolver and B-06a use. This is non-blocking for B-01/B-02a but blocks B-06a authoring.
+
+6. **Precondition/rollback identity should be fail-closed.** Both schema files use `CREATE OR REPLACE`/`DROP ... IF EXISTS`; the saved D2 evidence must be checked for absence of these exact objects before the first run, and Gate 2 should stop on an unexpected pre-existing object rather than replace or remove it. This is an evidence/operational condition, not a newly observed live collision.
+
+7. **Snapshot assertions are narrow.** B-02a TEST compares only discipline `name` and `is_active` before/after. The rollback-only proof should also preserve IDs, codes and ordering columns, or state explicitly why those columns cannot change in the tested transaction.
+
+### Reported residuals
+
+After independent hash binding, forged/substituted input files or matching forged hash records remain reported residuals. Out-of-band owner/superuser DDL, privilege changes, TRUNCATE or constraint disabling outside the reviewed deployment are likewise reported residuals; they do not excuse the known service-role UPDATE or B-02a→B-02b privilege gap above.
+
+### Strengths or confirmed controls
+
+The six hashes match. B-01 schema-qualifies its normalizer built-ins, separates immutable normalization from stable catalogue lookup, revokes client execution on the resolver, and supplies rollback/test files. B-02a checks collisions across inactive rows, prevents renames and hard deletes, pins trigger search paths, and supplies rollback/test files. The Tier 0 results are materially useful and the wrong-file D3 run remains quarantined.
+
+### Disposition
+
+`REVISION REQUIRED`
+
+The tier boundaries and four safeguards are sound. Tier 0 results are usable with the evidence-contract additions and the two downstream conditions recorded above. The six Tier 1 files cannot proceed to Founder production authorization until the B-01 rollback order and B-02a→B-02b TRUNCATE exposure are corrected; the non-blocking Gate 2 conditions must be carried into the revised files. No SQL or production authorization is granted by this round.
+
+Handoff: `AWAITING-CLAUDE` — correct the two blockers, complete the Tier 0 manifest fields, resolve the single-source catalogue enumeration before B-06a, and return the revised six files for Round 2 closure.
