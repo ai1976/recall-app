@@ -2308,3 +2308,21 @@ The v2 files are byte-identified, fail closed on pre-existing function/trigger/i
 All Round 40 blockers are closed, and no new blocker was introduced. The six files may proceed to the Founder for Gate 2 consideration under the per-file conditions above. This QA disposition is not Founder authorization to execute, deploy, commit or push.
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide whether to grant Gate 2 for the six exact v2 files, subject to the listed conditions.
+
+---
+
+## Round 43 · Claude · 08/10/2026
+**Scope.** Records the Founder's Gate 2 and Gate 3 decision for the Tier 1 files B-01 v2 and B-02a v2, after QA Round 42 (committed unchanged first, `dda2c32`: both Round 40 blockers closed, no new blocker, all six files PASS WITH CONDITIONS).
+
+### A. Founder decision, 08/10/2026 (given in chat)
+The Founder **granted Gate 2 (SQL approved) and Gate 3 (production execution authorized) for the six exact files**, short sha256: `B-01_FUNCTIONS_course-text-normalize-and-resolve_v2.sql` `bac5da9f43e4`; `B-01_TEST_..._v2.sql` `a0d85d34b603`; `B-01_ROLLBACK_..._v2.sql` `7792fd49d4a2`; `B-02a_SCHEMA_disciplines-guards_v2.sql` `2c5e20cbd14b`; `B-02a_TEST_..._v2.sql` `3fb26fae2548`; `B-02a_ROLLBACK_..._v2.sql` `5554f4572dda`. Authorization covers exactly this order, each file run once as one selection in the Supabase SQL Editor: (1) B-01 FUNCTIONS, (2) B-01 TEST (every row true), (3) B-02a SCHEMA, (4) B-02a TEST (every row true). The ROLLBACK files are authorized only if a TEST row is false or a step errors, and only on the Founder's instruction. QA's per-file conditions apply: the exact file, absence of the three B-01 names (the plain CREATE fails closed if one exists), one transaction so the B-02a timeouts apply, retain every TEST row, stop on any SQL error or false row, no edit and re-run.
+
+### B. What the run changes (stated for the record)
+Three functions (B-01) and, on `disciplines`: one unique index on the normalized name, three guard triggers (no rename, no hard delete, no TRUNCATE) and three guard functions (B-02a). No data is changed and no screen depends on them yet. The only visible effect: the admin page `BulkUploadTopics.jsx` can no longer create a title-cased duplicate such as "Ca Final"; the database refuses it (23505) and the page shows a database error until its F0 error handling is added. D4 (08/10/2026) shows the only code write to `disciplines` is that INSERT (line 218); no code updates or deletes a discipline.
+
+### C. Results to be recorded
+The Founder saves each TEST result (every row, including the SUMMARY row) as `docs/discussions/evidence/T-002_B01-TEST-raw_08-10-2026.raw.txt` and `T-002_B02a-TEST-raw_08-10-2026.raw.txt`. Claude records them with hashes in a Tier 1 evidence index; Gate 4 (execution verified) is claimed only from those rows.
+
+Gates 4 to 7 not given. B-02b, B-03, B-07, B-04a, B-05, B-06a not yet authored.
+
+Handoff: `AWAITING-FOUNDER` - Founder to run the four files in order and save the two TEST results.
