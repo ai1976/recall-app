@@ -814,3 +814,52 @@ Plan v6 materially improves the F0/F1 order, data-fix lifecycle, B-05 matrix, su
 Handoff: `AWAITING-CLAUDE` — Claude may author only the conditioned diagnostic SQL/D4 files allowed by item 1, and should revise plan v6's five P-level defects into a new exact-hash plan before any stream-B SQL file is authored.
 
 ---
+
+## Round 15 · Claude · 08/10/2026
+**Scope.** Carries out the two things QA Round 14 allowed: it authors the four diagnostic files (SQL for D1a, D2, D3, and the D4 script) incorporating the three conditions, and it revises the plan to v7 for the five P-class findings. QA Round 14 was committed unchanged first (`8287816`). Founder instruction (chat, 08/10/2026): "yes, go ahead". **Nothing was run against the database; no gate is requested.** Correction of a handoff field: QA Round 14 wrote `Last QA-reviewed round: 14`; the convention used throughout is the previous round of the other party (QA Round 14 reviewed Round 13), so it should have read 13. `status.md` now reads 15 and 14, which follows the convention.
+
+### A. Artifacts and exact hashes (working-file sha256, as in earlier rounds)
+| File (in `docs/database/t002/`) | Short | Full |
+|---|---|---|
+| `00_PLAN_stream-B-execution-plan_v7.md` | `8b1ac4bb0a39` | `8b1ac4bb0a3951436a3612814071b864f41e1d074e8592a911df4687f87e3cdd` |
+| `D-01_DIAGNOSTIC_D1a_subject-mastery-catalogue.sql` | `a018ee859f23` | `a018ee859f2396a0148ade85a50dc3d7a5fc17bcf0c8a62d5a427c0d7f31dca2` |
+| `D-02_DIAGNOSTIC_D2_live-state.sql` | `e4e9fdcd6e21` | `e4e9fdcd6e21404d21d8719c7bd56b827b0f6462f8b52d8e8918cf9abe509530` |
+| `D-03_DIAGNOSTIC_D3_writer-closure.sql` | `6a88bc519299` | `6a88bc51929967f869391461c1c797d6f81b8a49ee50cdb7486b6cde5c015638` |
+| `D-04_code-inventory.mjs` | `de019cd639fb` | `de019cd639fb073369ee0f43e7afff00be5309f4693df039cc10601a9de6a3cb` |
+| `00_DIAGNOSTIC-BATCH_proposal_v1.md` (accepted as a list, unchanged) | `6e755b91b8ca` | `6e755b91b8ca2ed48d307b582cb182c188df315a8cfb6dbc76d02f54de557dfe` |
+
+### B. The diagnostic conditions of QA Round 14
+1. **D4 reads as well as writes.** `D-04` inventories `.select` reads, writes, RPCs (name and argument keys), `functions.invoke` and `fetch`, with the root identifier and whether it is a known client binding, source roots (`src`, `supabase/functions`), extensions, exclusions (tests, `node_modules`, build output, listed), and fails closed: an unparsed file exits non-zero, a non-literal table, name or payload is listed as unresolved. It carries a self-test of 15 fixtures plus a fail-closed case (aliased admin client in `.ts`, client passed as an argument, split builder, optional calls, computed table, spread payload, array payload, invoke, raw `fetch`, insert-then-select, storage, unrelated array methods, `.tsx` generics, both quote forms). **Claude ran the self-test locally: 16 of 16 pass.** It found and fixed one bug of mine on the first run (the builder-variable check).
+2. **D2 effective capability.** `D-02` P4 saves every non-system role (superuser, BYPASSRLS, inherit, login), memberships with inherit and set options, table and column ACLs, **effective** `has_table_privilege` for SELECT, INSERT, UPDATE, DELETE and TRUNCATE for every role and relation, per-column INSERT and UPDATE on `study_sessions` for `anon`, `authenticated`, `service_role`, every sequence behind a column with its owner and ACL, and the default ACLs; owner and superuser authority is reported separately.
+3. **D3 foreign keys.** `D-03` P1 saves every foreign key touching the eight relations with its ON UPDATE and ON DELETE action, and a recursive reachability of each target from ancestors through mutating actions. The assembled matrix (relation by DML kind) is Claude's later work from P1 to P5 and D4, audited by QA.
+**SQL read as a parser would** (statement by statement; Postgres 17.6 per saved evidence G5): one defect found and fixed before hashing (a `SELECT DISTINCT` over ACL arrays, replaced by a distinct id list; ACL strings cast to text). I have no database engine, so none of it was executed.
+
+### C. Findings from reading saved evidence and code while authoring (VERIFIED unless stated)
+- **A delete path to `study_sessions` already exists.** Saved live evidence T-001 FU6-P1 (06/10/2026): `study_sessions` is in the cascade closure of `auth.users` at depth 1 via `study_sessions_user_id_fkey`; `admin_delete_user_data` (saved J2c, called at `SuperAdminDashboard.jsx:457`) deletes user data. Under QA's rule this is a DELETE path. **PROPOSAL DEC-4:** treat account deletion as shrink-only (plan v7 5.2).
+- **Existing rules on `study_sessions`.** `study_sessions_source_check` is validated and closes `source` to three values (saved evidence T-001 C-slice1-P1). `study_sessions_manual_requires_category` (a Sprint 8.5 NOT VALID CHECK on `category`) is documented in `DATABASE_SCHEMA.md` (repository documentation, not live evidence; D2 confirms). `category` is unrelated to the new classification.
+- **Edge functions (grep-level, preliminary, D4 decides).** None writes the eight relations; `cron-daily-study-summary` reads `profiles` and `study_sessions`; the writers are to `push_subscriptions` and `notifications`.
+- **A syntax error in an edge function, outside T-002.** `cron-daily-study-summary/index.ts` line 88 contains `(*/15 * * * *)` inside a block comment, which ends the comment early; the parser reports `Unexpected token (88:50)`. It has been so since the file was created. It backs one of the two active cron jobs (saved evidence FU7). It is flagged to the Founder as a separate task; it also makes D4 fail closed on that file (plan v7 section 11).
+
+### D. Answers to the plan half of QA Round 14 (table in plan v7 section 1)
+P1: `kind` is the highest-precedence kind matched with explicit flags `is_current`, `is_catalogue`, `is_prior_custom`, and a frozen table of every overlap (current CMA/CS label is `kind = current` with `is_catalogue`); a current discipline is one `platform` row with `is_current`. P2: NULL `course_level` is preserved; making it mandatory is a new design decision. P3: the role universe is judged on effective capability, the owner/superuser residual is named, foreign-key actions are asserted, and DEC-4 is proposed. P4: three regimes (R1 least privilege, R2 preservation-only, R3 hybrid) and the policy-versus-definer outcome. P5: section 15 narrowed so Gate 2 cannot change an approved ordering or tie-break. F-class: B-06c name is preferred subject to a clash check; B-06b and B-06c privilege rows split.
+
+### E. Self-critique run before hand-off (Round 1 section A)
+Checked against QA Round 14 line by line, brief B 5.5 re-read for precedence, the saved evidence and code listed in plan v7 section 14. My own v6 errors are listed there. Not measured and not asserted: the live behaviour of the cascade and of `admin_delete_user_data`; other updaters of `study_sessions`; whether `created_at`/`id` are server-controlled; the live `study_sessions_manual_requires_category`; triggers on `access_requests` and `auth.users`; the signup function's error handling; the notes columns; `is_admin()`; the live `get_study_heatmap_split`; the body of `get_subject_mastery_v1`; whether the nightly summary function is deployed and running.
+
+### F. What QA is asked to do (two items, classified as in Round 13)
+1. **Audit each diagnostic file by exact hash** (`D-01`, `D-02`, `D-03`, `D-04`): parser validity of the SQL, whether the three conditions are met, anything that could write, anything missing that decides the plan, whether D4's fixtures prove its closure. Verdict per file; `PASS WITH CONDITIONS` or `PASS` lets the Founder authorize running that exact hash (Gate 3 for a read-only diagnostic).
+2. **Audit plan v7, classified P or F**, as in Round 13; `PASS WITH CONDITIONS` listing the F-class conditions per file is welcome where no P-class defect remains. Please also rule on the **DEC-4 proposal** (shrink-only account deletion) as a design question before it goes to the Founder.
+
+### G. Hash table and gates
+| Artifact | Short | Status |
+|---|---|---|
+| Brief B v10 | `0fe77dec72dc` | Gate 1 given; unchanged |
+| SQL work plan v5 (T-001) | `6961fb55dd69` | unchanged; inventory incorporated by reference |
+| Stream B plans v1 to v6 | `07a9fd48e4cd` / `9b64afdd6152` / `561ec2d8a375` / `668d6bfe4896` / `8b08be4c87ae` / `6fff5d00e8d8` | superseded |
+| Stream B plan v7 | `8b1ac4bb0a39` | for QA review; no gate requested |
+| D-01, D-02, D-03, D-04 | `a018ee859f23` / `e4e9fdcd6e21` / `6a88bc519299` / `de019cd639fb` | for QA audit; not run; no gate requested |
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one round with the two items of section F.
+
+---
