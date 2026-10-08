@@ -1223,3 +1223,74 @@ QA Round 20 checked line by line; D-04 v4 and D-05 v2 self-tests run (44 of 44 a
 Gates 2 to 7 not given for stream B.
 
 Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v4, D-04 v4, D-05 v2 (D-02 v3 unchanged), plan v10, and the two design questions of section D.
+
+---
+
+## Round 22 · QA · 08/10/2026
+
+### Scope and preconditions
+
+- The Round 21 handoff was valid: status.md was `AWAITING-QA`, owner QA, last round 21 and last QA-reviewed round 20. The supplied hashes match the files on disk: D-03 v4 `2210acf6702e3618ac1585caa80ab7c057d2650d5cbdc9a533d780309a154f2b`; D-04 v4 `1a2d4d13dac5cc60c6de28be169db33cfcac6eca91b2c779d317b45c17db5ebf`; D-05 v2 `d39292ddc66d5f30fdb64b7971a917d9c053ddfc4d6426e451b22153185b812b`; plan v10 `500bc20fa23acd2ea1b932538603ed102b7161aa970be66f934c4b18dec80c1f`; unchanged D-02 v3 `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11`.
+- No SQL, database, or external service was run. D-03 was read as SQL without a PostgreSQL engine. `node --check`, D-04 self-test (44/44), D-05 self-test (33/33), and targeted source/matrix probes were read-only.
+
+### 1. Diagnostic verdicts by exact file
+
+#### D-03 `D-03_DIAGNOSTIC_D3_writer-closure_v4.sql` — REVISION REQUIRED
+
+The seven statements remain read-only. P2 now emits extension version/count/identity-set hashes; P7 adds UPDATE/INSERT words, wrappers and the foreign-key/rule/trigger inventory; P5/P6 use whole-identifier matching; and every run carries `D3-v4`. The sink-based replacement for an exact plpgsql call graph is acceptable in principle only when every sink and boundary is fail-closed. Remaining defects:
+
+1. P7 returns the foreign-key OID, definition hash and action, but not `convalidated`; it does not report the referential-integrity system triggers for the child FK. The plan’s provenance requires a validated FK with enabled system triggers, so D3 cannot supply that exact assertion.
+2. P7’s wrapper frontier is a depth-3 name-match over-approximation. This is safe only as a stop when the frontier is non-empty; D-05 must prove that dependency and reject malformed or incomplete frontier data.
+3. P2/P4 retain count/list and scheduled-job limitations: extension set rows are not individually enumerable, and P4’s routine-name lead still ignores names shorter than six characters. These are acceptable only if extension rows remain unresolved without an exact clearance and sink inventory remains global/fail-closed; otherwise they are silent reachability gaps.
+
+#### D-04 `D-04_code-inventory_v4.mjs` — REVISION REQUIRED
+
+The requested generic `export *` lead/import-edge, aliased re-export, passed-builder, alias, parser and 44/44 fixtures are present; the script has no database/network access and only the optional output-file write. A remaining ordinary-path re-export is silent: `export { db as handle } from './client'` (and a default re-export of a client) produces only an import edge, no client-reexport lead. A client can therefore cross a local re-export under an arbitrary name without an undisposable lead. Every source re-export whose exported binding cannot be proven non-client must either be represented as a lead or resolved through the local graph.
+
+#### D-05 `D-05_writer-matrix_v2.mjs` — REVISION REQUIRED
+
+The script is syntactically valid, read-only apart from optional report outputs, and the 33/33 self-test passes. The hashed matrix and per-extension clearance are directionally sound, but these defects remain:
+
+1. Validation is only shallow. For example, replacing `p2.routines` with `[{}]`, `p5.chain_functions` with `[]`, `p4.jobs` with `[{}]`, or `d4.entries` with `[{}]` yields no validation error and can produce an apparently clean matrix. Nested identity, flag, hash, count/list and required-output fields need schema validation; incomplete input must be a bad input, never an empty result.
+2. `study_sessions` sink keys are not fully identity-bound: foreign-key keys omit the constraint definition hash/OID, writable-view keys omit the view definition hash, and the cascade check tests only name/child/delete action. The allowlist can therefore clear a changed FK or view. The auth.users comparison likewise omits FK OID/validated state and trigger enabled state; scheduled-job keys omit active/schedule/database/username changes.
+3. The script accepts any truthy clearance value and does not validate a canonical hash format. Extension clearances are MD5 identity-set keys; the input contract should bind a collision-resistant canonical set hash, extension name/version and count.
+4. Unused allowlist entries are reported but do not stop the result. Exact allowlist equality (or an explicit reviewed-unused disposition) is needed to prevent stale, overbroad closure evidence.
+
+No D-05 run can authorize a clean cutover at this hash.
+
+### 2. Plan v10 audit, classified P/F
+
+#### Blocking findings — P (plan-level)
+
+1. **[P] The provenance contract conflicts with the schema lifecycle.** B-04a defines the `study_sessions` foreign keys as `NOT VALID`, while DEC-4 acceptance requires the exact cascade FK to be validated. Owner absence plus a currently intact FK does not prove historical cascade provenance when pre-existing orphans could exist, or when the FK was not validated before the anchor. The plan must require validation and an orphan-free proof before the anchor, or make any pre-existing orphan an explicit stop; the OID, definition hash, validated flag and system-trigger state must all be bound.
+2. **[P] The fresh B-04b closure omits UPDATE caller coverage.** Section 5.2’s earlier DEC-4 contract binds DELETE/TRUNCATE/UPDATE roles and all mutation-word routines, but the fresh-closure allowlist-2 text narrows this to roles with DELETE/TRUNCATE and routines with delete leads or dynamic SQL. An UPDATE path on `auth.users`, an UPDATE-capable FK action, or an INSERT/EXECUTE wrapper can therefore fall outside the locked comparison. The fresh assertion must compare all P7 caller classes and make every non-account-deletion event a named stop.
+3. **[P] The exact-object contract is not reproducible across D3/D5/B-04b.** The plan requires exact FK identity/validation, view/routine/job identity and hashes, but D-05’s locked keys omit several of those fields and B-04b is only described as embedding the values. The plan must define the canonical key schema and require the live assertion to compare every required field, not merely name/action.
+
+#### F-class conditions for file Gate 2
+
+- **[F, D-03]:** emit FK validation/system-trigger state; retain an explicit depth-frontier stop; remove the P4 short-name gap or prove the global sink inventory makes it harmless; define canonical extension set hashing.
+- **[F, D-04]:** fail closed or resolve arbitrary-name/default client re-exports, not only `export *` and names containing `supabase`.
+- **[F, D-05]:** implement recursive schema validation and completeness checks; include FK OID/definition/validation, view definition hash, trigger state and job structural fields in exact keys; validate clearance/hash formats and stop on unused allowlist entries unless explicitly reviewed.
+- **[F, B-04a/B-04b]:** validate the FK before anchoring, prove no pre-existing orphan, and assert the exact FK/system-trigger state at every DEC-4 comparison; retain the six failure-injection tests.
+- **[F, D-02]:** unchanged `PASS WITH CONDITIONS`; all five raw cells, ACL-derived PUBLIC handling and every-role sequence checks remain required.
+
+### 3. DEC-4 design ruling
+
+`DEC-4 is REVISION REQUIRED before Founder approval.` The ledger and shrink-only principle are coherent, but the plan must resolve the `NOT VALID`/validated-FK contradiction and make the cross-file identity comparison exact and fail-closed.
+
+### 4. Answers to Round 21 design questions
+
+1. **Owner absent plus exact cascade FK intact:** **conditionally acceptable, not acceptable as currently written.** It need not identify who deleted the account if the semantic requirement is only to prove that an anchor row could disappear solely through the owner’s deletion. That inference is sound only when the FK was validated and enabled before the row could exist, no orphan history is possible, the exact OID/definition/action and system triggers are checked, and the ledger has exactly one matching removal. B-04a’s `NOT VALID` declaration and D-05’s weaker comparison do not meet those conditions.
+2. **Per-extension identity-set hash clearance:** **conditionally acceptable; listing every extension routine is not required.** The set must be a canonical, collision-resistant (preferably SHA-256) hash over sorted fully qualified identities, argument types and body/definition hashes, bound to extension name, version and count; failure to enumerate any member must remain an unresolved stop. D3’s current MD5 construction and D-05’s lax hash/shape validation are not sufficient as-is, but the design can proceed with those file-level conditions.
+
+### Strengths and residual risks
+
+Round 20’s extension-stop, nested-input intent, P7 caller expansion and generic export-all changes are materially present. All reviewed diagnostic runs remain non-mutating. No live FK validation, orphan population, cascade, extension inventory, deployed commit or concurrent session was exercised; D4 dispositions and D1b remain open evidence work.
+
+### Disposition
+
+Diagnostics: D-03 v4 **REVISION REQUIRED**; D-04 v4 **REVISION REQUIRED**; D-05 v2 **REVISION REQUIRED**; D-02 v3 remains **PASS WITH CONDITIONS**.
+
+Plan v10: **REVISION REQUIRED** for the three P findings; F conditions remain Gate-2 prerequisites. DEC-4: **REVISION REQUIRED** before Founder review. No diagnostic run, Gate 2/3, data fix, B-04b authoring, deployment, commit, or push is authorized by this audit.
+
+Handoff: `AWAITING-CLAUDE` — revise D-03, D-04, D-05 and the FK/provenance and complete-caller contracts in plan v10, then return exact hashes for one complete QA review. Founder decision on DEC-4 remains required.
