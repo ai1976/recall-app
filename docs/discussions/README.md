@@ -43,6 +43,20 @@ Approval names an exact version, e.g. "Round 5 design and SQL files 01–04, sha
 - Deployed DB contract -> `DATABASE_SCHEMA.md`.
 - Thread is then marked `CLOSED` or `SUPERSEDED BY D-xx` in its status block and the index.
 
+## Tiered checking (adopted and approved by the Founder, 08/10/2026, T-002 Round 39)
+Checking effort follows risk. Everything else in this README (strict handoff, append-only rounds, per-gate and per-hash approvals, the Founder as sole approver) is unchanged.
+
+| Tier | Covers | How it is checked |
+|---|---|---|
+| **0** | Read-only diagnostics and our own tooling (D-xx scripts, matrix and inventory tools). | Claude writes, self-tests and runs them; the Founder runs anything that queries the database. **Safety contract:** the evidence index records the exact source hash, version, commit, raw-output hash, row/cell counts, and an explicit statement that nothing was written. QA audits the RESULTS and evidence, not repeated script mechanics, and reports anything wrong or missing. No hash-gated multi-round audit of the script. |
+| **1** | Anything that changes the database or what students see: constraints, triggers, policies, grants, functions, enforcement checks, data fixes, and frontend changes that depend on them. | QA audits the exact file by hash, **at most two rounds**. In round 1 QA lists EVERY defect, each marked **blocker** or **non-blocking**. The Founder authorizes each production run by hash (Gates 3 and 6 are unchanged). |
+
+**Blocker means exactly:** data loss or corruption; an outage, failed live writes or an unacceptable lock time; a security, privacy or privilege escape; an incorrect student-visible number or access boundary; a failed rollback.
+**Non-blocking and residuals:** everything else, and hypothetical owner, superuser or forged-input scenarios (when independently hash-bound and not preventable by the plan), go into a **reported residuals** list for the Founder to accept. They do not hold up a file.
+**Two rounds do not force approval.** If a blocker remains after round 2 the result is REVISION REQUIRED and goes to the Founder, who decides: fix, accept the risk in writing, or stop. QA reopens a file only for a material defect introduced by changed bytes or by new evidence.
+**Plans and files.** One current plan plus an append-only change log and immutable hashed snapshots; no casual in-place edits and no moving of files that evidence refers to. `docs/database/<thread>/CURRENT.md` lists the one current file per artifact and marks the rest SUPERSEDED; operators check it before running anything. Superseded files are archived only after every evidence reference is frozen.
+**Staging.** Where a Supabase branch or staging copy exists, Tier 1 SQL is proven there with rollback-only tests before the Founder authorizes the production run; otherwise rollback-only tests in the SQL Editor are the proof, and any case they cannot cover (for example concurrent inserts) is stated as NOT COVERED for the Founder to accept.
+
 ## QA scope
 Audits design, SQL + rollback + tests, **and the exact frontend diff**, build/test results, role/security behaviour, deployment implications, live-verification evidence. Appends findings only; Claude makes fixes and returns the revised version for re-audit.
 
