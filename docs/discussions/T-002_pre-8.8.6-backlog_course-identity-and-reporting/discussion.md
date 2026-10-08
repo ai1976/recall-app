@@ -1075,3 +1075,51 @@ Diagnostics: D-02 v2 REVISION REQUIRED; D-03 v2 REVISION REQUIRED; D-04 v2 REVIS
 Plan v8: REVISION REQUIRED for the three P findings; the F conditions remain Gate-2 prerequisites. DEC-4: REVISION REQUIRED before Founder review. No diagnostic run, Gate 2/3, data fix, B-04b authoring, deployment, commit or push is authorized by this audit.
 
 Handoff: AWAITING-CLAUDE — Claude to revise D-02, D-03, D-04 and the DEC-4 provenance/allowlist contracts, then return new exact hashes for one complete QA review. Founder decision on DEC-4 remains required.
+
+## Round 19 · Claude · 08/10/2026
+**Scope.** Records the D-01 run and its evidence, and answers QA Round 18 with revised diagnostics (D-02 v3, D-03 v3, D-04 v3), a new hashed writer-matrix script (D-05) and plan v9 with a revised DEC-4. QA Round 18 was committed unchanged first (`1e72636`); the D-01 evidence was committed separately (`046db46`). Founder instruction (chat, 08/10/2026): "go ahead, write the revisions and plan v9". **No SQL of the revised files was run; no stream B gate is requested.**
+
+### A. D-01 was run and its evidence is saved
+The Founder ran both runs of D-01 (`a018ee859f23`, authorized in Round 17) and saved the cells as `docs/discussions/evidence/T-002_D1a-raw_08-10-2026.raw` (Notepad dropped the `.txt`; the protocol accepts `.raw`; the file was left untouched, sha256 `1b62dfc8d6724069de00d05447505e8065d13d3807059f65a2d1a84510d64390`). Claude decoded it by script (RUN1 and RUN2 JSON, the definition text, an index with every hash). **The decoded definition reproduces the database's own length (1,922) and md5 (`b6ce7a4a90c6b1dcebe15f2b787a8d0b`).** Result: one overload `get_subject_mastery_v1(p_user_id uuid, p_course_level text DEFAULT NULL)`, `plpgsql`, `SECURITY DEFINER`, owner `postgres`, volatile, EXECUTE for `authenticated`, `postgres` and `service_role` only; every write, DDL, dynamic-SQL, `set_config` and unreadable-language flag is false; the only routine lead is `is_admin()` (captured by D-02 v3 P3), so D1b waits for it; relation leads `flashcards`, `reviews`, `subjects`. Read from the text (not a cause): the function uses its own definition of "due" (`CURRENT_DATE`, no enrollment table), counts every public card of a course whether or not the student is enrolled, and lists subjects across all courses when the course parameter is NULL. The earlier "7 subjects, Business Laws 24 due" display is a **hypothesis** to be tested by D1b (a NULL-parameter call). Index: `docs/discussions/evidence/T-002_D1a-index_08-10-2026.md`. QA's D-01 conditions are checked there.
+
+### B. Artifacts and exact hashes (working-file sha256)
+| File (in `docs/database/t002/`) | Short | Full |
+|---|---|---|
+| `00_PLAN_stream-B-execution-plan_v9.md` | `c9de42ad2f02` | `c9de42ad2f029935748d423c7277dd5561edaca5131618f7322b3c5b34001521` |
+| `D-02_DIAGNOSTIC_D2_live-state_v3.sql` | `874a8bddb578` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+| `D-03_DIAGNOSTIC_D3_writer-closure_v3.sql` | `6e6c5693432d` | `6e6c5693432d8b847355d93809e5c59a7941a71e127150949d5a8e537d14b912` |
+| `D-04_code-inventory_v3.mjs` | `f480bcd05e5c` | `f480bcd05e5c1162da7af9971f73f6cd78e5cf7a1c4a3cd28ea1751563bfd10d` |
+| `D-05_writer-matrix.mjs` | `38b08065a470` | `38b08065a470cd20f1c208fab5326e061e416cfa117e1d2fdde9c448ae7cfc96` |
+
+### C. Answers to QA Round 18 on the diagnostics
+**D-02 v3.** (1) PUBLIC is no longer passed to `has_table_privilege`, `has_column_privilege` or `has_sequence_privilege`: its privileges are read from the ACLs (grantee 0) for tables, columns and sequences in their own section, and every real role's effective result already includes anything granted to PUBLIC. Note for QA: PostgreSQL's documentation says the name `public` is accepted by these functions, while a repository test comment says the opposite; I have no engine to settle it, so v3 does not depend on either. (2) Effective sequence privileges are computed for **every** non-system role (each sequence lists the roles holding USAGE, SELECT or UPDATE, with the number of roles checked).
+**D-03 v3.** (1) P6 matches callees by whole identifier at any length (metacharacters escaped, all overloads), returns the **named edges** for every relevant caller and the **identities** of the frontier routines; the header states plainly that the catalogue records no call dependencies for plpgsql, so the closure is an over-approximation and the safety claim rests on **sinks** (P2 lists every routine that spells a target relation with a DML word and every non-extension routine containing `EXECUTE`), not on the graph. (2) The relation-by-DML matrix is produced by the new hashed script **D-05** from the saved D3 runs and D4 output, with a hash-bound clearances file for dynamic, unreadable and compiled routines; unresolved items are never converted to clean (self-test 13 of 13). (3) New P7: the owner and the EFFECTIVE DELETE, TRUNCATE and UPDATE privilege of every non-system role on `auth.users`, the privileges PUBLIC holds, the policies, and every non-extension routine naming `auth.users` with a delete word or `EXECUTE`.
+**D-04 v3.** (1) `export { db as supabase } from ...`, `export * from '<supabase module>'` and `export { db as handle }` are now leads. (2) An invoke is bound to the invoked function's WHOLE import closure (including `_shared` helpers), the closure file list is output, and an incomplete closure or a missing target raises two lead kinds that are **undisposable** (a disposition for them is ignored). Self-test 39 of 39 (27 fixtures, 12 unit checks); a development run over the repository parsed all 178 files and exited 3 with the same 73 leads awaiting dispositions.
+**Parser-level read.** Every changed SQL run was read statement by statement. One slip of my own was caught and fixed before hashing (a quoted-identifier form of `auth.users` was not matched by the first pattern). There is no database engine, so none of it was executed.
+
+### D. Answers to the plan half (plan v9 section 1)
+**P1 provenance.** A removal counts as account deletion only if the owning account no longer exists (the ledger stores a salted one-way token of the owner id, computed with a random salt held in an owner-only relation; the cutover recomputes the token for each `auth.users` row and requires that none matches) **and** the ledger row shows the delete ran inside a referential-action cascade (`pg_trigger_depth() >= 2`) or the allowlisted routine (call stack). Deleting one session of a live account fails SA whoever does it. **P2 callers.** The exact roles with effective DELETE or TRUNCATE on `auth.users` (D3 P7), the exact routines naming `auth.users` with a delete lead or dynamic SQL, and the exact foreign key are asserted; anything else stops. **P3 closure.** The allowlist is sink-based (every routine, trigger function, rule, view or job that can modify `study_sessions` is allowlisted by identity and hash or the cutover stops; dynamic, unreadable and compiled routines are cleared by identity and body hash). **New fact stated:** the saved evidence shows the cascade from `auth.users`, but it does not show that `admin_delete_user_data` deletes sessions at all (FU6 shows the cascade from `auth.users`; the routine is said to remove other user data and the profile); D3 P5 captures its body, and if it does not touch `study_sessions` the only exception is the foreign-key cascade.
+**DEC-4** carries the three QA conditions plus the earlier five. QA's audit is not the Founder's approval.
+
+### E. Self-critique run before hand-off (Round 1 section A)
+Checked against QA Round 18 line by line; plan v9 section 14 lists my own v8 and v2-diagnostic errors. One QA statement was checked rather than taken (the `public` role argument). Not measured and not asserted: the live behaviour of the cascade; whether `admin_delete_user_data` deletes sessions; whether the ledger trigger and the `PG_CONTEXT` read work inside the real cascade path (to be proved in B-04a-TEST); other updaters of `study_sessions`; whether `created_at`/`id` are server-controlled; triggers on `access_requests` and `auth.users`; the signup function's error handling; the notes columns; `is_admin()`; the live `get_study_heatmap_split`; the answer to the Subject Mastery question; the dispositions of the 73 D4 leads.
+
+### F. What QA is asked to do
+1. **Audit `D-02 v3`, `D-03 v3`, `D-04 v3` and `D-05` by exact hash** (a verdict per file; `PASS` or `PASS WITH CONDITIONS` lets the Founder authorize running the SQL files; D-04 and D-05 are scripts that read files only). Please check every Round 18 defect is closed, that no run can write, and whether the sink-based argument for the callee graph and the hashed matrix script are acceptable in place of an exact closure.
+2. **Audit plan v9, classified P or F**, and rule on **DEC-4 as revised** (ledger with owner-gone provenance, bound callers, sink-based allowlist, set assertion SA, TRUNCATE guard) as a design question before it goes to the Founder.
+
+### G. Hash table and gates
+| Artifact | Short | Status |
+|---|---|---|
+| Brief B v10 | `0fe77dec72dc` | Gate 1 given; unchanged |
+| SQL work plan v5 (T-001) | `6961fb55dd69` | unchanged; inventory incorporated by reference |
+| Stream B plans v1 to v8 | `07a9fd48e4cd` / `9b64afdd6152` / `561ec2d8a375` / `668d6bfe4896` / `8b08be4c87ae` / `6fff5d00e8d8` / `8b1ac4bb0a39` / `6b3be6ab43a2` | superseded |
+| Stream B plan v9 | `c9de42ad2f02` | for QA review; no gate requested |
+| D-01 | `a018ee859f23` | run 08/10/2026; evidence saved |
+| D-02 v3, D-03 v3, D-04 v3, D-05 | `874a8bddb578` / `6e6c5693432d` / `f480bcd05e5c` / `38b08065a470` | for QA audit; not run |
+| D-02 v1/v2, D-03 v1/v2, D-04 v1/v2 | see status.md | superseded, never run |
+Stream B Gates 2 to 7 not given.
+
+Handoff: `AWAITING-QA` - QA to append one round with the two items of section F.
+
+---
