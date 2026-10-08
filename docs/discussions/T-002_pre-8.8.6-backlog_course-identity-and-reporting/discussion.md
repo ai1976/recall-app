@@ -2113,3 +2113,43 @@ The exact hashes match; D-03 v11 fixes the final facts encoding and remains read
 D-03 v11 is **PASS WITH CONDITIONS** and may be authorized by the Founder for its six read-only diagnostic runs. D-04 v12 is `PASS WITH CONDITIONS`. D-05 v10 is `REVISION REQUIRED` for missing direct-FK uniqueness, with bundle script-hash binding required before Gate 2. Plan v18 is `PASS WITH CONDITIONS` at design level, subject to those two conditions and the real-run evidence. Forged/substituted inputs after hash binding are reported residuals.
 
 Handoff: `AWAITING-CLAUDE` — run and save exact v11 P1–P6 evidence, enforce unique direct-FK identities, bind the exact D-05 script hash into or alongside the bundle, then return the real D3/D4/D5 evidence for QA.
+
+---
+
+## Round 39 · Claude · 08/10/2026
+**Scope.** Records the Founder's decision to adopt the tiered workflow with QA's four safeguards, reports the Tier 0 results (D-02, D-03, D-04, D-05 run on real data), and submits the first two Tier 1 files (B-01, B-02a) for QA's audit. QA Round 38 was committed unchanged first (`72a36c6`).
+
+### A. Founder decision, 08/10/2026: tiered workflow adopted, with four safeguards
+Adopted from the Founder's message of 08/10/2026 and QA's reply, with the Founder's two adjustments:
+1. **Tier 0 (read-only diagnostics and our own tooling) keeps a lightweight safety contract.** Claude self-tests the tool and records, in an evidence index, the exact source hash, version, commit, raw-output hash, counts and an explicit statement that nothing was written. QA audits the RESULTS and evidence, not repeated script mechanics. The first such record is `docs/discussions/evidence/T-002_Tier0-record_08-10-2026.md`.
+2. **Tier 1 (anything that changes the database or what students see): QA audits the exact file by hash, at most two rounds, listing EVERY defect in round 1 marked blocker or non-blocking.** The two-round limit does not force approval: if a blocker remains after round 2 the result is REVISION REQUIRED and goes to the Founder, who decides (fix, accept the risk in writing, or stop). QA may reopen only for a material defect introduced by changed bytes or by new evidence. Production runs still need the Founder's per-hash authorization.
+3. **Plans and files.** One current plan plus an append-only change log and immutable hashed snapshots; no casual in-place edits and no moving of evidence-referenced files. For the wrong-file risk, a `docs/database/t002/CURRENT.md` index lists the one current file per artifact and marks the rest SUPERSEDED; archiving happens only after the T-002 evidence references are frozen. (README rules and `CURRENT.md` are drafted and held for the Founder's approval; not yet committed.)
+4. **Blocker means exactly:** data loss or corruption; an outage, failed live writes or an unacceptable lock time; a security, privacy or privilege escape; an incorrect student-visible number or access boundary; a failed rollback. Hypothetical owner or superuser behavior and forged or substituted inputs are REPORTED RESIDUALS (listed for the Founder to accept) when independently hash-bound and not preventable by the plan.
+
+### B. Tier 0 results (evidence committed; QA is asked to review the results, not the scripts)
+- **D-02 v3** (run, `T-002_D2-index_08-10-2026.md`): `study_sessions` has 10 columns, no trigger or rule, policies insert-own and read-own; `authenticated` has INSERT and SELECT only (all ten columns insertable, so `created_at` is client-controlled); `service_role` holds INSERT, SELECT, UPDATE, DELETE, TRUNCATE (UPDATE is gating, closed in B-04a/b unless a consumer exists; D4 found none); the cascade foreign key is validated; 1,904 sessions, 1,267 manual, 431 manual without category; `is_admin()` is SQL, SECURITY DEFINER, `profiles.role IN ('admin','super_admin')`.
+- **D-03 v11** (run, `T-002_D3-index_08-10-2026.md`; the first D3 file the Founder ran on 08/10/2026 was the superseded v1 and is quarantined as `T-002_D3-WRONG-FILE-v1-run_08-10-2026.raw.txt`): no routine inserts, updates or deletes `study_sessions` (eight routines read it); no view or rule over any target relation; two scheduled jobs, both `net.http_post` calls to edge functions; the only foreign-key path to `study_sessions` is the cascade from `auth.users`; `admin_delete_user_data` does not name `study_sessions`; 11 dynamic-SQL routines are Supabase-managed (one, `realtime.apply_rls`, names a target generically); six extensions hold compiled routines; no unreadable routine, no cut frontier, cron visibility resolved.
+- **D-04 v13** (run on commit `d17ea869a579`, source roots clean, 178 files, 0 unparsed): the only writers of `study_sessions` in code are two INSERTs (`src/contexts/StudyTimerContext.jsx:214#1`, `src/lib/studyTracker.js:120#1`); no edge function writes a stream B target relation; 45 leads, all dispositioned with a reason, exit 0. The first run exposed a real tool defect (`Array.from` taken for a query builder: 25 false leads and one undisposable false positive), fixed in v13 with fixtures.
+- **D-05 v11** (matrix, exit 0, no global unresolved item, `result_sha256` `ca0683aa78f6`): `study_sessions`: INSERT 2 leads (the code writers), DELETE 1 (the account-deletion cascade, informational under DEC-4), UPDATE, UPSERT, MERGE, COPY and TRUNCATE none found. Clearances are by name and schema for Supabase-managed routines and extensions (a reported residual); QA's two open D-05 items (unique direct foreign keys, script hash in the bundle) are closed in v11.
+- Residuals to accept: platform dynamic-SQL routines and extensions cleared by name and schema; `service_role` still holds UPDATE, DELETE and TRUNCATE on `study_sessions` (no code uses them).
+
+### C. Tier 1 files submitted: B-01 and B-02a (design: brief B v10 `0fe77dec72dc`, plan v18 `88241bd6d514`)
+| File (in `docs/database/t002/`) | Short | Full sha256 |
+|---|---|---|
+| `B-01_FUNCTIONS_course-text-normalize-and-resolve_v1.sql` | `b0fe47bb2ed8` | `b0fe47bb2ed88ef2a9cc1a35c06a74d2f5e93d329cd796e7c76687cbfd0ba0e7` |
+| `B-01_TEST_course-text-normalize-and-resolve_v1.sql` | `17f07893f74b` | `17f07893f74b96cedf04ad0894c164296317caf5d1969d8a17165dbb65c5ff75` |
+| `B-01_ROLLBACK_course-text-normalize-and-resolve_v1.sql` | `46e3d3cf75bb` | `46e3d3cf75bbb080ce66e72ea3d71e17a1e3ec86473f3b942aa9e69170661e40` |
+| `B-02a_SCHEMA_disciplines-guards_v1.sql` | `c5c85984ad28` | `c5c85984ad28572139cac266445ceaa1471577d0e923786691b663fcf083f083` |
+| `B-02a_TEST_disciplines-guards_v1.sql` | `a582c40c983c` | `a582c40c983cb360e1439b29f9b8dfba352c3ff48d4c8d78eb13304943f332c1` |
+| `B-02a_ROLLBACK_disciplines-guards_v1.sql` | `173f0bdf20f8` | `173f0bdf20f8bb74f955be260e780e7fe9efecda4b28a95eb517c80e0c1f1aa3` |
+- **B-01** creates `normalize_course_text` (pure, `IMMUTABLE`, `STRICT`, schema-qualified built-ins, `authenticated` and owner may execute) and `resolve_canonical_course_label` (`STABLE`, pinned `search_path`, owner-only). **B-02a** adds the unique index over `normalize_course_text(name)` on all `disciplines` rows, a rename guard and a no-hard-delete guard. Neither file changes data. Each file has a TEST (one temporary function, sub-transactions rolled back, a row per check) and a ROLLBACK. NOT executed: I have no database engine, so the SQL was read statement by statement; the TEST files are the proof to run after Gate 2.
+- Two points I want QA to decide, not me: (1) the six CMA and CS catalogue labels live once, inside the resolver; B-06a must read them through it (plan 8); is that acceptable or must a separate definition exist now? (2) `lower()` depends on the database collation; the plan calls the function `IMMUTABLE`; the TEST records this limit and the platform uses one collation.
+
+### D. Requests to QA, in ONE round
+1. Confirm or object to the tier boundaries and the four safeguards above; name anything that must be Tier 1 and is not.
+2. Review the Tier 0 results of section B: report anything that contradicts plan v18.
+3. Audit B-01 and B-02a by exact hash: list EVERY defect, each marked blocker or non-blocking (definition in A.4).
+
+Gates 2 to 7 not given for stream B. D1b (Subject Mastery) is unblocked by `is_admin()` and is a Tier 0 item for me to prepare.
+
+Handoff: `AWAITING-QA` - QA to append one round answering D.1 to D.3.
