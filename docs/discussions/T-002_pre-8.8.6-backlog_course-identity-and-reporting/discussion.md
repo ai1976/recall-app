@@ -863,6 +863,8 @@ Gates 2 to 7 not given for stream B.
 Handoff: `AWAITING-QA` - QA to append one round with the two items of section F.
 
 ---
+
+---
 ## Round 16 · QA · 08/10/2026
 
 ### Scope and preconditions
@@ -1123,3 +1125,64 @@ Stream B Gates 2 to 7 not given.
 Handoff: `AWAITING-QA` - QA to append one round with the two items of section F.
 
 ---
+
+## Round 20 · QA · 08/10/2026
+
+### Scope and preconditions
+
+- The Round 19 handoff and all five supplied exact hashes were verified. No SQL, database, or external service was run. SQL was read statement-by-statement; `node --check`, D-04 self-test (39/39), D-05 self-test (13/13), and targeted source probes were read-only.
+
+### 1. Diagnostic verdicts by exact file
+
+#### D-02 `D-02_DIAGNOSTIC_D2_live-state_v3.sql` — PASS WITH CONDITIONS
+
+All five statements are catalogue/aggregate reads with no DML, DDL, transaction control, dynamic SQL, or application-function call. PUBLIC is handled through ACL grantee 0 rather than role-argument privilege calls; effective checks use real roles, and sequence privileges cover every non-system role. Parser review found balanced CTEs, unions, casts, JSON, and statement boundaries. Conditions: retain the raw-result rule of one unchanged cell per run and stop on error or truncation; live catalogue semantics still require execution evidence.
+
+#### D-03 `D-03_DIAGNOSTIC_D3_writer-closure_v3.sql` — REVISION REQUIRED
+
+All seven runs are read-only and the Round 18 additions are present. A sink-based replacement for an exact plpgsql call graph is acceptable in principle only when complete and fail-closed. Defects:
+
+1. Extension-owned dynamic-SQL and compiled routines are only extension counts, without identities/hashes or an unavoidable unresolved stop; D-05 ignores those counts, so an extension writer can disappear from a clean matrix.
+2. P7 omits UPDATE routine bodies and indirect wrappers whose bodies do not themselves name `auth.users`; effective privilege rows are not a complete caller closure. Such paths must be explicit stops.
+3. P6 is advisory reachability, not proof, and D3 does not encode a fail-closed dependency on complete P2/P3/P4/P7 identities and hashes.
+
+#### D-04 `D-04_code-inventory_v3.mjs` — REVISION REQUIRED
+
+The alias, passed-builder, and direct aliased re-export fixtures pass; syntax and the 39/39 self-test pass; the only write is optional output. A generic local `export * from './client'` produces neither a graph edge nor a lead because export-all is recognized only when the source path contains `supabase`. Ordinary local star re-exports can therefore hide a client. Resolve every local export-all or emit an undisposable lead.
+
+#### D-05 `D-05_writer-matrix.mjs` — REVISION REQUIRED
+
+The script is syntactically valid, read-only apart from optional report outputs, and 13/13 tests pass. Blocking defects are: (1) extension dynamic/compiled counts are not added to `global_unresolved` (a synthetic extension case yielded a clean `study_sessions.DELETE` cell); (2) no schema validation, only P1-P4/D4 required, missing fields default empty, and P5-P7 are not hashed inputs; (3) no exact allowlist/identity-hash input or membership check, leaving an un-hashed B-04b comparison; and (4) extension counts have no identity clearance or mandatory stop. No D-05 run can authorize a clean matrix at this hash.
+
+### 2. Plan v9 audit, classified P/F
+
+#### Blocking findings — P
+
+1. **[P] Provenance is forgeable:** SA accepts `pg_trigger_depth() >= 2` or a `PG_CONTEXT` name match; depth does not identify the exact `auth.users` FK and a same-named owner-created routine can spoof the marker. Require an exact identity/hash or transaction-correlated marker and exact FK correlation.
+2. **[P] The sink contract is not reproducible:** D-05 has no hashed allowlist input/comparison and omits P5-P7, so B-04b would need an un-hashed manual join. Hash the allowlist/clearances and complete validated inputs, or hash the locked comparison itself.
+3. **[P] Caller coverage is incomplete:** routine UPDATE/TRUNCATE and indirect-wrapper coverage are omitted. Every non-allowlisted parent update/cascade, wrapper, trigger, or routine must be a named stop.
+4. **[P] The privilege contract misstates D2 v3:** v3 has real-role effective rows plus an ACL-derived PUBLIC section, not a PUBLIC effective row. State exactly how ACL output participates in the zero-capability assertion.
+
+#### F-class Gate-2 conditions
+
+- D-02: retain ACL-derived PUBLIC and every-role sequence checks; require all five raw cells.
+- D-03: identity/hash or unavoidable unresolved extension outcomes; complete P7 UPDATE/TRUNCATE/indirect closure; keep P6 advisory.
+- D-04: resolve or fail closed on ordinary-path export-all.
+- D-05: validate all P1-P7/D4 schemas, hash every input, preserve extension unresolved states, and implement exact allowlist membership/identity-hash clearances.
+- B-04a/B-04b: specify canonical token encoding, exact function identity or safer marker, exact FK correlation, salt lifecycle, and failure-injection tests.
+
+### 3. DEC-4 design ruling
+
+`DEC-4 is REVISION REQUIRED before Founder approval.` The owner-gone ledger, TRUNCATE guard, set assertion, bound-caller idea, and sink proof are directionally sound, but provenance is spoofable, caller closure is incomplete, extension sinks and malformed inputs can be ignored, and allowlist comparison is not hash-bound. This is QA advice, not Founder approval.
+
+### Strengths and residual risks
+
+The Round 18 PUBLIC/sequence, named-edge, alias/re-export, invoke-closure, and matrix changes are materially present; every reviewed diagnostic remains non-mutating. No live role, cascade, concurrent session, deployed commit, or UI path was exercised. D-04's undisposed repository leads and D-01's `is_admin()` lead remain evidence work.
+
+### Disposition
+
+Diagnostics: D-02 v3 **PASS WITH CONDITIONS**; D-03 v3 **REVISION REQUIRED**; D-04 v3 **REVISION REQUIRED**; D-05 **REVISION REQUIRED**.
+
+Plan v9: **REVISION REQUIRED** for the four P findings; F conditions remain Gate-2 prerequisites. DEC-4: **REVISION REQUIRED** before Founder review. No diagnostic run, Gate 2/3, data fix, B-04b authoring, deployment, commit, or push is authorized by this audit.
+
+Handoff: `AWAITING-CLAUDE` — Claude to revise D-03, D-04, D-05 and the DEC-4 sink/allowlist/provenance contracts, then return exact hashes for one complete QA review. Founder decision on DEC-4 remains required.
