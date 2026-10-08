@@ -1186,3 +1186,40 @@ Diagnostics: D-02 v3 **PASS WITH CONDITIONS**; D-03 v3 **REVISION REQUIRED**; D-
 Plan v9: **REVISION REQUIRED** for the four P findings; F conditions remain Gate-2 prerequisites. DEC-4: **REVISION REQUIRED** before Founder review. No diagnostic run, Gate 2/3, data fix, B-04b authoring, deployment, commit, or push is authorized by this audit.
 
 Handoff: `AWAITING-CLAUDE` — Claude to revise D-03, D-04, D-05 and the DEC-4 sink/allowlist/provenance contracts, then return exact hashes for one complete QA review. Founder decision on DEC-4 remains required.
+
+---
+
+## Round 21 · Claude · 08/10/2026
+**Scope.** Answers QA Round 20 (committed unchanged first, `1f5a4c7`). Every QA claim was tested against the file rather than taken; all were correct. Revised for one complete QA review: D-03 v4, D-04 v4, D-05 v2 (renamed, since v1 is frozen) and plan v10 with DEC-4 rewritten. D-02 v3 is unchanged (`PASS WITH CONDITIONS`). No SQL was run: there is no database engine here, so the SQL was read statement by statement as a parser would. One housekeeping note: the Round 20 commit also contains an extra `---` divider and a blank line inserted just before Round 16 (a small edit to earlier text, harmless, outside rounds 1 to 8); I left it and did not touch it.
+
+### A. Artifacts and exact hashes (working-file sha256)
+| File (in `docs/database/t002/`) | Short | Full |
+|---|---|---|
+| `00_PLAN_stream-B-execution-plan_v10.md` | `500bc20fa23a` | `500bc20fa23acd2ea1b932538603ed102b7161aa970be66f934c4b18dec80c1f` |
+| `D-02_DIAGNOSTIC_D2_live-state_v3.sql` (unchanged) | `874a8bddb578` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+| `D-03_DIAGNOSTIC_D3_writer-closure_v4.sql` | `2210acf6702e` | `2210acf6702e3618ac1585caa80ab7c057d2650d5cbdc9a533d780309a154f2b` |
+| `D-04_code-inventory_v4.mjs` | `1a2d4d13dac5` | `1a2d4d13dac5cc60c6de28be169db33cfcac6eca91b2c779d317b45c17db5ebf` |
+| `D-05_writer-matrix_v2.mjs` | `d39292ddc66d` | `d39292ddc66d5f30fdb64b7971a917d9c053ddfc4d6426e451b22153185b812b` |
+Superseded and frozen: plan v9 `c9de42ad2f02`; D-03 v3 `6e6c5693432d`; D-04 v3 `f480bcd05e5c`; D-05 v1 `38b08065a470`.
+
+### B. Answers on the diagnostics
+**D-03 v4** (QA D-03 1 to 3). (1) P2 now returns, for each extension, the version, the routine count and an identity-set hash (md5 over the sorted routine identities and body hashes) for extension-owned dynamic-SQL routines and for extension-owned compiled routines. D-05 v2 treats each as an unresolved stop unless a clearance bound to `extension_dynamic:<name>@<version>|<hash>` or `extension_compiled:...` is supplied. (2) P7 now matches routines naming `auth.users` with a delete, truncate, update, insert or EXECUTE word, returns the INDIRECT WRAPPERS (whole-identifier match, depth 3, with the frontier beyond depth 3), every foreign key referencing `auth.users` (child, name, OID, action codes, definition hash), its rewrite rules and its triggers. (3) P6 stays advisory and says so; the fail-closed dependence on complete P1 to P7 identities and hashes is now in D-05 v2 (validation, hashed inputs, allowlist comparison). P5 callee leads use the same whole-identifier match as P6 (the old six-character threshold is gone); every run returns `tool_version = 'D3-v4'`. NOT executed: the recursive wrapper query and the extension aggregates are read-checked only.
+**D-04 v4** (QA D-04). Every `export * from '<any path>'` and every `export { } from` is now an import-graph edge (v3 followed only `import`). Every `export *` raises `export_all_reexport` (needs a recorded disposition); if its source does not resolve to a scanned local file the lead is `export_all_unresolved`, which is UNDISPOSABLE like the two invoke kinds. Self-test 44 of 44 (31 fixtures plus 13 unit checks).
+**D-05 v2** (QA D-05 1 to 4). (1) Extension dynamic and compiled stops are added to `global_unresolved`; my reproduction of QA's synthetic case now ends `leads_and_unresolved`, exit 3. (2) Every input (P1 to P7, D4, allowlist, clearances) is schema-validated and hashed; a missing field, wrong type, wrong `run`, wrong `tool_version`, a count that disagrees with its list, or a D4 file from another tool version is a BAD INPUT (exit 1), never an empty default. (3) A hashed ALLOWLIST file (eight sections, all required) is compared by exact identity and body or definition hash: every routine, foreign key, writable view, rule and scheduled job that can write `study_sessions`; on `auth.users`, every role holding DELETE, TRUNCATE or UPDATE, every flagged routine and indirect wrapper, every referencing foreign key, trigger, rule and signup-chain function; PUBLIC holding any of the three privileges, a cut wrapper frontier, and a missing or changed `study_sessions_user_id_fkey` (delete action `c`) are named stops. (4) The output carries `result_sha256` of the locked comparison. Self-test 33 of 33.
+
+### C. Answers on plan v9 (P findings)
+1. **Provenance forgeable (P).** Accepted. `pg_trigger_depth() >= 2` and the call-stack match are withdrawn from the acceptance test and kept as forensic ledger fields. A removal is accepted only if (a) the owner is absent from `auth.users` (salted token, canonical encoding fixed in the plan: SHA-256 of the canonical lowercase uuid text, a zero byte and a 32-byte salt) and (b) the exact cascade foreign key is intact (same OID as recorded at B-04a, definition hash, delete action `c`, validated, its system triggers enabled). My argument: with (b) intact, a session whose owner is absent can only have been removed by the cascade from deleting that owner; a plain delete of a live owner's session fails (a). Salt lifecycle and six failure-injection tests are specified (section 5.2).
+2. **Sink contract not reproducible (P).** Accepted; D-05 v2 as above, and the locked B-04b embeds the same allowlist values and asserts them live (QA compares them with the hashed allowlist file).
+3. **Caller coverage (P).** Accepted; D3 v4 P7 plus the D-05 v2 named stops.
+4. **Privilege contract misstates D2 v3 (P).** Accepted. The plan now states the zero-capability assertion as exactly three parts: real-role effective rows, the ACL-derived PUBLIC section, and every-role sequence privileges.
+F conditions are carried to plan section 15.
+
+### D. For QA, two design questions
+(1) Is "owner absent plus the exact cascade foreign key intact" an acceptable provenance for DEC-4 in place of a marker, given that it cannot tell WHO deleted the account (it proves only that the removal is a consequence of the owner's absence)? (2) Is a per-extension identity-set hash clearance an acceptable way to clear extension-owned routines, or must every extension routine be listed?
+
+### E. Accuracy checklist run
+QA Round 20 checked line by line; D-04 v4 and D-05 v2 self-tests run (44 of 44 and 33 of 33); `node --check` on both scripts. Not run: any SQL, D-04 on the repository with v4 (a development run is not evidence). Not measured, so not asserted: the live cascade; whether `admin_delete_user_data` deletes sessions at all; the extension routine sets; the dispositions of the D4 leads; `is_admin()`.
+
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v4, D-04 v4, D-05 v2 (D-02 v3 unchanged), plan v10, and the two design questions of section D.
