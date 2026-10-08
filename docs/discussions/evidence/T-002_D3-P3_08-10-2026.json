@@ -1,0 +1,10 @@
+{
+ "run": "D3-P3",
+ "depth_cap": 8,
+ "tool_version": "D3-v11",
+ "dependent_views": [],
+ "rewrite_rules_count": 0,
+ "dependent_views_count": 0,
+ "frontier_cut_at_depth_cap": [],
+ "rewrite_rules_on_targets_and_dependents": []
+}

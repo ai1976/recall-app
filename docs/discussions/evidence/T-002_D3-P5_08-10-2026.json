@@ -1,0 +1,166 @@
+{
+ "run": "D3-P5",
+ "tool_version": "D3-v11",
+ "chain_functions": [
+  {
+   "args": "p_user_id uuid",
+   "name": "admin_delete_user_data",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "language": "plpgsql",
+   "definition": "CREATE OR REPLACE FUNCTION public.admin_delete_user_data(p_user_id uuid)\\n RETURNS void\\n LANGUAGE plpgsql\\n SECURITY DEFINER\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nDECLARE\\r\\n  v_denial  text;\\r\\n  v_name    text;\\r\\n  v_email   text;\\r\\n  v_role    text;\\r\\n  v_notes   integer;\\r\\n  v_cards   integer;\\r\\n  v_detached integer;\\r\\nBEGIN\\r\\n  IF NOT EXISTS (\\r\\n    SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'super_admin'\\r\\n  ) THEN\\r\\n    RAISE EXCEPTION 'Only super_admin can delete user data';\\r\\n  END IF;\\r\\n\\r\\n  -- Never yourself, never an admin / super admin account (demote first with admin_change_role).\\r\\n  v_denial := public.admin_user_action_denial(auth.uid(), p_user_id);\\r\\n  IF v_denial IS NOT NULL THEN\\r\\n    RAISE EXCEPTION 'Access denied: %', v_denial USING ERRCODE = '42501';\\r\\n  END IF;\\r\\n\\r\\n  SELECT full_name, email, role INTO v_name, v_email, v_role FROM profiles WHERE id = p_user_id;\\r\\n  SELECT count(*) INTO v_notes FROM notes WHERE user_id = p_user_id;\\r\\n  SELECT count(*) INTO v_cards FROM flashcards WHERE user_id = p_user_id;\\r\\n  SELECT count(*) INTO v_detached FROM flashcard_batch_provenance WHERE created_by = p_user_id;\\r\\n\\r\\n  -- Audit FIRST, while the profile still exists (the foreign key nulls target_user_id afterwards, as before).\\r\\n  INSERT INTO public.admin_audit_log (action, admin_id, target_user_id, details)\\r\\n  VALUES ('delete_user', auth.uid(), p_user_id,\\r\\n          jsonb_build_object('deleted_user_name', v_name, 'deleted_user_email', v_email, 'deleted_user_role', v_role,\\r\\n                             'deleted_notes_count', v_notes, 'deleted_flashcards_count', v_cards,\\r\\n                             'total_content_deleted', v_notes + v_cards,\\r\\n                             'provenance_rows_detached', v_detached,\\r\\n                             'auth_deletion_status', 'manual_required', 'via', 'admin_delete_user_data'));\\r\\n\\r\\n  -- The only foreign key to profiles(id) with no delete rule: detach, do not delete, the batch-source history.\\r\\n  UPDATE flashcard_batch_provenance SET created_by = NULL WHERE created_by = p_user_id;\\r\\n\\r\\n  DELETE FROM study_group_members WHERE user_id = p_user_id;\\r\\n  DELETE FROM profile_courses    WHERE user_id = p_user_id;\\r\\n  DELETE FROM reviews            WHERE user_id = p_user_id;\\r\\n  DELETE FROM flashcards         WHERE user_id = p_user_id;\\r\\n  DELETE FROM flashcard_decks    WHERE user_id = p_user_id;\\r\\n  DELETE FROM notes              WHERE user_id = p_user_id;\\r\\n  DELETE FROM profiles           WHERE id      = p_user_id;\\r\\nEND;\\r\\n$function$\\n",
+   "definition_md5": "e7e33ed97aa06ee7d40cc81158aa1eb3",
+   "execute_grantees": [
+    "authenticated",
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true,
+   "routine_name_leads": [
+    {
+     "args": "",
+     "name": "email",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "role",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "uid",
+     "schema": "auth"
+    },
+    {
+     "args": "p_user_id uuid, p_new_role text, p_reason text",
+     "name": "admin_change_role",
+     "schema": "public"
+    },
+    {
+     "args": "p_actor uuid, p_target uuid",
+     "name": "admin_user_action_denial",
+     "schema": "public"
+    }
+   ]
+  },
+  {
+   "args": "",
+   "name": "fn_create_profile_on_signup",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "language": "plpgsql",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_create_profile_on_signup()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SECURITY DEFINER\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nBEGIN\\r\\n  INSERT INTO public.profiles (\\r\\n    id,\\r\\n    email,\\r\\n    full_name,\\r\\n    course_level,\\r\\n    institution,\\r\\n    role,\\r\\n    account_type,\\r\\n    timezone,\\r\\n    created_at\\r\\n  )\\r\\n  VALUES (\\r\\n    NEW.id,\\r\\n    lower(btrim(NEW.email)),\\r\\n    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),\\r\\n    NEW.raw_user_meta_data->>'course_level',\\r\\n    'In-house',\\r\\n    'student',\\r\\n    'self_registered',\\r\\n    'Asia/Kolkata',\\r\\n    NOW()\\r\\n  )\\r\\n  ON CONFLICT (id) DO NOTHING;\\r\\n  RETURN NEW;\\r\\nEND;\\r\\n$function$\\n",
+   "definition_md5": "8a6fc60806e9e576485f899912d04578",
+   "execute_grantees": [
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true,
+   "routine_name_leads": [
+    {
+     "args": "",
+     "name": "email",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "role",
+     "schema": "auth"
+    }
+   ]
+  },
+  {
+   "args": "",
+   "name": "fn_sync_profile_email_from_auth",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "language": "plpgsql",
+   "definition": "CREATE OR REPLACE FUNCTION public.fn_sync_profile_email_from_auth()\\n RETURNS trigger\\n LANGUAGE plpgsql\\n SECURITY DEFINER\\n SET search_path TO 'public', 'extensions'\\nAS $function$\\r\\nDECLARE\\r\\n  v_old   text;\\r\\n  v_new   text := lower(btrim(NEW.email));\\r\\n  v_actor uuid := auth.uid();   -- the signed-in user whose request caused this change; NULL for dashboard / service role\\r\\nBEGIN\\r\\n  SELECT email INTO v_old FROM public.profiles WHERE id = NEW.id;\\r\\n  IF NOT FOUND THEN\\r\\n    -- Do not create a partially formed profile here; creation is the signup trigger's job.\\r\\n    RAISE WARNING 'email sync: no profile row for auth user %, nothing updated', NEW.id;\\r\\n    RETURN NEW;\\r\\n  END IF;\\r\\n\\r\\n  UPDATE public.profiles SET email = v_new WHERE id = NEW.id;   -- unique violation here aborts the Auth update\\r\\n\\r\\n  INSERT INTO public.admin_audit_log (action, admin_id, target_user_id, details)\\r\\n  VALUES ('email_changed',\\r\\n          CASE WHEN v_actor IS NOT NULL AND v_actor <> NEW.id THEN v_actor ELSE NULL END,\\r\\n          NEW.id,\\r\\n          jsonb_build_object('old_email', COALESCE(OLD.email, v_old), 'new_email', NEW.email,\\r\\n                             'mechanism', CASE WHEN v_actor = NEW.id THEN 'self_service' ELSE 'dashboard_or_admin' END,\\r\\n                             'via', 'fn_sync_profile_email_from_auth'));\\r\\n  RETURN NEW;\\r\\nEND;\\r\\n$function$\\n",
+   "definition_md5": "98b41a63b2eda80ac4dfa78c6943e53d",
+   "execute_grantees": [
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true,
+   "routine_name_leads": [
+    {
+     "args": "",
+     "name": "email",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "role",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "uid",
+     "schema": "auth"
+    }
+   ]
+  },
+  {
+   "args": "p_name text, p_whatsapp_number text, p_course text, p_email text, p_content_id uuid, p_content_type text, p_content_name text, p_requester_user_id uuid",
+   "name": "submit_access_request",
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "language": "plpgsql",
+   "definition": "CREATE OR REPLACE FUNCTION public.submit_access_request(p_name text, p_whatsapp_number text, p_course text, p_email text DEFAULT NULL::text, p_content_id uuid DEFAULT NULL::uuid, p_content_type text DEFAULT NULL::text, p_content_name text DEFAULT NULL::text, p_requester_user_id uuid DEFAULT NULL::uuid)\\n RETURNS void\\n LANGUAGE plpgsql\\n SECURITY DEFINER\\n SET search_path TO 'public', 'extensions'\\nAS $function$BEGIN\\r\\n  IF p_name IS NULL OR trim(p_name) = '' THEN\\r\\n    RAISE EXCEPTION 'Name is required';\\r\\n  END IF;\\r\\n  IF p_whatsapp_number IS NULL OR trim(p_whatsapp_number) = '' THEN\\r\\n    RAISE EXCEPTION 'WhatsApp number is required';\\r\\n  END IF;\\r\\n  IF p_course IS NULL OR trim(p_course) = '' THEN\\r\\n    RAISE EXCEPTION 'Course is required';\\r\\n  END IF;\\r\\n\\r\\n  INSERT INTO access_requests (\\r\\n    name, whatsapp_number, course, email,\\r\\n    content_id, content_type, content_name, requester_user_id\\r\\n  ) VALUES (\\r\\n    trim(p_name), trim(p_whatsapp_number), p_course,\\r\\n    CASE WHEN p_email IS NOT NULL AND trim(p_email) <> '' THEN trim(p_email) ELSE NULL END,\\r\\n    p_content_id, p_content_type, p_content_name, p_requester_user_id\\r\\n  );\\r\\n\\r\\n  INSERT INTO notifications (user_id, type, title, message, metadata)\\r\\n  SELECT\\r\\n    p.id,\\r\\n    'access_request',\\r\\n    'New access request from ' || trim(p_name),\\r\\n    p_course || CASE WHEN p_content_name IS NOT NULL THEN ' — saw: ' || p_content_name ELSE '' END,\\r\\n    jsonb_build_object(\\r\\n      'name', trim(p_name),\\r\\n      'whatsapp', trim(p_whatsapp_number),\\r\\n      'course', p_course,\\r\\n      'content_name', p_content_name\\r\\n    )\\r\\n  FROM profiles p\\r\\n  WHERE p.role IN ('admin', 'super_admin');\\r\\nEND;$function$\\n",
+   "definition_md5": "df7fbf67a33ae10e29ffd29222f1b64d",
+   "execute_grantees": [
+    "PUBLIC",
+    "anon",
+    "authenticated",
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true,
+   "routine_name_leads": [
+    {
+     "args": "",
+     "name": "email",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "role",
+     "schema": "auth"
+    }
+   ]
+  }
+ ],
+ "auth_users_triggers": [
+  {
+   "name": "trg_create_profile_on_signup",
+   "enabled": "O",
+   "function": "fn_create_profile_on_signup",
+   "definition": "CREATE TRIGGER trg_create_profile_on_signup AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION fn_create_profile_on_signup()",
+   "function_args": "",
+   "function_schema": "public"
+  },
+  {
+   "name": "trg_sync_profile_email_from_auth",
+   "enabled": "O",
+   "function": "fn_sync_profile_email_from_auth",
+   "definition": "CREATE TRIGGER trg_sync_profile_email_from_auth AFTER UPDATE OF email ON auth.users FOR EACH ROW WHEN (((old.email)::text IS DISTINCT FROM (new.email)::text)) EXECUTE FUNCTION fn_sync_profile_email_from_auth()",
+   "function_args": "",
+   "function_schema": "public"
+  }
+ ],
+ "chain_function_count": 4,
+ "auth_users_trigger_count": 2
+}

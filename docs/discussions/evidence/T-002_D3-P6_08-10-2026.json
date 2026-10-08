@@ -1,0 +1,272 @@
+{
+ "run": "D3-P6",
+ "method": "whole-identifier name match in the lower-cased caller body, any length, all overloads; an OVER-approximation, not an exact call graph",
+ "depth_cap": 3,
+ "closure_size": 11,
+ "tool_version": "D3-v11",
+ "relevant_routines": [
+  {
+   "args": "p_user_id uuid",
+   "name": "admin_delete_user_data",
+   "depth": 0,
+   "flags": {
+    "copy": false,
+    "merge": false,
+    "delete": true,
+    "insert": true,
+    "update": true,
+    "truncate": false,
+    "dynamic_sql_execute": false
+   },
+   "schema": "public",
+   "callees": [
+    {
+     "args": "",
+     "name": "email",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "role",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "uid",
+     "schema": "auth"
+    },
+    {
+     "args": "p_user_id uuid, p_new_role text, p_reason text",
+     "name": "admin_change_role",
+     "schema": "public"
+    },
+    {
+     "args": "p_actor uuid, p_target uuid",
+     "name": "admin_user_action_denial",
+     "schema": "public"
+    }
+   ],
+   "src_md5": "ae3b842921b30c3593d2b8f024590945",
+   "language": "plpgsql",
+   "mentions": [
+    "flashcards",
+    "notes",
+    "profiles"
+   ],
+   "security_definer": true,
+   "language_unresolved": false
+  },
+  {
+   "args": "",
+   "name": "fn_create_profile_on_signup",
+   "depth": 0,
+   "flags": {
+    "copy": false,
+    "merge": false,
+    "delete": false,
+    "insert": true,
+    "update": false,
+    "truncate": false,
+    "dynamic_sql_execute": false
+   },
+   "schema": "public",
+   "callees": [
+    {
+     "args": "",
+     "name": "email",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "role",
+     "schema": "auth"
+    }
+   ],
+   "src_md5": "87e8af032d1d7f527a6b081fb8cd5e2e",
+   "language": "plpgsql",
+   "mentions": [
+    "profiles"
+   ],
+   "security_definer": true,
+   "language_unresolved": false
+  },
+  {
+   "args": "",
+   "name": "fn_sync_profile_email_from_auth",
+   "depth": 0,
+   "flags": {
+    "copy": false,
+    "merge": false,
+    "delete": false,
+    "insert": true,
+    "update": true,
+    "truncate": false,
+    "dynamic_sql_execute": false
+   },
+   "schema": "public",
+   "callees": [
+    {
+     "args": "",
+     "name": "email",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "role",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "uid",
+     "schema": "auth"
+    }
+   ],
+   "src_md5": "fc2e1073827dbdd2303c8e5c039360a8",
+   "language": "plpgsql",
+   "mentions": [
+    "profiles"
+   ],
+   "security_definer": true,
+   "language_unresolved": false
+  },
+  {
+   "args": "p_name text, p_whatsapp_number text, p_course text, p_email text, p_content_id uuid, p_content_type text, p_content_name text, p_requester_user_id uuid",
+   "name": "submit_access_request",
+   "depth": 0,
+   "flags": {
+    "copy": false,
+    "merge": false,
+    "delete": false,
+    "insert": true,
+    "update": false,
+    "truncate": false,
+    "dynamic_sql_execute": false
+   },
+   "schema": "public",
+   "callees": [
+    {
+     "args": "",
+     "name": "email",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "role",
+     "schema": "auth"
+    }
+   ],
+   "src_md5": "c706a32995675b7fdbd23319119311b9",
+   "language": "plpgsql",
+   "mentions": [
+    "access_requests",
+    "profiles"
+   ],
+   "security_definer": true,
+   "language_unresolved": false
+  },
+  {
+   "args": "p_user_id uuid, p_new_role text, p_reason text",
+   "name": "admin_change_role",
+   "depth": 1,
+   "flags": {
+    "copy": false,
+    "merge": false,
+    "delete": false,
+    "insert": true,
+    "update": true,
+    "truncate": false,
+    "dynamic_sql_execute": false
+   },
+   "schema": "public",
+   "callees": [
+    {
+     "args": "",
+     "name": "role",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "uid",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "is_super_admin",
+     "schema": "public"
+    }
+   ],
+   "src_md5": "7d1e01b29eb760cde9a66d96e18c9e06",
+   "language": "plpgsql",
+   "mentions": [
+    "profiles"
+   ],
+   "security_definer": true,
+   "language_unresolved": false
+  },
+  {
+   "args": "p_actor uuid, p_target uuid",
+   "name": "admin_user_action_denial",
+   "depth": 1,
+   "flags": {
+    "copy": false,
+    "merge": false,
+    "delete": false,
+    "insert": false,
+    "update": false,
+    "truncate": false,
+    "dynamic_sql_execute": false
+   },
+   "schema": "public",
+   "callees": [
+    {
+     "args": "",
+     "name": "role",
+     "schema": "auth"
+    }
+   ],
+   "src_md5": "b612495cd453524037dec2ccbf26fc82",
+   "language": "plpgsql",
+   "mentions": [
+    "profiles"
+   ],
+   "security_definer": true,
+   "language_unresolved": false
+  },
+  {
+   "args": "",
+   "name": "is_super_admin",
+   "depth": 2,
+   "flags": {
+    "copy": false,
+    "merge": false,
+    "delete": false,
+    "insert": false,
+    "update": false,
+    "truncate": false,
+    "dynamic_sql_execute": false
+   },
+   "schema": "public",
+   "callees": [
+    {
+     "args": "",
+     "name": "role",
+     "schema": "auth"
+    },
+    {
+     "args": "",
+     "name": "uid",
+     "schema": "auth"
+    }
+   ],
+   "src_md5": "b88633d5e0bab10d26d0c711b30e2085",
+   "language": "sql",
+   "mentions": [
+    "profiles"
+   ],
+   "security_definer": true,
+   "language_unresolved": false
+  }
+ ],
+ "other_routines_in_closure": 4,
+ "frontier_edges_outside_closure": []
+}

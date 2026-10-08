@@ -1,0 +1,104 @@
+{
+ "run": "D3-P4",
+ "jobs": [
+  {
+   "flags": {
+    "copy": false,
+    "merge": false,
+    "delete": false,
+    "insert": false,
+    "update": false,
+    "truncate": false,
+    "names_notes": false,
+    "execute_word": false,
+    "names_topics": false,
+    "net_http_post": true,
+    "names_profiles": false,
+    "names_subjects": false,
+    "names_flashcards": false,
+    "names_cron_schema": false,
+    "names_disciplines": false,
+    "names_study_sessions": false,
+    "names_access_requests": false
+   },
+   "jobid": 4,
+   "active": true,
+   "jobname": "cron-daily-study-summary",
+   "database": "postgres",
+   "schedule": "*/15 * * * *",
+   "username": "postgres",
+   "command_md5": "7a32e33c692d4eaa5ecdf52dfad06541",
+   "command_length": 263,
+   "routine_name_leads": [
+    {
+     "args": "url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer",
+     "name": "http_post",
+     "schema": "net",
+     "body_md5": "249e2190ab91f8313d4deec6d6e687be",
+     "facts_sha256": "422ad27c289d96b846a70bd8bee8eb7b92f866eff97225f89f913b3dadbad00f"
+    }
+   ]
+  },
+  {
+   "flags": {
+    "copy": false,
+    "merge": false,
+    "delete": false,
+    "insert": false,
+    "update": false,
+    "truncate": false,
+    "names_notes": false,
+    "execute_word": false,
+    "names_topics": false,
+    "net_http_post": true,
+    "names_profiles": false,
+    "names_subjects": false,
+    "names_flashcards": false,
+    "names_cron_schema": false,
+    "names_disciplines": false,
+    "names_study_sessions": false,
+    "names_access_requests": false
+   },
+   "jobid": 5,
+   "active": true,
+   "jobname": "daily-review-reminders",
+   "database": "postgres",
+   "schedule": "30 2 * * *",
+   "username": "postgres",
+   "command_md5": "5bd1bbd6904d5d96b4689efd1c7972df",
+   "command_length": 291,
+   "routine_name_leads": [
+    {
+     "args": "url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer",
+     "name": "http_post",
+     "schema": "net",
+     "body_md5": "249e2190ab91f8313d4deec6d6e687be",
+     "facts_sha256": "422ad27c289d96b846a70bd8bee8eb7b92f866eff97225f89f913b3dadbad00f"
+    }
+   ]
+  }
+ ],
+ "running_role": {
+  "bypassrls": true,
+  "superuser": false,
+  "current_user": "postgres",
+  "session_user": "postgres"
+ },
+ "tool_version": "D3-v11",
+ "cron_job_table": {
+  "owner": "supabase_admin",
+  "row_security_forced": false,
+  "row_security_enabled": true
+ },
+ "visibility_note": "if visibility_unresolved is true the job list below may omit other users jobs and must not be read as complete",
+ "can_see_all_rows": true,
+ "visible_job_rows": 2,
+ "cron_job_policies": [
+  {
+   "name": "cron_job_policy",
+   "using": "(username = CURRENT_USER)",
+   "command": "*"
+  }
+ ],
+ "visibility_unresolved": false
+}

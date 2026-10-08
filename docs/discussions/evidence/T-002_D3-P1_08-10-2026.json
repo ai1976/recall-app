@@ -1,0 +1,776 @@
+{
+ "run": "D3-P1",
+ "depth_cap": 12,
+ "tool_version": "D3-v11",
+ "targets_found": 8,
+ "target_relations": [
+  "public.access_requests",
+  "public.disciplines",
+  "public.flashcards",
+  "public.notes",
+  "public.profiles",
+  "public.study_sessions",
+  "public.subjects",
+  "public.topics"
+ ],
+ "event_kind_legend": "anc_event is the event on the ancestor relation (DELETE or UPDATE of a key); target_result is what happens to the target row (DELETE by ON DELETE CASCADE; UPDATE by SET NULL, SET DEFAULT or a mutating ON UPDATE action)",
+ "direct_foreign_keys": [
+  {
+   "child": "access_requests",
+   "parent": "profiles",
+   "edge_id": "public.access_requests.access_requests_requester_user_id_fkey=>public.profiles#4d26151b14287e61043f0564b2fcc09f",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "access_requests_requester_user_id_fkey",
+   "definition_md5": "4d26151b14287e61043f0564b2fcc09f",
+   "mutating_action": true
+  },
+  {
+   "child": "admin_audit_log",
+   "parent": "profiles",
+   "edge_id": "public.admin_audit_log.admin_audit_log_admin_id_fkey=>public.profiles#87a4d2e939fff6f77c16f5c3a6cdda9e",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "admin_audit_log_admin_id_fkey",
+   "definition_md5": "87a4d2e939fff6f77c16f5c3a6cdda9e",
+   "mutating_action": true
+  },
+  {
+   "child": "admin_audit_log",
+   "parent": "profiles",
+   "edge_id": "public.admin_audit_log.admin_audit_log_target_user_id_fkey=>public.profiles#2daff9cf574c832b1710c4821cbcb746",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "admin_audit_log_target_user_id_fkey",
+   "definition_md5": "2daff9cf574c832b1710c4821cbcb746",
+   "mutating_action": true
+  },
+  {
+   "child": "batch_group_archives",
+   "parent": "profiles",
+   "edge_id": "public.batch_group_archives.batch_group_archives_archived_by_fkey=>public.profiles#39f0b5cfc98e29dd49ef558edfe250b4",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "batch_group_archives_archived_by_fkey",
+   "definition_md5": "39f0b5cfc98e29dd49ef558edfe250b4",
+   "mutating_action": true
+  },
+  {
+   "child": "batch_group_professors",
+   "parent": "profiles",
+   "edge_id": "public.batch_group_professors.batch_group_professors_assigned_by_fkey=>public.profiles#9aa65e09b0629f0be17a1058f5d08dbe",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "batch_group_professors_assigned_by_fkey",
+   "definition_md5": "9aa65e09b0629f0be17a1058f5d08dbe",
+   "mutating_action": true
+  },
+  {
+   "child": "batch_group_professors",
+   "parent": "profiles",
+   "edge_id": "public.batch_group_professors.batch_group_professors_professor_id_fkey=>public.profiles#b18915d270620d23c336efc499751a73",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "batch_group_professors_professor_id_fkey",
+   "definition_md5": "b18915d270620d23c336efc499751a73",
+   "mutating_action": true
+  },
+  {
+   "child": "content_flags",
+   "parent": "profiles",
+   "edge_id": "public.content_flags.content_flags_reporter_id_fkey=>public.profiles#5c4ce4bf9a8d634e89870f3d3b501e31",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "content_flags_reporter_id_fkey",
+   "definition_md5": "5c4ce4bf9a8d634e89870f3d3b501e31",
+   "mutating_action": true
+  },
+  {
+   "child": "content_flags",
+   "parent": "profiles",
+   "edge_id": "public.content_flags.content_flags_resolved_by_fkey=>public.profiles#cc4633d4651a57fddc5f725123cd282b",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "content_flags_resolved_by_fkey",
+   "definition_md5": "cc4633d4651a57fddc5f725123cd282b",
+   "mutating_action": true
+  },
+  {
+   "child": "content_group_shares",
+   "parent": "profiles",
+   "edge_id": "public.content_group_shares.content_group_shares_shared_by_fkey=>public.profiles#ac39b7c3aa9166fa1268d87d6b39a729",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "content_group_shares_shared_by_fkey",
+   "definition_md5": "ac39b7c3aa9166fa1268d87d6b39a729",
+   "mutating_action": true
+  },
+  {
+   "child": "flashcard_batch_provenance",
+   "parent": "profiles",
+   "edge_id": "public.flashcard_batch_provenance.flashcard_batch_provenance_created_by_fkey=>public.profiles#55e2649d82a1aef66a67c5cf4852368e",
+   "on_delete": "a",
+   "on_update": "a",
+   "constraint": "flashcard_batch_provenance_created_by_fkey",
+   "definition_md5": "55e2649d82a1aef66a67c5cf4852368e",
+   "mutating_action": false
+  },
+  {
+   "child": "flashcard_decks",
+   "parent": "profiles",
+   "edge_id": "public.flashcard_decks.flashcard_decks_featured_approved_by_fkey=>public.profiles#58325636af030f015fe3d96e28ecc26c",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "flashcard_decks_featured_approved_by_fkey",
+   "definition_md5": "58325636af030f015fe3d96e28ecc26c",
+   "mutating_action": true
+  },
+  {
+   "child": "flashcard_decks",
+   "parent": "profiles",
+   "edge_id": "public.flashcard_decks.flashcard_decks_featured_nominated_by_fkey=>public.profiles#89772889d95e816c7c7a8a36e360f3b2",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "flashcard_decks_featured_nominated_by_fkey",
+   "definition_md5": "89772889d95e816c7c7a8a36e360f3b2",
+   "mutating_action": true
+  },
+  {
+   "child": "flashcard_decks",
+   "parent": "subjects",
+   "edge_id": "public.flashcard_decks.flashcard_decks_subject_id_fkey=>public.subjects#b81b8f3143dd3a4608cebdadcfebca1b",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "flashcard_decks_subject_id_fkey",
+   "definition_md5": "b81b8f3143dd3a4608cebdadcfebca1b",
+   "mutating_action": true
+  },
+  {
+   "child": "flashcard_decks",
+   "parent": "topics",
+   "edge_id": "public.flashcard_decks.flashcard_decks_topic_id_fkey=>public.topics#aa37eec95cf00a15f707f2298ce5c3b3",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "flashcard_decks_topic_id_fkey",
+   "definition_md5": "aa37eec95cf00a15f707f2298ce5c3b3",
+   "mutating_action": true
+  },
+  {
+   "child": "flashcard_decks",
+   "parent": "profiles",
+   "edge_id": "public.flashcard_decks.flashcard_decks_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "flashcard_decks_user_id_fkey",
+   "definition_md5": "f52ea365e97de6e8cafd675b03a940e4",
+   "mutating_action": true
+  },
+  {
+   "child": "flashcards",
+   "parent": "content_creators",
+   "edge_id": "public.flashcards.flashcards_content_creator_id_fkey=>public.content_creators#0c8d5f43414e4fea218bcd4706e26185",
+   "on_delete": "a",
+   "on_update": "a",
+   "constraint": "flashcards_content_creator_id_fkey",
+   "definition_md5": "0c8d5f43414e4fea218bcd4706e26185",
+   "mutating_action": false
+  },
+  {
+   "child": "flashcards",
+   "parent": "profiles",
+   "edge_id": "public.flashcards.flashcards_contributed_by_fkey=>public.profiles#70f943e32c11716060670ce313d5ecfa",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "flashcards_contributed_by_fkey",
+   "definition_md5": "70f943e32c11716060670ce313d5ecfa",
+   "mutating_action": true
+  },
+  {
+   "child": "flashcards",
+   "parent": "profiles",
+   "edge_id": "public.flashcards.flashcards_creator_id_fkey=>public.profiles#7ffa2f8c4fb6eb8b99f0aee36fe50652",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "flashcards_creator_id_fkey",
+   "definition_md5": "7ffa2f8c4fb6eb8b99f0aee36fe50652",
+   "mutating_action": true
+  },
+  {
+   "child": "flashcards",
+   "parent": "flashcard_decks",
+   "edge_id": "public.flashcards.flashcards_deck_id_fkey=>public.flashcard_decks#f9cd489f1f4612740e4c87a02364174b",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "flashcards_deck_id_fkey",
+   "definition_md5": "f9cd489f1f4612740e4c87a02364174b",
+   "mutating_action": true
+  },
+  {
+   "child": "flashcards",
+   "parent": "disciplines",
+   "edge_id": "public.flashcards.flashcards_discipline_id_fkey=>public.disciplines#f22ab610fe90c890a93e9061d3e32259",
+   "on_delete": "a",
+   "on_update": "a",
+   "constraint": "flashcards_discipline_id_fkey",
+   "definition_md5": "f22ab610fe90c890a93e9061d3e32259",
+   "mutating_action": false
+  },
+  {
+   "child": "flashcards",
+   "parent": "notes",
+   "edge_id": "public.flashcards.flashcards_note_id_fkey=>public.notes#b4386154462bcb611a1484da4ac9e8cc",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "flashcards_note_id_fkey",
+   "definition_md5": "b4386154462bcb611a1484da4ac9e8cc",
+   "mutating_action": true
+  },
+  {
+   "child": "flashcards",
+   "parent": "subjects",
+   "edge_id": "public.flashcards.flashcards_subject_id_fkey=>public.subjects#3d3a20f55e30dd6d1206fffe674e9e89",
+   "on_delete": "a",
+   "on_update": "a",
+   "constraint": "flashcards_subject_id_fkey",
+   "definition_md5": "3d3a20f55e30dd6d1206fffe674e9e89",
+   "mutating_action": false
+  },
+  {
+   "child": "flashcards",
+   "parent": "topics",
+   "edge_id": "public.flashcards.flashcards_topic_id_fkey=>public.topics#d7301e27d309933c7d81ef0aea302826",
+   "on_delete": "a",
+   "on_update": "a",
+   "constraint": "flashcards_topic_id_fkey",
+   "definition_md5": "d7301e27d309933c7d81ef0aea302826",
+   "mutating_action": false
+  },
+  {
+   "child": "flashcards",
+   "parent": "auth.users",
+   "edge_id": "public.flashcards.flashcards_user_id_fkey=>auth.users#85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "flashcards_user_id_fkey",
+   "definition_md5": "85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "mutating_action": true
+  },
+  {
+   "child": "friendships",
+   "parent": "profiles",
+   "edge_id": "public.friendships.friendships_friend_id_fkey=>public.profiles#262728acce5bf70b47042bbb47918230",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "friendships_friend_id_fkey",
+   "definition_md5": "262728acce5bf70b47042bbb47918230",
+   "mutating_action": true
+  },
+  {
+   "child": "friendships",
+   "parent": "profiles",
+   "edge_id": "public.friendships.friendships_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "friendships_user_id_fkey",
+   "definition_md5": "f52ea365e97de6e8cafd675b03a940e4",
+   "mutating_action": true
+  },
+  {
+   "child": "my_cards_enrollment",
+   "parent": "flashcards",
+   "edge_id": "public.my_cards_enrollment.my_cards_enrollment_flashcard_id_fkey=>public.flashcards#79f4b8f476225538a0f182744c8a5e45",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "my_cards_enrollment_flashcard_id_fkey",
+   "definition_md5": "79f4b8f476225538a0f182744c8a5e45",
+   "mutating_action": true
+  },
+  {
+   "child": "notes",
+   "parent": "profiles",
+   "edge_id": "public.notes.notes_contributed_by_fkey=>public.profiles#70f943e32c11716060670ce313d5ecfa",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "notes_contributed_by_fkey",
+   "definition_md5": "70f943e32c11716060670ce313d5ecfa",
+   "mutating_action": true
+  },
+  {
+   "child": "notes",
+   "parent": "disciplines",
+   "edge_id": "public.notes.notes_discipline_id_fkey=>public.disciplines#f22ab610fe90c890a93e9061d3e32259",
+   "on_delete": "a",
+   "on_update": "a",
+   "constraint": "notes_discipline_id_fkey",
+   "definition_md5": "f22ab610fe90c890a93e9061d3e32259",
+   "mutating_action": false
+  },
+  {
+   "child": "notes",
+   "parent": "profiles",
+   "edge_id": "public.notes.notes_featured_approved_by_fkey=>public.profiles#58325636af030f015fe3d96e28ecc26c",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "notes_featured_approved_by_fkey",
+   "definition_md5": "58325636af030f015fe3d96e28ecc26c",
+   "mutating_action": true
+  },
+  {
+   "child": "notes",
+   "parent": "profiles",
+   "edge_id": "public.notes.notes_featured_nominated_by_fkey=>public.profiles#89772889d95e816c7c7a8a36e360f3b2",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "notes_featured_nominated_by_fkey",
+   "definition_md5": "89772889d95e816c7c7a8a36e360f3b2",
+   "mutating_action": true
+  },
+  {
+   "child": "notes",
+   "parent": "subjects",
+   "edge_id": "public.notes.notes_subject_id_fkey=>public.subjects#3d3a20f55e30dd6d1206fffe674e9e89",
+   "on_delete": "a",
+   "on_update": "a",
+   "constraint": "notes_subject_id_fkey",
+   "definition_md5": "3d3a20f55e30dd6d1206fffe674e9e89",
+   "mutating_action": false
+  },
+  {
+   "child": "notes",
+   "parent": "topics",
+   "edge_id": "public.notes.notes_topic_id_fkey=>public.topics#d7301e27d309933c7d81ef0aea302826",
+   "on_delete": "a",
+   "on_update": "a",
+   "constraint": "notes_topic_id_fkey",
+   "definition_md5": "d7301e27d309933c7d81ef0aea302826",
+   "mutating_action": false
+  },
+  {
+   "child": "notes",
+   "parent": "auth.users",
+   "edge_id": "public.notes.notes_user_id_fkey=>auth.users#85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "notes_user_id_fkey",
+   "definition_md5": "85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "mutating_action": true
+  },
+  {
+   "child": "notifications",
+   "parent": "profiles",
+   "edge_id": "public.notifications.notifications_actor_id_fkey=>public.profiles#9030521795fa59f1a7e1b409854ba9a5",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "notifications_actor_id_fkey",
+   "definition_md5": "9030521795fa59f1a7e1b409854ba9a5",
+   "mutating_action": true
+  },
+  {
+   "child": "notifications",
+   "parent": "profiles",
+   "edge_id": "public.notifications.notifications_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "notifications_user_id_fkey",
+   "definition_md5": "f52ea365e97de6e8cafd675b03a940e4",
+   "mutating_action": true
+  },
+  {
+   "child": "practice_attempts",
+   "parent": "flashcards",
+   "edge_id": "public.practice_attempts.practice_attempts_flashcard_id_fkey=>public.flashcards#79f4b8f476225538a0f182744c8a5e45",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "practice_attempts_flashcard_id_fkey",
+   "definition_md5": "79f4b8f476225538a0f182744c8a5e45",
+   "mutating_action": true
+  },
+  {
+   "child": "profile_courses",
+   "parent": "disciplines",
+   "edge_id": "public.profile_courses.profile_courses_discipline_id_fkey=>public.disciplines#533d1ad72eec2e67f4b62c9e85ed87f7",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "profile_courses_discipline_id_fkey",
+   "definition_md5": "533d1ad72eec2e67f4b62c9e85ed87f7",
+   "mutating_action": true
+  },
+  {
+   "child": "profile_courses",
+   "parent": "profiles",
+   "edge_id": "public.profile_courses.profile_courses_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "profile_courses_user_id_fkey",
+   "definition_md5": "f52ea365e97de6e8cafd675b03a940e4",
+   "mutating_action": true
+  },
+  {
+   "child": "profiles",
+   "parent": "auth.users",
+   "edge_id": "public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "profiles_id_fkey",
+   "definition_md5": "0061c9fb3a9abcf2edbcd4a42467a9c3",
+   "mutating_action": true
+  },
+  {
+   "child": "push_notification_preferences",
+   "parent": "profiles",
+   "edge_id": "public.push_notification_preferences.push_notification_preferences_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "push_notification_preferences_user_id_fkey",
+   "definition_md5": "f52ea365e97de6e8cafd675b03a940e4",
+   "mutating_action": true
+  },
+  {
+   "child": "push_subscriptions",
+   "parent": "profiles",
+   "edge_id": "public.push_subscriptions.push_subscriptions_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "push_subscriptions_user_id_fkey",
+   "definition_md5": "f52ea365e97de6e8cafd675b03a940e4",
+   "mutating_action": true
+  },
+  {
+   "child": "review_events",
+   "parent": "flashcards",
+   "edge_id": "public.review_events.review_events_flashcard_id_fkey=>public.flashcards#79f4b8f476225538a0f182744c8a5e45",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "review_events_flashcard_id_fkey",
+   "definition_md5": "79f4b8f476225538a0f182744c8a5e45",
+   "mutating_action": true
+  },
+  {
+   "child": "reviews",
+   "parent": "flashcards",
+   "edge_id": "public.reviews.reviews_flashcard_id_fkey=>public.flashcards#79f4b8f476225538a0f182744c8a5e45",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "reviews_flashcard_id_fkey",
+   "definition_md5": "79f4b8f476225538a0f182744c8a5e45",
+   "mutating_action": true
+  },
+  {
+   "child": "role_change_log",
+   "parent": "profiles",
+   "edge_id": "public.role_change_log.role_change_log_changed_by_fkey=>public.profiles#f5d115bc53f2a6f990ec188de80f66e2",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "role_change_log_changed_by_fkey",
+   "definition_md5": "f5d115bc53f2a6f990ec188de80f66e2",
+   "mutating_action": true
+  },
+  {
+   "child": "role_change_log",
+   "parent": "profiles",
+   "edge_id": "public.role_change_log.role_change_log_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "role_change_log_user_id_fkey",
+   "definition_md5": "f52ea365e97de6e8cafd675b03a940e4",
+   "mutating_action": true
+  },
+  {
+   "child": "study_group_members",
+   "parent": "profiles",
+   "edge_id": "public.study_group_members.study_group_members_invited_by_fkey=>public.profiles#084f5e247dea0dcd509f43beb1a31606",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "study_group_members_invited_by_fkey",
+   "definition_md5": "084f5e247dea0dcd509f43beb1a31606",
+   "mutating_action": true
+  },
+  {
+   "child": "study_group_members",
+   "parent": "profiles",
+   "edge_id": "public.study_group_members.study_group_members_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "study_group_members_user_id_fkey",
+   "definition_md5": "f52ea365e97de6e8cafd675b03a940e4",
+   "mutating_action": true
+  },
+  {
+   "child": "study_groups",
+   "parent": "profiles",
+   "edge_id": "public.study_groups.study_groups_archived_by_fkey=>public.profiles#39f0b5cfc98e29dd49ef558edfe250b4",
+   "on_delete": "n",
+   "on_update": "a",
+   "constraint": "study_groups_archived_by_fkey",
+   "definition_md5": "39f0b5cfc98e29dd49ef558edfe250b4",
+   "mutating_action": true
+  },
+  {
+   "child": "study_groups",
+   "parent": "profiles",
+   "edge_id": "public.study_groups.study_groups_created_by_fkey=>public.profiles#d218234b16a10c495c8e2c8ebdc1f545",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "study_groups_created_by_fkey",
+   "definition_md5": "d218234b16a10c495c8e2c8ebdc1f545",
+   "mutating_action": true
+  },
+  {
+   "child": "study_sessions",
+   "parent": "auth.users",
+   "edge_id": "public.study_sessions.study_sessions_user_id_fkey=>auth.users#85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "study_sessions_user_id_fkey",
+   "definition_md5": "85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "mutating_action": true
+  },
+  {
+   "child": "subjects",
+   "parent": "disciplines",
+   "edge_id": "public.subjects.subjects_discipline_id_fkey=>public.disciplines#533d1ad72eec2e67f4b62c9e85ed87f7",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "subjects_discipline_id_fkey",
+   "definition_md5": "533d1ad72eec2e67f4b62c9e85ed87f7",
+   "mutating_action": true
+  },
+  {
+   "child": "topics",
+   "parent": "subjects",
+   "edge_id": "public.topics.topics_subject_id_fkey=>public.subjects#b9421fb5d68dfe555c138710486bb954",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "topics_subject_id_fkey",
+   "definition_md5": "b9421fb5d68dfe555c138710486bb954",
+   "mutating_action": true
+  },
+  {
+   "child": "user_activity_log",
+   "parent": "profiles",
+   "edge_id": "public.user_activity_log.user_activity_log_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "user_activity_log_user_id_fkey",
+   "definition_md5": "f52ea365e97de6e8cafd675b03a940e4",
+   "mutating_action": true
+  },
+  {
+   "child": "user_badges",
+   "parent": "profiles",
+   "edge_id": "public.user_badges.user_badges_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "user_badges_user_id_fkey",
+   "definition_md5": "f52ea365e97de6e8cafd675b03a940e4",
+   "mutating_action": true
+  },
+  {
+   "child": "user_stats",
+   "parent": "profiles",
+   "edge_id": "public.user_stats.user_stats_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4",
+   "on_delete": "c",
+   "on_update": "a",
+   "constraint": "user_stats_user_id_fkey",
+   "definition_md5": "f52ea365e97de6e8cafd675b03a940e4",
+   "mutating_action": true
+  }
+ ],
+ "mutation_reachability": [
+  {
+   "target": "access_requests",
+   "ancestor": "public.profiles",
+   "min_depth": 1,
+   "example_path": "public.access_requests.access_requests_requester_user_id_fkey=>public.profiles#4d26151b14287e61043f0564b2fcc09f",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "access_requests",
+   "ancestor": "auth.users",
+   "min_depth": 2,
+   "example_path": "public.access_requests.access_requests_requester_user_id_fkey=>public.profiles#4d26151b14287e61043f0564b2fcc09f > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "flashcards",
+   "ancestor": "auth.users",
+   "min_depth": 1,
+   "example_path": "public.flashcards.flashcards_user_id_fkey=>auth.users#85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "target_result": "DELETE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "flashcards",
+   "ancestor": "public.profiles",
+   "min_depth": 1,
+   "example_path": "public.flashcards.flashcards_contributed_by_fkey=>public.profiles#70f943e32c11716060670ce313d5ecfa",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "flashcards",
+   "ancestor": "public.profiles",
+   "min_depth": 1,
+   "example_path": "public.flashcards.flashcards_creator_id_fkey=>public.profiles#7ffa2f8c4fb6eb8b99f0aee36fe50652",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "flashcards",
+   "ancestor": "public.notes",
+   "min_depth": 1,
+   "example_path": "public.flashcards.flashcards_note_id_fkey=>public.notes#b4386154462bcb611a1484da4ac9e8cc",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "flashcards",
+   "ancestor": "public.flashcard_decks",
+   "min_depth": 1,
+   "example_path": "public.flashcards.flashcards_deck_id_fkey=>public.flashcard_decks#f9cd489f1f4612740e4c87a02364174b",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "flashcards",
+   "ancestor": "auth.users",
+   "min_depth": 2,
+   "example_path": "public.flashcards.flashcards_contributed_by_fkey=>public.profiles#70f943e32c11716060670ce313d5ecfa > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "flashcards",
+   "ancestor": "auth.users",
+   "min_depth": 2,
+   "example_path": "public.flashcards.flashcards_creator_id_fkey=>public.profiles#7ffa2f8c4fb6eb8b99f0aee36fe50652 > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "flashcards",
+   "ancestor": "auth.users",
+   "min_depth": 2,
+   "example_path": "public.flashcards.flashcards_note_id_fkey=>public.notes#b4386154462bcb611a1484da4ac9e8cc > public.notes.notes_user_id_fkey=>auth.users#85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "flashcards",
+   "ancestor": "public.profiles",
+   "min_depth": 2,
+   "example_path": "public.flashcards.flashcards_deck_id_fkey=>public.flashcard_decks#f9cd489f1f4612740e4c87a02364174b > public.flashcard_decks.flashcard_decks_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "flashcards",
+   "ancestor": "auth.users",
+   "min_depth": 3,
+   "example_path": "public.flashcards.flashcards_deck_id_fkey=>public.flashcard_decks#f9cd489f1f4612740e4c87a02364174b > public.flashcard_decks.flashcard_decks_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4 > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "notes",
+   "ancestor": "auth.users",
+   "min_depth": 1,
+   "example_path": "public.notes.notes_user_id_fkey=>auth.users#85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "target_result": "DELETE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "notes",
+   "ancestor": "public.profiles",
+   "min_depth": 1,
+   "example_path": "public.notes.notes_contributed_by_fkey=>public.profiles#70f943e32c11716060670ce313d5ecfa",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "notes",
+   "ancestor": "public.profiles",
+   "min_depth": 1,
+   "example_path": "public.notes.notes_featured_approved_by_fkey=>public.profiles#58325636af030f015fe3d96e28ecc26c",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "notes",
+   "ancestor": "public.profiles",
+   "min_depth": 1,
+   "example_path": "public.notes.notes_featured_nominated_by_fkey=>public.profiles#89772889d95e816c7c7a8a36e360f3b2",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "notes",
+   "ancestor": "auth.users",
+   "min_depth": 2,
+   "example_path": "public.notes.notes_contributed_by_fkey=>public.profiles#70f943e32c11716060670ce313d5ecfa > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "notes",
+   "ancestor": "auth.users",
+   "min_depth": 2,
+   "example_path": "public.notes.notes_featured_approved_by_fkey=>public.profiles#58325636af030f015fe3d96e28ecc26c > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "notes",
+   "ancestor": "auth.users",
+   "min_depth": 2,
+   "example_path": "public.notes.notes_featured_nominated_by_fkey=>public.profiles#89772889d95e816c7c7a8a36e360f3b2 > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+   "target_result": "UPDATE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "profiles",
+   "ancestor": "auth.users",
+   "min_depth": 1,
+   "example_path": "public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+   "target_result": "DELETE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "study_sessions",
+   "ancestor": "auth.users",
+   "min_depth": 1,
+   "example_path": "public.study_sessions.study_sessions_user_id_fkey=>auth.users#85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "target_result": "DELETE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "subjects",
+   "ancestor": "public.disciplines",
+   "min_depth": 1,
+   "example_path": "public.subjects.subjects_discipline_id_fkey=>public.disciplines#533d1ad72eec2e67f4b62c9e85ed87f7",
+   "target_result": "DELETE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "topics",
+   "ancestor": "public.subjects",
+   "min_depth": 1,
+   "example_path": "public.topics.topics_subject_id_fkey=>public.subjects#b9421fb5d68dfe555c138710486bb954",
+   "target_result": "DELETE",
+   "ancestor_event": "DELETE"
+  },
+  {
+   "target": "topics",
+   "ancestor": "public.disciplines",
+   "min_depth": 2,
+   "example_path": "public.topics.topics_subject_id_fkey=>public.subjects#b9421fb5d68dfe555c138710486bb954 > public.subjects.subjects_discipline_id_fkey=>public.disciplines#533d1ad72eec2e67f4b62c9e85ed87f7",
+   "target_result": "DELETE",
+   "ancestor_event": "DELETE"
+  }
+ ],
+ "direct_foreign_key_count": 56,
+ "frontier_cut_at_depth_cap": [],
+ "mutation_reachability_count": 24
+}
