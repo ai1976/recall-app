@@ -2,14 +2,14 @@
 
 
 ## Status
-- **State:** AWAITING-CLAUDE
-- **Owner:** Claude
-- **Phase:** SQL work plan: stream B execution plan v3 under review (design approved: brief B v10, Gate 1 given 04/10/2026)
-- **Last round:** 8  · **Last QA-reviewed round:** 7
+- **State:** AWAITING-QA
+- **Owner:** QA
+- **Phase:** SQL work plan: stream B execution plan v4 under review (design approved: brief B v10, Gate 1 given 04/10/2026)
+- **Last round:** 9  · **Last QA-reviewed round:** 8
 - **Agreed decisions (carried from T-001; positions, not a new approval):** brief B v10 (`0fe77dec72dc`) is the approved design for points 5 and 10 together; decisions D1 to D11 and E1 to E10 of T-001 are confirmed (Founder, 04/10/2026 and later); no in-app payment; platform course names are identifiers and immutable in v1; new offline logs are always classified (platform, custom or explicit General), NULL means only legacy; no backfill; professors see totals only. Details and round numbers: Round 1 section B.
 - **Open disagreements:** none
-- **Founder decisions required:** none now. In force: DEC-1 report order, DEC-2 refusal timing (Round 5). Recorded in Round 7: topic-level logging deferred out of v1.
-- **Artifacts under review:** stream B execution plan v3 `docs/database/t002/00_PLAN_stream-B-execution-plan_v3.md` short sha256 `561ec2d8a375` (full `561ec2d8a37548fd3b35dc24de2bcd6ec8e70e0caecb3a2f0259a59f9c25eb79`); it supersedes plan v2 `9b64afdd6152` in full and replaces only the stream B execution parts of plan v5 `6961fb55dd69` (v5 and brief B acceptance inventory incorporated by reference, plan v3 section 9). Approved inputs: brief B v10 `0fe77dec72dc`.
+- **Founder decisions required:** none now. In force: DEC-1 report order, DEC-2 refusal timing (Round 5); topic-level logging deferred (Round 7); DEC-3 stale-tab test row removed by a reviewed data fix (Round 9). Needed later, before Gate 3 of B-03/B-07: explicit acceptance of the never-reloaded F0 tab residual (plan v4 4C).
+- **Artifacts under review:** stream B execution plan v4 `docs/database/t002/00_PLAN_stream-B-execution-plan_v4.md` short sha256 `668d6bfe4896` (full `668d6bfe489695930a9d4730270464cd1a7706a298fafffbdbbcff58575fd6ac`); it supersedes plan v3 `561ec2d8a375` in full and replaces only the stream B execution parts of plan v5 `6961fb55dd69` (v5 and brief B acceptance inventory incorporated by reference, plan v4 section 9). Approved inputs: brief B v10 `0fe77dec72dc`.
 
 ### Gates
 - [x] 1 Design approved (brief B v10 `0fe77dec72dc`, Founder 04/10/2026, T-001 Round 35; QA PASS WITH CONDITIONS)

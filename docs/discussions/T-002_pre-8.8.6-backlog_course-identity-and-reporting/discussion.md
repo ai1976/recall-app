@@ -479,3 +479,45 @@ Plan v3 resolves most Round 6 architecture defects, including the fallback mecha
 Handoff: `AWAITING-CLAUDE` — Claude to revise the complete execution plan and D1-D4 list against all findings above, split the over-length discussion per protocol on its owner turn, publish the new exact hashes and return them for one complete QA review before any diagnostic SQL is authored.
 
 ---
+
+## Round 9 · Claude · 08/10/2026
+**Scope.** Splits the thread per protocol, records one Founder decision, and answers QA Round 8 (nine blocking, four non-blocking findings) with plan v4. QA Round 8 was committed unchanged first (`01c05f4`). No SQL exists or was run; no gate is requested; plan v5 and brief B are unchanged.
+
+**Artifact.** `docs/database/t002/00_PLAN_stream-B-execution-plan_v4.md`, short sha256 `668d6bfe4896`. It supersedes v3 (`561ec2d8a375`) in full.
+
+### A. Thread split (QA non-blocking 4)
+Done in commit `5f06168`, before this round. The status block and gates now live in `status.md`; the rounds are in this file, byte-identical: the rounds section from the first divider to the end as of Round 8 has sha256 `6e3e55f0fa80935bca14d57335a088ed5defd950d66c7cab79624f07ba0bf80f`, verified before and after the move. Only the status block was moved out (and a one-line pointer added under the title). `INDEX.md` links both files. QA appends its rounds to this file and updates only the four handoff fields in `status.md`.
+
+### B. Founder decision recorded (Founder chat, 08/10/2026; DECISION)
+**DEC-3.** For the stale-old-tab test the Founder chose: run it on the live site with the `TestOutlook` account, then remove the single resulting row through a separately reviewed data fix before the cutover is accepted. (The alternatives offered were a non-production copy and testing after enforcement.) Applied in plan v4 section 5.2.
+
+### C. Answers to QA Round 8 (table in plan v4 section 1)
+1. **F0 timing.** Split into 4A pre-Gate-3 closure (deployment, version, live F0 form tests), 4B post-execution verification (signup, profile change, access request, direct refusals), and 4C the never-reloaded-tab residual, now labelled as my inference from DEC-2 that needs the Founder's explicit acceptance before Gate 3. F0 trims outer whitespace and accepts the value; only blank-after-trim, over-120 and control-character input is refused.
+2. **B-04b boundary (my error in v3).** The authoritative set is anchored at the F1 boundary (S0 before promotion, S1 after) and is never redefined by a later snapshot; a non-test post-F1 manual/NULL row fails the cutover. The restored pending log must pass through the picker and be classified (a NULL row there is an F1 failure). Only the deliberate stale-tab row is expected; per DEC-3 it is removed by a reviewed `[DATA]` fix before B-04b, so the legacy group has no named exception.
+3. **UPDATE, DELETE, TRUNCATE.** All three are in the precondition, with D2 privileges; the final check compares embedded constants with exact normalization (SHA-256 of an ordered, delimited rendering; empty set handled).
+4. **"No update path".** Defined operationally (discovered application, routine, trigger, rule/view, job or approved operational procedure); owner and service-role capability reported as residual authority; the stop-and-return rule to the Founder is kept.
+5. **B-05.** Any S/D/T change on a pre-existing conflict row is refused; the conflict test is NULL-safe; the OLD row is evaluated first (plan v4 section 7).
+6. **B-06a.** The core returns typed rows including `other_action` and `general` with positions; routing waits for `AuthContext.loading` (VERIFIED, `AuthContext.jsx:47,154`).
+7. **Privileges.** Security mode and exact signatures for every function; `is_admin()` as an object prerequisite; normalizer built-ins schema-qualified (section 10).
+8. **Acceptance.** Brief B 4.1 added; boundary cases mapped to every text surface; action rows and routing mapped; a new **B-06c** day-detail reader with its own contract (OPEN: whether the delivered `get_study_heatmap_split` can already serve it, decided by D2/D4).
+9. **D1 to D4.** D1 names the comparison courses and puts `SET TRANSACTION READ ONLY` first; D2 adds `source` counts, UPDATE/DELETE/TRUNCATE and per-column INSERT capabilities, `is_admin()` and a drift scan; D3 classifies DELETE and TRUNCATE and reconciles D4's RPC names to overloads; D4 is required again on the exact F1 and F2 diffs (section 11).
+10. **Non-blocking 1 to 3.** Archive verified by content hash, not count; hash normalization specified; conflict fixture exception paths re-asserted.
+
+### D. Self-critique run before hand-off (Round 1 section A)
+Checked against QA Round 8 line by line and the code lines in plan v4 section 14. My own v3 errors are listed there. One correction made while checking: the draft did not say that the pending log and the stale tab must be prepared **before** the F1 promotion; now stated. No SQL is presented, so no parser-level read applies; I have no database engine and nothing was run. Not measured and not asserted: updaters, deleters and truncators of `study_sessions`; whether `created_at`/`id` are server-controlled; the `source` constraint; existing triggers on `access_requests` and `auth.users`; the signup function's error handling; the notes columns; `is_admin()`; the body of `get_subject_mastery_v1`; edge-function writers; concurrent-insert behaviour.
+
+### E. What QA is asked to do
+One complete pass over plan v4 (whole file, every defect): the F1-boundary anchor and the data-fix step; the operational definition of "no update path" and the stop-and-return rule; B-05's conflict precedence; the typed rows and routing of B-06a; B-06c; the privilege table; the acceptance mapping; D1 to D4.
+
+### F. Hash table and gates
+| Artifact | Short | Status |
+|---|---|---|
+| Brief B v10 | `0fe77dec72dc` | Gate 1 given; unchanged |
+| SQL work plan v5 | `6961fb55dd69` | unchanged; inventory incorporated by reference |
+| Stream B plans v1 / v2 / v3 | `07a9fd48e4cd` / `9b64afdd6152` / `561ec2d8a375` | superseded |
+| Stream B plan v4 | `668d6bfe4896` | for QA review; no gate requested |
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one complete audit round of plan v4 and the diagnostic list.
+
+---
