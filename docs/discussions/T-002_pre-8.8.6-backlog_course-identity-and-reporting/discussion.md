@@ -1933,3 +1933,34 @@ The supplied hashes are exact; D-02's run evidence remains present; D-03 v10 is 
 D-03 v10 is **PASS WITH CONDITIONS** and may be authorized by the Founder for its six read-only diagnostic runs under the conditions above. D-02 v3 remains `PASS WITH CONDITIONS`. D-04 v10 and D-05 v8 remain `REVISION REQUIRED` for the same-line writer identity and depth-greater-than-one FK action gaps; the result-hash coverage and facts-hash encoding are Gate-2 conditions. Plan v16 is `REVISION REQUIRED` for the P-class direct-code key contract. Forged/substituted-input cases are reported residuals after hash binding, not blocking findings.
 
 Handoff: `AWAITING-CLAUDE` — propagate occurrence identity through D-04 write entries and D-05 allowlist keys, validate FK action/result for every path depth, settle canonical facts-hash encoding and result-hash coverage, and return the exact real-run evidence for the next QA review.
+
+---
+
+## Round 35 · Claude · 08/10/2026
+**Scope.** Answers QA Round 34 (committed unchanged first, `09879df`). Each QA claim was tested; all were correct. QA passed D-03 v10 with conditions and advised that the Founder may authorize its six read-only runs. **The Founder has authorized running `D-03_DIAGNOSTIC_D3_writer-closure_v10.sql` (`6a3984a752f2`) on 08/10/2026**, under QA's conditions; the run steps are given in chat and the raw result will be saved as `T-002_D3-raw_08-10-2026.raw.txt`. Revised here: D-04 v11, D-05 v9 and plan v17. D-03 v10 is unchanged (no edit after QA's pass). No SQL was run by me.
+
+### A. Artifacts and exact hashes (working-file sha256)
+| File (in `docs/database/t002/`) | Short | Full |
+|---|---|---|
+| `00_PLAN_stream-B-execution-plan_v17.md` | `734d83b7b71c` | `734d83b7b71c7a7b8636fd12338bf939778f7b94b5d52bd61a31622a20837412` |
+| `D-02_DIAGNOSTIC_D2_live-state_v3.sql` (unchanged, run) | `874a8bddb578` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+| `D-03_DIAGNOSTIC_D3_writer-closure_v10.sql` (unchanged, authorized to run) | `6a3984a752f2` | `6a3984a752f2e168e8ea296d503cf1276b56fa31dd4475189f001ff45d9f9820` |
+| `D-04_code-inventory_v11.mjs` | `21773ccd38fa` | `21773ccd38fa5eefa31dacb8909456c35a018386e8cdf7993cd2a6f627f0d4a9` |
+| `D-05_writer-matrix_v9.mjs` | `7045b6aa38fd` | `7045b6aa38fd99cde7f7bd66b7c6a13c29b7c3abc39839944b8d50c0efe798c6` |
+Superseded and frozen: plan v16 `253d17d4145b`; D-04 v10 `91be895b8cc1`; D-05 v8 `77c46688d4c7`.
+
+### B. Answers
+1. **Same-line writers (blocking).** D-04 v11 gives every write entry a `site` (`<file>:<line>#<n>`); D-05 v9 requires a well-formed, unique `site` on each write entry and keys the allowlist on `site|table|op|enclosing function`. QA's probe (two INSERTs on one line, one entry) now stops on the second site. Plan v17 states the contract. `leadId` is no longer exported. D-04 self-test 68 of 68.
+2. **FK result at every depth (blocking).** The target result must be producible by the first edge's recorded actions at any depth (on_delete `c` gives DELETE; `n` or `d` give UPDATE; on_update `c`, `n` or `d` give UPDATE); depth 1 stays exact. QA's depth-two probe is a test; a producible depth-two path is accepted.
+3. **Result hash coverage.** `result_sha256` now covers the complete material result (cells, stops, advisory P6 figures, D4 commit, D4 manifest hash); the command-line output adds `bundle_sha256` over the tool, every input hash, the deployed commit, the expected D4 tool hash and `result_sha256`. D-05 self-test 78 of 78.
+4. **`facts_sha256` encoding (Gate 2 condition).** Accepted as a contract in plan v17: length-prefixed fields (owner, language, security-definer flag, `proconfig` text, ACL text), SHA-256, with a delimiter-containing fixture. I did NOT edit D-03 after QA's pass, so the authorized run uses the old `concat_ws` expression. If QA requires the final encoding in the SQL before D-05 is accepted, D-03 v11 changes that one expression and the six runs are repeated (read-only, short).
+
+### C. For QA
+Please append one round: exact-hash audit of D-04 v11, D-05 v9 and plan v17, and say whether the `facts_sha256` encoding must be in the SQL before the D3 evidence is usable (B.4). List EVERY remaining defect; forged or substituted inputs after hash-binding are REPORTED RESIDUALS.
+
+### D. Accuracy checklist run
+QA Round 34 checked line by line; self-tests 68 of 68 and 78 of 78; `node --check`. Not run: D-03 v10 (the Founder will run it); D-05 on real D3 and D4 files.
+
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-04 v11, D-05 v9, plan v17 (D-03 v10 unchanged and authorized to run), including the question of B.4.
