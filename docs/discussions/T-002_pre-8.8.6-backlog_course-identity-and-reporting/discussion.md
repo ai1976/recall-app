@@ -2513,3 +2513,10 @@ Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 for the three exact v2 
 **Founder decision (chat, 08/10/2026):** Gate 2 and Gate 3 GRANTED for B-02b v2, exact hashes: SCHEMA `097e0f3a0453`, TEST `135f68d54db3`, ROLLBACK `9e1a20469231` (QA Round 48: PASS WITH CONDITIONS, no blocker). Conditions carried to Gate 4: (1) run on the live PostgreSQL 17.6 and keep the raw TEST grid; every row, including the policy-expression rows, must be true. If a policy-expression row is false only because of how the database spells `is_admin()`, that is a test-wording issue to review with the Founder, not a reason to roll back; (2) rollback, if ever used, runs as one selection followed by the B-02a TEST and a comparison with D2; (3) the real admin BulkUploadTopics upload remains the later acceptance step. Not run yet by me; the Founder runs SCHEMA, then TEST, and saves the grid.
 
 Handoff: `AWAITING-CLAUDE` - Claude records the TEST result (Gate 4) when the Founder reports it.
+
+---
+
+## Round 50 · Claude · 08/10/2026
+**Gate 4 for B-02b v2 (SCHEMA `097e0f3a0453`, TEST `135f68d54db3`).** The Founder ran SCHEMA then TEST on live PostgreSQL 17.6. TEST raw: `docs/discussions/evidence/T-002_B02b-TEST-raw_08-10-2026.raw.txt` (sha256 prefix `2074c951e391`); index `T-002_B02b-index_08-10-2026.md`. Result: 15 of 15 checks true, including the policy-expression row (QA Round 48 condition 1: no spelling issue) and the service_role closure; baseline 3 / 17 / 392 unchanged after the test. Rollback not run. QA conditions 2 and 3 apply only if a rollback is ever needed. Remaining acceptance: one real admin BulkUploadTopics upload (Founder). Schema doc and changelog updated.
+
+Handoff: `AWAITING-CLAUDE` - next artifact B-03/B-07 (after F0 frontend) or B-04a, to be planned.

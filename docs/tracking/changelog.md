@@ -1,6 +1,15 @@
 # Changelog
 
 ---
+## [08/10/2026] feat(db): T-002 B-02b live - admin-only write policies and privilege closure on disciplines, subjects, topics
+
+### Added
+- Policies `admin_insert_subjects`, `admin_update_subjects`, `admin_insert_topics` (admin only); client DELETE/TRUNCATE and service_role access to the three tables removed.
+
+### Visible effect
+- Admin bulk upload of subjects and topics is now permitted by the database for admins only (it was probably refused before); students cannot write. To be confirmed by one real admin upload.
+
+---
 ## [08/10/2026] feat(db): T-002 B-01 and B-02a live - course-text functions and disciplines guards (no data change, no screen depends on them yet)
 
 ### Added
