@@ -2674,3 +2674,55 @@ Handoff: `AWAITING-CLAUDE` - next F0 (frontend) per Round 56, awaiting the Found
 Gates 5, 6, 7 not given.
 
 Handoff: `AWAITING-QA` - QA to append one round answering the request.
+
+---
+
+## Round 59 · QA · 08/10/2026
+
+### Scope and preconditions
+
+The Round 58 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 58 and last QA-reviewed round 53. This is Tier 1 round 1 for the exact F0 frontend patch. I read the complete Round 58 submission, the patch index, plan v18 sections 2, 4A and 9, the relevant brief B 5.1 to 5.3a and 5.5 contract, and every changed file in the patch statement by statement. The supplied short hash matches the independently recomputed full SHA-256:
+
+- `docs/discussions/T-002_F0_frontend-patch_08-10-2026.patch` — `f0cf524ed4f05a20c7c510eeb0bc44c67e2b40e80214b9ee3f733279a0c185fb`.
+
+The index identifies the base as `05677aa` and ten changed files. I did not apply the patch, run the application, run a database, run the reported build/tests, use a browser, or mutate Git. The repository's `git status` command is unavailable in this audit checkout (`not a work tree`), so the claimed draft-worktree state is not independently verified here.
+
+### Blocking findings
+
+None. The changed bytes do not, on their stated normal paths, create data loss or corruption, an outage or failed live write, a security/privacy/privilege escape, an incorrect student-visible number or authorization boundary, or a failed rollback. The due-set extension signals successfully after a successful batch update and the access handler re-validates the typed value before sending it.
+
+### Non-blocking findings
+
+1. **The new `Other` rejection is outside the approved contract.** `src/lib/courseLabel.js` rejects a typed value equal to `Other` (case/outer-whitespace variants), and both Signup and the access form use that rule. Plan v18 section 6 expressly says **“No rule about the word `Other`”**, while brief B 5.3a permits a genuine custom label and 5.5 treats `Other` as an action option. The patch index calls this a Claude decision, not an approved Founder decision. This is a student-visible product-contract change, not a Tier 1 blocker under the exact blocker definition; before Gate 5 the Founder must either approve and record the reserved-sentinel rule and amend the plan/brief, or require the refusal to be removed.
+
+2. **Blank custom input has no visible pre-submit explanation on all paths.** Plan 18 section 4A requires blank-after-trim to be blocked with a visible error. Signup only creates the new inline error when the value is non-blank and invalid; an empty value relies on native browser required validation on submit, and whitespace is reported by the general form error only after submit. In `ContentPreviewWall`, `customCourseError` is deliberately empty for blank/whitespace, so the disabled button gives no reason at all; the new test explicitly expects no alert for that case. The submit handler still blocks the request, so this is non-blocking UX/acceptance drift, but Gate 7 must not claim the 4A condition without a visible message test for both surfaces.
+
+3. **Control characters at the outer edge are silently removed rather than refused.** `validateCourseLabel` calls JavaScript `.trim()` before `hasControlCharacter`. Therefore a value such as `CFA\t`, `CFA\n`, or `CFA\u2028` can be accepted and sent as `CFA`, although the contract says a label containing a control character is refused. Internal C0/C1/DEL/separator characters are caught. The resulting stored value is safe, so this is a non-blocking validation-contract defect; add leading/trailing-control cases to the Gate 5/7 checks or explicitly narrow the documented rule.
+
+4. **The 120-character boundary is measured in UTF-16 code units.** `value.length` rejects, for example, 61 emoji (122 code units) even though PostgreSQL `char_length` treats them as 61 characters and the approved limit is 120 characters. This over-rejects valid non-BMP course names and the error count is also misleading. It is non-blocking, but the client and database boundary should be made identical or the discrepancy recorded before claiming the universal label contract.
+
+5. **Signup options loaded from existing content bypass the new validator.** `Signup.jsx` still maps every non-predefined `notes.target_course` and `flashcards.target_course` value directly into `<option>` elements. Such an option can be over-long, contain controls, be blank-like, or be the literal `Other`; selecting it does not pass through `validateCourseLabel`, and the duplicate `value="Other"` sentinel is ambiguous. If such legacy content exists, signup can submit a value the new UI rule would refuse (and later B-03 may reject it). This is non-blocking on the current evidence but must be checked or filtered in Gate 5/7; the index does not provide that result.
+
+6. **Due-guard diagnostics retain stale wording.** The changed guard set now contains five flashcard columns, but the failure text in `scripts/dueSetGuard.mjs` still lists only `target_course, question_type, visibility`, and the pre-existing `dueSet.test.js` description still says “only” those three. The new tests exercise the two added columns, so behavior is not blocked; the stale diagnostic text can mislead a future audit and is non-blocking.
+
+7. **Frontend coverage is incomplete for the changed contract.** The patch adds helper tests and three access-form tests, but no Signup component test, no Profile Settings test, no test for a blank visible error, no boundary-control test, no non-BMP length test, and no test for the fetched existing-course options described above. The helper and access tests are useful but cannot establish the full F0 surface. This is non-blocking; Gate 5/7 should retain real Signup, Profile Settings and access-form results, including the four 4A invalid-input cases and a valid trimmed value.
+
+8. **The verification record is narrative rather than hash-bound evidence.** The index reports `git apply --check`, the 211-call guard, Vitest, ESLint, Vite build and a local visual check, but supplies no raw output, tool/version record or output hashes, and the patch is described as uncommitted. I could not reproduce those runs under the audit restrictions. This is non-blocking evidence debt; Gate 5 must use the exact patch-applied commit and preserve the relevant outputs before frontend approval.
+
+### Strengths or confirmed controls
+
+- The exact patch hash is correct and the index identifies the ten-file scope and base commit.
+- Signup and the access form trim the accepted custom value; over-limit and internal control-character values are refused before the request, with no truncation.
+- The access form uses a private sentinel (`__other__`) and never sends that sentinel as `p_course`; its submit handler repeats validation rather than trusting only the disabled button.
+- The Profile Settings change is checked only when a fixed-list course is changed, so an untouched saved value is not revalidated or rewritten by this patch.
+- `subject_id` and `discipline_id` are added consistently to the runtime due wrapper and static guard, and the added tests cover successful and failed batch updates.
+
+### Reported residuals
+
+The already disclosed stale-tab residual remains: a tab that has not reloaded since before F0 can submit over-limit or control-character text and receive a database refusal once B-03/B-07 enforce it. Forged or substituted inputs after independent patch hash binding are likewise reported residuals. Neither is a defect in the exact changed bytes.
+
+### Disposition
+
+`PASS WITH CONDITIONS` for the exact F0 patch, with no blocker found in this Tier 1 round 1. The patch may go to the Founder for Gate 5 decision only with the listed conditions carried forward: resolve the `Other` contract, provide the required visible blank-input behaviour, reconcile the character/control boundary, check existing Signup options, and preserve exact build/test/live evidence. This is QA advice, not frontend approval or authorization to commit, push or deploy.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide the F0 Gate 5 path and the `Other` contract; no Tier 1 blocker remains.
