@@ -85,7 +85,7 @@ function getLocalDateStr(now: Date, timezone: string): string {
 /**
  * POST /functions/v1/cron-daily-study-summary
  *
- * Scheduled every 15 minutes via pg_cron (*/15 * * * *).
+ * Scheduled every 15 minutes via pg_cron (cron expression: star-slash-15, then four stars).
  * 15-minute cadence is required for fractional-offset timezone support (IST = UTC+5:30):
  * an hourly cron at :00 would fire at 10:30 PM IST, not 10:00 PM IST.
  *

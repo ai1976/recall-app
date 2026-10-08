@@ -1,6 +1,19 @@
 # Changelog
 
 ---
+## [08/10/2026] fix(edge): reword a header comment in cron-daily-study-summary that ended the block comment early
+
+### Changed
+- `supabase/functions/cron-daily-study-summary/index.ts` line 88: `(*/15 * * * *)` inside a `/** */` block comment closed the comment, making the file unparseable as TypeScript (Babel and esbuild both report 88:50). The comment now says `(cron expression: star-slash-15, then four stars)`. No code or behaviour change. Not deployed, and deployment is not needed: the live function was measured healthy on 08/10/2026 (job 672/672 runs succeeded in 7 days; last 24 answers HTTP 200 with the function's own body), so the deployed copy differs from the repository copy; compare before any deploy.
+
+### Added
+- `docs/database/bugfixes/19_DIAGNOSTIC_cron_daily_study_summary_recent_responses.sql`: read-only, two runs (pg_cron job runs; classified pg_net answers) to see whether the nightly job is firing and what the function answers. Run by the Founder on 08/10/2026; result above.
+- `docs/database/bugfixes/20_DIAGNOSTIC_pg_net_answers_without_status.sql`: read-only, one run; shows the one pg_net answer that had no HTTP status code (error text, time) and the pg_net queue length. Not yet run.
+
+### Files Changed
+`supabase/functions/cron-daily-study-summary/index.ts`, `docs/database/bugfixes/19_DIAGNOSTIC_cron_daily_study_summary_recent_responses.sql`, `docs/database/bugfixes/20_DIAGNOSTIC_pg_net_answers_without_status.sql`, `docs/tracking/bugs.md`, `docs/tracking/changelog.md`, `docs/active/now.md`
+
+---
 ## [07/10/2026] feat(T-001 brief C, points 6 + 7): one definition of "due" for the Review badge, Progress and Dashboard; due changes routed through wrappers with a fail-closed guard; heatmap split into in-app and offline study
 
 ### Added

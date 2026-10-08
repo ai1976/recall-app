@@ -1,5 +1,15 @@
 # Bug Tracking
 
+## Edge function source syntax - 08/10/2026 (found while building the T-002 code inventory)
+
+### [08/10/2026] `cron-daily-study-summary/index.ts` could not be parsed as TypeScript (a block comment ended early) - source fixed; live function is healthy
+- **Cause (confirmed with two independent parsers, Babel and esbuild, error at line 88 column 50):** the header comment contained the cron expression `(*/15 * * * *)` inside a `/** ... */` block. The `*/` in `*/15` closes the comment, so `15 * * * *)` was read as code. The text had been in the file since Sprint 3.6 (`efa2b0f`, `ddef35f`). The other seven edge-function files parse cleanly.
+- **Fix (source only):** the comment now reads `(cron expression: star-slash-15, then four stars)`. One line, no behaviour change. Not deployed.
+- **Production impact (measured 08/10/2026 with `docs/database/bugfixes/19_DIAGNOSTIC_cron_daily_study_summary_recent_responses.sql`, both runs):** the pg_cron job (jobid 4, active, user postgres) ran 672 of 672 expected times in the last 7 days, all `succeeded`; the last 24 pg_net answers (01:45 to 07:30 UTC, the whole retention window) are all HTTP 200 with the function's own body `{"processed":0,"sent":0,"failed":0,"removed_stale":0}`, no 401, 404 or boot error. The zeros are expected: the function notifies only students whose local time is 22:00-22:14 (16:30-16:44 UTC for IST) and none of the answers fall in that window. So the **live function boots and answers correctly**; the repository file as written could not have compiled, so the **deployed copy must differ from the repository copy** (not tested with Deno itself, which is not installed here).
+- **Not yet verified:** that a summary is actually delivered (needs the RUN 2 answers from the 16:30-16:44 UTC window; pg_net keeps only about 6 hours, so re-run RUN 2 at about 16:50 UTC / 22:20 IST); and what differs between the deployed and repository copies.
+- **Decision:** do NOT deploy the repository file yet. Deploying would replace whatever is live and could regress it if the live copy has changes the repository lacks. Compare first (dashboard code tab, or `npx supabase functions download cron-daily-study-summary`, read-only, needs the Founder's CLI login); deploy only if the comparison shows the repository copy is the better one, with the Founder's approval.
+- **Unrelated lead:** one pg_net answer in the window has no status code and no timeout flag (possibly the 02:30 UTC `daily-review-reminders` call); its error text was not captured. Read-only follow-up written: `docs/database/bugfixes/20_DIAGNOSTIC_pg_net_answers_without_status.sql` (not yet run; run soon, pg_net keeps answers about 6 hours).
+
 ## T-001 slice 1 - 07/10/2026 (Review badge and heatmap)
 
 ### [07/10/2026] The nav badge, the Progress "due today" tile and the Dashboard strip could disagree about what is due; the heatmap showed only 85-91 of its 90 days and mislabelled months - FIXED in code (Gate 6); live verification (Gate 7) pending
