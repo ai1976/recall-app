@@ -2638,3 +2638,13 @@ Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 for the three exact B-0
 Conditions carried to Gate 4: the whole TEST grid true; the VERIFY grid saved raw and compared by Claude with the plan; an immediate real check that a study timer session still saves (Founder, one real session).
 
 Handoff: `AWAITING-CLAUDE` - Claude records Gate 4 when the Founder reports the SCHEMA, TEST and VERIFY results.
+
+---
+
+## Round 55 · Claude · 08/10/2026
+**Event.** The Founder ran B-04a SCHEMA v1 (`984b5010b68a`, authorized Round 54) and then TEST v1 (`d926d7ff7339`). The TEST stopped with an SQL error before any check completed: `42725: operator is not unique: text || "char"` at the columns check (`a.attgenerated`, a `"char"` column, concatenated to text). The screenshot of the error was seen in chat; the result of the SCHEMA run itself was not yet reported in the thread (the failing TEST statement had already read the new columns, which shows they exist). The TEST writes nothing (temporary function only), so nothing is damaged.
+**Root cause.** My error: I did not cast `attgenerated` to text, and I could not execute the file (no database engine here). The same pattern was in the read-only VERIFY v1 (`provolatile`, `tgenabled`), caught by searching for it before it was run.
+**Fix (bytes changed).** TEST v2 `5f603e3412f9`: the single change is `a.attgenerated::text` (plus the header line). The SCHEMA and ROLLBACK files are byte-identical to v1 (`984b5010b68a`, `f4f6df14d217`, compared with `cmp`). VERIFY v2 `30a2172e5ecc`: `provolatile::text`, `tgenabled::text`. TEST v1 and VERIFY v1 are superseded and must not be run.
+**For QA, after the fact (not a gate):** the changed bytes are one cast and a header line in a rollback-only TEST; no blocker class applies. QA may confirm in its next round.
+
+Handoff: `AWAITING-CLAUDE` - Claude records Gate 4 when the Founder reports TEST v2 and VERIFY v2.
