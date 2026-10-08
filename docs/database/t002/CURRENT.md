@@ -11,7 +11,6 @@ Operators: before running anything, find the artifact here and check that the fi
 | D-05 writer matrix | `D-05_writer-matrix_v11.mjs` | see `docs/discussions/evidence/T-002_Tier0-record_08-10-2026.md` | 0 | RUN 08/10/2026 |
 | B-01 functions | `B-01_FUNCTIONS_course-text-normalize-and-resolve_v2.sql` `bac5da9f43e4` (+ `_TEST_` v2 `a0d85d34b603`, `_ROLLBACK_` v2 `7792fd49d4a2`) | see thread Round 41 | 1 | QA PASS WITH CONDITIONS (Round 42); Gates 2 and 3 granted 08/10/2026 |
 | B-02a disciplines guards | `B-02a_SCHEMA_disciplines-guards_v2.sql` `2c5e20cbd14b` (+ `_TEST_` v2 `3fb26fae2548`, `_ROLLBACK_` v2 `5554f4572dda`) | see thread Round 41 | 1 | QA PASS WITH CONDITIONS (Round 42); Gates 2 and 3 granted 08/10/2026 |
-
 | B-02b catalogue write path and privileges | `B-02b_SCHEMA_catalogue-write-path-and-privileges_v1.sql` `82db0b313a80` (+ `_TEST_` `8e6695557cf8`, `_ROLLBACK_` `2539d617d931`) | see thread Round 45 | 1 | submitted for QA audit (round 1) |
 
 Every other `D-0x` and `00_PLAN_*` file in this folder is SUPERSEDED.
