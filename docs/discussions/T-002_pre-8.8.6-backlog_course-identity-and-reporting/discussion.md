@@ -863,3 +863,101 @@ Gates 2 to 7 not given for stream B.
 Handoff: `AWAITING-QA` - QA to append one round with the two items of section F.
 
 ---
+
+## Round 16 · QA · 08/10/2026
+
+### Scope and preconditions
+
+- The handoff was valid: `status.md` said `AWAITING-QA`, owner `QA`, last round 15 and last QA-reviewed round 14. Per the standing convention, this handoff returns with `Last QA-reviewed round: 15` because Round 15 was Claude's round.
+- The four diagnostic files and plan v7 match the supplied exact hashes: D-01 `a018ee859f2396a0148ade85a50dc3d7a5fc17bcf0c8a62d5a427c0d7f31dca2`; D-02 `e4e9fdcd6e21404d21d8719c7bd56b827b0f6462f8b52d8e8918cf9abe509530`; D-03 `6a88bc51929967f869391461c1c797d6f81b8a49ee50cdb7486b6cde5c015638`; D-04 `de019cd639fb073369ee0f43e7afff00be5309f4693df039cc10601a9de6a3cb`; plan v7 `8b1ac4bb0a3951436a3612814071b864f41e1d074e8592a911df4687f87e3cdd`.
+- QA ran no SQL and made no database or external-service call. SQL was read statement by statement; no PostgreSQL parser/engine is available here. `node --check` and D-04's `--self-test` were read-only local checks and returned 16/16, but targeted additional D-04 probes were also run.
+
+### 1. Diagnostic verdicts, by exact file
+
+#### D-01 `D-01_DIAGNOSTIC_D1a_subject-mastery-catalogue.sql` — `PASS WITH CONDITIONS`
+
+The two statements are catalogue reads only. CTEs, joins, JSON construction, regexes, `aclexplode`, ordering and semicolons are balanced on manual parser review; no application function is called and no DML, DDL, transaction control or dynamic SQL is present. It correctly returns every overload, identity/owner/security/configuration/ACL, body hash and conservative body flags, and deliberately blocks D1b when a non-system routine lead, dynamic SQL, or unreadable language is reported.
+
+The conditions are operational, not a new defect in this file: the substring routine/relation lists are an over-approximation, not a transitive closure. Every lead must be captured and reviewed before D1b is authored; a zero-function result must also stop D1b. Run 1 and Run 2 must be saved separately and unchanged, with any body containing a secret or personal data handled under the repository's evidence rules rather than copied into the repository. This file is safe for the Founder to authorize as the two read-only D1a SELECTs at this exact hash; it does not authorize D1b or any application-function call.
+
+#### D-02 `D-02_DIAGNOSTIC_D2_live-state.sql` — `REVISION REQUIRED`
+
+All five runs are syntactically coherent SELECT/WITH SELECT statements and contain no write-capable statement. P1–P3 cover the eight public relations, constraints/FK actions, triggers, policies, rules, selected definitions and aggregate shapes. P4 does report roles, memberships, table ACLs, effective table privileges and sequence owners/ACLs.
+
+Blocking defects:
+
+1. The Round 14 effective-capability condition is not met for column privileges. `has_column_privilege` is computed only for `study_sessions` and only for `anon`, `authenticated` and `service_role` (P4 lines 261–271). Raw column ACLs are emitted for all eight relations, but there is no effective per-column INSERT/UPDATE result for catalogue, profile, request, card or note writers, nor for inherited roles. A column-level grant can be a write path even when the table-level result is false.
+2. Sequence output is raw ACL text only (P4 lines 272–287); it does not calculate effective sequence privileges through membership or `PUBLIC` (for example with `has_sequence_privilege`) and does not mark a sequence lookup that is unavailable or ambiguous as unresolved. That cannot establish the relation ceilings or an insert path's ability to obtain a generated id.
+3. The role output cannot itself express effective `PUBLIC` capability; ACL strings include `PUBLIC`, but the effective matrices enumerate only `pg_roles`. The authored SQL must either add an explicit PUBLIC-effective row or state and test the exact interpretation used by the Gate-2 privilege comparison.
+
+These are material because plan v7 section 10B and B-04b rely on the results to distinguish a real zero capability from an ACL-only snapshot. The file remains read-only, but its current result cannot close the diagnostic condition.
+
+#### D-03 `D-03_DIAGNOSTIC_D3_writer-closure.sql` — `REVISION REQUIRED`
+
+The five statements are manually parser-balanced, including the required `WITH RECURSIVE` boundary in P1. They perform only catalogue/`cron.job` reads; they do not call application routines or emit a mutation statement. The direct FK catalogue output, routine flags, view updatability, job-safe hashes and auth/signup chain are useful controls.
+
+Blocking defects:
+
+1. P1's recursive reachability loses the mutation kind. It stores only a boolean `mutating_action` in direct edges and a path of constraint names in recursive rows. It cannot say whether a target was reached by UPDATE versus DELETE, so it cannot populate the plan's DML-specific matrix. It also uses only `conname` for cycle detection and stops at depth 10 without reporting that the frontier was truncated. Duplicate constraint names across relations can suppress a valid path, and a path longer than ten can be falsely treated as complete.
+2. P2 scans only routines whose body contains a target relation name. A routine containing dynamic SQL (`EXECUTE`) that constructs `study_sessions`/another target name without spelling it in the body is omitted entirely, so its dynamic-SQL lead is never emitted as unresolved. The “compiled routines” output is only a count for C/internal functions and does not identify the unresolved routines. Fail-closed closure requires every dynamic-SQL routine, or a complete unresolved identity list, not only target-name hits.
+3. P3 finds only views/materialized views with a direct `pg_depend` edge to a target. A writable view or rule layered through another view can be missed. It also does not return the rewrite rule name/definition; its use of `pg_get_viewdef` and `pg_relation_is_updatable` is not a substitute for a rule writer, and a rule on a table is not safely represented by the `dependent_views` label. The view/rule closure is therefore not complete.
+4. P5 captures auth triggers and the first-level definitions of `submit_access_request` and `admin_delete_user_data`, but only lists name leads inside those definitions. It does not itself capture the transitive callee bodies; the plan cannot claim closure until every lead is separately captured by exact identity/hash and unresolved leads remain blocking.
+5. P4 admits that row policies on `cron.job` can hide jobs, but returns `visible_job_rows` without a visibility/permission assertion that turns hidden rows into an unresolved result. A run can therefore report an apparently complete schedule list while the running role cannot see all jobs.
+
+Until these are fixed, D3 cannot safely decide the B-04b UPDATE/DELETE/TRUNCATE precondition or the DEC-4 exception. It is nevertheless read-only.
+
+#### D-04 `D-04_code-inventory.mjs` — `REVISION REQUIRED`
+
+`node --check` passes and the advertised 16-fixture self-test returns 16/16. The parser configuration handles the listed TypeScript/JSX forms, and the script makes no database or network call. With `--out` it intentionally writes the requested evidence file; that is the only file mutation.
+
+The targeted probes found these defects:
+
+1. An aliased builder is silently missed. For `const q = supabase.from("study_sessions"); const alias = q; alias.update({...})`, `analyzeSource` returns no entry and no unresolved lead. This violates fail-closed closure. The current fixture covers a direct builder variable but not an alias of one.
+2. The promised fixture set is incomplete: there is no computed operation/member-call fixture, no non-literal RPC-name fixture, and no import/re-export/callee-closure fixture. The implementation does handle some computed string members, but absence of the fixture leaves that claim unproved; non-literal RPCs are only tested indirectly by code, not by the self-test.
+3. `functions.invoke` entries are not added to `unresolved`. The script records a literal function name but does not inspect the invoke body or bind that name to the corresponding edge-function file. An invoked function can write a target relation while the inventory still reports `unresolved_count` without that transport lead.
+4. The inventory exits non-zero only for `unparsed` files (line 416). Any unresolved table, payload, RPC name, fetch or other transport is printed with exit code 0. The plan and Round 14 condition require an unresolved relevant lead to fail closed or keep the dependent file blocked; a successful process exit is misleading.
+5. The script has no import/re-export/callee graph. It scans direct calls in each file, but it cannot prove that an imported helper, re-exported client, or called wrapper has been traversed or associated with its caller. This is especially material for edge-function and invoke closure.
+6. The repository's known `cron-daily-study-summary/index.ts` syntax error makes the real inventory fail closed, as Claude reported. A manual reading alternative in plan v7 is not an exact D4 inventory and needs a separately identified, hash-bound replacement or a Founder-approved scope exception; it cannot be counted as a clean baseline.
+
+The script therefore cannot be accepted for a baseline or B-04b closure at this hash, notwithstanding its passing self-test.
+
+### 2. Plan v7 audit, classified P/F
+
+#### Blocking findings — P (plan-level)
+
+1. **[P] DEC-4 is not integrated into the fresh-closure allowlist.** Section 5.2 correctly records the account-deletion cascade and proposes shrink-only treatment, but the locked assertion in line 91 still allows only the B-04a trigger and “nothing else,” and still requires zero routine/trigger/rule/view/job outside that allowlist. `admin_delete_user_data` and the auth cascade would necessarily fail that assertion even if DEC-4 were approved. The exact account-deletion path, its routine signature/body hash, the FK constraint/action hash and its permitted DML kind must be an explicit second allowlisted exception; all other DELETE/UPDATE/TRUNCATE paths and unresolved leads must still stop.
+2. **[P] The shrink-only invariant is not an auditable account-deletion proof.** “Every id missing from A is accounted for ... from the account-deletion audit trail where one exists” leaves the critical case where no audit trail exists. A subset alone cannot distinguish a legitimate account deletion from an arbitrary privileged delete. DEC-4 needs a mandatory, durable event-to-row mapping (or an explicit stop when it is unavailable), with a defined timestamp/order and no repository user identity. “Where one exists” cannot be the acceptance criterion for a safety exception.
+3. **[P] DEC-4 is applied inconsistently through the plan.** Lines 99–101 and 103–104 still say the post-fix/observation set must equal A, the report contains exactly the pre-change rows, and counts/hash remain unchanged. The parenthetical “wherever this plan says equals A” is not a substitute for rewriting each assertion and test. Under DEC-4 the allowed result is a subset of A plus a complete removal ledger; the cutover, data-fix, observation, B-04b TEST and report contract must all say and test that explicitly.
+4. **[P] The service-role exception can authorize the very paths that must stop B-04b.** Section 5.2 permits retaining `service_role` unless D4 names an edge function that needs it, while the stop rule is meant to reject any UPDATE/DELETE/TRUNCATE path. That exception is safe only for INSERT/SELECT; an edge writer needing UPDATE, DELETE or TRUNCATE must produce the corresponding stop outcome (account deletion alone being the DEC-4 exception). The same operation-specific rule is needed in 10B R3.
+5. **[P] The diagnostic dependency is not satisfied by the exact artifacts under review.** Section 11 says all three conditions are built in and makes the plan authorable from their results, but D-02 lacks the required effective column/sequence closure, D-03 lacks mutation-kind/dynamic/view/job closure, and D-04 has a silent alias miss and non-zero-exit fail-open. Plan v7 must either reference revised diagnostic hashes or explicitly mark each dependent branch blocked until revised artifacts pass; it cannot treat these four exact files as closed inputs.
+6. **[P] The unparsable edge-function fallback is under-specified.** “Founder accepts a documented manual reading” is not an exact-hash D4 inventory and does not define who proves imports, writes, payloads, deployed commit or subsequent drift. For a B-04b closure, either fix the source in a separately approved change and run D4 on the exact commit, or define a separate hash-bound manual inventory with an explicit non-closure result that stops the dependent path. A prose acceptance cannot turn an unresolved file into clean evidence.
+7. **[P] The residual role statement is technically overbroad.** Superuser/owner authority is inherently effective, but `BYPASSRLS` alone does not grant UPDATE, DELETE or TRUNCATE; it only bypasses row security once the role has the underlying privilege. Treating every BYPASSRLS role as an accepted mutation residual can hide a missing ACL distinction. The plan must test effective DML privilege and report BYPASSRLS as a separate RLS fact, not as capability by itself.
+
+#### F-class conditions (file Gate 2 can settle after the P contracts are fixed)
+
+- **[F, D-01/D1b]:** Capture every routine/relation lead at exact identity and body hash before authoring the role-bound call; keep unresolved or unreadable leads blocking and preserve raw result/error files.
+- **[F, D-02]:** The revised file must choose exact effective column privilege coverage for every relevant role/relation, PUBLIC handling, `has_sequence_privilege`/sequence identity handling, and any unavailable catalogue view as an unresolved result.
+- **[F, D-03]:** The revised file must freeze action-kind encoding, OID-based recursive cycle/frontier handling, dynamic-routine identities, transitive view/rule representation, cron visibility failure, and exact callee captures.
+- **[F, D-04]:** The revised script must freeze alias/re-export/callee semantics, payload and invoke resolution, unresolved exit status, source-root inventory, and the exact treatment/hash of the unparsable edge file. The transitive parser dependency remains a separate package decision.
+- **[F, B-04b/data fix]:** Once DEC-4 is Founder-approved and the P contracts are rewritten, exact allowlist hashes, removal-ledger schema, subset/hash assertions, account-deletion race window and rollback ordering are Gate-2 details; they cannot weaken the mandatory accounting or exception boundary.
+- **[F, B-06a/B-06b/B-06c and ACL files]:** The v7 representation correctly adds `is_catalogue` and fixes precedence. Gate 2 must still test the current-catalogue overlap, exact row types/signatures, the preferred-name clash outcome, and the exact grantee/sequence sets from the revised diagnostics. These are F details, not permission to alter the frozen semantic order.
+
+#### Confirmed controls and strengths
+
+- Plan v7 fixes the prior B-06a precedence/flag defect, preserves NULL `course_level`, narrows section 15, separates the three privilege regimes, splits the B-06b/B-06c privilege rows, and makes B-06c's preferred name clash-safe.
+- F0 remains independent of F1, the F1 S0/promotion/S1 choreography and no-absorption rule remain intact, and B-05's conflict-first/derive-not-require matrix is preserved.
+- D-01, D-02 and D-03 contain only read statements; D-04 does not connect to a database. No diagnostic can write database state at these hashes.
+
+### 3. DEC-4 design ruling
+
+`DEC-4 is REVISION REQUIRED before Founder approval.` The principle is sound: account deletion is monotonic removal and cannot create a new manual/NULL row or relabel a surviving row, so a shrink-only exception can preserve the meaning of the legacy group. I recommend sending it to the Founder only with these binding conditions: an exact allowlisted account-deletion routine/FK cascade; no other mutation path or unresolved lead; mandatory row-level removal accounting with a stop if the audit event is unavailable; consistent subset/ledger assertions in the cutover, data fix, observation, tests and report wording; and explicit acceptance that this exception does not cover any other DELETE, UPDATE or TRUNCATE path. The Founder must approve DEC-4 as a design decision before B-04b Gate 3; QA approval of this proposal is not that approval.
+
+### Disposition
+
+Diagnostics: D-01 `PASS WITH CONDITIONS`; D-02 `REVISION REQUIRED`; D-03 `REVISION REQUIRED`; D-04 `REVISION REQUIRED`.
+
+Plan v7: `REVISION REQUIRED` for the seven P findings above. The authored files are not cleared for database execution or evidence collection at their current hashes; D-01 alone is safe to run as its two catalogue-only SELECTs after Founder authorization. No Gate 2, Gate 3, DEC-4 approval, deployment, dependency change, commit or push is authorized by this audit.
+
+Handoff: `AWAITING-CLAUDE` — revise D-02, D-03, D-04 and the seven P-level plan/DEC-4 contracts, then return new exact hashes for one complete QA review. The Founder decision on DEC-4 remains required after those revisions.
+
+---
