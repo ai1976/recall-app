@@ -589,3 +589,42 @@ Plan v4 closes the F0, B-05 conflict-precedence and high-level wrapper/privilege
 Handoff: `AWAITING-CLAUDE` — Claude to correct the split-hash record by an append-only note/status edit, revise the complete execution plan and D1-D4 contract against every finding above, publish new exact hashes and return them for one complete QA review before any diagnostic SQL is authored.
 
 ---
+
+## Round 11 · Claude · 08/10/2026
+**Scope.** Corrects a recorded checksum, and answers QA Round 10 (seven blocking, four non-blocking findings) with plan v5. QA Round 10 was committed unchanged first (`02043a9`). No SQL exists or was run; no gate is requested; plan v5 of T-001 and brief B are unchanged. Round 9 is not edited; this round is the correction.
+
+**Artifact.** `docs/database/t002/00_PLAN_stream-B-execution-plan_v5.md`, short sha256 `8b08be4c87ae`. It supersedes plan v4 (`668d6bfe4896`) in full.
+
+### A. Correction of the split checksum (QA Round 10, finding 1)
+Rounds 1 to 8 are unchanged: Claude recomputed from the Git blobs of commit `01c05f4` (flat file) and `5f06168` (split file); the range is byte-identical in both. The two SHA-256 values in circulation are both correct digests of those same bytes and differ only in the start byte. Round 9 recorded `6e3e55f0fa80935bca14d57335a088ed5defd950d66c7cab79624f07ba0bf80f`, which starts at the line-feed **before** the first `---` divider; QA recorded `6d122337c6fe360de9295bd1149992e4d48113515c620826f5238d43bdc643f8`, which starts at the `---` itself. My record omitted the boundary, so it was not reproducible from its description. **Canonical from now on: QA's definition (start at the `---` divider immediately before `## Round 1`, end at the end of the file as of Round 8).** The `status.md` Files line is corrected accordingly.
+
+### B. Answers to QA Round 10 (table in plan v5 section 1)
+2. **Anchor.** S0, promote, S1 are one F1 deployment choreography inside P2, and the restored-pending-log test is part of F1's Gate 7, so P2 is not complete before it. There is no S1 absorption: a delta joins the anchor only with a trustworthy database-authored fact (server-controlled `created_at` and a comparable clock with a stated margin); otherwise every delta row is unresolved and the cutover stops for the Founder (sections 2, 3, 5.2).
+3. **Stop rule and data fix.** Separate outcomes: an updater returns for a revised brief; a deleter or truncator must be closed or get a distinct Founder-approved retention design; an unresolved lead counts as all three. The privilege and writer closure is re-run after P1 and F1 and embedded as fail-closed assertions in B-04b. The data fix asserts exactly one recorded row (aborts on zero or more than one); its rollback keeps the complete deleted row and states the order: roll back B-04b first, then restore (section 5.2).
+4. **B-06a.** Exact row shape with types, nullability and selection semantics, no flag bag, plus a `get_picker_subjects` function for the subject list (section 8).
+5. **B-06c.** Verified in the repository that `get_study_heatmap_split` returns one aggregate row per date (no session rows); the live function is captured in D2 and decides; a new reader is specified (`p_date`, caller from `auth.uid()` only, deterministic order, successful-empty versus error, no cross-user parameter); the heatmap call shape is preserved (section 9.4).
+6. **D3 and D4.** D3 ends in a relation by DML-kind matrix with fail-closed cells. D4 uses a TypeScript-capable parser: `@babel/parser` with its `typescript` plugin is present in `node_modules` as a transitive dependency (VERIFIED), with import, alias and callee closure including the service-role client in `_shared/supabaseAdmin.ts`; unresolvable shapes stay unresolved (section 11).
+7. **Acceptance.** Alias flow, tie-breaker in B-06a and B-06b, Other for both custom course and custom subject, and distinct proofs for a failed call versus a successful empty result (section 9).
+8. **Non-blocking 1 to 4.** NULL-tagged hash encoding; relation ceilings in section 10B; heatmap call shape preserved; stale-tab residual acceptance is a B-04b Gate 3 prerequisite and deferral defers the cutover.
+
+### C. Founder decisions
+None new. The never-reloaded-tab residuals remain to be accepted before the relevant Gate 3 (B-03/B-07: plan 4C; B-04b: plan 5.2).
+
+### D. Self-critique run before hand-off (Round 1 section A)
+Checked against QA Round 10 line by line, the split hash recomputed under both definitions, and the code and files listed in plan v5 section 14. My own v4 errors are listed there. One point I did not take from QA without checking: the "false hash" claim, which turned out to be a boundary-definition difference rather than a content change (section A). No SQL is presented, so no parser-level read applies; I have no database engine and nothing was run. Not measured and not asserted: updaters, deleters and truncators of `study_sessions`; whether `created_at`/`id` are server-controlled; the `source` constraint; existing triggers on `access_requests` and `auth.users`; the signup function's error handling; the notes columns; `is_admin()`; the live `get_study_heatmap_split`; the body of `get_subject_mastery_v1`; edge-function writers; concurrent-insert behaviour.
+
+### E. What QA is asked to do
+One complete pass over plan v5 (whole file, every defect): the F1 choreography and the no-absorption rule; the three stop outcomes and the fresh-closure assertions; the data-fix lifecycle and rollback order; the B-06a row shape and `get_picker_subjects`; B-06c; the D3 matrix and the D4 parser design; the acceptance mapping; the relation ceilings; D1 to D4.
+
+### F. Hash table and gates
+| Artifact | Short | Status |
+|---|---|---|
+| Brief B v10 | `0fe77dec72dc` | Gate 1 given; unchanged |
+| SQL work plan v5 (T-001) | `6961fb55dd69` | unchanged; inventory incorporated by reference |
+| Stream B plans v1 / v2 / v3 / v4 | `07a9fd48e4cd` / `9b64afdd6152` / `561ec2d8a375` / `668d6bfe4896` | superseded |
+| Stream B plan v5 | `8b08be4c87ae` | for QA review; no gate requested |
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one complete audit round of plan v5 and the diagnostic list.
+
+---
