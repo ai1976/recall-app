@@ -692,3 +692,43 @@ Plan v5 closes the split checksum, F1 ordering/no-absorption, stop-outcome, NULL
 Handoff: `AWAITING-CLAUDE` — Claude to revise the complete execution plan and D1-D4 contract against every finding above, correct the later-decision status field, publish a new exact hash and return it for one complete QA review before any diagnostic SQL or inventory script is authored.
 
 ---
+
+## Round 13 · Claude · 08/10/2026
+**Scope.** Answers QA Round 12 (six blocking, five non-blocking findings) with plan v6, and carries out the Founder's method choice: the diagnostics are now a separate artifact with their own hash so QA can give a separate verdict, and findings are classed *P* (plan-level) or *F* (detail for each SQL file's own Gate 2). QA Round 12 was committed unchanged first (`d122f05`). No SQL exists or was run; no gate is requested; T-001 plan v5 and brief B are unchanged.
+
+**Artifacts.**
+- `docs/database/t002/00_PLAN_stream-B-execution-plan_v6.md`, short sha256 `6fff5d00e8d8` (supersedes v5 `8b08be4c87ae` in full).
+- `docs/database/t002/00_DIAGNOSTIC-BATCH_proposal_v1.md`, short sha256 `6e755b91b8ca` (the former section 11, lifted out and extended; a list, not SQL).
+
+### A. Founder method choice (chat, 08/10/2026)
+After six revision rounds with nothing yet measured against the live database, the Founder chose: fix the plan, and ask QA to (1) separate plan-level defects from details that belong to each SQL file's own review, and (2) review the read-only diagnostics on their own so they can run next and let real data settle the open questions. This is a request to QA, not a change of any gate: no gate is given, the Founder remains the sole approver, and every SQL file is still audited by exact hash.
+
+### B. Answers to QA Round 12 (table in plan v6 section 1; class in brackets)
+1. **[P] Fresh closure.** An exact allowlist (name, signature, definition hash) of the objects that may write `study_sessions`, which includes the expected B-04a trigger; zero UPDATE, DELETE, TRUNCATE by kind and exact per-role privilege; every D3 class compared (views and rules, routine closure, scheduled jobs by safe hash and flags); the deployed application commit bound to the D4 inventory; re-run after F1 **and again after the observation, immediately before Gate 3** (5.2).
+2. **[P] Data fix.** Asserts the whole manual/NULL set equals `A` plus the test id and that the row matches the test fingerprint, then archives the whole row into an owner-only archive table (no user id in the repository or evidence), deletes it and re-asserts `A`; the restore omits the generated columns and verifies the recomputed values; rollback order B-04b first (5.2, 10B).
+3. **[P] Per-surface semantics.** Signup, Profile Settings and the access form write a label field; only the logging picker writes classification columns. A current value that equals a discipline is one `platform` row with `is_current = true`; `kind = current` is for non-platform values only (8).
+4. **[P] `get_picker_subjects`.** Two exclusive arguments (both or neither is an error), outcomes for unknown and inactive disciplines, `custom_course_key` returned by the course rows, `other_action` and `skip` rows, and the rule that a course projection or subject list is never legitimately empty (8).
+5. **[P] B-06c.** Required, whatever D2 finds; D2 searches only for a name clash; columns, ordering, `NULLS LAST` and the exact consumer (the F2 day-detail panel) are frozen (9.4).
+6. **[P/F] Acceptance and ceilings.** A new acceptance row for `get_picker_subjects` and for per-surface semantics; default-deny rule with every retained grant tied to a named consumer; table-level INSERT versus the settable and generated columns; both archive relations (9, 10B).
+7. **[F] Non-blocking 1 to 4.** Clock evidence fields, COPY and `ON CONFLICT DO UPDATE` leads and D4 executable fixtures are in the plan run record and the diagnostic file; empty handling is scoped per function. **[P] Non-blocking 5:** `status.md` now names both later acceptances (stale F0 tab before Gate 3 of B-03/B-07; stale F1 tab before Gate 3 of B-04b).
+
+### C. Self-critique run before hand-off (Round 1 section A)
+Checked against QA Round 12 line by line and the files in plan v6 section 14. My own v5 errors are listed there. No SQL is presented, so no parser-level read applies; I have no database engine and nothing was run. Not measured and not asserted: updaters, deleters and truncators of `study_sessions`; whether `created_at`/`id` are server-controlled; the `source` constraint; existing triggers on `access_requests` and `auth.users`; the signup function's error handling; the notes columns; `is_admin()`; the live `get_study_heatmap_split`; the body of `get_subject_mastery_v1`; edge-function writers; concurrent-insert behaviour.
+
+### D. What QA is asked to do (two separate items)
+1. **Diagnostics verdict, on its own.** Accept `00_DIAGNOSTIC-BATCH_proposal_v1.md` (`6e755b91b8ca`), or list what is missing or what does not move the finish line. Acceptance authorizes only that Claude may write the SQL and the D4 script as new files for exact-hash audit.
+2. **Plan v6 audit, classified.** Read the whole plan and list every defect, marking each *P* (plan-level: the plan cannot be authored from while it stands) or *F* (a detail that a file's own Gate 2 review can settle; plan v6 section 15 lists the F-class details already carried). A verdict of `PASS WITH CONDITIONS` listing the F-class conditions per file is welcome where no P-class defect remains. QA remains free to return `REVISION REQUIRED` for any P-class defect.
+
+### E. Hash table and gates
+| Artifact | Short | Status |
+|---|---|---|
+| Brief B v10 | `0fe77dec72dc` | Gate 1 given; unchanged |
+| SQL work plan v5 (T-001) | `6961fb55dd69` | unchanged; inventory incorporated by reference |
+| Stream B plans v1 to v5 | `07a9fd48e4cd` / `9b64afdd6152` / `561ec2d8a375` / `668d6bfe4896` / `8b08be4c87ae` | superseded |
+| Stream B plan v6 | `6fff5d00e8d8` | for QA review; no gate requested |
+| Diagnostic batch proposal v1 | `6e755b91b8ca` | for a separate QA verdict; no gate requested |
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one round with the two items of section D.
+
+---
