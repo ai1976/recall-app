@@ -2372,3 +2372,53 @@ List EVERY defect in B-02b, each marked blocker or non-blocking, by exact hash. 
 Gates 2 to 7 not given for B-02b.
 
 Handoff: `AWAITING-QA` - QA to append one round.
+
+---
+
+## Round 46 · QA · 08/10/2026
+
+### Scope and preconditions
+
+The Round 45 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 45 and last QA-reviewed round 44. This is Tier 1 round 1. I read the complete Round 45 section, plan v18 section 10B and the B-02b prerequisites, the relevant brief B 6.4 contract, D2/D4 evidence, and all three submitted files. The three supplied short hashes match the full SHA-256 values in Round 45. No SQL, database, browser, build, deployment, Git mutation or external service was run.
+
+### Blocking findings
+
+1. **`service_role` is left with an unbounded catalogue write/destructive capability (B-02b schema and TEST).** Plan v18 section 10B R1 says a grant on a changed relation is retained only for a D4-named consumer, and specifically retains `service_role` only where D4 finds an edge-function consumer. D4's saved result names the browser `BulkUploadTopics` path and no service-role writer. Nevertheless the schema leaves all eight table privileges on `disciplines`, `subjects` and `topics`; `service_role` also bypasses RLS. The subjects and topics have no B-02a delete/truncate guards, so this role can delete or truncate catalogue rows and mutate names/relationships, causing data loss and a privilege escape. The TEST makes the defect normative by requiring all eight privileges. This is not an owner/superuser residual: it is a known role grant contrary to the approved ceiling. Close the role to the exact evidence-backed set (or obtain a new Founder design decision), and revise the rollback to restore the exact pre-run ACL.
+
+2. **The fail-closed preflight does not bind the existing policy bodies or `is_admin()` contract (B-02b schema and TEST).** `v_live` compares only table, command and policy name. It does not compare policy roles, permissive mode, `USING` or `WITH CHECK`; the file checks only that `public.is_admin()` exists. A changed existing discipline policy or an altered `is_admin()` body/security/search path/owner/ACL could therefore let a non-admin write while this file proceeds. The new-policy TEST uses a substring `LIKE '%is_admin()%'`, which also does not prove the exact expression. Because this is a privilege-escape path, Gate 2 must stop unless the D2-bound policy definitions and the D2-bound `is_admin()` identity/definition/security/configuration/ACL are compared exactly (or the file performs equivalent checks).
+
+### Non-blocking findings and Gate 2 conditions
+
+1. **`anon` SELECT is a temporary least-privilege exception, not a blocker in this file.** With the recorded authenticated-only catalogue policies it currently yields no rows to `anon`, and the catalogue is not sensitive. However, section 10B permits an `anon` table grant only for a D4-named unauthenticated direct reader; none is named, and after F1 Signup is required to use the public B-06a wrapper. B-06a/F1 must revoke direct `anon` table SELECT (or record the approved direct consumer), and the TEST should exercise the effective anonymous read boundary rather than checking ACL text alone.
+
+2. **Withholding client UPDATE on `disciplines` and `topics` is acceptable for this file.** D4 names no such writer; discipline deactivation is an owner action, and no topic update path is in scope. The authenticated UPDATE retained on `subjects` matches the observed `BulkUploadTopics` `order_num` path. A future admin deactivation/editor path needs its own reviewed policy/API and test; it must not be smuggled into this file.
+
+3. **The real-role TEST method is useful but not complete.** Actual profile rows, JWT claim GUCs and `SET LOCAL ROLE authenticated` exercise PostgreSQL RLS and privilege behavior, but they do not prove the real Supabase HTTP/session path or the browser's BulkUploadTopics transaction and error handling. The Founder must still perform the real admin upload at the later acceptance/Gate 7 step; this is not a blocker for authoring the SQL.
+
+4. **The privilege assertions are table-level only.** `REVOKE ALL ON TABLE` does not remove an independent column-level grant, and the schema does not explicitly stop on a PUBLIC or column ACL drift. The supplied D2 snapshot shows no catalogue column grants and the TEST checks for no PUBLIC table grant, so this is a Gate 2 fail-closed evidence condition: compare effective column privileges and PUBLIC ACLs for all three tables and stop on any unexpected row.
+
+5. **The B-02a prerequisite check is narrower than the prerequisite contract.** The schema checks only that the normalized-name index exists; it does not verify the three B-02a guard functions/triggers and their definitions. B-02a is already live and Gate-4 verified, so this is non-blocking for the current handoff, but the Gate 2 pre-run record must bind the complete B-02a object set and stop on partial or substituted state.
+
+6. **The TEST is not a single execution.** The final `UNION ALL` calls `pg_temp.b02b_checks()` three times, so every probe and its nested writes runs three times rather than once. The subtransactions roll back the inserted rows, so this is not a data-loss defect, but it makes the output noisy and increases lock/time exposure. Gate 2 should use one invocation and one retained result set.
+
+7. **The TEST fixtures are brittle.** It assumes exactly three existing disciplines, the literal `CA Final`, and no pre-existing names matching `ZZ %`. A legitimate catalogue change or a stale fixture can produce a false failure or collide with real data. Capture the baseline count/identity set and generate collision-free fixture names before the rollback-only run; stop on any mismatch.
+
+8. **Rollback proof is incomplete.** The rollback uses `DROP POLICY IF EXISTS` and broad `GRANT ALL`, does not assert the exact pre-run policy/ACL snapshot, and does not state that the whole selection is run atomically. It is consistent with the supplied D2 baseline, but Gate 2/Gate 4 must run it as one transaction, compare the exact restored policy and privilege sets (including PUBLIC/column ACLs), and stop on any unexpected policy identity. If `service_role` is closed in the revision, its original ACL must also be restored by rollback.
+
+### Strengths or confirmed controls
+
+- All three exact hashes match and the files are separated into schema, rollback-only test, and rollback artifacts.
+- The new policies are `TO authenticated` and call `public.is_admin()`; no client DELETE or TRUNCATE grant remains for `anon` or `authenticated`, and the chosen lack of client UPDATE on disciplines/topics preserves immutable-course and owner-deactivation semantics.
+- Plain `CREATE POLICY`, bounded lock/statement timeouts, exact table-privilege checks, RLS checks, student/admin fixtures, and the duplicate-normalized-discipline test are useful controls. The test writes are nested in rollback subtransactions.
+
+### Reported residuals
+
+Owner/superuser out-of-band DDL, privilege changes, and forged or substituted files after independent hash binding remain reported residuals. They do not excuse the known `service_role` grant or the missing policy/`is_admin()` identity binding above.
+
+### Disposition
+
+`REVISION REQUIRED`
+
+The `anon` transitional SELECT, owner-only deactivation choice and simulated real-role method are acceptable only with the listed Gate 2/Gate 7 conditions. The two blocking privilege/preflight defects must be corrected before B-02b can proceed to Founder Gate 2.
+
+Handoff: `AWAITING-CLAUDE` — close or obtain a Founder decision on the `service_role` catalogue grants, bind the exact existing policy and `is_admin()` contracts, and return all three files for Tier 1 round 2.
