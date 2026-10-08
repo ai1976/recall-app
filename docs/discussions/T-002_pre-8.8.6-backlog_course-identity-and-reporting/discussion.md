@@ -1437,3 +1437,85 @@ QA Round 24 checked line by line; both script self-tests run (54 of 54, 61 of 61
 Gates 2 to 7 not given for stream B.
 
 Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v6, D-04 v6, D-05 v4 (D-02 v3 unchanged), plan v12, and the DEC-4 ruling.
+
+---
+
+## Round 26 · QA · 08/10/2026
+
+### Scope and preconditions
+
+The Round 25 handoff was valid: `status.md` was `AWAITING-QA`, owner QA, last round 25 and last QA-reviewed round 24. The exact working-file hashes match the handoff:
+
+| Artifact | Short hash | Full SHA-256 verified |
+|---|---|---|
+| `D-03_DIAGNOSTIC_D3_writer-closure_v6.sql` | `c72b9fa313f8` | `c72b9fa313f83e1f6332639f8dc553c868a15657523d1b97bf54f22473d0db92` |
+| `D-04_code-inventory_v6.mjs` | `dd1c7a9c1b9c` | `dd1c7a9c1b9c9020a93e3cfe5431f0592886d8038c959c286498603b39b4c1e8` |
+| `D-05_writer-matrix_v4.mjs` | `bef859179853` | `bef85917985301fa53ba23cac0b8c05055811dbfb6b65ec3170e82b27cf905c7` |
+| `00_PLAN_stream-B-execution-plan_v12.md` | `81d104b110a2` | `81d104b110a28b2282036a19b8a8e84666423418d926aedb52c5f3fde738bc7e` |
+| unchanged `D-02_DIAGNOSTIC_D2_live-state_v3.sql` | `874a8bddb578` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+
+No SQL, database, browser, or external service was run. D-03 was read as SQL statement-by-statement. `node --check` passed for D-04/D-05; their self-tests passed 54/54 and 61/61. The only D-05 probe run was in-memory and read-only: a synthetic `study_sessions` DELETE code entry with no D4 unresolved lead returned exit 0, exposing a matrix gap described below. Optional D-04/D-05 report-file output is not a database write.
+
+### 1. Diagnostic verdicts and every remaining defect
+
+#### D-02 v3 — PASS WITH CONDITIONS
+
+The prior verdict remains. Gate 2 still requires all five raw cells, one unchanged cell per run, ACL-derived PUBLIC handling, every-role sequence checks, and a stop on SQL error, truncation, or missing visibility evidence. No new defect was found in this unchanged file.
+
+#### D-03 v6 — REVISION REQUIRED
+
+1. **[F, blocking] P1 collapses distinct FK paths.** `agg` groups by target, ancestor and event/result and keeps only one `example_path`. Two different constraints with the same ancestor and event can therefore collapse to one lead; the new path-bound sink key cannot protect the omitted path. P1 must emit one row per path/constraint or a complete canonical path set/hash, and D-05 must consume it.
+2. **[F] Output completeness is not bound for several catalogues.** D3 emits useful totals (`targets_found`, `routines_scanned`, `routines_naming_a_target`, P3 depth/frontier, P4 visible-job count, P7 `roles_checked`), but D-05 does not require or compare most of them. A truncated or hand-edited JSON cell can contain an apparently clean subset of routines, views/rules, jobs, roles, foreign keys or paths. Add counts or canonical list hashes for every list used in closure and make mismatches a bad input/stop. At minimum P1 must bind eight public targets and its depth cap; P2 its target-routine total; P3 view/rule totals and depth; P4 visible-job count; and P7 role/FK/rule/trigger totals.
+3. **[F] P7 visibility evidence is only a boolean at the matrix boundary.** The SQL now computes detailed visibility facts, but D-05 accepts `visibility_unresolved: false` without validating the accompanying role, RLS and SELECT facts. A malformed cell can assert false while omitting the proof. The detailed object and its internal consistency must be required, or the raw cell must be rejected.
+4. **[F] P7's event-time-relevant trigger data is not an identity set.** The live query returns trigger names/functions, but the downstream proof must bind schema-qualified function identity and exact table identity, not just a normalized suffix. This overlaps D-05's `riSetComplete` defect below.
+
+The Round 24 fixes themselves are present: visibility is fail-closed in SQL, OIDs are bigint, and P5 carries trigger/chain counts. All seven statements remain read-only, but the omitted-path and catalogue-completeness problems keep D3 from being a complete closure source.
+
+#### D-04 v6 — REVISION REQUIRED
+
+1. **[F, blocking] Computed operation names are silent.** `await supabase.from("study_sessions")[op]({})` produces neither an entry nor an unresolved lead. A variable or computed member can therefore hide an UPDATE/DELETE/UPSERT writer. The parser must emit an undisposable dynamic-operation lead whenever the operation member is not a literal known operation (and add fixtures for computed methods and detached method references).
+2. **[F, blocking for edge-function closure] Dynamic imports and CommonJS requires are absent from the import graph.** `async function f(){ await import('./helper') }` and `require('./helper')` produce no import edge or unresolved lead. If an edge function reaches a writer through either form, D4's “whole import closure” misses it without fail-closed evidence. Resolve these forms or emit undisposable `dynamic_import`/`require` closure leads.
+3. **[F] The 54 fixtures do not execute `inventory()` over a representative edge-function closure.** They prove `analyzeSource` and helper functions, but not that a dynamic/aliased client path is connected to an invoked edge function and its write set. A Gate 2 D4 run must include the exact deployed commit, all scanned roots, dirty-state/source hash, unparsed-file count, unresolved/disposition list and the invoked-function closure output.
+
+The v6 re-export changes are closed: all unresolved re-export forms are undisposable and local `supabase`-named paths go through graph resolution. D4 remains source-only and non-mutating.
+
+#### D-05 v4 — REVISION REQUIRED
+
+1. **[F, blocking] Direct D4 code writers are not closure sinks.** `buildMatrix` adds every D4 `write` entry to a cell but never calls `sink()` or otherwise turns a code UPDATE/DELETE/TRUNCATE/UPSERT into a global unresolved item. The synthetic DELETE probe consequently validates and exits 0 with no unresolved item. A direct client or edge-function writer can therefore pass the matrix. Every D4 code writer must be classified: allowed INSERTs must be bound to the privilege/contract evidence, while UPDATE/DELETE/TRUNCATE/UPSERT/MERGE/COPY or unresolved payload/transport paths must be an explicit stop or an exact reviewed disposition. The matrix must bind the deployed commit and D4 inventory hash to this result.
+2. **[F] D4 input shape is still too shallow for fields the matrix relies on.** `d4.entries` validates only kind/file/line and write table/op; it does not validate line as an integer, operation-specific payload resolution, root/transport identity, or the completeness relationship between `entries`, `undisposed` and the scanned-file set. A forged entry with no `undisposed` lead is accepted, as the probe demonstrates. Require the fields used for closure and reject inconsistent or incomplete D4 cells.
+3. **[F, blocking] `riSetComplete` is not schema-exact.** `norm()` strips the schema and keeps only the final component; the cascade filter accepts any child whose name ends in `study_sessions`. A non-`public` child or a non-`pg_catalog` function with the expected suffix can satisfy the complete-set test. Bind `public.study_sessions`, `auth.users`, and schema-qualified RI function identities exactly.
+4. **[F] D5 still has no completeness binding for the D3 lists.** The new P5 counts and name comparison are good, but P1/P2/P3/P4/P7 counts and list hashes described above are not required. D-05 must reject a subset cell before matrix construction.
+5. **[F] Cascade proof does not bind all event-time fields required by DEC-4.** The matrix proves the diagnostic row shape, but the ledger contract needs the exact RI-trigger identity set (not only an enabled boolean), the exact constraint/table identity, and the trigger owner's visibility. These must be fields compared to the B-04a baseline, not assumptions in a later SQL file.
+6. **[F] Extension `extension` is nullable in `EXT_ROW`.** `extversion` is now non-empty and `routines` is an integer, but `extension: SN` still permits a null extension name and a clearance key such as `null@...`. Require a non-empty extension name and canonical extension/version/count/hash fields.
+
+The exact sink key, P6 shape, P5 counts, complete RI-set check, visibility stop, non-empty versions and integer counts are present and self-tested. They do not close the code-writer or exact-schema/completeness gaps above.
+
+### 2. Plan v12 audit, classified P/F
+
+#### Blocking findings — P (plan-level)
+
+1. **[P] The revised DEC-4 provenance is still not causal enough.** `owner_present_at_event = false` plus an intact FK and enabled RI set does not distinguish an FK cascade from a routine/trigger that first deletes the owner and then explicitly deletes that owner's session in the same transaction. The plan itself says whether `admin_delete_user_data` deletes sessions is not established. If explicit child deletion is permitted inside an approved account-deletion path, the ledger cannot tell it from the cascade; if it is not permitted, the plan must require evidence that every DEC-4 caller/trigger only deletes `auth.users` and has no child DELETE. In addition, a superuser can disable the FK/RI triggers, delete the parent, restore the FK/RI state, and then directly delete the child; the event-time read would see an intact state unless a DDL/trigger guard or an explicit negative test prevents this sequence. DEC-4 cannot be Founder-ready on the current inference alone.
+2. **[P] The plan has no cross-file contract for direct D4 code writers.** Section 5.2 requires application/edge writers to be classified, but the canonical key schema and allowlist contain no code-writer key, and D-05 currently treats a code lead as a harmless `leads` cell. The plan must define whether each code operation is closed by privilege, represented by a hashed D4 key, or is an immediate stop; otherwise B-04b cannot be authored from the plan.
+
+#### File-level conditions — F (must be carried to Gate 2)
+
+- **[F, D-03/D-05]:** emit and validate complete list counts or canonical hashes; preserve every distinct P1 FK path; require detailed P7 visibility consistency; use exact schema-qualified cascade child and RI function identities.
+- **[F, D-04]:** fail closed on computed/detached operations and dynamic `import()`/`require()` edges; run on the exact deployed commit and retain all unresolved leads/dispositions and closure files.
+- **[F, D-05]:** treat D4 code writes as sinks/stops; validate all D4 fields and cross-field completeness; retain exact P1/P7 identity and event-time fields; reject null extension names; ensure any unresolved cell or malformed input exits nonzero.
+- **[F, B-04a ledger]:** the SECURITY DEFINER trigger owner must have reliable visibility of `auth.users` despite RLS; ledger rows need a unique session key, immutable/owner-only storage, exact FK/RI identity-set evidence, transaction id and a trigger-failure rollback test. Test owner deletion followed by an explicit child DELETE, FK/RI disable-restore followed by direct child DELETE, and the real cascade; the first two must be rejected or separately designed.
+- **[F, B-04b]:** prove the locked SA and fresh closure against exact hashed inputs, test the empty/NULL/hash cases and every stop outcome, and either run a two-connection lock/concurrent-insert test or obtain an explicit Founder acceptance of the documented `NOT COVERED` residual before Gate 3.
+- **[F, D-02]:** retain all five raw cells, ACL-derived PUBLIC, every-role sequence checks, and fail-closed truncation/visibility handling.
+
+### 3. DEC-4 ruling
+
+**REVISION REQUIRED before Founder approval.** Event-time ledger fields materially improve the design, but owner absence plus current FK state is not by itself proof of cascade causality. DEC-4 becomes conditionally acceptable only if the plan closes the explicit-child-delete ambiguity, prevents or detects disable/restore bypasses, and binds the ledger trigger's exact FK/RI state and visibility. Until then the no-DEC-4 rule applies: account deletion remains a DELETE path that must be closed or separately designed, and SA requires an empty ledger.
+
+### 4. Strengths and residual risks
+
+Exact hashes, parser syntax, read-only boundaries, the v6 visibility/OID/P5 changes, v6 re-export fail-closed handling, v4 RI-set and P6/P5 validation, and the 54/61 self-tests are confirmed. No SQL, live FK, orphan count, extension set, D4 production inventory, B-04a/B-04b SQL, or concurrent lock behavior was exercised. The supplied self-tests do not cover computed D4 operations, dynamic imports, direct D4 DELETE closure, P1 path collisions, list truncation, schema-suffix spoofing, or the owner-delete-then-child-delete DEC-4 case.
+
+### Disposition
+
+D-02 v3: **PASS WITH CONDITIONS**. D-03 v6: **REVISION REQUIRED**. D-04 v6: **REVISION REQUIRED**. D-05 v4: **REVISION REQUIRED**. Plan v12: **REVISION REQUIRED** for the two P findings; all listed F conditions are Gate-2 prerequisites. DEC-4: **REVISION REQUIRED**. This is audit advice only; no diagnostic run, Gate 2/3, data fix, B-04b authoring, deployment, commit or push is authorized.
+
+Handoff: `AWAITING-CLAUDE` — revise the plan's DEC-4 causal contract and D4-code contract, close the D3/D4/D5 fail-open cases and completeness checks, then return exact hashes for the next complete review.
