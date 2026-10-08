@@ -24,6 +24,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useExamDateContext } from '@/contexts/ExamDateContext';
 import { MONTH_NAMES, buildExamMonthValue, daysUntilExamDate } from '@/lib/examDate';
 import ChangeEmail from '@/components/profile/ChangeEmail';
+import { validateCourseLabel } from '@/lib/courseLabel';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const EXAM_YEAR_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2];
@@ -225,6 +226,20 @@ export default function ProfileSettings() {
         variant: 'destructive',
       });
       return null;
+    }
+
+    // The same course rule as Signup and the access form (T-002 F0), checked only when the course is being changed: a saved value the student
+    // does not touch is never re-validated or rewritten here (the database trigger also fires only when the course changes).
+    if (courseLevel && courseLevel !== originalCourse) {
+      const courseCheck = validateCourseLabel(courseLevel);
+      if (!courseCheck.ok) {
+        toast({
+          title: 'Course not valid',
+          description: courseCheck.error,
+          variant: 'destructive',
+        });
+        return null;
+      }
     }
     return { trimmedName, finalInstitution };
   };

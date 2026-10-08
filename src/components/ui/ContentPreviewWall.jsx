@@ -3,6 +3,7 @@ import { submitAccessRequest } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Lock } from 'lucide-react';
+import { validateCourseLabel } from '@/lib/courseLabel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,8 +25,10 @@ const COURSES = [
   'CS Foundation',
   'CS Executive',
   'CS Professional',
-  'Other',
 ];
+
+// The dropdown's own option for a course that is not in the list; it is never sent as the course.
+const OTHER_OPTION = '__other__';
 
 export default function ContentPreviewWall({ contentId, contentType, contentName }) {
   const { user } = useAuth();
@@ -35,8 +38,14 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
   const [whatsapp, setWhatsapp] = useState('');
   const [whatsappWarning, setWhatsappWarning] = useState('');
   const [course, setCourse] = useState('');
+  const [customCourse, setCustomCourse] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Shown while typing, before submit (an empty box keeps the button disabled).
+  const customCourseError = course === OTHER_OPTION && customCourse !== '' && !validateCourseLabel(customCourse).ok
+    ? validateCourseLabel(customCourse).error
+    : '';
 
   const normalizeWhatsapp = (raw) => {
     const digits = raw.replace(/\D/g, '');
@@ -61,12 +70,20 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
     const normalizedWhatsapp = normalizeWhatsapp(whatsapp.trim());
     if (!name.trim() || !email.trim() || !normalizedWhatsapp || !course) return;
 
+    // The course sent is either a listed course or the typed text, trimmed and checked by the same rule as Signup (never the dropdown's own entry).
+    let courseToSend = course;
+    if (course === OTHER_OPTION) {
+      const check = validateCourseLabel(customCourse);
+      if (!check.ok) return;
+      courseToSend = check.value;
+    }
+
     setLoading(true);
     try {
       const { error } = await submitAccessRequest({
         p_name: name.trim(),
         p_whatsapp_number: normalizedWhatsapp,
-        p_course: course,
+        p_course: courseToSend,
         p_email: email.trim() || null,
         p_content_id: contentId || null,
         p_content_type: contentType || null,
@@ -155,12 +172,29 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
                     {c}
                   </SelectItem>
                 ))}
+                <SelectItem value={OTHER_OPTION}>Other (type your course)</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          {course === OTHER_OPTION && (
+            <div className="space-y-1">
+              <Label htmlFor="preview-custom-course">Your course</Label>
+              <Input
+                id="preview-custom-course"
+                value={customCourse}
+                onChange={(e) => setCustomCourse(e.target.value)}
+                placeholder="e.g. CFA Level 1"
+                aria-invalid={customCourseError ? 'true' : 'false'}
+                aria-describedby={customCourseError ? 'preview-custom-course-error' : undefined}
+              />
+              {customCourseError && (
+                <p id="preview-custom-course-error" role="alert" className="text-xs text-red-600">{customCourseError}</p>
+              )}
+            </div>
+          )}
           <Button
             type="submit"
-            disabled={loading || !name.trim() || !email.trim() || !whatsapp.trim() || !course}
+            disabled={loading || !name.trim() || !email.trim() || !whatsapp.trim() || !course || (course === OTHER_OPTION && !validateCourseLabel(customCourse).ok)}
             className="w-full"
           >
             {loading ? 'Submitting...' : 'Notify me when available'}

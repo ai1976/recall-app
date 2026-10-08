@@ -214,8 +214,8 @@ describe('per-name RPC classification and the new table rules', () => {
     expect(evaluateGuard(inside, [entry(inside[0].id, 'due-changing')], rpcClass).join('\n')).toMatch(/must be classified due-changing/);
   });
 
-  it('a flashcards update of target_course, question_type or visibility, or of an unreadable payload, outside the wrapper module', () => {
-    for (const payload of ["{ target_course: 'CA Final' }", "{ question_type: 'concept_card' }", "{ visibility: 'public' }"]) {
+  it('a flashcards update of target_course, question_type, visibility, subject_id or discipline_id, or of an unreadable payload, outside the wrapper module', () => {
+    for (const payload of ["{ target_course: 'CA Final' }", "{ question_type: 'concept_card' }", "{ visibility: 'public' }", "{ subject_id: 's1' }", "{ discipline_id: 'd1' }"]) {
       const { failures } = failuresFor('src/pages/X.jsx', `${IMPORT}export async function f(){ await supabase.from('flashcards').update(${payload}).eq('id', 1); }`);
       expect(failures.join('\n')).toMatch(/flashcards update of a due-relevant column/);
     }

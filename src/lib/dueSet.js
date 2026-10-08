@@ -188,7 +188,7 @@ export async function upsertFriendRequest(row) {
 
 // Flashcard columns that can change what is due: target_course (the course rule), question_type (concept cards are never due) and visibility (who can see
 // the card; the owner's own cards stay eligible, other users' due sets cannot be signalled from this tab).
-export const DUE_FLASHCARD_COLUMNS = ['target_course', 'question_type', 'visibility'];
+export const DUE_FLASHCARD_COLUMNS = ['target_course', 'question_type', 'visibility', 'subject_id', 'discipline_id'];
 
 /** Update every card of a batch (course, subject, topic and description edits of a group of cards). */
 export async function updateFlashcardsByBatch(batchId, updates) {

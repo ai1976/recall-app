@@ -340,7 +340,7 @@ describe('deck, friend-request and flashcard-update writes', () => {
     expect(calls).toBe(1);
   });
 
-  it('updateFlashcardsByBatch signals only when it sets target_course, question_type or visibility', async () => {
+  it('updateFlashcardsByBatch signals only when it sets a due-relevant column (target_course, question_type, visibility; subject_id and discipline_id are covered next)', async () => {
     const b = builder(OK);
     supabase.from.mockReturnValue(b);
     await updateFlashcardsByBatch('b1', { batch_description: 'x', topic_id: 't' });
@@ -351,6 +351,17 @@ describe('deck, friend-request and flashcard-update writes', () => {
     supabase.from.mockReturnValue(builder(FAIL));
     await updateFlashcardsByBatch('b1', { target_course: 'CA Final' });
     expect(calls).toBe(1);
+  });
+
+  it('updateFlashcardsByBatch also signals when it sets subject_id or discipline_id (T-002 F0)', async () => {
+    supabase.from.mockReturnValue(builder(OK));
+    await updateFlashcardsByBatch('b1', { subject_id: 's1' });
+    expect(calls).toBe(1);
+    await updateFlashcardsByBatch('b1', { discipline_id: 'd1', topic_id: 't' });
+    expect(calls).toBe(2);
+    supabase.from.mockReturnValue(builder(FAIL));
+    await updateFlashcardsByBatch('b1', { subject_id: 's1' });
+    expect(calls).toBe(2);
   });
 
   it('updateFlashcardVisibility and updateFlashcardsVisibility set only the visibility and signal on success', async () => {

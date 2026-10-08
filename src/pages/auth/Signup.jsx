@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { validateCourseLabel, isSelectableCourseName } from '@/lib/courseLabel';
 
 export default function Signup() {
   const [email, setEmail] = useState('');
@@ -25,6 +26,11 @@ export default function Signup() {
     const ref = searchParams.get('ref');
     if (ref) localStorage.setItem('revisop_access_ref', ref);
   }, []);
+
+  // Shown while typing, before submit: the same rule the database applies (an empty box is reported by the form on submit).
+  const customCourseError = courseLevel === 'Other' && customCourse !== '' && !validateCourseLabel(customCourse).ok
+    ? validateCourseLabel(customCourse).error
+    : '';
 
   const fetchAllCourses = async () => {
     try {
@@ -63,7 +69,7 @@ export default function Signup() {
       ])];
 
       const uniqueCustomCourses = allCustomCourses.filter(
-        course => !predefinedCourses.includes(course)
+        course => !predefinedCourses.includes(course) && isSelectableCourseName(course)
       );
 
       const mergedCourses = [...predefinedCourses, ...uniqueCustomCourses.sort()];
@@ -100,15 +106,20 @@ export default function Signup() {
       return;
     }
 
-    if (courseLevel === 'Other' && !customCourse.trim()) {
-      setError('Please specify your course');
-      return;
+    let customCourseValue = null;
+    if (courseLevel === 'Other') {
+      const check = validateCourseLabel(customCourse);
+      if (!check.ok) {
+        setError(check.error);
+        return;
+      }
+      customCourseValue = check.value;
     }
 
     setLoading(true);
 
     try {
-      const finalCourseLevel = courseLevel === 'Other' ? customCourse : courseLevel;
+      const finalCourseLevel = courseLevel === 'Other' ? customCourseValue : courseLevel;
       
       const result = await signUp(email, password, fullName, finalCourseLevel);
 
@@ -282,9 +293,14 @@ export default function Signup() {
                 required
                 value={customCourse}
                 onChange={(e) => setCustomCourse(e.target.value)}
+                aria-invalid={customCourseError ? 'true' : 'false'}
+                aria-describedby={customCourseError ? 'customCourseError' : undefined}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent"
                 placeholder="e.g., CFA Level 1, ACCA, JEE, NEET, MSc Economics, etc."
               />
+              {customCourseError && (
+                <p id="customCourseError" role="alert" className="text-xs text-red-600 mt-1">{customCourseError}</p>
+              )}
               <p className="text-xs text-gray-500 mt-1">
                 This course will be saved and available for future users
               </p>

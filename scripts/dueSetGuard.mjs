@@ -32,7 +32,7 @@ export const DUE_MUTATING_RPCS = new Set([
 ]);
 export const DUE_PROFILE_COLUMNS = new Set(['course_level', 'timezone']);
 // Flashcard columns that can change what is due (the course rule, concept cards, visibility): an update of any of them, or of a payload whose keys cannot be read, must live in the wrapper module.
-export const DUE_FLASHCARD_COLUMNS = new Set(['target_course', 'question_type', 'visibility']);
+export const DUE_FLASHCARD_COLUMNS = new Set(['target_course', 'question_type', 'visibility', 'subject_id', 'discipline_id']);
 
 // Per-name classification of every RPC the frontend calls, built from the accepted live-body evidence (T-001 diagnostics 11 v4 and 12): { names: { <rpc>: { classification, ... } } }.
 export function loadRpcClassification(file) {
@@ -297,7 +297,7 @@ export function evaluateGuard(calls, manifest, rpcClass = null) {
       }
       if (c.kind === 'table-write' && c.target === 'flashcards' && c.method === 'update') {
         if (!c.payload || !c.payload.resolved) failures.push(`flashcards update with a payload whose keys cannot be read from literals, outside the wrapper module: ${c.id} (line ${c.line})`);
-        else if (c.payload.keys.some(k => DUE_FLASHCARD_COLUMNS.has(k))) failures.push(`flashcards update of a due-relevant column (target_course, question_type, visibility) outside the wrapper module: ${c.id} (line ${c.line})`);
+        else if (c.payload.keys.some(k => DUE_FLASHCARD_COLUMNS.has(k))) failures.push(`flashcards update of a due-relevant column (target_course, question_type, visibility, subject_id, discipline_id) outside the wrapper module: ${c.id} (line ${c.line})`);
       }
       if (c.kind === 'table-write' && c.target === 'flashcard_decks' && c.method === 'delete') {
         failures.push(`deck delete outside the wrapper module (it cascades to the deck's cards): ${c.id} (line ${c.line})`);
