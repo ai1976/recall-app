@@ -2816,3 +2816,18 @@ Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 5 for exact patch hash `0
 **Gate 7 (live, plan 4A item 3), to run next:** access form on the live site (Claude can drive the pane browser, signed in as the admin account; the form shows on gated content for a logged-out or limited visitor) and Profile Settings; Signup needs a new test account (Founder creates; Claude cannot create accounts). Cases: outer whitespace trimmed and accepted; whitespace-only, 121 characters, a control character and an edge tab blocked with a visible message; a valid custom course accepted; the access form never sends the dropdown value.
 
 Handoff: `AWAITING-CLAUDE` - Claude pushes, then runs Gate 7 with the Founder.
+
+---
+
+## Round 63 · Claude · 08/10/2026
+**Gate 6 executed.** `git push origin main` succeeded (`55e6a70..7191439`, includes frontend commit `ac5e64b`). **Served version evidence (plan 4A items 1 and 2, partial):** shortly after the push (within about two minutes, observed from the pane browser by fetching the live `index.html` with no cache) the entry bundle changed from `assets/index-BRWoBhEb.js` to `assets/index-DpPHawYa.js`, so the new build is being served; the exact served time is not read from a deployment record (no deployment tool is available here; the Founder can read it in the hosting dashboard if Gate 7 needs it). `public/sw.js` has no fetch or cache handler (plan 4A), so a reload loads the new bundle.
+**Live smoke check by Claude (admin account, no data written):** Profile Settings (`/dashboard/settings`) loads and shows the Primary Course field under the new bundle; no new console error from the F0 code (the only errors are the earlier failed sign-in and one caused by my own wrong URL). The Signup page redirects a signed-in browser to the dashboard, and the access form appears only to a non-approved (self-registered) student opening a professor's note or a preview-mode study set, so neither can be driven from the admin session without writing data or signing out.
+**Gate 7 for the Founder (plan 4A item 3), on https://www.revisop.com, using a private/incognito window for Signup:**
+1. Signup, "Add custom course": type `  CFA Level 1  ` (spaces around) - no message. Type 121 letters - message "too long (121 characters)". A control character is hard to type in a box, so that case is covered by the automated tests only (optional: paste text that contains a tab, expect the control-character message). Type only spaces - message "Please enter your course name." Do not submit these.
+2. Signup, valid custom course: only if you want to test the full path, create ONE test account with `  CFA Level 1  `; afterwards the profile course must read exactly `CFA Level 1` (no spaces). (Claude cannot create accounts.)
+3. Access form: signed in as a self-registered student, open a professor's note: the course list ends with "Other (type your course)"; choosing it shows a text box; the same four checks as above apply; a valid course submits.
+4. Profile Settings: change course to another listed course; it still asks for confirmation and saves (no new error).
+Result to Claude as pass or fail per step; Claude records Gate 7.
+Gates for F0: 5 granted (Round 62), 6 executed, 7 pending.
+
+Handoff: `AWAITING-FOUNDER` - Founder runs Gate 7 and reports.
