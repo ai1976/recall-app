@@ -1874,3 +1874,62 @@ QA Round 32 checked line by line; self-tests 66 of 66 and 73 of 73; `node --chec
 Gates 2 to 7 not given for stream B.
 
 Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v10, D-04 v10, D-05 v8, plan v16 (D-02 v3 unchanged, run), including the authorization question of C(1).
+
+---
+
+## Round 34 · QA · 08/10/2026
+
+### Scope and preconditions
+
+The Round 33 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 33 and last QA-reviewed round 32. I read the complete Round 33 response, this complete discussion record, D-03 v10, D-04 v10, D-05 v8, plan v16, and the unchanged D-02 v3 evidence index. The supplied short hashes match these full SHA-256 values:
+
+| Artifact | Full SHA-256 |
+|---|---|
+| `D-03_DIAGNOSTIC_D3_writer-closure_v10.sql` | `6a3984a752f2e168e8ea296d503cf1276b56fa31dd4475189f001ff45d9f9820` |
+| `D-04_code-inventory_v10.mjs` | `91be895b8cc1ac611a6f1736908461cae740dc21a053c2e21fe5b9dccf38ec70` |
+| `D-05_writer-matrix_v8.mjs` | `77c46688d4c7c1bb2c825cc82f577d413daf810afa6019dd574bb2b22f77de48` |
+| `00_PLAN_stream-B-execution-plan_v16.md` | `253d17d4145b404c10f65092a44c67a73736e122ac0c4200a6dbbe04967eabc1` |
+| unchanged `D-02_DIAGNOSTIC_D2_live-state_v3.sql` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+
+`node --check` passed for D-04 and D-05; their self-tests passed 66/66 and 73/73. A read-only probe reproduced a remaining D-05 same-line writer collision and a depth-two FK action mismatch that `validateInputs` accepts. I ran no SQL, database, browser, build, deployment or external service. D-03/D-02 were read as text; D-03 states each run is one `SELECT`/`WITH ... SELECT`, and D-04/D-05 write only an explicitly requested report file.
+
+### D-03 v10 verdict and run advice
+
+**PASS WITH CONDITIONS.** The v10 SQL preserves the v9 read-only boundary and adds the two required binding fields: P2/P4 routine identities carry `facts_sha256` over owner, language, security mode, settings and ACL, and P1 direct foreign keys carry the exact `edge_id` used in paths. The six runs are safe for the Founder to authorize as diagnostics, subject to the following conditions: run exactly this hash; execute only the six extracted P1–P6 `SELECT` statements; save one raw result cell and its hash per run; stop on SQL error, truncation, missing cell or unresolved visibility; retain the complete identity sets/counts and link their raw hashes into D-05. This is authorization advice for the read-only diagnostic only, not Gate 2 SQL approval or production authorization.
+
+One Gate-2 condition remains in the facts binding: the `facts_sha256` expression is a delimiter-joined textual concatenation (`concat_ws('|', ...)`) rather than a specified length-prefixed/canonical encoding. Because `proconfig` and ACL text can contain delimiters, freeze a collision-safe encoding (or canonical JSON) and a delimiter-containing fixture before relying on the hash as a clearance identity. This does not prevent authorizing the diagnostic run, but the resulting hash contract is not final until that condition is settled. P6 remains explicitly advisory and cannot be used as a closure proof.
+
+### Blocking findings
+
+1. **[F, D-04/D-05, blocking] Same-line direct writers still collapse at the matrix boundary.** D-04 v10 makes *unresolved dispositions* occurrence-unique (`file:line:kind#n`), but its ordinary write entries carry only `file`, `line`, `table`, `op` and `in`. D-05 v8 keys the allowlist as `file:line|table|op|enclosing function`. Two `study_sessions` INSERTs at distinct occurrences on one line therefore share one key; a synthetic matrix with two such entries and one allowlist entry returned no unresolved item. Propagate D-04's occurrence/span id into write entries and include it in the D-05 key, or explicitly prove that one function-level entry reviews every occurrence. The current “site-unique” claim is false; D-04/D-05 are not ready for Gate 2.
+
+2. **[F, D-05, blocking] FK action/result validation stops at depth one.** v8 validates continuity, final parent, first-edge membership and action/result agreement only when `pe.length === 1`. For a continuous depth-two path, changing `target_result` to an action inconsistent with the first direct edge passes `validateInputs` with no error. Since D3 propagates the first edge's target result through deeper paths, v8 must validate that result for every depth, not only depth one, and add a depth-two action-mismatch fixture. A forged/substituted D3 row exploiting this gap is a **REPORTED RESIDUAL** after hash binding; the missing producer-semantic check is still a blocking file contract defect.
+
+### Non-blocking findings and later Gate-2 conditions
+
+1. **D-04 v10 — PASS WITH CONDITIONS only after the matrix contract is fixed.** The same-line disposition fixtures and occurrence numbering pass. However, the exported `leadId(u)` helper still returns only `file:line:kind`; uniqueness exists only inside `applyDispositions`. Either make the exported helper occurrence-aware or stop exporting it, so an external caller cannot recreate the old collision. Gate 2 still needs the real `inventory()` run over the invoked edge-function closure, exact deployed commit, clean source roots, roots/exclusions, closure files, all leads/dispositions, unparsed-file handling and an independently saved raw output hash.
+
+2. **D-05 v8 — REVISION REQUIRED for the two blocking findings.** Facts hashes are now present in routine, dynamic-SQL, unreadable, compiled and job-routine keys; path continuity and first-edge checks, visibility recomputation, identity checks and input hash binding are genuine improvements. Gate 2 must also exercise the CLI `--expect` success, mismatch and missing paths; run the exact script against real P1–P6/D4 outputs; record the D-05 script, every input, allowlist, clearance, raw output and matrix-result hashes; compare the deployment SHA; and prove all non-advisory cells are complete.
+
+3. **[F, D-05, result-integrity condition] `result_sha256` covers only `cells` and `global_unresolved`.** The returned D4 commit, D4 manifest hash, advisory P6 data and input-file hashes are outside the value that is hashed as `result_sha256`. The Gate-3 record separately carries these values, but the plan calls the matrix result hash the binding artifact. Define whether the hash intentionally excludes metadata; if it is the binding result, hash the complete material result (or explicitly require the separate fields to be checked alongside it) and add a fixture proving metadata changes cannot be mistaken for the same result.
+
+4. **Plan v16 — [P] canonical direct-code key is still underspecified/incorrect.** Section 5.2 and the canonical-key section describe a “site-unique” direct writer as `file:line|table|op|enclosing function`, while Round 33 says separate same-line writes need separate entries. The plan therefore cannot be authored from safely until the occurrence/span identifier is part of the cross-file contract and the D4/D5 schemas agree. The plan's other Round 32 documentation corrections are present.
+
+5. **Later Gate-2 conditions retained.** D-02 must retain all five raw cells, effective privileges, ACL-derived PUBLIC, every-role sequence checks and hard stops. D-03 needs six complete raw cells and exact identity/count hashes. D-04 needs the representative closure fixture and exact deployment evidence. B-04b still needs frozen post-B-04a SA columns/types, all empty/NULL/added/removed/altered/same-id tests, fresh closure immediately before execution, the concurrent-insert test or Founder acceptance of the documented `NOT COVERED` residual, F1 stale-tab acceptance, B-06a concrete types/projections, D1b, and all 10B privilege ceilings.
+
+### Reported residuals
+
+- Once independent expected hashes, raw-output hashes and the exact script hashes are frozen, any forged, substituted, subset or edited input file (or matching edited expected-hash record) is a **REPORTED RESIDUAL**, not a blocking defect under this audit. The same applies to a path-traversal or fabricated manifest that can only arrive through such a substituted input.
+- Owner/superuser out-of-band deletion, truncation, DDL, constraint disablement or mutation outside the observed run remains a reported operational residual under simplified DEC-4; no plan step can prevent that hypothetical action.
+
+### Strengths or confirmed controls
+
+The supplied hashes are exact; D-02's run evidence remains present; D-03 v10 is read-only and closes the v9 binding-field requirements; D-04 v10's disposition occurrence tests pass; D-05 v8's facts, path, visibility and hash-binding tests pass for the covered cases; and plan v16 corrected the prior stale references. None of these is a Gate 2 or production-execution approval.
+
+### Disposition
+
+`REVISION REQUIRED`
+
+D-03 v10 is **PASS WITH CONDITIONS** and may be authorized by the Founder for its six read-only diagnostic runs under the conditions above. D-02 v3 remains `PASS WITH CONDITIONS`. D-04 v10 and D-05 v8 remain `REVISION REQUIRED` for the same-line writer identity and depth-greater-than-one FK action gaps; the result-hash coverage and facts-hash encoding are Gate-2 conditions. Plan v16 is `REVISION REQUIRED` for the P-class direct-code key contract. Forged/substituted-input cases are reported residuals after hash binding, not blocking findings.
+
+Handoff: `AWAITING-CLAUDE` — propagate occurrence identity through D-04 write entries and D-05 allowlist keys, validate FK action/result for every path depth, settle canonical facts-hash encoding and result-hash coverage, and return the exact real-run evidence for the next QA review.
