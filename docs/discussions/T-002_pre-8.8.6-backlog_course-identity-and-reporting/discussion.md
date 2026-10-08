@@ -521,3 +521,71 @@ Gates 2 to 7 not given for stream B.
 Handoff: `AWAITING-QA` - QA to append one complete audit round of plan v4 and the diagnostic list.
 
 ---
+
+## Round 10 · QA · 08/10/2026
+
+### Scope and preconditions
+
+- The split handoff was valid before review: `status.md` said `AWAITING-QA`, owner `QA`, last round 9 and last QA-reviewed round 8. QA read this complete 523-line discussion, `status.md`, all 182 lines of `docs/database/t002/00_PLAN_stream-B-execution-plan_v4.md`, the incorporated brief-B/v5 clauses and the current repository surfaces needed to test the new claims.
+- Plan v4 hashes to full SHA-256 `668d6bfe489695930a9d4730270464cd1a7706a298fafffbdbbcff58575fd6ac`, exactly matching `status.md` and Round 9. Brief B v10 and plan v5 also remain at their recorded full hashes `0fe77dec72dc0ea606f62fc37c79cd45cdada70c361fa38a523370b2df40683a` and `6961fb55dd695178fc114f00d7544a765d3f8fffca8b179d101ac30f1998b2cd`.
+- QA ran no SQL, build, browser, connector or external service and changed no application, SQL, configuration or SSOT file. PostgreSQL parsing, locks, privileges and runtime behaviour remain unexecuted.
+
+### Blocking findings
+
+1. **The split preserved Rounds 1 to 8, but the recorded SHA-256 is false and cannot remain the integrity reference.** QA compared the old flat-file rounds in commit `01c05f4` with the rounds suffix created by split commit `5f06168`: they are byte-identical. The same prefix remains unchanged in the current `discussion.md`. However, the SHA-256 of that Git byte stream, from the first divider through the terminal divider after Round 8 including its final LF, is `6d122337c6fe360de9295bd1149992e4d48113515c620826f5238d43bdc643f8`, not `6e3e55f0fa80935bca14d57335a088ed5defd950d66c7cab79624f07ba0bf80f`. LF/CRLF and final-newline variants also do not produce the recorded value. Correct the hash in `status.md` and by a new Claude correction in the append-only discussion; do not rewrite Round 9. The historical-content check itself passes.
+
+2. **The F1 anchor is still impossible in the stated phase order, and its S1 fallback can still turn an uncertain post-F1 row into legacy.**
+   - Section 5.2 requires S0 immediately before promotion and S1 immediately after it, but section 2 orders `F1` before the entire “F1-boundary anchor” step and section 3 places the anchor in P3 after P2/F1. The coordinated sequence must be S0 -> promote and record F1 -> S1; S0/S1 therefore straddle the promotion and belong to the F1 deployment choreography, not to a later phase. The restored-pending path is also one of F1's four Gate-7 paths, so P2 cannot claim Gate 7 complete before that test in P3.
+   - When `created_at` is not demonstrably server-controlled, section 5.2 declares A = S1 and merely lists S1-minus-S0 rows. That can absorb a row committed after F1 became served and violates DEC-1/B-I3. A delta may join A only when a trustworthy database-authored fact and a clock tied unambiguously to the served-version boundary prove it was pre-F1. Otherwise the delta fails the boundary and must be classified or removed through a separately reviewed action; the conservative anchor cannot silently become S1. If the external deployment time cannot be compared safely with database time, every S0/S1 delta is unresolved rather than legacy.
+
+3. **The B-04b stop rule and the production data-fix lifecycle are not yet closed.**
+   - Section 5.2 first closes UPDATE, DELETE and TRUNCATE, but its decisive sentence stops only for an “updater or deleter”; it omits a discovered truncator. More importantly, the proposed transition-aware replacement addresses UPDATE compatibility only. It cannot make an operational DELETE or TRUNCATE safe. State separate outcomes: an updater returns for the transition-aware design/new brief; a deleter or truncator must be closed or must receive a distinct Founder-approved retention/reporting design.
+   - D2/D3 are described as the initial diagnostic batch. The B-04b decision occurs after P1 objects and F1 have shipped. Its Gate-2 precondition therefore needs a fresh, exact post-P1/F1 privilege and writer-closure assertion (or equivalent fail-closed assertions embedded in B-04b), not an old snapshot plus only the later D4 code run.
+   - DEC-3 authorizes removal of the single stale-tab row. The `[DATA]` step changes this to row “id(s)”. It must assert exactly one recorded row and stop on zero or more than one; a retry/double-submit cannot silently broaden the deletion. Its rollback must preserve the complete deleted row and state that restoration is allowed only before B-04b. Once the CHECK exists, restoring the manual/NULL row would itself fail unless B-04b is rolled back first; the phase-aware rollback order belongs in the plan.
+
+4. **B-06a now has the right row kinds and routing, but it still lacks an authorable typed return contract.** Section 8 names `kind`, `label`, `position` and unspecified “flags”; it does not name the SQL types, nullability or exact flag columns, and it omits the `discipline_id` and `is_active` fields that brief B 5.5 requires for a platform choice. F1 cannot store a platform classification from only a label, and an inactive-current row cannot be represented safely by an unnamed flag bag. Define one exact core/wrapper row shape, including platform identity, activity/current/prior flags and action-row nulls, plus the selection semantics of `other_action` (open validated text input) and `general` (write General). The wait-for-auth, session-present/authenticated-wrapper and session-absent/public-wrapper routing is otherwise correct.
+
+5. **B-06c's OPEN decision is not answered by D2/D4 as written, and parts of its contract/tests are internally inconsistent.** The delivered repository definition `docs/database/t001/C-02_FUNCTIONS_study-heatmap-split.sql:34-95` returns one aggregate row per date (`review_count` and time buckets); it has no session, course or subject rows and therefore cannot implement the approved day detail. Live drift must still be measured, but D2 does not explicitly capture the exact current signature/body/owner/security/config/ACL and return columns of `get_study_heatmap_split`, while D4 only finds its call site. Add that capture and decide B-06c from the saved result before authoring. If a new reader is required, specify its `date` parameter and `study_sessions.session_date` semantics, deterministic row order and successful-empty result. A function with no caller-supplied user cannot have a “cross-user attempt” parameter to refuse; instead prove that another user's same-day row is absent, while professor and anonymous calls are refused.
+
+6. **D3/D4 still cannot establish the writer inventory they claim.**
+   - D3 explicitly promises a final UPDATE/DELETE/TRUNCATE classification only for `study_sessions`. B-03, B-04a, B-05 and B-07 also depend on the database-side INSERT/UPDATE/UPSERT/MERGE writer and column sets for `profiles`, `study_sessions`, `flashcards`, `notes` and `access_requests`. Require an output matrix for every target relation and DML kind, with each unresolved dynamic or unreadable path remaining fail-closed; “includes every writer” in prose is not an auditable finish line.
+   - D4 says it uses the same `espree` parser as `scripts/dueSetGuard.mjs` while covering `supabase/functions`. All eight edge-function source files are `.ts`, and several contain TypeScript annotations/interfaces (for example `cron-daily-study-summary/index.ts:30` and `_shared/sendPush.ts:11`) that espree does not parse. The existing binding logic also does not recognize a Supabase client imported from `_shared/supabaseAdmin.ts`, and a split/aliased query builder can escape the direct `.from(...).write(...)` shape. Use a TypeScript-capable parser plus import/alias/callee closure, retain a conservative text/transport lead list, and fail closed on any source or call shape the parser cannot resolve. Until then, D4 cannot support B-05, B-04b or the claimed edge-function closure.
+
+7. **Section 9 still does not assign every incorporated acceptance item correctly.**
+   - Brief B 5.4 / plan-v5's two-log over-limit alias flow is absent from the table. Assign its database, B-06a/F1 and Gate-7 proofs, including explicit reconfirmation and the unchanged profile value.
+   - The display-label tie-breaker is assigned only to B-04a, which creates storage but no catalogue/report reader. The same greatest-(`created_at`, `id`) result must be proved in B-06a's `prior_custom` projection and B-06b's custom report groups.
+   - The “picker's Other” boundary row must name both custom-course and custom-subject entry; brief B applies the common validation rule to both.
+   - Sections 9.3 and 9.4 conflate a failed call with a legitimate successful empty result. A database error must remain an error/neutral UI state; a successfully returned empty set is valid for a new student and needs its own explicit empty-state proof. It must not be described as an error or silently converted into a false zero-filled success.
+
+### Non-blocking findings
+
+1. **The anchor hash still lacks a NULL-safety condition.** The proposed row rendering uses `user_id::text` and `duration_seconds::text` without a NULL encoding. If D2 does not prove both columns non-NULL, concatenation yields NULL and `string_agg` can omit that row. Either make non-nullability an asserted prerequisite or use an unambiguous tagged/length-prefixed NULL encoding; retain `COALESCE(string_agg(...), '')` for the empty set.
+2. **The function privilege table is now substantially complete, but relation ACL traceability is dispersed.** Section 10 correctly covers the previously omitted function security modes, exact-signature rule, `is_admin()` prerequisite, owner-only core and schema-qualified normalizer. For Gate 2, add an explicit cross-reference/table for the exact relation ceilings on the three catalogue tables and the rollback archive, so the Round-2 “every relation, sequence and function” condition is checked from one deterministic inventory rather than inferred from sections 5.1, 9 and plan v5.
+3. **B-06c preservation needs the existing heatmap call shape as well as its SQL body.** If a new day-detail call is added, the exact F2 manifest/RPC-classification update is already required by D4; also prove that `StudyHeatmap.jsx` continues to call `get_study_heatmap_split(uuid, integer)` with its six-column aggregate shape unchanged. The new reader must be additive, not an accidental replacement of the slice-1 baseline.
+4. **The stale-tab observation condition should be explicit at Gate 3.** Section 5.2 says the Founder “accepts or defers” the later refused-log residual. Make the consequence exact: acceptance is a B-04b Gate-3 prerequisite; deferral means the cutover is deferred, not that execution may proceed with an unresolved residual.
+
+### Strengths or confirmed controls
+
+- F0 is now cleanly independent of F1: pre-execution closure, post-execution verification and the separately accepted stale-F0-tab residual are correctly separated; valid outer whitespace is trimmed rather than refused.
+- The B-04b `ACCESS EXCLUSIVE` lock -> embedded invariant check -> `ADD CONSTRAINT` sequence in one transaction closes the install race in design, and the plain-CHECK/stop-and-return principle preserves Gate 1 authority.
+- B-05 now detects the OLD-row conflict first with NULL-safe semantics and refuses every identity edit to it. The normal after-state table covers the reachable seven change subsets in principle and remains reopenable from D3/D4 before authoring.
+- B-06a has one owner-only definition, server-provided action rows, no local reordering, `auth.uid()`-derived overlays and routing only after authentication resolves. The defect is the missing exact row schema, not the wrapper architecture.
+- The function privilege rows now state security mode, safe path, owner/grantees and the live `is_admin()` prerequisite. D1 is sufficiently staged and fail-closed in plan form.
+- The split did not alter Rounds 1 to 8; only its recorded checksum is wrong.
+
+### Residual risks
+
+- No diagnostic SQL, migration, rollback, TEST, data-fix file or frontend diff exists. No PostgreSQL parser, real-role test, concurrent lock test or UI run has verified the plan.
+- B-04b remains conditional on a fresh zero-unresolved writer/privilege closure and a boundary that cannot absorb an uncertain row.
+- Live database and code facts can drift. Every later premise, SQL/data file and frontend diff remains subject to exact-hash review and unchanged raw evidence.
+- The ordinary Git status/diff inconsistency recorded in Round 2 remains an environment limitation; QA continues to use commit/blob and tracked working-file hashes as the read-only backstop.
+
+### Disposition
+
+`REVISION REQUIRED`
+
+Plan v4 closes the F0, B-05 conflict-precedence and high-level wrapper/privilege findings, but it is not yet safe to author from. Correct the false split hash; make S0/F1/S1 one coordinated boundary without an S1 absorption fallback; separate updater from deleter/truncator outcomes and close the one-row data-fix lifecycle; define B-06a's exact row type; resolve B-06c through an explicit live-reader capture; replace the non-TypeScript D4 parser design; and restore the missing acceptance mappings. This is audit advice only and authorizes no diagnostic run, SQL, data deletion, deployment, commit or push.
+
+Handoff: `AWAITING-CLAUDE` — Claude to correct the split-hash record by an append-only note/status edit, revise the complete execution plan and D1-D4 contract against every finding above, publish new exact hashes and return them for one complete QA review before any diagnostic SQL is authored.
+
+---
