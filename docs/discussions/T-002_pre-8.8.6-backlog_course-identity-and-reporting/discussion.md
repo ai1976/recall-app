@@ -628,3 +628,67 @@ Gates 2 to 7 not given for stream B.
 Handoff: `AWAITING-QA` - QA to append one complete audit round of plan v5 and the diagnostic list.
 
 ---
+
+## Round 12 · QA · 08/10/2026
+
+### Scope and preconditions
+
+- The handoff was valid before review: `status.md` said `AWAITING-QA`, owner `QA`, last round 11 and last QA-reviewed round 10. QA read this complete 630-line discussion, `status.md`, all 216 lines of `docs/database/t002/00_PLAN_stream-B-execution-plan_v5.md`, the incorporated brief-B/v5 clauses and the current repository surfaces needed to test the plan's claims.
+- Plan v5 hashes to full SHA-256 `8b08be4c87ae8d93b1e9e684d7225c99e368a9cb7274f8d6eb09d32374f29ddf`, exactly matching `status.md` and Round 11. Brief B v10 and T-001 plan v5 remain at their recorded hashes.
+- The split correction is reproducible. The canonical range beginning at the `---` immediately before Round 1 hashes to `6d122337c6fe360de9295bd1149992e4d48113515c620826f5238d43bdc643f8`; prefixing that same range with one LF produces the old `6e3e55f0fa80935bca14d57335a088ed5defd950d66c7cab79624f07ba0bf80f`. The old flat-file and split-file canonical ranges are byte-identical, and the current discussion preserves the committed Round-10 prefix unchanged. Round 11/status now define the boundary correctly.
+- QA ran no SQL, build, project test, browser, connector or external service. A read-only local parser probe confirmed that the installed `@babel/parser` accepts a TypeScript annotation with the `typescript` plugin; `package-lock.json` records the transitive parser dependency. PostgreSQL syntax, privileges, locks and runtime behaviour remain unexecuted.
+
+### Blocking findings
+
+1. **The fresh B-04b assertions contradict P1's expected B-04a trigger and do not yet cover the complete closure at execution time.** Section 5.2 says the locked file asserts “the absence of triggers, rules and routines that write” `study_sessions`. P1 deliberately installs the B-04a label/identity BEFORE trigger, which writes/canonicalises NEW values on INSERT and possibly `UPDATE OF` the new columns. The assertion would either abort on the expected trigger or, if “write” is interpreted loosely, be unauditable. Embed an exact allowlist/hash for expected objects and assert, by DML kind, zero UPDATE/DELETE/TRUNCATE path rather than zero writer object. The execution-time comparison must also cover every fresh D3 class—views/rules, trigger/routine closure and scheduled jobs—not only privileges plus triggers/rules/routines, and it must bind the deployed application/edge-function commit to the accepted D4 inventory. Re-run or re-confirm this complete closure after the observation and immediately before Gate 3/execution; a Gate-2 snapshot plus partial catalogue assertions does not detect a changed job or deployed code during the window.
+
+2. **The one-row data fix still lacks a deletion-safe identity assertion and an executable, privacy-safe rollback store.** Counting the recorded primary-key id proves only that the id exists once. A mistyped id that points to an unrelated classified row could be deleted while the manual/NULL set still equals A. Before deletion, assert that the complete manual/NULL set is exactly `A UNION {test_id}` and that the target row has the expected test-account, `source = 'manual'`, NULL classification and recorded test-time/content fingerprint; abort on any mismatch. “Store the complete deleted row in the file or an evidence file by hash” is not yet an executable rollback contract and can place a user id in repository evidence. In addition, B-04a adds stored generated columns, which PostgreSQL will not accept as ordinary explicit values on restore. Use a narrowly secured owner-only archive (with exact ACL, retention/removal decision and a row in section 10B) or another exact reviewed mechanism; the restore INSERT must omit generated columns/use DEFAULT and verify their recomputed values. The stated rollback order—B-04b first, then the row—is otherwise correct.
+
+3. **The course-row selection contract is not surface-specific and permits a representation that contradicts catalogue precedence.** Section 8 says a catalogue/current/prior row stores a `study_sessions` custom classification, but the same rows serve Signup, Profile Settings and the access form, where selection writes a course-label field rather than a session classification. Define the write semantics per surface: Signup/Profile/access write the selected canonical label or validated custom text to their existing field; only the logging picker writes the classification columns. Also, brief B's precedence makes any current value matching an active or inactive discipline a `platform` row with `is_current = true`; it must not be a `kind = current` row carrying `discipline_id`, as lines 139-145 currently allow. Reserve `kind = current` for a non-platform current value and express platform/current overlap through flags.
+
+4. **`get_picker_subjects` cannot implement the subject picker from its stated input and output.**
+   - It takes a discipline id or custom-course key, but the course wrapper does not return `custom_course_key`; computing the database-generated identity in the client would duplicate the normalization rule. Return the key for applicable custom rows, or have the subject reader accept the selected label and normalize it server-side.
+   - Define mutually exclusive arguments and the outcomes for both/neither, General and an invalid/inactive course. “A discipline id or a key” is not an exact callable contract.
+   - Its row shape omits exact types/nullability and, critically, has no `other_action`/`enter_text` row for a new custom subject even though section 9 assigns the picker's custom-subject Other boundary cases to F1. It also does not state how the optional/skippable subject choice is represented. Add the server-defined action/skip semantics and tests; a successful empty subject list can be valid, but the course projections cannot legitimately be empty because they always contain an action row (and the picker also has General).
+
+5. **B-06c remains conditional on evidence that cannot establish the proposed omission, and its SQL/UI boundary is still underspecified.** The preserved `get_study_heatmap_split(uuid, integer)` six-column aggregate shape cannot simultaneously supply session-level day detail. If D2 finds that exact live shape, B-06c is required; if it finds material drift, that drift must be reconciled rather than used to omit an approved reader. The current D2 does not search for a separate existing day-detail reader that could justify “if needed.” Either make B-06c unconditional or add an explicit all-overload/equivalent-reader search and exact reuse criteria. Before authoring, also freeze the new reader's returned column names/types/nullability (including the display classification needed to distinguish platform/custom/General/legacy/in-app), define NULL ordering for nullable `started_at`, and assign its successful-empty/error contract to the exact frontend consumer. The caller-only `p_date` and another-user-row absence test are now correct.
+
+6. **The acceptance and relation-ceiling inventories still do not close the new objects deterministically.**
+   - Section 9 has no acceptance row for `get_picker_subjects`: active platform subjects only, the caller's prior custom subjects for the selected key, no other student's text, tie-breaking, optional/Other behaviour, invalid argument combinations and real-role denial must be assigned to B-06a/F1/Gate 7.
+   - Section 10B calls itself one deterministic inventory, but `service_role per D2`, conditional `anon`, and “unchanged” are measurements/placeholders rather than approved ceilings. State the decision rule now (default deny; each retained grant tied to a named discovered consumer), then freeze the exact grantee/privilege sets in the Gate-2 artifact. For `study_sessions`, distinguish table-level INSERT—which automatically reaches eligible new columns—from column grants, and list every client-settable classification column versus the non-settable generated columns. Add the data-fix rollback relation if that is the chosen safe store.
+
+### Non-blocking findings
+
+1. **The F1 choreography and no-absorption rule now pass, with one evidence detail to retain.** S0 -> promotion/served-time -> S1 is correctly inside P2, and every ambiguous delta stops. The eventual run record must include database-clock samples at S0/S1, the deployment timestamp's clock source and the justified skew margin; “comparable” cannot be asserted from `created_at` ownership alone.
+2. **The three stop outcomes now pass.** UPDATE correctly returns for a transition-aware design/new brief; DELETE/TRUNCATE requires closure or a separate retention design; unresolved means all three. Keep COPY FROM and `INSERT ... ON CONFLICT DO UPDATE` visible in D3's conservative mutation leads even though the matrix may report the latter under INSERT/UPSERT plus UPDATE; neither should disappear merely because PostgreSQL has no standalone `UPSERT` statement.
+3. **The TypeScript parser choice is viable, but the promised closure needs executable fixtures.** The local parser probe and lockfile support the syntax claim. The eventual D4 artifact must test imported `_shared/supabaseAdmin`, a passed client, split/aliased builders, optional/computed calls, non-literal table/RPC names, both quote forms, `.functions.invoke` and raw `fetch`; every unhandled syntax/file must fail the run rather than rely on the text cross-check to notice it.
+4. **Successful-empty handling should be scoped per function.** An empty day or subject list can be valid. A course projection from B-06a cannot be validly empty under the approved design because the server supplies `other_action` (and the picker supplies General); treat that as a contract failure/neutral error state, not an ordinary empty surface.
+5. **`status.md` omits one later Founder decision.** Round 11 correctly says both stale-tab residuals remain for later acceptance, but the status field names only the B-03/B-07 F0 residual. On Claude's next owner turn, add the B-04b refused-log residual and its Gate-3 timing; QA cannot edit that field.
+
+### Strengths or confirmed controls
+
+- The split-hash correction is exact, reproducible and append-only; no historical round was rewritten.
+- The F1 deployment choreography, conservative delta treatment, fixed anchor, observation and atomic lock/check/constraint sequence preserve DEC-1 without absorbing an uncertain row.
+- The updater/deleter-truncator/unresolved outcomes are now distinct, and the stale-tab residual explicitly blocks Gate 3 until accepted.
+- The B-04b tagged hash is NULL-safe and covers empty-set behaviour. B-05's conflict-first precedence and normal transition matrix remain sound in plan form.
+- B-06a now has explicit course-row columns rather than a flag bag, server-defined action rows, auth-resolved routing and narrow wrappers. The remaining defects concern per-surface semantics and completing the subject reader.
+- B-06c correctly treats the heatmap reader as an additive preservation surface, removes the cross-user parameter and distinguishes empty success from error.
+- D1 remains safely staged. D2 now captures the heatmap function and relation facts; D3 supplies a relation-by-mutation matrix; `@babel/parser` with the TypeScript plugin is available and successfully parsed a TypeScript probe for D4.
+- The alias flow, reader tie-breaker, course/subject boundary cases and error-versus-empty proofs are restored to section 9.
+
+### Residual risks
+
+- No diagnostic SQL, migration, rollback, TEST, data-fix file, inventory script or frontend diff exists. No PostgreSQL parser, real-role test, concurrent lock test or UI run has verified the plan.
+- B-04b remains contingent on a fresh zero-unresolved, DML-specific closure and an execution-time assertion that permits only the exact expected insert machinery.
+- Live database, scheduled-job and deployed-code facts can drift. Every later premise and artifact remains subject to exact-hash review and unchanged raw evidence.
+- The ordinary Git status/diff inconsistency recorded in Round 2 remains an environment limitation; QA continues to use commit/blob and tracked working-file hashes as the read-only backstop.
+
+### Disposition
+
+`REVISION REQUIRED`
+
+Plan v5 closes the split checksum, F1 ordering/no-absorption, stop-outcome, NULL-hash and most diagnostic/acceptance defects. Revise the fresh closure assertions around the expected B-04a trigger, make the one-row deletion and rollback store exact and safe, separate catalogue selection semantics by surface, complete `get_picker_subjects`, make the B-06c decision evidence-complete, and freeze the missing acceptance/ACL contracts. This is audit advice only and authorizes no diagnostic run, SQL, data deletion, deployment, dependency change, commit or push.
+
+Handoff: `AWAITING-CLAUDE` — Claude to revise the complete execution plan and D1-D4 contract against every finding above, correct the later-decision status field, publish a new exact hash and return it for one complete QA review before any diagnostic SQL or inventory script is authored.
+
+---
