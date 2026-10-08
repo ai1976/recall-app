@@ -961,3 +961,52 @@ Plan v7: `REVISION REQUIRED` for the seven P findings above. The authored files 
 Handoff: `AWAITING-CLAUDE` — revise D-02, D-03, D-04 and the seven P-level plan/DEC-4 contracts, then return new exact hashes for one complete QA review. The Founder decision on DEC-4 remains required after those revisions.
 
 ---
+
+## Round 17 · Claude · 08/10/2026
+**Scope.** Records the Founder's authorization to run D-01; answers QA Round 16 with revised diagnostic files D-02 v2, D-03 v2 and D-04 v2 and with plan v8 (including the DEC-4 removal-ledger design). QA Round 16 was committed unchanged first (`1272651`). **Nothing was run against the database; no stream B gate is requested.**
+
+### A. Founder instructions recorded (chat, 08/10/2026; DECISION)
+1. **"D-01 a018ee859f23 is authorised."** The Founder authorizes running exactly `D-01_DIAGNOSTIC_D1a_subject-mastery-catalogue.sql` at that hash (its two read-only catalogue SELECTs). The file on disk was re-hashed before this round and matches `a018ee859f2396a0148ade85a50dc3d7a5fc17bcf0c8a62d5a427c0d7f31dca2`. It has **not** yet been run; the Founder will run each of its two runs once, paste each result unchanged, and Claude will save them as `docs/discussions/evidence/T-002_D1a-raw_<dd-mm-yyyy>.raw.txt` under QA's conditions (separate and unchanged; any body containing a secret or personal data handled under the evidence rules; a zero-function result, or any lead, dynamic, write or unreadable flag, blocks D1b). This authorizes no D1b and no application-function call.
+2. **"Please write D-02, 03 & 04 as mentioned above."** Done below.
+
+### B. Artifacts and exact hashes (working-file sha256)
+| File (in `docs/database/t002/`) | Short | Full |
+|---|---|---|
+| `00_PLAN_stream-B-execution-plan_v8.md` | `6b3be6ab43a2` | `6b3be6ab43a2c24cc1b11bb4a4b8d415a72e4ab0d78890bb2b33010ae9dfaa6d` |
+| `D-02_DIAGNOSTIC_D2_live-state_v2.sql` | `0f12ba342fa5` | `0f12ba342fa5da6e21765ad6d52baa3c515caebb6b093c2a1a1a7d38fdc04708` |
+| `D-03_DIAGNOSTIC_D3_writer-closure_v2.sql` | `0218d615ba64` | `0218d615ba64808e107c474c90347769c0c47a9c9017c09cb797215924e2a9ec` |
+| `D-04_code-inventory_v2.mjs` | `58865e55b1c6` | `58865e55b1c6e2e3fa21a2f5ccfa304ce60ea118ab67f9fcbbef7fee73fa0da0` |
+| `D-01_DIAGNOSTIC_D1a_subject-mastery-catalogue.sql` (unchanged, authorized) | `a018ee859f23` | `a018ee859f2396a0148ade85a50dc3d7a5fc17bcf0c8a62d5a427c0d7f31dca2` |
+
+### C. Answers to QA Round 16 on the diagnostics
+**D-02 v2** (all three blocking defects): P4 computes EFFECTIVE column privileges (INSERT and UPDATE) on all eight relations for every non-system role and for PUBLIC (counts per role and relation, plus the list of every column-only write path); PUBLIC is an explicit pseudo-role row in every effective matrix; sequences are found through ownership/identity dependencies and through `nextval(...)` defaults, get effective `USAGE`/`SELECT`/`UPDATE` for anon, authenticated, service_role and PUBLIC, and a default that calls `nextval` without a resolvable sequence is listed as UNRESOLVED. `BYPASSRLS` is reported as a row-level-security fact only.
+**D-03 v2** (all five): P1 carries the EVENT KIND (which event on which ancestor reaches the target and whether the target is deleted or updated), with an OID-based cycle guard and a reported depth cap and frontier; P2 lists every non-extension routine containing `EXECUTE`, the identity of every unreadable-language routine and of every non-extension compiled routine, and compiled extension routines by count per extension; P3 follows views transitively and lists every non-`_RETURN` rule with its INSTEAD flag and hash; P4 asserts `cron.job` visibility (`visibility_unresolved` is true unless the running role can see every row); the new P6 captures the callee closure of the signup and delete chains by exact identity, language, security mode, hash, flags and target mentions, with the frontier reported.
+**D-04 v2** (all six): I reproduced the alias miss myself before changing anything (`const alias = q; alias.update(...)` returned no entry and no lead; v1's self-test still passed 16 of 16). v2 follows builder and client aliases to a fixed point, raises a lead for an awaited or filter-chained write on an unresolvable receiver, for a client or builder passed to another call, for a re-exported or exported client, for every `functions.invoke` (bound to the function's file in the repository and to the writes found in it) and for a relative import that does not resolve to a scanned file; it outputs the import graph; it exits **2** when a file is unparsed and **3** when any lead has no recorded disposition (a disposition is an entry with a reason in a JSON file given with `--dispositions`; the script never invents one). Its self-test has 34 expectations (24 fixtures including computed member calls, a non-literal RPC name, a passed client and a builder passed in; 10 unit checks) and passes 34 of 34. A development run over the repository (not evidence, not committed) parsed all 178 files, found no unresolved import, and exited 3 with 73 leads awaiting dispositions, as designed.
+**Parser-level read.** Each revised SQL run was read statement by statement. One defect of mine was caught before hashing: `array_agg` over text arrays of different lengths in D-03 P1 would have raised a dimensionality error (now a string path). A quoting slip while generating D-02 v2 was caught and fixed. There is no database engine, so none of it was executed.
+
+### D. Answers to the plan half (plan v8 section 1)
+P1 a second explicit allowlist exception for the exact account-deletion routine (signature, definition hash) and the exact foreign-key cascade (definition hash, action `c`), DELETE only; P2 a mandatory removal ledger (a BEFORE DELETE trigger recording id, time and pathway fields with no user identity, an owner-only relation) plus a BEFORE TRUNCATE guard, with a stop when the ledger is unavailable or a removal has no ledger row; P3 one defined set assertion SA used by the data fix, the observation, the cutover, the TEST and the report wording, every "equals A" rewritten; P4 `service_role` may keep INSERT and SELECT on a D4-named consumer but never UPDATE, DELETE or TRUNCATE; P5 revised `_v2` files and every dependent branch stated BLOCKED until they pass QA and are run, only D-01 runs now; P6 the edge-function source defect was fixed in `a9d97d0`, D4 runs on the exact commit, the manual-reading fallback is withdrawn; P7 BYPASSRLS is an RLS fact, capability is effective privilege.
+**DEC-4** now carries QA's five binding conditions (exact allowlisted routine and cascade; no other path or lead; mandatory ledger with a stop; SA used consistently; the exception covers nothing else). **QA's audit is not the Founder's approval:** DEC-4 goes to the Founder only after QA has audited this revision.
+
+### E. Self-critique run before hand-off (Round 1 section A)
+Checked against QA Round 16 line by line; plan v8 section 14 lists my own v7 and v1-diagnostic errors. Not measured and not asserted: the live behaviour of the cascade and of `admin_delete_user_data`; whether the removal-ledger trigger is compatible with both account-deletion paths (to be proved in B-04a-TEST); other updaters of `study_sessions`; whether `created_at`/`id` are server-controlled; triggers on `access_requests` and `auth.users`; the signup function's error handling; the notes columns; `is_admin()`; the live `get_study_heatmap_split`; the body of `get_subject_mastery_v1`; the dispositions of the 73 D4 leads.
+
+### F. What QA is asked to do
+1. **Audit `D-02 v2`, `D-03 v2` and `D-04 v2` by exact hash** (a verdict per file; `PASS` or `PASS WITH CONDITIONS` lets the Founder authorize running that exact hash). Please check in particular that every Round 16 defect is closed, that no run can write, and D-04's fixtures against the alias, passed-builder and re-export cases.
+2. **Audit plan v8, classified P or F**, and rule on **DEC-4 as revised** (ledger, TRUNCATE guard, SA, second exception) as a design question before it goes to the Founder.
+
+### G. Hash table and gates
+| Artifact | Short | Status |
+|---|---|---|
+| Brief B v10 | `0fe77dec72dc` | Gate 1 given; unchanged |
+| SQL work plan v5 (T-001) | `6961fb55dd69` | unchanged; inventory incorporated by reference |
+| Stream B plans v1 to v7 | `07a9fd48e4cd` / `9b64afdd6152` / `561ec2d8a375` / `668d6bfe4896` / `8b08be4c87ae` / `6fff5d00e8d8` / `8b1ac4bb0a39` | superseded |
+| Stream B plan v8 | `6b3be6ab43a2` | for QA review; no gate requested |
+| D-01 | `a018ee859f23` | QA `PASS WITH CONDITIONS`; Founder authorized running it; not run |
+| D-02 v2, D-03 v2, D-04 v2 | `0f12ba342fa5` / `0218d615ba64` / `58865e55b1c6` | for QA audit; not run |
+| D-02 v1, D-03 v1, D-04 v1 | `e4e9fdcd6e21` / `6a88bc519299` / `de019cd639fb` | superseded, never run |
+Stream B Gates 2 to 7 not given.
+
+Handoff: `AWAITING-QA` - QA to append one round with the two items of section F.
+
+---
