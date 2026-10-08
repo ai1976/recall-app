@@ -2456,3 +2456,53 @@ For the three v2 files by exact hash: state whether each Round 46 blocker is clo
 Gates 2 to 7 not given for B-02b.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
+
+---
+
+## Round 48 · QA · 08/10/2026
+
+### Scope and preconditions
+
+The Round 47 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 47 and last QA-reviewed round 46. This is Tier 1 round 2 for B-02b. I read the complete Round 47 submission and all three v2 files statement by statement. The supplied short hashes match the exact full SHA-256 values recorded in Round 47 and independently recomputed from disk:
+
+- `B-02b_SCHEMA_catalogue-write-path-and-privileges_v2.sql` — `097e0f3a045312f9a17a8e1a02b20be7a09756f0088c72fed4066376d1ffb26b`.
+- `B-02b_TEST_catalogue-write-path-and-privileges_v2.sql` — `135f68d54db34c2f9555c495f9c271e40886a5549702c719d22af352e5ea7a20`.
+- `B-02b_ROLLBACK_catalogue-write-path-and-privileges_v2.sql` — `9e1a20469231a65acfb8a2a87d6af95e42506891aa533f235ac05baad880e161`.
+
+No SQL, database, browser, build, deployment, Git mutation or external service was run. The repository directory is not a Git work tree in this audit environment, so the Git backstop could not be queried; this does not alter the independent content-hash result.
+
+### Blocking findings
+
+None. No new blocker was introduced by the changed bytes.
+
+Round 46 blocker 1, the unbounded `service_role` catalogue capability, is closed in the submitted v2 set: the schema revokes all eight table privileges from `service_role` on all three catalogue tables, the TEST requires no effective privilege for that role, and the rollback restores the recorded eight-privilege baseline. The D4 evidence cited in Round 47 names no edge-function consumer, so this is consistent with the approved plan ceiling.
+
+Round 46 blocker 2, the name-only preflight, is closed in the submitted v2 set: the schema now binds the complete named B-02a prerequisite set, the complete existing policy rows and expressions by hash, the exact D2 `is_admin()` definition hash, owner and SECURITY DEFINER status, its execute grantees, RLS, table/column/PUBLIC ACL conditions, and the exact starting grants. The TEST also checks the three new policy bodies rather than a substring.
+
+### Non-blocking findings and Gate 2/4 conditions
+
+1. **Policy deparse confirmation.** The TEST compares `pg_policies.qual` and `with_check` to the literal `is_admin()`. PostgreSQL may render a semantically identical expression with surrounding parentheses or schema qualification. This is not a blocker under the Tier 1 definition, but Gate 4 must run the exact file on PostgreSQL 17.6 and preserve the raw result; if the live deparser uses a different spelling, the Founder should require that verification check to be made representation-safe before relying on its PASS result.
+
+2. **Live execution remains required.** These are read as syntactically coherent and hash-bound, but no engine was available here. Gate 2/3 must use the exact schema hash and the stated B-02a/D2 preconditions; Gate 4 must run the exact TEST once in a fresh selection and require every row, including the `service_role` closure, anonymous boundary, admin/student writes, policy expressions and baseline cleanup, to be true.
+
+3. **Rollback proof.** The v2 rollback restores the exact eight table privileges for the three recorded roles and removes only the three v2 policy names. It must be executed as one atomic selection and followed by the stated B-02a TEST plus exact policy/ACL comparison against D2. The rollback text does not itself machine-assert every comparison; that remains a Gate 4 evidence condition, not a new blocker.
+
+4. **Carried scope limits.** The simulated JWT claims plus `SET LOCAL ROLE` checks database RLS and privilege behaviour but do not replace the Founder’s later real Supabase HTTP/BulkUploadTopics acceptance. The schema’s B-02a check binds names, enabled state and count, not function bodies or trigger linkage; B-02a was already live and verified, so this is not a changed-byte blocker for this round.
+
+### Strengths or confirmed controls
+
+- All three exact v2 hashes match Round 47; the v1 files are not under review.
+- The two Round 46 security blockers are closed by matching schema, test and rollback changes.
+- Plain `CREATE POLICY` fails closed on a name collision; bounded lock and statement timeouts remain present.
+- The test materialises one invocation in a temporary result table, exercises effective anonymous and authenticated roles, and nests fixture writes in rollback subtransactions.
+- The rollback explicitly restores `service_role` as well as `anon` and `authenticated`, while preserving the pre-existing policies.
+
+### Reported residuals
+
+Out-of-band owner/superuser changes, inherited privilege changes not represented by the hash-bound baseline, and forged or substituted input files after independent hash binding remain reported residuals. They are not defects in these changed bytes.
+
+### Disposition
+
+`PASS WITH CONDITIONS` for each of the three v2 files. No Round 46 blocker remains and no new blocker was found; the files may go to the Founder for Gate 2, subject to the live execution and rollback evidence conditions above. This is QA advice, not Founder authorization to run or deploy.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 for the three exact v2 hashes.
