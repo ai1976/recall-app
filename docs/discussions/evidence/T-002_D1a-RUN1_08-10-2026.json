@@ -1,0 +1,61 @@
+{
+ "run": "D1a-RUN1",
+ "functions": [
+  {
+   "args": "p_user_id uuid, p_course_level text",
+   "name": "get_subject_mastery_v1",
+   "flags": {
+    "copy": false,
+    "merge": false,
+    "delete": false,
+    "insert": false,
+    "update": false,
+    "ddl_word": false,
+    "truncate": false,
+    "perform_or_call": false,
+    "dynamic_sql_execute": false,
+    "set_config_or_set_role": false
+   },
+   "owner": "postgres",
+   "config": [
+    "search_path=public, extensions"
+   ],
+   "schema": "public",
+   "language": "plpgsql",
+   "volatility": "v",
+   "result_type": "TABLE(subject_id uuid, subject_name text, total_cards bigint, reviewed_count bigint, mastery_pct numeric, due_count bigint)",
+   "execute_grantees": [
+    "authenticated",
+    "postgres",
+    "service_role"
+   ],
+   "security_definer": true,
+   "routine_name_leads": [
+    {
+     "args": "",
+     "name": "is_admin",
+     "schema": "public"
+    }
+   ],
+   "language_unresolved": false,
+   "relation_name_leads": [
+    {
+     "kind": "r",
+     "name": "flashcards",
+     "schema": "public"
+    },
+    {
+     "kind": "r",
+     "name": "reviews",
+     "schema": "public"
+    },
+    {
+     "kind": "r",
+     "name": "subjects",
+     "schema": "public"
+    }
+   ]
+  }
+ ],
+ "function_count": 1
+}

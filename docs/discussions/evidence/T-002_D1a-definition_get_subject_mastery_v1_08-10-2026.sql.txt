@@ -1,0 +1,38 @@
+CREATE OR REPLACE FUNCTION public.get_subject_mastery_v1(p_user_id uuid, p_course_level text DEFAULT NULL::text)
+ RETURNS TABLE(subject_id uuid, subject_name text, total_cards bigint, reviewed_count bigint, mastery_pct numeric, due_count bigint)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions'
+AS $function$
+BEGIN
+  IF p_user_id IS DISTINCT FROM auth.uid() AND NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Access denied: cannot read another user''s data';
+  END IF;
+  RETURN QUERY
+  WITH available_cards AS (
+    SELECT f.id AS card_id, f.subject_id, f.custom_subject
+    FROM flashcards f
+    WHERE (p_course_level IS NULL OR f.target_course = p_course_level)
+      AND (f.visibility = 'public' OR f.user_id = p_user_id)
+      AND COALESCE(f.question_type, 'flashcard') <> 'concept_card'
+  ),
+  latest_reviews AS (
+    SELECT DISTINCT ON (r.flashcard_id) r.flashcard_id, r.quality, r.next_review_date, r.skip_until
+    FROM reviews r WHERE r.user_id = p_user_id AND r.status = 'active'
+    ORDER BY r.flashcard_id, r.created_at DESC
+  )
+  SELECT
+    s.id,
+    COALESCE(s.name, ac.custom_subject, 'Uncategorized'),
+    COUNT(DISTINCT ac.card_id),
+    COUNT(DISTINCT lr.flashcard_id),
+    CASE WHEN COUNT(DISTINCT ac.card_id) = 0 THEN 0
+    ELSE ROUND(COUNT(DISTINCT CASE WHEN lr.quality >= 3 THEN lr.flashcard_id END)::numeric / COUNT(DISTINCT ac.card_id)::numeric * 100, 1) END,
+    COUNT(DISTINCT CASE WHEN lr.next_review_date::date <= CURRENT_DATE AND (lr.skip_until IS NULL OR lr.skip_until < CURRENT_DATE) THEN lr.flashcard_id END)
+  FROM available_cards ac
+  LEFT JOIN subjects s ON s.id = ac.subject_id
+  LEFT JOIN latest_reviews lr ON lr.flashcard_id = ac.card_id
+  GROUP BY s.id, COALESCE(s.name, ac.custom_subject, 'Uncategorized')
+  ORDER BY COUNT(DISTINCT ac.card_id) DESC, COALESCE(s.name, ac.custom_subject, 'Uncategorized');
+END;
+$function$
