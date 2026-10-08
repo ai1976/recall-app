@@ -2747,3 +2747,62 @@ Handoff: `AWAITING-FOUNDER` — Founder to decide the F0 Gate 5 path and the `Ot
 Gates 5, 6, 7 not given.
 
 Handoff: `AWAITING-QA` - QA to append one round answering the request.
+
+---
+
+## Round 61 · QA · 08/10/2026
+
+### Scope and preconditions
+
+The Round 60 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 60 and last QA-reviewed round 59. This is Tier 1 round 2 for the F0 frontend patch. I read the complete Round 60 submission, the v2 index, the saved raw verification record, plan v18 sections 2, 4A and 9, the relevant brief B contract, and every changed byte in the v2 patch statement by statement. The supplied short hash matches the independently recomputed full SHA-256:
+
+- `docs/discussions/T-002_F0_frontend-patch-v2_08-10-2026.patch` — `098a7ebb4b9a5d3a5c2ab2f8b9ebf3cb191a7a7d227ff82901c586d1582dae14`.
+- The saved raw verification file also matches the index prefix `dfaa5809593d` (`DFAA5809593DF732412427DEE9A2FC89372979B062D0DBD2429F0FDB9AD59EC3`).
+
+I did not apply the patch, run the application, run a database, rerun the reported build/tests, use a browser, or mutate Git. The supplied raw record reports Node 24.11.1, the guard result, 188 passing Vitest tests, unchanged ESLint counts and a successful Vite build; those are evidence supplied for review, not executions by QA.
+
+### Blocking findings
+
+None. No new blocker was introduced by the changed bytes. The patch does not introduce data loss or corruption, an outage or failed live write, a security/privacy/privilege escape, an incorrect student-visible number or authorization boundary, or a failed rollback.
+
+### Round 59 finding closure
+
+1. **Reserved `Other` rule — CLOSED.** The v2 validator accepts `Other` as an ordinary typed label, and the access-form test proves that the sent value is `Other`, while `isSelectableCourseName` keeps the dropdown sentinel unambiguous. This now matches plan v18 section 6 and brief B.
+
+2. **Visible blank message — PARTIALLY CLOSED, non-blocking remainder.** Whitespace-only input now produces a visible message in Signup and the access form, and the new tests cover it. An untouched empty access-form field still only leaves the button disabled, with no explanatory message; Signup relies on the browser's required-field message when submission is attempted. The request remains blocked, so this is not a blocker, but the strict 4A wording (“blocked ... with a visible error”) is not fully demonstrated for the empty access case.
+
+3. **Edge control characters — CLOSED.** Validation now scans the original text before trimming, and the helper, Signup and access tests cover edge tabs/newlines and U+2028. Ordinary outer spaces are still trimmed.
+
+4. **Unicode character count — CLOSED.** `Array.from(...).length` counts code points, and the helper test covers 60, 120 and 121 emoji. This aligns the client boundary with PostgreSQL `char_length` for the stated contract.
+
+5. **Existing Signup options bypass — CLOSED in code and test.** `isSelectableCourseName` filters non-text, blank, untrimmed, over-limit, control-character and case variants of `Other` before options are built; the new Signup component test proves the sentinel is the only `Other` value offered. Live data was not read, but no live read is needed to verify this changed-byte path.
+
+6. **Stale due-guard wording — FUNCTIONALLY CLOSED, with a non-blocking comment residue.** The failure message and the old runtime-test title now name all five columns. The unchanged explanatory comments still describe only the original course/question/visibility categories; they do not affect the guard result but should be corrected before future maintenance.
+
+7. **Frontend test coverage — SUBSTANTIALLY CLOSED, non-blocking remainder.** The v2 adds Signup integration coverage, the requested edge and Unicode helper cases, and expanded access-form cases. Profile Settings still has no component test, and the untouched-empty access case is not asserted as a visible explanation. The live Gate 7 paths remain required by plan 4A.
+
+8. **Verification evidence — CLOSED for the Round 59 evidence defect.** The index now points to a saved raw record with a matching hash, tool version, guard result, test counts, lint baseline and build result. The worktree is still described as uncommitted, so Gate 5/6 must bind the exact approved patch to the eventual commit and preserve the final served-build evidence; that is a normal gate condition, not a new defect.
+
+### Non-blocking findings and Gate 5 conditions
+
+- The empty untouched access field should either gain an explanatory visible error or have the 4A wording explicitly interpreted as applying after interaction. The disabled-button safety itself is correct.
+- The unchanged due-set comments should be updated in a later maintenance edit; the exact v2 guard and wrapper behavior are correct.
+- Gate 5 should retain the exact v2 patch hash and the supplied verification record; Gate 7 must still exercise live Signup, Profile Settings and access-request paths, including valid trimmed input, blank/over-limit/control-character rejection, and the `Other` typed-label case.
+
+### Strengths or confirmed controls
+
+- The v2 patch hash is exact, v1 is identified as superseded, and the 11-file scope is explicit.
+- The approved `Other` semantics are restored without reintroducing the dropdown sentinel into submitted access requests.
+- Validation now rejects controls at either edge, counts Unicode code points, trims only ordinary accepted outer whitespace, and never truncates.
+- Existing Signup options are filtered before rendering, and the helper/Signup tests cover the filtering contract.
+- The due wrapper and static guard contain the same five due-relevant flashcard columns; the raw guard run reports all 211 calls classified.
+
+### Reported residuals
+
+The previously disclosed stale-tab residual remains: a tab that has not reloaded since before F0 can submit over-limit or control-character text and receive a database refusal once B-03/B-07 enforce it. Forged or substituted inputs after independent patch hash binding remain reported residuals. They are not defects in the exact v2 bytes.
+
+### Disposition
+
+`PASS WITH CONDITIONS` for the exact v2 patch and the Founder's Gate 5 decision. Every Round 59 blocker classification remains clear; no new blocker was introduced. The only carried code-level condition is the non-blocking empty untouched access-field explanation, plus the stated Gate 5/7 evidence requirements. This is QA advice, not frontend approval or authorization to commit, push or deploy.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 5 for exact patch hash `098a7ebb4b9a`.
