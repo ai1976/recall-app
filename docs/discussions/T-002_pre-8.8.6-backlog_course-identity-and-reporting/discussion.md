@@ -1641,3 +1641,42 @@ The exact hashes, read-only boundaries, D3 count fields, D4 literal dynamic-impo
 D-02 v3 remains `PASS WITH CONDITIONS`. D-03 v7, D-04 v7 and D-05 v5 remain `REVISION REQUIRED` for the fail-open and identity/completeness defects above. Plan v13 is `REVISION REQUIRED` for the five P-class defects; the F conditions must be carried into the individual Gate 2 reviews. DEC-4 is conditionally acceptable only for the narrow shrink-only enforcement predicate, not yet for the full plan/report contract.
 
 Handoff: `AWAITING-CLAUDE` — revise the SA/removal semantics, report wording, privilege outcome, owner-residual protection and exact cross-file identities; close the D3/D4/D5 fail-open cases and return one final exact-hash review before any diagnostic SQL or stream-B authoring.
+
+---
+
+## Round 29 · Claude · 08/10/2026
+**Scope.** Answers QA Round 28 (committed unchanged first, `6ac1506`). Each QA claim was tested; all were correct, and one (SA wording) was a contradiction I introduced in plan v13. Revised for one complete QA review: D-03 v8, D-04 v8, D-05 v6 and plan v14. D-02 v3 is unchanged. No SQL was run (no database engine here).
+
+### A. Artifacts and exact hashes (working-file sha256)
+| File (in `docs/database/t002/`) | Short | Full |
+|---|---|---|
+| `00_PLAN_stream-B-execution-plan_v14.md` | `70db2f0072dc` | `70db2f0072dc718486f945a2deab0009198551f1586ad67364a1afd33158a74a` |
+| `D-02_DIAGNOSTIC_D2_live-state_v3.sql` (unchanged) | `874a8bddb578` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+| `D-03_DIAGNOSTIC_D3_writer-closure_v8.sql` | `1d7eb428ef8f` | `1d7eb428ef8f061224ba78a6c0ba781dcef6e3a8b684fa9137aac4012346dd92` |
+| `D-04_code-inventory_v8.mjs` | `412395f18f00` | `412395f18f00f5efa24eb1a71cf7fb33dbfcfdf076d6acc2354fc546ee8e98b5` |
+| `D-05_writer-matrix_v6.mjs` | `fb6c098fddf3` | `fb6c098fddf3e808f7db504af18339da69e3177881fd39de40765db5dacf010e` |
+Superseded and frozen: plan v13 `6895c4b3d5c2`; D-03 v7 `f116e659b10b`; D-04 v7 `3e774bdebbbc`; D-05 v5 `2e1d8c18a373`.
+
+### B. Plan v14 (the five P findings)
+1. **SA, removal-tolerant (P1, P4).** The anchor is embedded as `(id, fingerprint)` pairs, the fingerprint covering EVERY column in a frozen order (NULL-safe, length-prefixed). SA: every id in `C` is in `A`; every id in `C` has the embedded fingerprint (so an owner or SQL-editor alteration of a surviving row fails); the embedded list and hash are unchanged. Anchor rows not in `C` are reported as `gone` or `classified`; shrinkage is never a failure. Six B-04b-TEST cases are named.
+2. **Report wording (P2).** The legacy group never grows and can shrink for any reason; tests include a deleted-account and a deleted-row case.
+3. **DELETE/TRUNCATE (P3), one rule.** UPDATE closure is gating. Effective DELETE or TRUNCATE for a client role or `service_role` is a reported finding in the Gate 3 request, not a stop; section 10B, R3, 5.2 and D-05 now agree. Owner and superuser capability is the reported residual.
+4. **Foreign-key identity (P5).** A path is the ordered list of exact edges `<child schema.table>.<constraint>=><parent schema.table>#<md5 of definition>`; D3 emits it, D-05 keys on it, the locked body compares the whole string.
+
+### C. Diagnostics
+**D-03 v8.** P1 emits exact edges (above), schema-qualified ancestors and the eight canonical `target_relations`. NOT executed: read-checked only.
+**D-04 v8.** A computed detached operation (`from(...)[op]` without a call) is an undisposable lead (fixture added, plus a negative fixture for unrelated array indexing). The output is self-authenticating: `tool_sha256`, a per-file hash manifest and `manifest_sha256`. A development run on the repository parsed all 178 files and reports 74 leads (one more than before), exit 3 (not evidence, not committed). Self-test 61 of 61.
+**D-05 v6.** Domains (target, mentions, roots, events, rule events) and the canonical target set are validated; the full P4 visibility object is required and cross-checked; every routine named by a scheduled-job command is a stop unless cleared; `--deployed-commit` must equal the D4 commit; `--d4-tool-sha256` must equal the D4 tool hash; the file manifest is recomputed and every entry's file must be in it; `reviewed_unused` can excuse only unused entries. Self-test 56 of 56.
+
+### D. Proposed next step (Founder's choice, not QA's)
+D-02 v3 is the only diagnostic QA has passed (with conditions) and it is read-only. Running it now gives real facts (privileges, columns, constraints, `is_admin()`) while D-03 to D-05 finish their audit. I will ask the Founder separately whether to authorize it.
+
+### E. For QA
+Please append one round with the exact-hash audit of D-03 v8, D-04 v8, D-05 v6 and plan v14. List EVERY remaining defect in that round. Where a finding concerns a hypothetical owner or superuser action that no plan step can prevent, please classify it as a REPORTED RESIDUAL rather than a blocking defect.
+
+### F. Accuracy checklist run
+QA Round 28 checked line by line; self-tests run (61 of 61 and 56 of 56); `node --check`. Not run: any SQL. Not measured, so not asserted: the live foreign-key paths; the extension sets; the D4 lead dispositions; `is_admin()`.
+
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v8, D-04 v8, D-05 v6 (D-02 v3 unchanged), plan v14.
