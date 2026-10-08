@@ -2265,3 +2265,46 @@ Please append one round: for the six v2 files by exact hash, state whether each 
 Gates 2 to 7 not given for stream B.
 
 Handoff: `AWAITING-QA` - QA to append one round answering E.
+
+---
+
+## Round 42 · QA · 08/10/2026
+
+### Scope and preconditions
+
+The Round 41 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 41 and last QA-reviewed round 40. This is Tier 1 round 2. I read the complete current discussion, Round 41 section A to E, the approved Tiered checking instructions, the plan change log, `CURRENT.md`, and all six v2 files. No SQL, database, browser, build, deployment, Git mutation or external service was run. All six supplied hashes match the full SHA-256 values in Round 41.
+
+### Round 40 blocker closure
+
+1. **B-01 rollback order — CLOSED.** Both B-01 v2 rollback text and B-02a v2 rollback text now give the dependency-safe reverse order `B-06a, B-05, B-04a, B-07, B-03, B-02b, B-02a, B-01`. B-01 v2 drops the resolver, the shared catalogue-label function, then the normalizer, so each function dependency is removed first.
+
+2. **B-02a to B-02b TRUNCATE exposure — CLOSED for the changed rollout.** B-02a v2 adds `fn_guard_disciplines_no_truncate()` and the statement-level `BEFORE TRUNCATE` trigger before B-02b's privilege revocation. The test exercises the same guard function on a temporary table and checks the trigger bits, while B-02b remains defence in depth. The prior exposed interval is no longer an unguarded catalogue-destruction path.
+
+### NEW blockers introduced by changed bytes
+
+**None found.** The v2 changes do not introduce a data-loss, outage/lock, security/privacy/privilege-escape, student-visible correctness, or rollback blocker.
+
+### Per-file verdicts and non-blocking conditions
+
+| File | Verdict | Conditions carried to Gate 2 |
+|---|---|---|
+| B-01 functions v2 | **PASS WITH CONDITIONS** | Run the exact file only after confirming the three names are absent; run B-01 TEST and retain all true rows, exact ACL/owner/collation details, and the raw result hash. B-06a must call `course_catalogue_labels()` and not copy its six literals. |
+| B-01 TEST v2 | **PASS WITH CONDITIONS** | Execute as one rollback-only selection; stop on SQL error or any false row. Its exact ACL and catalog checks are useful evidence, but no database engine has run this review. |
+| B-01 ROLLBACK v2 | **PASS WITH CONDITIONS** | Use only after dependent files, including B-02b, are rolled back in the listed order; the intentional non-CASCADE drops must be allowed to fail closed on a remaining dependency. |
+| B-02a schema v2 | **PASS WITH CONDITIONS** | B-01 must already be present and passed. Execute as one transaction so `SET LOCAL lock_timeout = 5s` and `statement_timeout = 30s` apply. B-02b must still revoke catalogue write/TRUNCATE privileges and preserve the admin path. |
+| B-02a TEST v2 | **PASS WITH CONDITIONS** | Run the complete rollback-only test and retain every row. The TRUNCATE behavioural proof uses a temporary table because the live catalogue has foreign-key dependencies; the catalog trigger-bit and ACL checks must also pass. |
+| B-02a ROLLBACK v2 | **PASS WITH CONDITIONS** | Run before B-01 rollback and after B-02b/dependent objects; retain the exact reverse-order evidence and stop on any unexpected dependency. |
+
+Remaining items are non-blocking Gate 2 or later conditions, not new blockers: the real authenticated-admin/BulkUpload path belongs to B-02b; the service-role UPDATE closure and `created_at` delta rule remain mandatory before B-04b; and the Tier 0 evidence tuple is now complete in the evidence record. The `d::text` full-row snapshot is materially stronger than v1 but remains rollback-test evidence rather than a cryptographic production invariant. Owner/superuser out-of-band actions and forged/substituted inputs after independent hash binding remain reported residuals.
+
+### Strengths
+
+The v2 files are byte-identified, fail closed on pre-existing function/trigger/index objects, add the shared enumerable catalogue source, add bounded B-02a lock waits, install and test the TRUNCATE guard, correct the complete rollback order, and expand catalog/ACL/snapshot checks. No changed-byte blocker was found.
+
+### Disposition
+
+`PASS WITH CONDITIONS`
+
+All Round 40 blockers are closed, and no new blocker was introduced. The six files may proceed to the Founder for Gate 2 consideration under the per-file conditions above. This QA disposition is not Founder authorization to execute, deploy, commit or push.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide whether to grant Gate 2 for the six exact v2 files, subject to the listed conditions.
