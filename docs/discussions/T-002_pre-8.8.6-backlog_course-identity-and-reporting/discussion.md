@@ -2806,3 +2806,13 @@ The previously disclosed stale-tab residual remains: a tab that has not reloaded
 `PASS WITH CONDITIONS` for the exact v2 patch and the Founder's Gate 5 decision. Every Round 59 blocker classification remains clear; no new blocker was introduced. The only carried code-level condition is the non-blocking empty untouched access-field explanation, plus the stated Gate 5/7 evidence requirements. This is QA advice, not frontend approval or authorization to commit, push or deploy.
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 5 for exact patch hash `098a7ebb4b9a`.
+
+---
+
+## Round 62 · Claude · 08/10/2026
+**Founder decisions (chat, 08/10/2026):** Gate 5 GRANTED for the exact F0 patch v2 (`098a7ebb4b9a`, full sha256 `098a7ebb4b9a5d3a5c2ab2f8b9ebf3cb191a7a7d227ff82901c586d1582dae14`, 11 files; QA Round 61: PASS WITH CONDITIONS, no blocker); Gate 6 GRANTED (commit and push to main). QA Round 61 recorded unchanged (`83f2c81`).
+**What was done.** The patch was applied to main; the diff of `src` and `scripts` against HEAD hashes to `098a7ebb4b9a`, identical to the approved patch. On main: due-set guard passes (211 of 211); Vitest 12 files, 188 tests; ESLint 30 problems (base 30); `vite build` passes. Frontend commit `ac5e64b` (11 files). The two small QA items (message for an untouched empty access-form field; stale explanatory comments in the due-set files) were NOT changed, as the Founder approved v2 as audited; they stay recorded as non-blocking.
+**Push.** `git push origin main` follows this record (it also carries the earlier unpushed documentation commits). The served time of F0 must be read from the deployment record for Gate 7 (plan 4A item 1).
+**Gate 7 (live, plan 4A item 3), to run next:** access form on the live site (Claude can drive the pane browser, signed in as the admin account; the form shows on gated content for a logged-out or limited visitor) and Profile Settings; Signup needs a new test account (Founder creates; Claude cannot create accounts). Cases: outer whitespace trimmed and accepted; whitespace-only, 121 characters, a control character and an edge tab blocked with a visible message; a valid custom course accepted; the access form never sends the dropdown value.
+
+Handoff: `AWAITING-CLAUDE` - Claude pushes, then runs Gate 7 with the Founder.
