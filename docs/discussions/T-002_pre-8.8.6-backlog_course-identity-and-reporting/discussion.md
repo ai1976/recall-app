@@ -1964,3 +1964,62 @@ QA Round 34 checked line by line; self-tests 68 of 68 and 78 of 78; `node --chec
 Gates 2 to 7 not given for stream B.
 
 Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-04 v11, D-05 v9, plan v17 (D-03 v10 unchanged and authorized to run), including the question of B.4.
+
+---
+
+## Round 36 · QA · 08/10/2026
+
+### Scope and preconditions
+
+The Round 35 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 35 and last QA-reviewed round 34. I read the complete Round 35 response, this complete discussion record, D-04 v11, D-05 v9, plan v17, and the unchanged D-03 v10 and D-02 v3 evidence references. The supplied short hashes match these full SHA-256 values:
+
+| Artifact | Full SHA-256 |
+|---|---|
+| `D-04_code-inventory_v11.mjs` | `21773ccd38fa5eefa31dacb8909456c35a018386e8cdf7993cd2a6f627f0d4a9` |
+| `D-05_writer-matrix_v9.mjs` | `7045b6aa38fd99cde7f7bd66b7c6a13c29b7c3abc39839944b8d50c0efe798c6` |
+| `00_PLAN_stream-B-execution-plan_v17.md` | `734d83b7b71c7a7b8636fd12338bf939778f7b94b5d52bd61a31622a20837412` |
+| unchanged `D-03_DIAGNOSTIC_D3_writer-closure_v10.sql` | `6a3984a752f2e168e8ea296d503cf1276b56fa31dd4475189f001ff45d9f9820` |
+| unchanged `D-02_DIAGNOSTIC_D2_live-state_v3.sql` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+
+`node --check` passed for D-04 and D-05; their self-tests passed 68/68 and 78/78. Read-only probes reproduced a D-05 duplicate direct-code lead id and a depth-two ancestor-event/action mismatch that v9 accepts. I ran no SQL, database, browser, build, deployment or external service. D-04/D-05 write only explicitly requested report files; D-03 is read-only SQL by its stated statement boundary.
+
+### B.4 ruling: must the facts encoding be in SQL before D-03 evidence is usable?
+
+**Yes for final evidence and any D-05/Gate-2 clearance; no only for a provisional diagnostic run.** D-03 v10 still computes `facts_sha256` with the old `concat_ws('|', ...)` expression, while plan v17 defines a different length-prefixed encoding as the final contract. A raw v10 result can be run and retained as provisional evidence, but it must not be used to clear a routine, populate the final allowlist or authorize B-04b. The Founder should either (a) run v10 now only with an explicit “provisional/old encoding” label and repeat the affected P2/P4 (or all six for one tool version) after D-03 v11 contains the final encoding, or (b) wait for v11 and run only the final hash. The final SQL expression and a delimiter-containing fixture must be present before the D3 evidence is considered usable by D-05.
+
+### Blocking findings
+
+1. **[F, D-05, blocking] Matrix direct-code lead IDs are still not site-unique.** v9 keys the allowlist correctly on `e.site|table|op|enclosing function`, but the emitted lead remains `id: file:line`. Two distinct same-line writes therefore appear as duplicate leads in the material matrix even though their allowlist keys differ. The stop keys are site-specific, but the evidence presented to the reviewer is not. Emit `id: e.site` (and use it in all code-writer diagnostics) and add a fixture asserting two same-line leads have different matrix ids.
+
+2. **[F, D-05, blocking] Depth-greater-than-one action validation ignores the ancestor event.** For `pe.length > 1`, v9 builds one set from both `on_delete` and `on_update` and accepts any producible result. A synthetic continuous depth-two path with `ancestor_event = UPDATE`, first edge `on_delete = c`, `on_update = a`, and `target_result = DELETE` passes `validateInputs`, although an ancestor UPDATE cannot produce the DELETE result. The check must choose the applicable action from `ancestor_event` at every depth (and require UPDATE for an UPDATE event); add both DELETE and UPDATE depth-two mismatch fixtures. A forged/substituted D3 row exploiting this is a **REPORTED RESIDUAL** after hash binding, but the missing semantic check is a real file defect.
+
+3. **[P, D-03/D-05, blocking for evidence use] The plan's final facts-hash contract and the authorized SQL hash disagree.** Plan v17 calls the length-prefixed encoding final while its only authorized D-03 artifact still emits the delimiter-joined encoding. The plan must explicitly mark the v10 run provisional and block D-05 clearance use, or issue D-03 v11 and repeat the run(s). Leaving both as “authorized” and “final” makes the evidence contract non-reproducible.
+
+### Non-blocking findings and later Gate-2 conditions
+
+1. **D-04 v11 — PASS WITH CONDITIONS after the matrix identity fix.** `assignSites` correctly adds `<file>:<line>#<n>` to write entries, same-line fixtures pass, and `leadId` is no longer exported. However, `writes_in_that_function` and `tables[*].write[*].sites` still render only `file:line`, dropping `#n`; those summaries cannot uniquely corroborate the site-complete `entries` list. Include the site in every derived summary or state that only `entries` is authoritative. Gate 2 still requires the real invoked edge-function closure run, exact deployed commit, clean roots, closure files, all leads/dispositions, parse-stop handling and raw output hash.
+
+2. **D-05 v9 — REVISION REQUIRED for findings 1–2.** The site schema, facts-bearing clearance keys, all-depth test claim, complete `result_sha256`, `bundle_sha256`, visibility checks and input hash binding are present. Its header comments still show the old file-level code-writer and routine sink key formats, while the implementation uses site and facts fields; correct those comments before handing the script to an operator. Gate 2 must run the exact v9 script on real D3/D4 output, exercise `--expect` success/mismatch/missing paths, record every input/tool/raw/matrix/bundle hash, compare deployment SHA, and prove all non-advisory cells.
+
+3. **[F, D-05, semantic identity condition] Direct-FK matching uses only `edge_id`.** Once a path's first edge string matches, v9 does not independently check the matched direct-FK row's `child`, `parent`, `constraint` and definition hash against the parsed edge. A faulty producer can therefore pair a correct-looking edge id with inconsistent direct-FK metadata. Cross-check the component fields and add a contradictory-row fixture. If this can arise only from a forged/substituted input after hash binding, that input case is a **REPORTED RESIDUAL**; the producer-consistency check remains a Gate-2 condition.
+
+4. **[F, D-05, result/bundle checks]** The expanded result and bundle hashes are now structurally appropriate, but no real matrix run exists. Gate 2 must verify that the saved bundle includes the exact D-05 script hash, every expected input hash, deployed commit, expected D4 tool hash and result hash, and that the raw output is the bytes whose bundle was recorded.
+
+5. **Other Gate-2 conditions retained.** D-02 needs all five raw cells, effective privileges, ACL-derived PUBLIC, every-role sequence checks and hard stops. D-03 needs six final-encoding raw cells with complete identity sets/counts. B-04b still needs frozen SA columns/types and tests for empty, NULL, added, removed, altered and same-id rows, fresh closure immediately before execution, the concurrent-insert test or Founder acceptance of the documented `NOT COVERED` residual, F1 stale-tab acceptance, B-06a concrete projections/types, D1b and all 10B ceilings.
+
+### Reported residuals
+
+- After independent expected hashes, raw-output hashes and exact script hashes are frozen, any forged, substituted, subset or edited input file or matching expected-hash record is a **REPORTED RESIDUAL**, not a blocking defect. The same classification applies to a fabricated manifest or direct-FK row that can only arrive through such a substituted input.
+- Owner/superuser out-of-band deletion, truncation, DDL, constraint disablement or mutation outside the observed run remains a reported operational residual under simplified DEC-4.
+
+### Strengths or confirmed controls
+
+The exact hashes match; D-04 site assignment and D-05 result/bundle hashing are materially improved; self-tests and syntax checks pass; D-03 v10 remains read-only and Founder-authorized to run. These are not Gate 2, production-execution or deployment approvals.
+
+### Disposition
+
+`REVISION REQUIRED`
+
+D-03 v10 is **not yet final evidence** under the final plan contract: its diagnostic run may be retained provisionally, but the length-prefixed facts encoding must be implemented in SQL and the affected run(s) repeated before D-05 clearance use. D-04 v11 is `PASS WITH CONDITIONS`; D-05 v9 is `REVISION REQUIRED` for duplicate matrix IDs and ancestor-event/action handling. Plan v17 is `REVISION REQUIRED` for permitting the old-encoding D3 evidence to remain both authorized and final. Forged/substituted inputs after hash binding are reported residuals.
+
+Handoff: `AWAITING-CLAUDE` — put the final facts encoding in D-03 SQL (or explicitly quarantine v10 as provisional), make D-05 matrix ids site-unique, select FK actions by ancestor event at every depth, cross-check direct-FK components, correct stale key comments, and return the final D3 evidence plus real D4/D5 runs.
