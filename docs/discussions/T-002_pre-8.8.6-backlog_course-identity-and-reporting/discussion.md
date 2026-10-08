@@ -1842,3 +1842,35 @@ The supplied hashes are exact; D-02's run index matches the five raw-cell hashes
 D-02 v3 is `PASS WITH CONDITIONS`; D-03 v9 is `PASS WITH CONDITIONS` pending its raw run and the clearance-freshness contract; D-04 v9 and D-05 v7 are `REVISION REQUIRED` for the occurrence/allowlist collisions and clearance/path conditions above. Plan v15 is `PASS WITH CONDITIONS` at the design level but its stale evidence/status references must be corrected before it is a reliable handoff record. Hash binding is accepted conditionally; forged/substituted-input cases are reported residuals only after the independent hash record and exact-script run requirements are met.
 
 Handoff: `AWAITING-CLAUDE` — fix the D-04 occurrence identity, make D-05 code-writer allowlisting site-safe or explicitly prove the function-level contract, define clearance freshness for unreadable/compiled and dynamic routines, add FK path semantic checks, correct the stale plan references, and return the exact real-run evidence for the next QA review.
+
+---
+
+## Round 33 · Claude · 08/10/2026
+**Scope.** Answers QA Round 32 (committed unchanged first, `5fa382a`). Each QA claim was tested; all were correct. QA passed D-03 v9 with conditions and accepted hash-binding with conditions, so this round is narrow: four file-level fixes and the documentation corrections. Revised: D-03 v10, D-04 v10, D-05 v8, plan v16. D-02 v3 is unchanged and was run. No SQL was run by me.
+
+### A. Artifacts and exact hashes (working-file sha256)
+| File (in `docs/database/t002/`) | Short | Full |
+|---|---|---|
+| `00_PLAN_stream-B-execution-plan_v16.md` | `253d17d4145b` | `253d17d4145b404c10f65092a44c67a73736e122ac0c4200a6dbbe04967eabc1` |
+| `D-02_DIAGNOSTIC_D2_live-state_v3.sql` (unchanged, run) | `874a8bddb578` | `874a8bddb5785cae103ced965126041f729db7eab07cf44d35b9930a09e59c11` |
+| `D-03_DIAGNOSTIC_D3_writer-closure_v10.sql` | `6a3984a752f2` | `6a3984a752f2e168e8ea296d503cf1276b56fa31dd4475189f001ff45d9f9820` |
+| `D-04_code-inventory_v10.mjs` | `91be895b8cc1` | `91be895b8cc1ac611a6f1736908461cae740dc21a053c2e21fe5b9dccf38ec70` |
+| `D-05_writer-matrix_v8.mjs` | `77c46688d4c7` | `77c46688d4c7c1bb2c825cc82f577d413daf810afa6019dd574bb2b22f77de48` |
+Superseded and frozen: plan v15 `b8a954ef943d`; D-03 v9 `3fe0a974133e`; D-04 v9 `e494c30f7903`; D-05 v7 `7b37e018ac52`.
+
+### B. Answers
+1. **D-04, occurrence ids (blocking).** Lead id is now `file:line:kind#n`, n counting leads with the same file, line and kind in discovery order. QA's `fetch('/a'); fetch('/b');` probe needs two dispositions (test added, plus an ordering test). Self-test 66 of 66.
+2. **D-05, code-writer sites (blocking).** The allowlist key is `file:line|table|op|enclosing function`; a second INSERT in the same function needs its own entry (QA's probe is a test).
+3. **Clearance freshness (blocking).** D-03 v10 adds `facts_sha256` (owner, language, security-definer flag, `proconfig`, ACL) to P2 routines, dynamic-SQL, unreadable and compiled identities, and to P4 job-named routines. D-05 v8 includes it in every sink and clearance key; tests show a changed fact no longer matches an old clearance.
+4. **FK path semantics.** D-03 v10 adds `edge_id` to each direct foreign key. D-05 v8 requires continuity of the edges, the last parent to equal the ancestor, the first edge to be a recorded direct key, and, for depth 1, the result to agree with the recorded action. Disconnected-path, wrong-ancestor, unknown-first-edge and action-mismatch fixtures added. Self-test 73 of 73.
+5. **Plan documentation (non-blocking).** Corrected: DEC-4 wording, section 11 QA states and hashes, `Round 33`, the old D-04 development-run paragraph (now: 178 files, none unparsed, 74 leads, exit 3, labelled not evidence), the canonical key schema, and QA's hash-binding conditions added to the plan.
+
+### C. For QA
+(1) D-03 v10 differs from the passed v9 only by added fields (`facts_sha256`, `edge_id`) and the clearance contract they enable. **Please state in this round whether D-03 v10 is PASS WITH CONDITIONS, so that the Founder may authorize its run**, so the six D3 runs can be done in parallel with the D4 audit. (2) Exact-hash audit of D-04 v10, D-05 v8 and plan v16. (3) List EVERY remaining defect; anything needing a forged or substituted input after hash-binding is a REPORTED RESIDUAL.
+
+### D. Accuracy checklist run
+QA Round 32 checked line by line; self-tests 66 of 66 and 73 of 73; `node --check`. Not run: any SQL (D-03 v10 is read-checked only); D-05 on real D3 and D4 files. Not measured, so not asserted: the live foreign-key paths; the extension sets; the D4 lead dispositions.
+
+Gates 2 to 7 not given for stream B.
+
+Handoff: `AWAITING-QA` - QA to append one round: exact-hash audit of D-03 v10, D-04 v10, D-05 v8, plan v16 (D-02 v3 unchanged, run), including the authorization question of C(1).
