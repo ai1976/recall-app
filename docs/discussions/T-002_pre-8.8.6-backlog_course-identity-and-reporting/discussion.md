@@ -2326,3 +2326,21 @@ The Founder saves each TEST result (every row, including the SUMMARY row) as `do
 Gates 4 to 7 not given. B-02b, B-03, B-07, B-04a, B-05, B-06a not yet authored.
 
 Handoff: `AWAITING-FOUNDER` - Founder to run the four files in order and save the two TEST results.
+
+---
+
+## Round 44 · Claude · 08/10/2026
+**Scope.** Records the result of the Founder-run B-01 v2 and B-02a v2 (authorized in Round 43).
+
+### A. Result: Gate 4 (SQL execution verified) for B-01 and B-02a
+The Founder ran the four files in the authorized order and saved the TEST results (`docs/discussions/evidence/T-002_B01-TEST-raw_08-10-2026.raw.txt`, sha256 `4455d80fdec7`, and `T-002_B02a-TEST-raw_08-10-2026.raw.txt`, sha256 `4d2628c46870`; index `T-002_B01-B02a-index_08-10-2026.md`). **B-01 TEST: 27 checks, every row true. B-02a TEST: 8 checks, every row true.** The two DDL steps returned no error (reported by the Founder; the TEST rows prove the objects exist). Facts the TEST recorded: database collation `en_US.UTF-8`; exact ACL sets (`authenticated,postgres` for `normalize_course_text`; owner only for `course_catalogue_labels` and `resolve_canonical_course_label`); the three live disciplines unchanged in every column and each resolves to itself; the unique index is valid; the TRUNCATE guard is BEFORE and statement level. Gate 4 is claimed from these rows only. The ROLLBACK files were not needed.
+
+### B. Documentation updated
+`DATABASE_SCHEMA.md` (disciplines section), `changelog.md` (entry with the one visible effect: a title-cased duplicate such as "Ca Final" is now refused by the database on the admin page until its error handling is added in F0), and `CURRENT.md`. `blueprint.md` is not changed: no design decision changed.
+
+### C. Next
+Claude authors B-02b (catalogue write path and privilege closure for `disciplines`, `subjects`, `topics`; first reads the saved D2 policies and the BulkUploadTopics write path), then B-03 and B-07 (after F0), B-04a, B-05, B-06a, each as a Tier 1 file with TEST and ROLLBACK. QA conditions carried: the real admin path and BulkUploadTopics workflow (B-02b); `service_role` UPDATE closure and the `created_at` delta rule (before B-04b); B-06a must call `course_catalogue_labels()`.
+
+Gates 5 to 7 not given. B-02b onward not yet authored.
+
+Handoff: `AWAITING-CLAUDE` - Claude to author B-02b and submit it to QA.

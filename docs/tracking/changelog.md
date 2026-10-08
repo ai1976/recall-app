@@ -1,6 +1,18 @@
 # Changelog
 
 ---
+## [08/10/2026] feat(db): T-002 B-01 and B-02a live - course-text functions and disciplines guards (no data change, no screen depends on them yet)
+
+### Added
+- `normalize_course_text`, `course_catalogue_labels`, `resolve_canonical_course_label` (B-01 v2); unique normalized-name index and no-rename, no-delete, no-TRUNCATE guards on `disciplines` (B-02a v2). Verified by the Founder-run TEST files: 27 and 8 checks, all true.
+
+### Visible effect
+- The admin page BulkUploadTopics can no longer create a title-cased duplicate such as "Ca Final"; the database refuses it (23505) and the page shows a database error until its error handling is added (F0).
+
+### Files Changed
+`docs/database/t002/B-01_*_v2.sql`, `docs/database/t002/B-02a_*_v2.sql`, `docs/reference/DATABASE_SCHEMA.md`, `docs/discussions/evidence/T-002_B01-B02a-index_08-10-2026.md`
+
+---
 ## [08/10/2026] fix(edge): reword a header comment in cron-daily-study-summary that ended the block comment early
 
 ### Changed
