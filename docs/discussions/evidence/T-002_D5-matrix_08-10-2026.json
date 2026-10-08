@@ -1,0 +1,2029 @@
+{
+ "advisory": {
+  "note": "P6 is an advisory over-approximation; it neither clears nor blocks",
+  "p6_closure_size": 11,
+  "p6_frontier_edges": 0
+ },
+ "bundle_sha256": "791dde1dde97caf36497e7648c3491286189da5999b762c0d0a8e873ff6024f4",
+ "cells": {
+  "access_requests": {
+   "COPY": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "DELETE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "INSERT": {
+    "leads": [
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.approve_educator_application(p_request_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "384cd73f8a36861450c21876174fea7a"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.link_access_request(p_ref_token uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "c6781752dabdc097f88ee2e2d201c373"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.reject_educator_application(p_request_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "d09f9c37be02d41c53acfe76439fab5c"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.submit_access_request(p_name text, p_whatsapp_number text, p_course text, p_email text, p_content_id uuid, p_content_type text, p_content_name text, p_requester_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "c706a32995675b7fdbd23319119311b9"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.submit_educator_application(p_full_name text, p_whatsapp_number text, p_credential_or_linkedin text, p_email text, p_institute_name text, p_course text, p_why text, p_requester_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "f6e4864a58a84a62b72f38c8f485caa4"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.submit_institute_inquiry(p_institute_name text, p_contact_name text, p_whatsapp_number text, p_email text, p_city text, p_course text, p_message text, p_requester_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "41325ac5add126889d7cfb55d58a8411"
+     }
+    ],
+    "status": "leads"
+   },
+   "MERGE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "TRUNCATE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "UPDATE": {
+    "leads": [
+     {
+      "id": "src/pages/admin/AdminDashboard.jsx:304#1",
+      "key": "src/pages/admin/AdminDashboard.jsx:304#1|access_requests|update|updateAccessRequestStatus",
+      "payload_keys": [
+       "status"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     },
+     {
+      "example_path": "public.access_requests.access_requests_requester_user_id_fkey=>public.profiles#4d26151b14287e61043f0564b2fcc09f > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+      "id": "auth.users:DELETE->UPDATE",
+      "min_depth": 2,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.access_requests.access_requests_requester_user_id_fkey=>public.profiles#4d26151b14287e61043f0564b2fcc09f",
+      "id": "public.profiles:DELETE->UPDATE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.approve_educator_application(p_request_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "384cd73f8a36861450c21876174fea7a"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.link_access_request(p_ref_token uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "c6781752dabdc097f88ee2e2d201c373"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.reject_educator_application(p_request_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "d09f9c37be02d41c53acfe76439fab5c"
+     }
+    ],
+    "status": "leads"
+   },
+   "UPSERT": {
+    "leads": [],
+    "status": "none_found"
+   }
+  },
+  "disciplines": {
+   "COPY": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "DELETE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "INSERT": {
+    "leads": [
+     {
+      "id": "src/pages/admin/BulkUploadTopics.jsx:216#1",
+      "key": "src/pages/admin/BulkUploadTopics.jsx:216#1|disciplines|insert|handleCreateCourse",
+      "payload_keys": [
+       "name",
+       "code"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     }
+    ],
+    "status": "leads"
+   },
+   "MERGE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "TRUNCATE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "UPDATE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "UPSERT": {
+    "leads": [],
+    "status": "none_found"
+   }
+  },
+  "flashcards": {
+   "COPY": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "DELETE": {
+    "leads": [
+     {
+      "id": "src/lib/dueSet.js:166#1",
+      "key": "src/lib/dueSet.js:166#1|flashcards|delete|deleteFlashcard",
+      "source": "code"
+     },
+     {
+      "id": "src/lib/dueSet.js:171#1",
+      "key": "src/lib/dueSet.js:171#1|flashcards|delete|deleteFlashcards",
+      "source": "code"
+     },
+     {
+      "example_path": "public.flashcards.flashcards_user_id_fkey=>auth.users#85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+      "id": "auth.users:DELETE->DELETE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_delete_user_data(p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "ae3b842921b30c3593d2b8f024590945"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.fn_cleanup_orphan_batch_provenance()",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "108f684841e0f2e2941a59d596dd8b2a"
+     }
+    ],
+    "status": "leads"
+   },
+   "INSERT": {
+    "leads": [
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.add_batch_to_my_cards(p_user_id uuid, p_flashcard_ids uuid[])",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "650b411a427e2abca5e61301b6b314fe"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.add_to_my_cards(p_user_id uuid, p_flashcard_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "2539e36a4c165228aa228784997094bb"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_delete_user_data(p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "ae3b842921b30c3593d2b8f024590945"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.apply_review(p_user_id uuid, p_flashcard_id uuid, p_rating text, p_is_correct boolean, p_source text, p_selected_answer jsonb)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "a8cddd0dd7700a8673fc6ce50c8c1eb8"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.create_flashcard_batches(p_source_type text, p_source_name text, p_batches jsonb, p_creation_channel text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "542a2687717116b5288cbc78dcc3c56c"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.create_notification(p_user_id uuid, p_type text, p_actor_id uuid, p_target_type text, p_target_id uuid, p_message text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "b0c1ce635501b187ba357a476694c6e1"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.invite_to_group(p_group_id uuid, p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "add934004a3ddb22bd792fe694c3e77c"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.log_practice_attempt(p_user_id uuid, p_flashcard_id uuid, p_is_correct boolean)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "af13597c73087438fa172cbe3874c2d2"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.skip_topic_cards(p_user_id uuid, p_topic_id uuid, p_custom_topic text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "55a6ed70a092ced80dea94d3bf3be2fd"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.submit_content_flag(p_content_type text, p_content_id uuid, p_reason text, p_details text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "184cbeebe9aca55f691a5e71e6b3b84f"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.suspend_topic_cards(p_user_id uuid, p_topic_id uuid, p_custom_topic text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "cc16d70649c9fb94e28aab36eed059a4"
+     }
+    ],
+    "status": "leads"
+   },
+   "MERGE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "TRUNCATE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "UPDATE": {
+    "leads": [
+     {
+      "id": "src/lib/dueSet.js:195#1",
+      "key": "src/lib/dueSet.js:195#1|flashcards|update|updateFlashcardsByBatch",
+      "payload_keys": [],
+      "payload_resolved": false,
+      "source": "code"
+     },
+     {
+      "id": "src/lib/dueSet.js:202#1",
+      "key": "src/lib/dueSet.js:202#1|flashcards|update|updateFlashcardVisibility",
+      "payload_keys": [
+       "visibility"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     },
+     {
+      "id": "src/lib/dueSet.js:207#1",
+      "key": "src/lib/dueSet.js:207#1|flashcards|update|updateFlashcardsVisibility",
+      "payload_keys": [
+       "visibility"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     },
+     {
+      "id": "src/pages/dashboard/Content/MyFlashcards.jsx:335#1",
+      "key": "src/pages/dashboard/Content/MyFlashcards.jsx:335#1|flashcards|update|MyFlashcards",
+      "payload_keys": [
+       "front_text",
+       "back_text"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     },
+     {
+      "id": "src/pages/dashboard/Content/MyFlashcards.jsx:626#1",
+      "key": "src/pages/dashboard/Content/MyFlashcards.jsx:626#1|flashcards|update|executeMerge",
+      "payload_keys": [
+       "batch_id",
+       "batch_description"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     },
+     {
+      "example_path": "public.flashcards.flashcards_contributed_by_fkey=>public.profiles#70f943e32c11716060670ce313d5ecfa > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+      "id": "auth.users:DELETE->UPDATE",
+      "min_depth": 2,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.flashcards.flashcards_creator_id_fkey=>public.profiles#7ffa2f8c4fb6eb8b99f0aee36fe50652 > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+      "id": "auth.users:DELETE->UPDATE",
+      "min_depth": 2,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.flashcards.flashcards_note_id_fkey=>public.notes#b4386154462bcb611a1484da4ac9e8cc > public.notes.notes_user_id_fkey=>auth.users#85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+      "id": "auth.users:DELETE->UPDATE",
+      "min_depth": 2,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.flashcards.flashcards_deck_id_fkey=>public.flashcard_decks#f9cd489f1f4612740e4c87a02364174b > public.flashcard_decks.flashcard_decks_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4 > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+      "id": "auth.users:DELETE->UPDATE",
+      "min_depth": 3,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.flashcards.flashcards_deck_id_fkey=>public.flashcard_decks#f9cd489f1f4612740e4c87a02364174b",
+      "id": "public.flashcard_decks:DELETE->UPDATE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.flashcards.flashcards_note_id_fkey=>public.notes#b4386154462bcb611a1484da4ac9e8cc",
+      "id": "public.notes:DELETE->UPDATE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.flashcards.flashcards_contributed_by_fkey=>public.profiles#70f943e32c11716060670ce313d5ecfa",
+      "id": "public.profiles:DELETE->UPDATE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.flashcards.flashcards_creator_id_fkey=>public.profiles#7ffa2f8c4fb6eb8b99f0aee36fe50652",
+      "id": "public.profiles:DELETE->UPDATE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.flashcards.flashcards_deck_id_fkey=>public.flashcard_decks#f9cd489f1f4612740e4c87a02364174b > public.flashcard_decks.flashcard_decks_user_id_fkey=>public.profiles#f52ea365e97de6e8cafd675b03a940e4",
+      "id": "public.profiles:DELETE->UPDATE",
+      "min_depth": 2,
+      "source": "foreign_key"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.add_batch_to_my_cards(p_user_id uuid, p_flashcard_ids uuid[])",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "650b411a427e2abca5e61301b6b314fe"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.add_to_my_cards(p_user_id uuid, p_flashcard_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "2539e36a4c165228aa228784997094bb"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_delete_user_data(p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "ae3b842921b30c3593d2b8f024590945"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.apply_review(p_user_id uuid, p_flashcard_id uuid, p_rating text, p_is_correct boolean, p_source text, p_selected_answer jsonb)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "a8cddd0dd7700a8673fc6ce50c8c1eb8"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.skip_topic_cards(p_user_id uuid, p_topic_id uuid, p_custom_topic text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "55a6ed70a092ced80dea94d3bf3be2fd"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.submit_content_flag(p_content_type text, p_content_id uuid, p_reason text, p_details text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "184cbeebe9aca55f691a5e71e6b3b84f"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.suspend_topic_cards(p_user_id uuid, p_topic_id uuid, p_custom_topic text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "cc16d70649c9fb94e28aab36eed059a4"
+     }
+    ],
+    "status": "leads"
+   },
+   "UPSERT": {
+    "leads": [
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.add_batch_to_my_cards(p_user_id uuid, p_flashcard_ids uuid[])",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "650b411a427e2abca5e61301b6b314fe"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.add_to_my_cards(p_user_id uuid, p_flashcard_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "2539e36a4c165228aa228784997094bb"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.skip_topic_cards(p_user_id uuid, p_topic_id uuid, p_custom_topic text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "55a6ed70a092ced80dea94d3bf3be2fd"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.suspend_topic_cards(p_user_id uuid, p_topic_id uuid, p_custom_topic text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "cc16d70649c9fb94e28aab36eed059a4"
+     }
+    ],
+    "status": "leads"
+   }
+  },
+  "notes": {
+   "COPY": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "DELETE": {
+    "leads": [
+     {
+      "id": "src/lib/dueSet.js:176#1",
+      "key": "src/lib/dueSet.js:176#1|notes|delete|deleteNote",
+      "source": "code"
+     },
+     {
+      "example_path": "public.notes.notes_user_id_fkey=>auth.users#85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+      "id": "auth.users:DELETE->DELETE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_delete_note(p_note_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "018a67ad10d7872728e0dd35debc8a34"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_delete_user_data(p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "ae3b842921b30c3593d2b8f024590945"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.fn_update_upvotes_counter()",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "e43127b279d732ba117a1df624151de1"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.toggle_upvote(p_content_type text, p_target_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "82dc6709c78a64eb0d9c7d11138625c1"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.update_upvote_counts()",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "db1bcc954ac13cac734b7ab1f438d14e"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "dashboard_user",
+       "postgres",
+       "service_role",
+       "supabase_realtime_admin"
+      ],
+      "id": "realtime.apply_rls(wal jsonb, max_record_bytes integer)",
+      "security_definer": false,
+      "source": "routine",
+      "src_md5": "5d7c08428b259b87336d4a362800f051"
+     }
+    ],
+    "status": "leads"
+   },
+   "INSERT": {
+    "leads": [
+     {
+      "id": "src/pages/dashboard/Content/NoteUpload.jsx:349#1",
+      "key": "src/pages/dashboard/Content/NoteUpload.jsx:349#1|notes|insert|handleSubmit",
+      "payload_keys": [
+       "user_id",
+       "contributed_by",
+       "target_course",
+       "title",
+       "description",
+       "subject_id",
+       "topic_id",
+       "custom_subject",
+       "custom_topic",
+       "content_source_type",
+       "content_source_name",
+       "image_url",
+       "content_type",
+       "extracted_text",
+       "tags",
+       "visibility"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_delete_note(p_note_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "018a67ad10d7872728e0dd35debc8a34"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_delete_user_data(p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "ae3b842921b30c3593d2b8f024590945"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.fn_badge_check_upvotes()",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "fe9f4898569a8e34f6c0451ee71ea1e1"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.fn_update_upvotes_counter()",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "e43127b279d732ba117a1df624151de1"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.invite_to_group(p_group_id uuid, p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "add934004a3ddb22bd792fe694c3e77c"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.submit_content_flag(p_content_type text, p_content_id uuid, p_reason text, p_details text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "184cbeebe9aca55f691a5e71e6b3b84f"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.toggle_upvote(p_content_type text, p_target_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "82dc6709c78a64eb0d9c7d11138625c1"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.update_upvote_counts()",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "db1bcc954ac13cac734b7ab1f438d14e"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "dashboard_user",
+       "postgres",
+       "service_role",
+       "supabase_realtime_admin"
+      ],
+      "id": "realtime.apply_rls(wal jsonb, max_record_bytes integer)",
+      "security_definer": false,
+      "source": "routine",
+      "src_md5": "5d7c08428b259b87336d4a362800f051"
+     }
+    ],
+    "status": "leads"
+   },
+   "MERGE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "TRUNCATE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "UPDATE": {
+    "leads": [
+     {
+      "id": "src/pages/dashboard/Content/NoteEdit.jsx:368#1",
+      "key": "src/pages/dashboard/Content/NoteEdit.jsx:368#1|notes|update|handleSubmit",
+      "payload_keys": [
+       "title",
+       "description",
+       "target_course",
+       "subject_id",
+       "topic_id",
+       "custom_subject",
+       "custom_topic",
+       "content_type",
+       "extracted_text",
+       "tags",
+       "visibility",
+       "image_url",
+       "updated_at"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     },
+     {
+      "example_path": "public.notes.notes_contributed_by_fkey=>public.profiles#70f943e32c11716060670ce313d5ecfa > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+      "id": "auth.users:DELETE->UPDATE",
+      "min_depth": 2,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.notes.notes_featured_approved_by_fkey=>public.profiles#58325636af030f015fe3d96e28ecc26c > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+      "id": "auth.users:DELETE->UPDATE",
+      "min_depth": 2,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.notes.notes_featured_nominated_by_fkey=>public.profiles#89772889d95e816c7c7a8a36e360f3b2 > public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+      "id": "auth.users:DELETE->UPDATE",
+      "min_depth": 2,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.notes.notes_contributed_by_fkey=>public.profiles#70f943e32c11716060670ce313d5ecfa",
+      "id": "public.profiles:DELETE->UPDATE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.notes.notes_featured_approved_by_fkey=>public.profiles#58325636af030f015fe3d96e28ecc26c",
+      "id": "public.profiles:DELETE->UPDATE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.notes.notes_featured_nominated_by_fkey=>public.profiles#89772889d95e816c7c7a8a36e360f3b2",
+      "id": "public.profiles:DELETE->UPDATE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_delete_note(p_note_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "018a67ad10d7872728e0dd35debc8a34"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_delete_user_data(p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "ae3b842921b30c3593d2b8f024590945"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.approve_featured_nomination(p_content_type text, p_content_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "f784c86d5668e55666f6bda89ce4406c"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.fn_update_upvotes_counter()",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "e43127b279d732ba117a1df624151de1"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.nominate_featured_content(p_content_type text, p_content_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "72c8a80c13fb10ab77427342570fd358"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.reject_featured_nomination(p_content_type text, p_content_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "5e71df3009804e301346718572828d10"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.submit_content_flag(p_content_type text, p_content_id uuid, p_reason text, p_details text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "184cbeebe9aca55f691a5e71e6b3b84f"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.unfeature_content(p_content_type text, p_content_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "0248d22450e2fd1c559afd3eac3970e0"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.update_upvote_counts()",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "db1bcc954ac13cac734b7ab1f438d14e"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "dashboard_user",
+       "postgres",
+       "service_role",
+       "supabase_realtime_admin"
+      ],
+      "id": "realtime.apply_rls(wal jsonb, max_record_bytes integer)",
+      "security_definer": false,
+      "source": "routine",
+      "src_md5": "5d7c08428b259b87336d4a362800f051"
+     }
+    ],
+    "status": "leads"
+   },
+   "UPSERT": {
+    "leads": [
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.fn_update_upvotes_counter()",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "e43127b279d732ba117a1df624151de1"
+     }
+    ],
+    "status": "leads"
+   }
+  },
+  "profiles": {
+   "COPY": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "DELETE": {
+    "leads": [
+     {
+      "example_path": "public.profiles.profiles_id_fkey=>auth.users#0061c9fb3a9abcf2edbcd4a42467a9c3",
+      "id": "auth.users:DELETE->DELETE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_delete_user_data(p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "ae3b842921b30c3593d2b8f024590945"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.toggle_upvote(p_content_type text, p_target_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "82dc6709c78a64eb0d9c7d11138625c1"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.unassign_professor_from_batch(p_group_id uuid, p_professor_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "31833250b07b95b60dbea9ad91e1151d"
+     }
+    ],
+    "status": "leads"
+   },
+   "INSERT": {
+    "leads": [
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_bulk_add_to_batch(p_group_id uuid, p_user_ids uuid[])",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "aadd6be2451c67bdc3ac736f53fbf8b6"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_change_role(p_user_id uuid, p_new_role text, p_reason text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "7d1e01b29eb760cde9a66d96e18c9e06"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_delete_user_data(p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "ae3b842921b30c3593d2b8f024590945"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_grant_access(p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "da3e4c600b818adf3e02aaaf1933927e"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_reactivate_user(p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "dd376df87a7fb8e2a773893ca165ca3f"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_suspend_user(p_user_id uuid, p_reason text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "3223c14d90a0c9ae01227003ba9ea4a4"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.apply_review(p_user_id uuid, p_flashcard_id uuid, p_rating text, p_is_correct boolean, p_source text, p_selected_answer jsonb)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "a8cddd0dd7700a8673fc6ce50c8c1eb8"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.approve_educator_application(p_request_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "384cd73f8a36861450c21876174fea7a"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.assign_professor_to_batch(p_group_id uuid, p_professor_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "a2714ac210b19aaa6c3629e7c7f946d8"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.create_notification(p_user_id uuid, p_type text, p_actor_id uuid, p_target_type text, p_target_id uuid, p_message text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "b0c1ce635501b187ba357a476694c6e1"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.enroll_user_in_batch_group(p_user_id uuid, p_group_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "d1fe1b317a752fc4ed211aedb4e72bfd"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.fn_create_profile_on_signup()",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "87e8af032d1d7f527a6b081fb8cd5e2e"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.fn_sync_profile_email_from_auth()",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "fc2e1073827dbdd2303c8e5c039360a8"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.follow_user(p_followee_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "c727177ec56709fe4ffc0a05c81c53bc"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.invite_to_group(p_group_id uuid, p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "add934004a3ddb22bd792fe694c3e77c"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.join_group_by_token(p_token uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "cb50183aea4157359bfae3500f363dd4"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.link_access_request(p_ref_token uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "c6781752dabdc097f88ee2e2d201c373"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.log_practice_attempt(p_user_id uuid, p_flashcard_id uuid, p_is_correct boolean)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "af13597c73087438fa172cbe3874c2d2"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.log_review_activity(p_user_id uuid, p_review_timestamp timestamp with time zone)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "3f3f6c768255f76b6b3cb22c28e9ae85"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.reject_educator_application(p_request_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "d09f9c37be02d41c53acfe76439fab5c"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.skip_card(p_user_id uuid, p_flashcard_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "af64a679958af8ddee35853898ac60ac"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.submit_access_request(p_name text, p_whatsapp_number text, p_course text, p_email text, p_content_id uuid, p_content_type text, p_content_name text, p_requester_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "c706a32995675b7fdbd23319119311b9"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.submit_content_flag(p_content_type text, p_content_id uuid, p_reason text, p_details text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "184cbeebe9aca55f691a5e71e6b3b84f"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.submit_educator_application(p_full_name text, p_whatsapp_number text, p_credential_or_linkedin text, p_email text, p_institute_name text, p_course text, p_why text, p_requester_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "f6e4864a58a84a62b72f38c8f485caa4"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.submit_institute_inquiry(p_institute_name text, p_contact_name text, p_whatsapp_number text, p_email text, p_city text, p_course text, p_message text, p_requester_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "41325ac5add126889d7cfb55d58a8411"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.toggle_upvote(p_content_type text, p_target_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "82dc6709c78a64eb0d9c7d11138625c1"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.unassign_professor_from_batch(p_group_id uuid, p_professor_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "31833250b07b95b60dbea9ad91e1151d"
+     }
+    ],
+    "status": "leads"
+   },
+   "MERGE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "TRUNCATE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "UPDATE": {
+    "leads": [
+     {
+      "id": "src/contexts/ExamDateContext.jsx:74#1",
+      "key": "src/contexts/ExamDateContext.jsx:74#1|profiles|update|saveExamDate",
+      "payload_keys": [
+       "exam_date",
+       "exam_month"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     },
+     {
+      "id": "src/contexts/ExamDateContext.jsx:90#1",
+      "key": "src/contexts/ExamDateContext.jsx:90#1|profiles|update|dismissPrompt",
+      "payload_keys": [
+       "has_dismissed_exam_prompt"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     },
+     {
+      "id": "src/lib/dueSet.js:146#1",
+      "key": "src/lib/dueSet.js:146#1|profiles|update|updateProfileDueFields",
+      "payload_keys": [],
+      "payload_resolved": false,
+      "source": "code"
+     },
+     {
+      "id": "src/pages/Dashboard.jsx:503#1",
+      "key": "src/pages/Dashboard.jsx:503#1|profiles|update|handleDismissOnboarding",
+      "payload_keys": [
+       "has_seen_onboarding"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     },
+     {
+      "id": "src/pages/Dashboard.jsx:520#1",
+      "key": "src/pages/Dashboard.jsx:520#1|profiles|update|handleDismissGoalPrompt",
+      "payload_keys": [
+       "has_dismissed_goal_prompt"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_bulk_add_to_batch(p_group_id uuid, p_user_ids uuid[])",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "aadd6be2451c67bdc3ac736f53fbf8b6"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_change_role(p_user_id uuid, p_new_role text, p_reason text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "7d1e01b29eb760cde9a66d96e18c9e06"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_delete_user_data(p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "ae3b842921b30c3593d2b8f024590945"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_grant_access(p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "da3e4c600b818adf3e02aaaf1933927e"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_reactivate_user(p_user_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "dd376df87a7fb8e2a773893ca165ca3f"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_suspend_user(p_user_id uuid, p_reason text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "3223c14d90a0c9ae01227003ba9ea4a4"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.apply_review(p_user_id uuid, p_flashcard_id uuid, p_rating text, p_is_correct boolean, p_source text, p_selected_answer jsonb)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "a8cddd0dd7700a8673fc6ce50c8c1eb8"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.approve_educator_application(p_request_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "384cd73f8a36861450c21876174fea7a"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.approve_featured_nomination(p_content_type text, p_content_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "f784c86d5668e55666f6bda89ce4406c"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.assign_professor_to_batch(p_group_id uuid, p_professor_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "a2714ac210b19aaa6c3629e7c7f946d8"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.enroll_user_in_batch_group(p_user_id uuid, p_group_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "d1fe1b317a752fc4ed211aedb4e72bfd"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.fn_sync_profile_email_from_auth()",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "fc2e1073827dbdd2303c8e5c039360a8"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.join_group_by_token(p_token uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "cb50183aea4157359bfae3500f363dd4"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.link_access_request(p_ref_token uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "c6781752dabdc097f88ee2e2d201c373"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.log_review_activity(p_user_id uuid, p_review_timestamp timestamp with time zone)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "3f3f6c768255f76b6b3cb22c28e9ae85"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.nominate_featured_content(p_content_type text, p_content_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "72c8a80c13fb10ab77427342570fd358"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.reject_educator_application(p_request_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "d09f9c37be02d41c53acfe76439fab5c"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.reject_featured_nomination(p_content_type text, p_content_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "5e71df3009804e301346718572828d10"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.skip_card(p_user_id uuid, p_flashcard_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "af64a679958af8ddee35853898ac60ac"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.submit_content_flag(p_content_type text, p_content_id uuid, p_reason text, p_details text)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "184cbeebe9aca55f691a5e71e6b3b84f"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.unassign_professor_from_batch(p_group_id uuid, p_professor_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "31833250b07b95b60dbea9ad91e1151d"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.unfeature_content(p_content_type text, p_content_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "0248d22450e2fd1c559afd3eac3970e0"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.unsuspend_card(p_user_id uuid, p_flashcard_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "fafee68cd68941b1e21e07e0ed8e9c87"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.update_daily_goal(p_review_goal integer, p_study_goal_minutes integer)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "a9d7f217fa595fb185ab6b73eabd0fc9"
+     }
+    ],
+    "status": "leads"
+   },
+   "UPSERT": {
+    "leads": [
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.admin_bulk_add_to_batch(p_group_id uuid, p_user_ids uuid[])",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "aadd6be2451c67bdc3ac736f53fbf8b6"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.enroll_user_in_batch_group(p_user_id uuid, p_group_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "d1fe1b317a752fc4ed211aedb4e72bfd"
+     },
+     {
+      "grantees": [
+       "PUBLIC",
+       "anon",
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.join_group_by_token(p_token uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "cb50183aea4157359bfae3500f363dd4"
+     },
+     {
+      "grantees": [
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.log_review_activity(p_user_id uuid, p_review_timestamp timestamp with time zone)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "3f3f6c768255f76b6b3cb22c28e9ae85"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.skip_card(p_user_id uuid, p_flashcard_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "af64a679958af8ddee35853898ac60ac"
+     }
+    ],
+    "status": "leads"
+   }
+  },
+  "study_sessions": {
+   "COPY": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "DELETE": {
+    "leads": [
+     {
+      "example_path": "public.study_sessions.study_sessions_user_id_fkey=>auth.users#85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+      "id": "auth.users:DELETE->DELETE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     }
+    ],
+    "status": "leads"
+   },
+   "INSERT": {
+    "leads": [
+     {
+      "allowlisted": true,
+      "id": "src/contexts/StudyTimerContext.jsx:214#1",
+      "key": "src/contexts/StudyTimerContext.jsx:214#1|study_sessions|insert|StudyTimerProvider",
+      "payload_keys": [
+       "user_id",
+       "started_at",
+       "ended_at",
+       "duration_seconds",
+       "session_date",
+       "source",
+       "category"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     },
+     {
+      "allowlisted": true,
+      "id": "src/lib/studyTracker.js:120#1",
+      "key": "src/lib/studyTracker.js:120#1|study_sessions|insert|persistRecord",
+      "payload_keys": [
+       "user_id",
+       "started_at",
+       "ended_at",
+       "duration_seconds",
+       "session_date",
+       "source",
+       "session_id"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     }
+    ],
+    "status": "leads"
+   },
+   "MERGE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "TRUNCATE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "UPDATE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "UPSERT": {
+    "leads": [],
+    "status": "none_found"
+   }
+  },
+  "subjects": {
+   "COPY": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "DELETE": {
+    "leads": [
+     {
+      "example_path": "public.subjects.subjects_discipline_id_fkey=>public.disciplines#533d1ad72eec2e67f4b62c9e85ed87f7",
+      "id": "public.disciplines:DELETE->DELETE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.toggle_upvote(p_content_type text, p_target_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "82dc6709c78a64eb0d9c7d11138625c1"
+     }
+    ],
+    "status": "leads"
+   },
+   "INSERT": {
+    "leads": [
+     {
+      "id": "src/pages/admin/BulkUploadTopics.jsx:632#1",
+      "key": "src/pages/admin/BulkUploadTopics.jsx:632#1|subjects|insert|uploadTopics",
+      "payload_keys": [
+       "discipline_id",
+       "name",
+       "is_active",
+       "order_num"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     },
+     {
+      "grantees": [
+       "authenticated",
+       "postgres",
+       "service_role"
+      ],
+      "id": "public.toggle_upvote(p_content_type text, p_target_id uuid)",
+      "security_definer": true,
+      "source": "routine",
+      "src_md5": "82dc6709c78a64eb0d9c7d11138625c1"
+     }
+    ],
+    "status": "leads"
+   },
+   "MERGE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "TRUNCATE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "UPDATE": {
+    "leads": [
+     {
+      "id": "src/pages/admin/BulkUploadTopics.jsx:654#1",
+      "key": "src/pages/admin/BulkUploadTopics.jsx:654#1|subjects|update|uploadTopics",
+      "payload_keys": [
+       "order_num"
+      ],
+      "payload_resolved": true,
+      "source": "code"
+     }
+    ],
+    "status": "leads"
+   },
+   "UPSERT": {
+    "leads": [],
+    "status": "none_found"
+   }
+  },
+  "topics": {
+   "COPY": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "DELETE": {
+    "leads": [
+     {
+      "example_path": "public.topics.topics_subject_id_fkey=>public.subjects#b9421fb5d68dfe555c138710486bb954 > public.subjects.subjects_discipline_id_fkey=>public.disciplines#533d1ad72eec2e67f4b62c9e85ed87f7",
+      "id": "public.disciplines:DELETE->DELETE",
+      "min_depth": 2,
+      "source": "foreign_key"
+     },
+     {
+      "example_path": "public.topics.topics_subject_id_fkey=>public.subjects#b9421fb5d68dfe555c138710486bb954",
+      "id": "public.subjects:DELETE->DELETE",
+      "min_depth": 1,
+      "source": "foreign_key"
+     }
+    ],
+    "status": "leads"
+   },
+   "INSERT": {
+    "leads": [
+     {
+      "id": "src/pages/admin/BulkUploadTopics.jsx:691#1",
+      "key": "src/pages/admin/BulkUploadTopics.jsx:691#1|topics|insert|uploadTopics",
+      "payload_keys": [],
+      "payload_resolved": false,
+      "source": "code"
+     }
+    ],
+    "status": "leads"
+   },
+   "MERGE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "TRUNCATE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "UPDATE": {
+    "leads": [],
+    "status": "none_found"
+   },
+   "UPSERT": {
+    "leads": [],
+    "status": "none_found"
+   }
+  }
+ },
+ "d4_commit": "d17ea869a5798dc6dd74118d051ad6529fcdd947",
+ "d4_manifest_sha256": "bbc4aa2eba30f681144977e231cb14d12a9bf3ccba1edcc4a7fe3a18b276fbf0",
+ "global_unresolved": [],
+ "inputs": {
+  "allowlist": {
+   "file": "docs/discussions/evidence/T-002_D5-allowlist_08-10-2026.json",
+   "sha256": "7cbacf30ba453e58f453280e45a4f3c28fd0bb277b20c51d6ae6da438f27bc50"
+  },
+  "clearances": {
+   "file": "docs/discussions/evidence/T-002_D5-clearances_08-10-2026.json",
+   "sha256": "81ba7e79588923935dc444a28f0d3c900fd033e88d14beed18da611e14eb72ea"
+  },
+  "d4": {
+   "file": "docs/discussions/evidence/T-002_D4-final_08-10-2026.json",
+   "sha256": "e926e95356db8d1c1bf65d011b3afe939c9f9dc7ec367fde4b4b6eea58f2bc90"
+  },
+  "d4_tool_sha256": "0d248d1ead36a47a2737a3f2a7c202620144fad31a31cc0d3537c48f993479aa",
+  "deployed_commit": "d17ea869a5798dc6dd74118d051ad6529fcdd947",
+  "p1": {
+   "file": "docs/discussions/evidence/T-002_D3-P1_08-10-2026.json",
+   "sha256": "6b38b52b34b435a800083780e8f13269a963ae1a95a2dc44c175f60ce8eabccd"
+  },
+  "p2": {
+   "file": "docs/discussions/evidence/T-002_D3-P2_08-10-2026.json",
+   "sha256": "97a86208c70b19b4ef1f26225454629af939a84bf932622bebc3a02ee323fea7"
+  },
+  "p3": {
+   "file": "docs/discussions/evidence/T-002_D3-P3_08-10-2026.json",
+   "sha256": "72b71acb87ab70320e912e8243c87a62d0ce67cb340fe1a48fd3ac203c023858"
+  },
+  "p4": {
+   "file": "docs/discussions/evidence/T-002_D3-P4_08-10-2026.json",
+   "sha256": "f215c2435db7b3f7c37aecc1beb96a063d7cd07853776957e1a0e6cd4ceeb109"
+  },
+  "p5": {
+   "file": "docs/discussions/evidence/T-002_D3-P5_08-10-2026.json",
+   "sha256": "8c47a44d95b623c13336687cca1de1ecb5b817367409f41385e5f729eb15afb9"
+  },
+  "p6": {
+   "file": "docs/discussions/evidence/T-002_D3-P6_08-10-2026.json",
+   "sha256": "06fa3d93f3d6b3116f4ee908c6c299e44fbb8394a3c258e1fc4613ca378e78cd"
+  }
+ },
+ "result_sha256": "ca0683aa78f65ccd9f2547ca411245985d8d905fc52c80e7b83118087bccff1c",
+ "script_sha256": "8d03c4af4a560c6d97f4baa3a179745bbc94ab651029a960acf649a766f9bdd6",
+ "tool": "D-05_writer-matrix_v11.mjs"
+}
