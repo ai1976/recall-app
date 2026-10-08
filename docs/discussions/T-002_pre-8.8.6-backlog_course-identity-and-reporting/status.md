@@ -2,10 +2,10 @@
 
 
 ## Status
-- **State:** AWAITING-FOUNDER
-- **Owner:** Founder
-- **Phase:** B-01, B-02a, B-02b LIVE and verified (08/10/2026); B-04a v1 submitted to QA for Tier 1 round 1 (Round 52); design approved: brief B v10, Gate 1 given 04/10/2026
-- **Last round:** 53  · **Last QA-reviewed round:** 52
+- **State:** AWAITING-CLAUDE
+- **Owner:** Claude
+- **Phase:** B-01, B-02a, B-02b LIVE and verified (08/10/2026); B-04a v1 PASS WITH CONDITIONS (QA Round 53), Gates 2 and 3 granted (Round 54), awaiting the Founder's live run; design approved: brief B v10, Gate 1 given 04/10/2026
+- **Last round:** 54  · **Last QA-reviewed round:** 53
 - **Agreed decisions (carried from T-001; positions, not a new approval):** brief B v10 (`0fe77dec72dc`) is the approved design for points 5 and 10 together; decisions D1 to D11 and E1 to E10 of T-001 are confirmed (Founder, 04/10/2026 and later); no in-app payment; platform course names are identifiers and immutable in v1; new offline logs are always classified (platform, custom or explicit General), NULL means only legacy; no backfill; professors see totals only. Details and round numbers: Round 1 section B.
 - **Open disagreements:** none
 - **Founder decisions required:** none now. In force: DEC-1, DEC-2 (Round 5); topic-level logging deferred (Round 7); DEC-3 (Round 9); Round 13 method choice; authorization to run D-01 (Round 17; run 08/10/2026); **DEC-4 simplified (08/10/2026, Round 27): the cutover requires only that the set of unclassified manual logs never grows; no removal provenance.** **Needed later, two acceptances:** (1) before Gate 3 of B-03 and B-07: the never-reloaded F0 tab residual (section 4C); (2) before Gate 3 of B-04b: the never-reloaded F1 tab residual (section 5.2); deferral of (2) defers the cutover.

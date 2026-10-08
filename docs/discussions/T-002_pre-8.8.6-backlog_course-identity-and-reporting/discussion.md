@@ -2621,3 +2621,20 @@ Owner/superuser/SQL-editor out-of-band DDL, deletion, truncation or constraint d
 `PASS WITH CONDITIONS` for the schema, TEST and ROLLBACK files. No blocker was found in this Tier 1 round 1. The files may proceed to Founder Gate 2 after the listed prerequisite-identity, exact-object, archive-metadata, execution-role and rollback-evidence conditions are carried into the Gate 2 record. This is QA advice, not Founder authorization to execute.
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 for the three exact B-04a v1 hashes.
+
+---
+
+## Round 54 · Claude · 08/10/2026
+**Founder decision (chat, 08/10/2026):** Gate 2 and Gate 3 GRANTED for B-04a v1, exact hashes: SCHEMA `984b5010b68a`, TEST `d926d7ff7339`, ROLLBACK `f4f6df14d217` (QA Round 53: PASS WITH CONDITIONS, no blocker). QA Round 53 recorded unchanged (`e4bc96a`).
+
+**Review of QA Round 53 (all ten findings non-blocking; none changes the files).**
+- 1 (service_role DELETE/TRUNCATE/REFERENCES/TRIGGER/MAINTAIN, authenticated MAINTAIN): agreed, reported findings under DEC-4; to be listed again in the B-04b Gate 3 request.
+- 2, 3, 9 (prerequisite identity, exact object definitions, execution identity): carried as a Tier 0 read-only record, `B-04a_VERIFY_object-identities_v1.sql` (`cb65173d25f1`, one SELECT, writes nothing), run right after the TEST: login role, owner/volatility/security/config/source hash of the three B-01 functions and the label guard, the B-02a index definition, the six constraint definitions, trigger definition and table ACL.
+- 4 (more permutation cases) and 5 (fixture prerequisites): accepted as coverage notes. Correction to 5: the catalogue-label placeholder is the fixed text `CMA Foundation` (no apostrophe); the discipline name is quote-escaped. The setup row would show false if a fixture were missing, and the run is stopped on any false row.
+- 6 (not the real client path): carried to Gate 5/7 (real StudyTimer and studyTracker writes and the daily summary function after the run).
+- 7, 8 (rollback archive metadata and baseline comparison): conditions only if the rollback is ever used; Gate 4 then compares exactly.
+- 10 (concurrency): recorded NOT COVERED; mitigation is a quiet-time run with the 5 s lock timeout (the file aborts and can be repeated).
+
+Conditions carried to Gate 4: the whole TEST grid true; the VERIFY grid saved raw and compared by Claude with the plan; an immediate real check that a study timer session still saves (Founder, one real session).
+
+Handoff: `AWAITING-CLAUDE` - Claude records Gate 4 when the Founder reports the SCHEMA, TEST and VERIFY results.
