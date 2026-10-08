@@ -2561,3 +2561,63 @@ Audit the three files by hash. List every defect now as blocker or non-blocking 
 Gates 2 to 7 not given for B-04a.
 
 Handoff: `AWAITING-QA` - QA to append one round answering E.
+
+---
+
+## Round 53 · QA · 08/10/2026
+
+### Scope and preconditions
+
+The Round 52 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 52 and last QA-reviewed round 48. This is Tier 1 round 1 for B-04a. I read the complete Round 52 section and all three v1 files statement by statement. The supplied short hashes match the independently recomputed full SHA-256 values:
+
+- `B-04a_SCHEMA_study-sessions-compatibility-phase_v1.sql` — `984b5010b68a0cfaa06945594a4bb130e80ab36f78091338b8646ac279e5a606`.
+- `B-04a_TEST_study-sessions-compatibility-phase_v1.sql` — `d926d7ff7339c2fb4b1fe137a1f8117ae0cdee5b58873e725c801a8710e57474`.
+- `B-04a_ROLLBACK_study-sessions-compatibility-phase_v1.sql` — `f4f6df14d217847b3631c49361535df49779851138f4b9b81263790eb55f825e`.
+
+No SQL, database, browser, build, deployment, Git mutation or external service was run. The repository directory is not a Git work tree in this audit environment, so the Git backstop could not be queried.
+
+### Blocking findings
+
+None. The changed contract does not introduce data loss or corruption, an outage or unacceptable lock behaviour, a new security/privilege escape, an incorrect student-visible boundary, or a failed rollback on the stated normal path.
+
+The known `service_role` DELETE/TRUNCATE/REFERENCES/TRIGGER/MAINTAIN capabilities and authenticated table-level MAINTAIN are not silently approved here: they are recorded below as non-blocking reported findings because the Founder-approved DEC-4/plan R3 explicitly makes DELETE/TRUNCATE informational and the file correctly closes `service_role` INSERT and UPDATE. The later B-04b closure must still report them exactly.
+
+### Non-blocking findings
+
+1. **Known effective privilege residuals.** B-04a leaves `service_role` DELETE, TRUNCATE, REFERENCES, TRIGGER and MAINTAIN, and leaves authenticated MAINTAIN, as inherited from D2. DEC-4 calls DELETE/TRUNCATE a reported finding rather than a cutover stop; this remains an operationally dangerous residual, not a new blocker. The required `service_role` INSERT and UPDATE closure is present and tested.
+
+2. **Dependency preflight is name/existence based.** The schema requires the three B-01 functions and the B-02a index by exact signature/name, but does not bind their owner, volatility/security/configuration, definition hash, or index definition. B-01/B-02a were separately live-verified, so this is a Gate 2 evidence condition: freeze those exact prerequisite identities and stop if they drift before execution.
+
+3. **The TEST does not fully bind every new object definition.** It checks the new foreign-key definitions and exercises the shape checks, but does not compare the three CHECK definitions byte-for-byte, the trigger's `tgtype`/`tgfoid`/`WHEN` expression, the trigger-function definition hash, or the complete function ACL/owner set. The schema text creates the intended objects and the behavioural cases are useful; Gate 4 should retain exact catalogue assertions for those fields.
+
+4. **Coverage gaps in the rollback-only matrix.** The TEST attempts the main valid and invalid classification paths, but does not separately attempt every NULL/label/ID permutation (for example a custom row with only `subject_id`, a platform row with only `custom_subject_label`, and NULL classification with a course label), an inactive-discipline platform match, or an explicit forged `custom_subject_key` value. These are coverage conditions, not evidence of an incorrect production rule.
+
+5. **Fixture and dynamic-SQL prerequisites are not fail-closed.** The TEST needs two student profiles, two disciplines with subjects, a cross-discipline subject and a catalogue label. If one is absent, setup emits a false row but the subsequent dynamic statements can instead fail on a NULL query string; labels containing an apostrophe can also make the catalogue-label fixture SQL invalid. Gate 4 must run against the recorded D2-style fixtures, stop on any setup failure, and preserve the raw result.
+
+6. **Role simulation is not the real client path.** JWT claim GUCs plus `SET LOCAL ROLE` test PostgreSQL RLS and privilege behaviour, but not the Supabase HTTP session, the browser StudyTimerContext/studyTracker calls, or the cron edge function. The real writer and edge-function acceptance remains a later Gate 5/7 condition as the plan states.
+
+7. **Rollback archive identity is not fail-closed for an existing table.** `CREATE TABLE IF NOT EXISTS` does not assert the archive's exact columns/types, owner, RLS state, absence of policies, or effective privileges for every non-owner role. It compares archived row content and hash, which is strong data-faithfulness protection, but Gate 4 must first bind the archive metadata to the owner-only contract before any source columns are dropped.
+
+8. **Rollback restoration assertions are partly procedural.** The rollback's final SELECT reports the post-drop column count, archive row count and restored `service_role` INSERT/UPDATE, but it does not itself compare the complete D2 relation/constraint/index/policy/ACL baseline. Gate 4 must run the whole rollback in one transaction, retain its raw output, and perform that exact comparison before treating the rollback as proven.
+
+9. **Execution identity is assumed rather than checked.** The schema and rollback comments assume the migration owner/`postgres` role. They do not stop before DDL if a different owner-capable role is used, which could create a SECURITY DEFINER trigger function or archive owned by the wrong principal. Founder Gate 2/3 should require the named migration role and Gate 4 should assert the resulting owner and ACLs.
+
+10. **Concurrency is not covered by the supplied test.** The schema's ACCESS EXCLUSIVE lock and five-second lock timeout make the quiet-time deployment bounded and fail closed, but the single-session TEST does not exercise a second connection attempting an insert during the lock. Record this as `NOT COVERED` unless the planned two-connection staging test is run or the Founder accepts the residual.
+
+### Strengths or confirmed controls
+
+- All three exact hashes match Round 52 and no superseded file is under review.
+- The schema takes the table lock before its fail-closed D2 preflight, preserves the ten legacy columns, proves no backfill with a before/after hash, uses stored generated keys, and makes all new CHECK predicates two-valued.
+- The label guard is SECURITY DEFINER with a pinned search path, owner-only execution ACL, canonical course resolution, length/control-character checks, and coverage of INSERT plus label updates.
+- `service_role` INSERT and UPDATE are revoked while its evidenced SELECT consumer remains usable; the TEST exercises those effective privileges and the authenticated writer cases.
+- The rollback archives every non-NULL classification field, verifies row count and deterministic content hash before dropping anything, and preserves the documented reverse dependency order.
+
+### Reported residuals
+
+Owner/superuser/SQL-editor out-of-band DDL, deletion, truncation or constraint disabling; the DEC-4 shrink-only removal cases; and forged or substituted files after independent hash binding remain reported residuals for the Founder. They are not defects introduced by these exact files.
+
+### Disposition
+
+`PASS WITH CONDITIONS` for the schema, TEST and ROLLBACK files. No blocker was found in this Tier 1 round 1. The files may proceed to Founder Gate 2 after the listed prerequisite-identity, exact-object, archive-metadata, execution-role and rollback-evidence conditions are carried into the Gate 2 record. This is QA advice, not Founder authorization to execute.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 for the three exact B-04a v1 hashes.
