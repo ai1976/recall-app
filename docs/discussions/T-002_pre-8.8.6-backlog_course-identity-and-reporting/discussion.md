@@ -3091,3 +3091,17 @@ None. For the evidenced live case—a valid saved custom course not present in t
 ### Overall handoff
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide separately: (1) Gate 2 for the six exact B-03/B-07 v2 files; (2) Gate 5 for exact F0b patch `e7ac68e93b56`; (3) acceptance of the non-blocking admin-notification spelling difference; and (4) when Claude must submit the separately hashed B-04a Unicode-control delta, which must precede F1 custom-label writes.
+
+---
+
+## Round 71 · Claude · 09/10/2026
+**Founder decisions (chat, 09/10/2026), after QA Round 70 (committed unchanged, `8bdb96c`):**
+1. **Gate 2 and Gate 3 GRANTED** for the six B-03 and B-07 v2 files, exact hashes: B-03 SCHEMA `5a024d962024`, TEST `e1b35bd045fe`, ROLLBACK `8c63133986d6`; B-07 SCHEMA `1248837761af`, TEST `51766024a07e`, ROLLBACK `1e49f7527ce1` (full sha256 values in Round 69 section A). Run order: B-03 SCHEMA, B-03 TEST, B-07 SCHEMA, B-07 TEST; the ROLLBACK files are not run.
+2. **Gate 5 and Gate 6 GRANTED** for the F0b patch `e7ac68e93b56`.
+3. **ACCEPTED:** the non-blocking admin-notification spelling difference (change-log Entry 6; revisit with brief A).
+4. **B-04a control-character delta QUEUED:** to be submitted right after B-03 and B-07 are live, as a separately hashed Tier 1 file set; it must be live before F1 permits custom session labels.
+**F0b executed.** The patch was applied to main; the diff of `src` and `scripts` against HEAD hashes to `e7ac68e93b56` (identical). On main: due-set guard passes (211 of 211); Vitest 12 files, 191 tests; ESLint 30 problems (base 30); `vite build` passes. Frontend commit `083f7f3`; `git push origin main` succeeded (`7191439..083f7f3`). The entry bundle changed from `index-DpPHawYa.js` to `index-CxmXnBVj.js` within about a minute of the push (served time not read from a deployment record).
+**F0b Gate 7 (live, Claude drove the pane browser signed in by the Founder as the test student `Anand Testing T002`, saved course `CFA Level 1`; nothing saved):** Profile Settings Primary Course shows `CFA Level 1 (current)` selected (before F0b it showed blank) - PASS; the list is `CA Foundation`, `CA Intermediate`, `CA Final`, `CFA Level 1 (current)` - PASS; choosing `CA Final` shows `CA Final`, reopening the list still offers `CFA Level 1 (current)`, and choosing it again shows `CFA Level 1 (current)` - PASS. The course-change confirmation dialog and Save were not triggered. F0b Gates 5, 6, 7 complete. QA's five non-blocking F0b items stay carried for F1 (catalogue projection, normalized de-duplication, invalid and inactive current-value notices, the Teaching Areas stale `originalCourse` case, integration test).
+**Run steps given to the Founder** (see chat; each file as ONE selection; CURRENT.md checked first): B-03 SCHEMA (122 lines, `5a024d962024`), B-03 TEST (186 lines, `e1b35bd045fe`), B-07 SCHEMA (138 lines, `1248837761af`), B-07 TEST (217 lines, `51766024a07e`). Evidence names: `T-002_B03-TEST-raw_09-10-2026.raw.txt`, `T-002_B07-TEST-raw_09-10-2026.raw.txt`; the SCHEMA result rows are to be reported (rows_before = rows_after, hashes equal).
+
+Handoff: `AWAITING-FOUNDER` - Founder runs the four files and saves the two TEST grids.
