@@ -3629,3 +3629,34 @@ The Round 87 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last 
 Overall disposition: **REVISION REQUIRED**. No Gate 2 or production authorization is given.
 
 Handoff: `AWAITING-CLAUDE` — close both blocking findings and return the changed B-06a files with exact hashes for Tier 1 round 2.
+
+---
+
+## Round 89 · Claude · 09/10/2026
+**Scope.** Tier 1 round 2 for B-06a, answering QA Round 88 (commit `fa18b54`; v1 REVISION REQUIRED, two blockers). Not run (no database engine); read statement by statement.
+
+### A. Files and exact hashes (in `docs/database/t002/`)
+| File | Lines | Short | Full sha256 |
+|---|---|---|---|
+| `B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v2.sql` | 307 | `10ebda036336` | `10ebda03633669147a27a4cddd10f733ae58ed9b057908004df646b85e7db941` |
+| `B-06a_TEST_course-catalogue-and-picker-subjects_v2.sql` | 429 | `32bdcab20bd3` | `32bdcab20bd3a532a044c105bcca1164739e0adaf441bc739aadd7a76c069de2` |
+| `B-06a_ROLLBACK_course-catalogue-and-picker-subjects_v2.sql` | 56 | `be21fc79dbc3` | `be21fc79dbc393c2d40f5b559a72c99442672ff4449b9cf5c5ba938d2ba74e43` |
+
+### B. Blockers
+1. **Catalogue/platform de-duplication.** Agreed and fixed. In the core, the catalogue branch now has `NOT EXISTS (SELECT 1 FROM plat p WHERE p.nn = c.nn)`, so a label equal to any discipline name (active or inactive) exists only as that platform course (precedence platform > current > catalogue); the other two overlay branches already excluded platform and catalogue keys. A platform row now carries `is_catalogue` when its name is one of the six labels (brief B 5.5: the flag is set whatever the kind). New TEST check "overlap" inserts a discipline named like a catalogue label inside a rolled-back sub-transaction and proves: public list (one row for the label, kind platform, five catalogue rows), Profile Settings with it as the current course (one platform row, current and catalogue flags, no `current` row), picker with it inactive and current (first, marked, once), and another student not offered the inactive one.
+2. **Complete ACL.** Agreed and fixed in all three places. The post-check of the FUNCTIONS file, the guard of the ROLLBACK and the TEST now compare the full normalized ACL text of each function (every grantee including PUBLIC, privilege type, grantability; `acldefault` when the ACL is NULL): core `postgres:EXECUTE:false`; public reader `anon:...;authenticated:...;postgres:...`; authenticated reader and subject list `authenticated:...;postgres:...`. The effective-privilege matrix for anon, authenticated and service_role stays as a second check.
+
+### C. Non-blocking findings
+1. **Generated keys bound** in the pre-flight (both key columns must be stored generated, nullable, over `normalize_course_text` of their label); done.
+2. **Normalized course key** required by `get_picker_subjects` (22023 with a message to pass the key returned by the reader); a TEST case covers an unnormalised key.
+3. **TEST independence:** the shape helper now compares each platform row's `discipline_id` with the id of the discipline of that name, `last_used_at` presence with the prior flag, and subject tokens carry the real subject ids; the six catalogue labels are asserted as literals.
+4. **Leak assertion:** replaced by exact counts (classified sessions of the two fixture students equal the baseline; no discipline with the fixture code remains) in addition to the table hashes.
+5. **Sentinel ids:** replaced by two generated ids ordered by value, so there is no collision possibility.
+6. **Role reset:** RESET ROLE added in every error path of the executor. Concurrency stays NOT COVERED (quiet window; a timeout is a stop).
+7. **Lock:** the FUNCTIONS file now takes SHARE locks on `disciplines` and `subjects` under the 5 s lock limit before the pre-flight.
+8. **Rollback post-check** now tests the four exact signatures only.
+
+### D. Request to QA (Tier 1 round 2)
+Audit the three v2 files by hash; confirm both blockers closed or name what remains. Readings in Round 87 section C points 2 to 4 were confirmed in Round 88 and are unchanged. Gates 2 to 7 not given for B-06a.
+
+Handoff: `AWAITING-QA` - QA to append one round answering D.
