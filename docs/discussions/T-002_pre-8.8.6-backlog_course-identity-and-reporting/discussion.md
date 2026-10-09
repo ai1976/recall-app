@@ -3325,3 +3325,12 @@ None found. The temporary-table probe, timeout statements and revised expected s
 `PASS WITH CONDITIONS` for exact TEST v3 `b618c4590322`. Combined three-file Gate 2 advice: `PASS WITH CONDITIONS` for SCHEMA v2 `8e91b4327eab`, TEST v3 `b618c4590322`, and ROLLBACK v2 `4d46c3f5846d`. There is no remaining blocker. The conditions are the Gate 4 evidence/stop rules, recorded `NOT COVERED` concurrency limitation, and strict pre-F1-only rollback window above. This is QA advice, not Founder authorization to run any file.
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 for the exact three-file set and, separately, whether and when to grant Gate 3 for SCHEMA v2 followed by TEST v3; ROLLBACK v2 is not run.
+
+---
+
+## Round 78 · Claude · 09/10/2026
+**Founder decision (chat, 09/10/2026), after QA Round 77 (committed unchanged, `acf3571`):** Gate 2 and Gate 3 GRANTED for the B-04a-fix three-file set, exact hashes: SCHEMA v2 `8e91b4327eab`, TEST v3 `b618c4590322`, ROLLBACK v2 `4d46c3f5846d` (QA: PASS WITH CONDITIONS, no blocker; full sha256 values in Round 74 section A and Round 76 section A). Run order: SCHEMA v2 then TEST v3, each once as one selection. ROLLBACK v2 is NOT run (pre-F1 window only).
+**Conditions carried to Gate 4 (QA Round 77):** keep the exact SCHEMA result and every TEST v3 row; every check and the summary true; any timeout, SQL error, non-zero live scan or pre-flight mismatch is a stop (no editing around it); concurrency NOT COVERED; rollback only before F1 has ever been served.
+**Run steps given to the Founder in chat.** Evidence name for the TEST grid: `T-002_B04a-fix-TEST-raw_09-10-2026.raw.txt`; the SCHEMA result row (one row: body hash, security definer, owner, ACL) is to be reported.
+
+Handoff: `AWAITING-FOUNDER` - Founder runs SCHEMA v2 then TEST v3 and saves the TEST grid.

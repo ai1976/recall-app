@@ -4,12 +4,12 @@
 ## Status
 - **State:** AWAITING-FOUNDER
 - **Owner:** Founder
-- **Phase:** B-01, B-02a, B-02b, B-04a, B-03, B-07 LIVE and verified; F0 and F0b frontend LIVE; B-04a-fix: SCHEMA v2 and ROLLBACK v2 QA PASS WITH CONDITIONS (Round 75), TEST v3 submitted to QA for changed-byte closure (Round 76); next B-05; design approved: brief B v10, Gate 1 given 04/10/2026
-- **Last round:** 77  · **Last QA-reviewed round:** 76
+- **Phase:** B-01, B-02a, B-02b, B-04a, B-03, B-07 LIVE and verified; F0 and F0b frontend LIVE; B-04a-fix: SCHEMA v2 and ROLLBACK v2 QA PASS WITH CONDITIONS (Round 75), TEST v3 PASS WITH CONDITIONS (Round 77); Gates 2 and 3 granted (Round 78), awaiting the Founder's live run; next B-05; design approved: brief B v10, Gate 1 given 04/10/2026
+- **Last round:** 78  · **Last QA-reviewed round:** 76
 - **Agreed decisions (carried from T-001; positions, not a new approval):** brief B v10 (`0fe77dec72dc`) is the approved design for points 5 and 10 together; decisions D1 to D11 and E1 to E10 of T-001 are confirmed (Founder, 04/10/2026 and later); no in-app payment; platform course names are identifiers and immutable in v1; new offline logs are always classified (platform, custom or explicit General), NULL means only legacy; no backfill; professors see totals only. Details and round numbers: Round 1 section B.
 - **Open disagreements:** none
 - **Founder decisions required:** none now. In force: DEC-1, DEC-2 (Round 5); topic-level logging deferred (Round 7); DEC-3 (Round 9); Round 13 method choice; authorization to run D-01 (Round 17; run 08/10/2026); **DEC-4 simplified (08/10/2026, Round 27): the cutover requires only that the set of unclassified manual logs never grows; no removal provenance.** **Acceptances:** (1) the never-reloaded F0 tab residual (section 4C) ACCEPTED by the Founder 09/10/2026 (Round 67); **needed later:** (2) before Gate 3 of B-04b: the never-reloaded F1 tab residual (section 5.2); deferral of (2) defers the cutover.
-- **Artifacts under review:** TEST v3 only (changed bytes): `docs/database/t002/B-04a-fix_TEST_label-guard-control-set_v3.sql` `b618c4590322`; with unchanged SCHEMA v2 `8e91b4327eab` and ROLLBACK v2 `4d46c3f5846d` (both PASS WITH CONDITIONS, Round 75). v2 TEST `636edc156a0e` superseded. Context: change-log Entries 6 to 9. File index: `docs/database/t002/CURRENT.md`.
+- **Artifacts under review:** none with QA. Awaiting the Founder's run of `docs/database/t002/B-04a-fix_SCHEMA_label-guard-control-set_v2.sql` `8e91b4327eab` then `B-04a-fix_TEST_label-guard-control-set_v3.sql` `b618c4590322` (rollback `4d46c3f5846d` not run). File index: `docs/database/t002/CURRENT.md`.
 
 ### Gates
 - [x] 1 Design approved (brief B v10 `0fe77dec72dc`, Founder 04/10/2026, T-001 Round 35; QA PASS WITH CONDITIONS)
