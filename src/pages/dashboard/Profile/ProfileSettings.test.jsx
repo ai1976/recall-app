@@ -131,6 +131,28 @@ describe('Profile Settings course (T-002 F1)', () => {
     expect(updateProfileDueFields.mock.calls[0][1].course_level).toBe('CFA Level 1');
   });
 
+  it('names the typed course in the confirmation, never the dropdown\'s own value (defect D-F1-1)', async () => {
+    await loaded();
+    openCourseList();
+    fireEvent.click(await screen.findByRole('option', { name: 'Other, type your own' }));
+    fireEvent.change(await screen.findByLabelText('Your course'), { target: { value: '  ACCA  ' } });
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
+    const title = await screen.findByText(/Change your course to/);
+    expect(title.textContent).toBe('Change your course to ACCA?');
+    expect(document.body.textContent).not.toMatch(/__other__/);
+    expect(rpc).toHaveBeenCalledWith('preview_course_change', { p_new_course: 'ACCA' });
+  });
+
+  it('names a listed course in the confirmation and the saved listed course when a typed one matches it', async () => {
+    await loaded();
+    openCourseList();
+    fireEvent.click(await screen.findByRole('option', { name: 'Other, type your own' }));
+    fireEvent.change(await screen.findByLabelText('Your course'), { target: { value: 'ca   foundation' } });
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
+    const title = await screen.findByText(/Change your course to/);
+    expect(title.textContent).toBe('Change your course to CA Foundation?');
+  });
+
   it('blocks an invalid typed course with a message and saves nothing', async () => {
     await loaded();
     openCourseList();

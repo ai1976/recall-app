@@ -94,6 +94,8 @@ export default function ProfileSettings() {
   const [originalCourse, setOriginalCourse] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [coursePreview, setCoursePreview] = useState(null);
+  // The course the confirmation dialog is about (the typed text or the listed course that will be saved), not the dropdown's own value.
+  const [pendingCourse, setPendingCourse] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [institutionSelect, setInstitutionSelect] = useState('');
   const [customInstitution, setCustomInstitution] = useState('');
@@ -340,6 +342,7 @@ export default function ProfileSettings() {
       const { data, error } = await supabase.rpc('preview_course_change', { p_new_course: values.courseToSave });
       if (error) throw error;
       setCoursePreview(data);
+      setPendingCourse(values.courseToSave || '');
       setConfirmOpen(true);
     } catch (error) {
       console.error('Error previewing course change:', error);
@@ -992,7 +995,7 @@ export default function ProfileSettings() {
       <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open) cancelCourseChange(); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change your course to {courseLevel}?</DialogTitle>
+            <DialogTitle>Change your course to {pendingCourse}?</DialogTitle>
             <DialogDescription asChild>
               <div className="space-y-2 text-sm text-gray-600">
                 {coursePreview?.archive_count > 0 ? (
@@ -1011,7 +1014,7 @@ export default function ProfileSettings() {
                 )}
                 {coursePreview?.restore_count > 0 && (
                   <p>
-                    <strong>{coursePreview.restore_count}</strong> previously archived {courseLevel} card{coursePreview.restore_count === 1 ? '' : 's'}{' '}
+                    <strong>{coursePreview.restore_count}</strong> previously archived {pendingCourse} card{coursePreview.restore_count === 1 ? '' : 's'}{' '}
                     will return to My Study.
                   </p>
                 )}
