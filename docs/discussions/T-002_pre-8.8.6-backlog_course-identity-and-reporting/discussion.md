@@ -3741,3 +3741,45 @@ Handoff: `AWAITING-FOUNDER` - Founder runs FUNCTIONS v2 then TEST v2 and saves b
 Confirm TEST v3 is a rollback-only file with no new blocker in the changed bytes and that it proves the overlap case; list any defect as blocker or non-blocking. Gate 2 and 3 for TEST v3 not given yet.
 
 Handoff: `AWAITING-QA` - QA to append one round answering B.
+
+---
+
+## Round 93 · QA · 09/10/2026
+
+### Scope and preconditions
+
+The Round 92 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 92 and last QA-reviewed round 89. I read the complete Round 92 submission, the evidence index and the referenced TEST v2 raw output, and audited TEST v3 statement by statement. I did not run SQL, access a database, build, test, deploy or use an external service. The supplied v3 short hash matches:
+
+`B-06a_TEST_course-catalogue-and-picker-subjects_v3.sql` — `596636a49352367bd53a7d5bae3fe5feb82a087150dc3e2d4370ea970d057e6b`.
+
+### Changed-byte closure
+
+The changed bytes are confined to the row-shape helper signature and lookup, the executor's temporary name-to-id map, the returned JSON object, and the three overlap calls that pass that map. The map is read while each fixture discipline still exists, then the deliberately raised rollback marker removes the fixture. The shape helper therefore compares the returned platform `discipline_id` with the ID captured inside the same sub-transaction instead of querying after rollback. The JSONB lookup is keyed by the exact emitted discipline name, which is the same name used to build the map; B-02a's normalized-name uniqueness prevents an ambiguous live name. The overlap assertions still cover: active public list, active current Profile Settings, inactive current picker, and another student not receiving the inactive overlap.
+
+### Blocking findings
+
+None. TEST v3 remains rollback-only: fixture DELETE/UPDATE/INSERT and temporary helper/result objects are confined to the test transaction and per-case subtransactions; no persistent table, data, trigger or policy is changed. I found no new data, privilege, access-boundary, parser or rollback blocker in the changed bytes.
+
+### Non-blocking findings
+
+1. The evidence index and raw evidence are for TEST v2 and correctly show 9/10 with the overlap check false; no v3 raw result, hash or 10/10 summary is saved yet. The exact v3 file must be run once as one selection and its complete result grid saved before Gate 4 evidence is complete. This is an execution/evidence condition, not a changed-byte blocker.
+2. The v3 repair validates the overlap row shape for O1 to O3; O4 still checks only that the inactive overlapping label is absent and five catalogue rows remain, without invoking the full shape helper. This is non-blocking test coverage, and does not undermine the corrected O1 to O3 proof.
+3. As in the prior TEST review, browser/RLS and concurrency journeys remain NOT COVERED; use the stated quiet window and treat a timeout as a stop. The unchanged rollback file has not been run and remains a separate Gate 4 condition.
+
+### Strengths or confirmed controls
+
+- The v3 full hash matches Round 92, and no changed bytes alter fixture DML, role simulation, ACL checks, baseline hashes, cleanup, or the nine previously true checks.
+- The overlap assertion now observes the fixture discipline before rollback, so it can actually validate the platform-over-catalogue precedence and the platform `discipline_id` for the temporary overlap.
+- The existing evidence hash for TEST v2 was verified against the saved raw file; its false result is consistent with the defect described in Round 92 and is not silently treated as v3 evidence.
+
+### Reported residuals
+
+Owner/superuser changes, forged or substituted files after hash binding, and concurrent live changes remain reported residuals. They do not block this changed-byte closure.
+
+### Verdict and disposition
+
+`B-06a_TEST_course-catalogue-and-picker-subjects_v3.sql`: **PASS WITH CONDITIONS**. The Round 92 changed-byte defect is closed, the v3 test is rollback-only and statically proves the overlap assertion can see the fixture ID. Gate 4 still requires the exact v3 run, saved raw output/hash and a true summary; no production authorization is granted by this QA round.
+
+Overall disposition: **PASS WITH CONDITIONS**.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide the next exact-hash execution/evidence step.
