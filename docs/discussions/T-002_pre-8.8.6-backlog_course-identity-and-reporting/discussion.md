@@ -3951,3 +3951,31 @@ Handoff: `AWAITING-FOUNDER` — Founder to decide whether to accept the remainin
 **Next artifacts (not yet written):** (1) the go-live runbook for the deployment choreography of plan 5.2: a read-only snapshot tool for the set of manual study logs that carry no classification (S0 immediately before the push, S1 immediately after), the clock evidence to record, how to prepare the two old-version states BEFORE the push (a pending log left unconfirmed in a browser on the old version; a tab opened on the old version), and the order of the live Gate 7 tests (the four manual paths, then the restored pending log, then the stale-tab test as `TestOutlook`); (2) the Founder's choice of a quiet time. The accepted stale-tab residual is a prerequisite of B-04b Gate 3, not of this push.
 
 Handoff: `AWAITING-CLAUDE` - Claude writes the go-live runbook and the snapshot tool on the Founder's go-ahead.
+
+---
+
+## Round 101 · Claude · 09/10/2026
+**Scope.** The deployment choreography pieces for F1 (plan v18 section 5.2; the Founder said "go ahead with the runbook", 09/10/2026). All Tier 0 (read-only or procedure); nothing was run, nothing is pushed.
+
+### A. Files and hashes
+| File | Lines | Short | Full sha256 |
+|---|---|---|---|
+| `docs/database/t002/D-07_DIAGNOSTIC_D7_manual-null-snapshot_v1.sql` | 128 | `599a5c5e1cce` | `599a5c5e1cce7e85315e9f50eb55a4d6a13aef0f832ae13d2fe025a17a7df832` |
+| `docs/database/t002/F1_VERIFY_gate7-test-sessions_v1.sql` | 48 | `f0287b1256cc` | `f0287b1256cc09ba30ae05a3508ed3a9ae76c4650081c0d8459a0e43dc749037` |
+| `docs/discussions/T-002_F1_go-live-runbook_09-10-2026.md` | - | `00ecdf7fec43` | `00ecdf7fec4385e794047159cf009b15d66223c332c09765c35cdd7f3d2d974d` |
+
+### B. What they are
+1. **D-07 (snapshot tool).** Computes, for the set of study_sessions rows with source manual and NULL classification, the count, `COALESCE(sum(duration_seconds), 0)`, a fingerprint per row (sha256 over the 17 columns in the frozen order, each rendered with the N/V-length encoding, joined by '|', session pinned by SET LOCAL) and the overall hash (sha256 of `id:fingerprint` pairs in id order, joined by ','), with the database clock and a check that the live column order equals the frozen list. RUN S returns one cell; RUNs P1 to P5 return the id and fingerprint pages. The id order is the C-collation text order of the uuid so the same order can be recomputed anywhere.
+2. **F1 VERIFY.** Shows the test account's latest 30 logs (course and subject names or typed labels and keys, classification), that account's unclassified manual logs of the last 24 hours, and the same set summary as D-07; no user id, no e-mail, no other student's data.
+3. **Runbook.** Rehearsal; the two old-version states (a pending log left unconfirmed in Browser A, a running tab in Browser B); S0, push, wait for Ready, S1, comparison (equal means A = S0; different means stop, as plan 5.2); the safety check on Signup; Gate 7 tests 7.1 to 7.6 in the order of plan 5.2 (restored pending log first, stale tab last); the go-back (revert of `6afed64`; the database accepts old and new logs until B-04b); stop rules; clock evidence with a proposed 2-minute skew margin for QA.
+
+### C. Points for QA and the Founder
+1. The clock-skew margin of 2 minutes is a proposal (both clocks are network-time synchronised); rows within it of the served time are unresolved, not old.
+2. The set order and encoding above are the ones B-04b, the data fix and the tests must reuse; any change to them is a new version of this tool.
+3. A "stale tab" row is expected exactly once (test 7.5) and is removed by the later data fix; it is not part of anchor A.
+4. The live Gate 7 tests create test rows (study logs, one access request, one new sign-up); they are added to the end-of-T-002 cleanup list.
+
+### D. Request
+No QA request now. The next step is the Founder's: the rehearsal run of D-07 (runbook section 2), a quiet time, and later Gate 6 (push of the exact commit) and Gate 7 (the live tests). QA audits the S0 and S1 results and the Gate 7 evidence when they exist.
+
+Handoff: `AWAITING-FOUNDER` - Founder does the rehearsal run and chooses a quiet time.

@@ -88,3 +88,6 @@ The current plan file is named in `CURRENT.md`. Plan files are immutable hashed 
 
 ## Entry 20 (09/10/2026, thread Round 98)
 - **F1 patch v2 `9ffdc1a2e3d7` answers QA Round 97 (v1 `0c8cdb05d7fe` PASS WITH CONDITIONS).** Signup shows the database order; the subject-list contract is stricter; a failed subject list blocks Save; rejected calls are failures; Profile Settings holds a stale course choice and reports a failed read-back; the access form's profile read waits for the session state. Not pushed.
+
+## Entry 21 (09/10/2026, thread Round 101)
+- **F1 go-live pieces written:** read-only snapshot tool D-07 v1 `599a5c5e1cce` (set of manual logs with NULL classification: count, sum of minutes, per-row fingerprints over every column in the frozen order, overall hash, database clock; summary plus up to five pages of 500), read-only checking query F1 VERIFY v1 `f0287b1256cc` and the go-live runbook `00ecdf7fec43` (rehearsal; preparing the pending-log and old-tab states before the push; S0, push, wait for Ready, S1; the safety check; Gate 7 tests 7.1 to 7.6; stop rules). Tier 0 tools are not audited by hash; QA audits the results. Nothing run yet.
