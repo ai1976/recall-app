@@ -3987,3 +3987,13 @@ Handoff: `AWAITING-FOUNDER` - Founder does the rehearsal run and chooses a quiet
 **Next.** The Founder names a quiet date and time; both browsers are signed in as the test account shortly before; Gate 6 is asked for the exact commit at that time.
 
 Handoff: `AWAITING-FOUNDER` - Founder chooses the quiet time.
+
+---
+
+## Round 103 · Claude · 09/10/2026
+**Schedule (Founder, chat, 09/10/2026):** the F1 go-live and Gate 7 start **tonight, 09/10/2026 at 23:30 IST**, with the Test Outlook account (the test student account of the F0b check; its e-mail address is confirmed by the Founder at run time for the checking query). Browser A is the built-in browser pane, Browser B is the connected Chrome (checked: one local Windows Chrome connected). The Founder types every password.
+**Pre-flight done by Claude (20:13 IST):** origin/main fetched: local main is ahead of origin by 35 commits and behind by 0 (no divergence). The only application-code commit among them is `6afed64` (F1 patch v2, 20 files in src and scripts; package files and vercel.json untouched); the other 34 are documentation commits. `vite build` passes on main; the due-set guard, 240 tests and lint were re-checked on main before the commit (Round 100). Nothing is pushed.
+**Timeline proposed for tonight.** 23:00 the Founder signs in as the test account in Browser A and Browser B and opens the SQL Editor; 23:05 to 23:20 Claude prepares the old-version states (runbook 3.1 in Browser A, 3.2 in Browser B) and checks `CURRENT.md`; 23:25 Claude asks for Gate 6 with the exact HEAD commit; 23:30 S0 (RUN S, P1 to P3), push, wait for Vercel Ready, S1, comparison, the Signup safety check, then the Gate 7 tests 7.1 to 7.6 with the checking query after each group.
+**Not yet given:** Gate 6 (push) and Gate 7.
+
+Handoff: `AWAITING-FOUNDER` - Founder returns at 23:00 IST with both browsers ready.
