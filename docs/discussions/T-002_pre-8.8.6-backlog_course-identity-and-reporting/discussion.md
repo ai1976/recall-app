@@ -3571,3 +3571,61 @@ Audit the three files by hash; list every defect now as blocker or non-blocking 
 Gates 2 to 7 not given for B-06a.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
+
+---
+
+## Round 88 · QA · 09/10/2026
+
+### Scope and preconditions
+
+The Round 87 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 87 and last QA-reviewed round 83. I read `CHATGPT_QA.md`, the complete protocol and the Tiered checking section of `docs/discussions/README.md`, Round 87, plan v18 section 8 and the complete B-06a FUNCTIONS, TEST and ROLLBACK files. I did not run SQL, access a database, build, test, deploy or use an external service. The supplied hashes match these full SHA-256 values:
+
+| Artifact | Full SHA-256 |
+|---|---|
+| `B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v1.sql` | `2aa1a058f25ce99872c8febd6b2546606e1c5500ba7864c0fd143165ab786d56` |
+| `B-06a_TEST_course-catalogue-and-picker-subjects_v1.sql` | `e7357edd6fed2e43cb1264518f244e2c6a0ce853fce322fca12dee607626324b` |
+| `B-06a_ROLLBACK_course-catalogue-and-picker-subjects_v1.sql` | `4a4e5a537fb55dc7d89aadfb240c54561fb3a4f2dbf3022ff2cb07d9085590f7` |
+
+### Blocking findings
+
+1. **Catalogue/platform de-duplication is not implemented.** In `fn_course_options_core`, the `cat` CTE emits all six catalogue labels and the catalogue branch has no `NOT EXISTS` test against `plat`. If a discipline name (active or inactive) normalizes to one of those labels, the result contains both a `platform` row and a `catalogue`/`current` row for the same identity. That contradicts the approved precedence (“platform over catalogue”), can offer an inactive platform name as a catalogue choice, and can make the picker or profile/access list a duplicate or ambiguous student-visible course. This is a blocker under the incorrect student-visible identity/access-boundary rule. The test also has no overlap fixture, so it would not catch it.
+2. **The SECURITY DEFINER ACL check is not exact or fail-closed.** The FUNCTIONS post-check and the ROLLBACK guard check only `PUBLIC` plus `anon`, `authenticated` and `service_role`. They never enumerate the complete function ACL/grantee set required by plan v18 section 10. A default or inherited EXECUTE grant to another role would therefore survive the checks; for the owner-only core that role could pass an arbitrary `p_user_id`, and for the wrappers it would receive a new SECURITY DEFINER data path. This is a possible privilege escape and must be stopped by comparing the complete normalized ACL (including owner and no other grantees) for all four functions. The TEST repeats the same incomplete check.
+
+### Non-blocking findings
+
+1. **The FUNCTIONS pre-flight does not bind the generated-key definitions.** It checks names and types of `custom_course_key` and `custom_subject_key`, but not that they remain stored generated columns with the B-04a expression, nor the exact nullability/identity definitions. A drifted key would change grouping and picker results. Gate 2 must compare the exact B-04a column definitions, or carry this as an explicit live-state condition.
+2. **`get_picker_subjects` accepts an unnormalised course key.** The key branch only rejects blank and over-120 input and then compares the raw text to `custom_course_key`; it does not require `p_course_key = normalize_course_text(p_course_key)`. A malformed caller input silently returns no prior subjects. F1 is expected to pass the server-returned key, so this is non-blocking, but add a normalized-key assertion or an explicit contract that the argument is already a server key.
+3. **The TEST is not independent enough for the full row contract.** Its token/shape helpers do not compare the actual platform `discipline_id`, actual `last_used_at`, subject UUIDs, or subject action/nullability fields, and the expected catalogue/platform lists are derived from the same live catalogue/normalizer rather than independently asserting the six values. The main label and ordering cases are useful, but these omissions can let a wrong ID, timestamp or action pass.
+4. **The TEST's final fixture-leak assertion is incomplete.** Its `NOT EXISTS` predicate only looks for labels matching `'%ZZ ' || tag` or `'ZZ Course%' || tag`; it misses several fixtures (`ZZ Custom`, `ZZ Alpha`, `ZZ Zeta`, `ZZ Beta`, `ZZ L##`, and custom-subject labels). The nested rollback structure is the primary control, but the advertised “no fixture row remains” assertion should cover every generated tag (or use the exact fixture user/id set).
+5. **The TEST relies on fixed sentinel UUIDs without a collision pre-flight.** Existing legacy rows with either sentinel id can make the tie-break fixture fail before the intended check. Use generated ids or assert that the sentinels are absent inside the rolled-back setup.
+6. **The TEST is a simulated database role, not an HTTP/RLS journey, and has no concurrent-reader/writer proof.** `SET LOCAL ROLE` plus request JWT settings is adequate static role coverage, but Gate 4 must retain the complete result grid and state the quiet-window/concurrency `NOT COVERED` condition. A setup exception before `RESET ROLE` would also leave the session role changed inside the surrounding test transaction; the error path should reset defensively.
+7. **The FUNCTIONS file takes no lock while validating prerequisites and creating the functions.** A concurrent catalogue/schema change can make the pre-flight observation stale; the DDL will either stop on a dependency/error or create readers against the changed state. This is an operational Gate 3 quiet-window condition, not a new data-loss blocker.
+8. **The ROLLBACK post-check treats any unrelated overload with one of the four names as a failure.** It safely rolls back the whole selection, but it does not distinguish the exact B-06a signatures from a separately owned overload. This is a fail-safe false stop, not a destructive defect; the exact-signature post-check should be used for clean evidence.
+
+### Readings in Round 87 C
+
+2. **Confirmed.** `get_picker_subjects` takes the discipline branch when a platform course is selected, returns active subjects plus `Skip`, and intentionally has no `other_action`; B-04a forbids a custom subject label on a platform-classified session. The course picker still has its separate course-level `Other...` row.
+
+3. **Confirmed, with the precedence wording retained.** The ten-row picker cap applies to the combined group of earlier custom labels and catalogue labels used earlier. A used catalogue label keeps `kind = catalogue` because of precedence but carries `is_prior_custom = true`, so it consumes the same ten suggestion slots. Profile Settings and access return catalogue/current rows with that flag and never emit `prior_custom` rows.
+
+4. **Confirmed.** An inactive current discipline is emitted as one `platform` row with `is_active = false` and `is_current = true`. It is group 1 in the picker and group 3—after active platform and catalogue rows—in Profile Settings and access. It is not offered to another student.
+
+### Strengths or confirmed controls
+
+- All three files are hash-bound and parser-balanced on static review. The FUNCTIONS file creates only the four intended readers, uses `SECURITY DEFINER`, pinned `search_path`, `STABLE`, owner checks and explicit grants; the ROLLBACK drops exact signatures without `CASCADE` and in dependency order.
+- The core's current/catalogue/prior-custom precedence, greatest-(`created_at`, `id`) display-label selection, ten-row suggestion limit, inactive-course placement and subject argument matrix are coherent with the approved plan, apart from the missing catalogue/platform overlap guard above.
+- The TEST uses rollback-only subtransactions for profile/course and study-session fixtures, tests both wrappers and the owner-only core, checks the four error classes, isolates users, and re-hashes the preserved live rows.
+
+### Reported residuals
+
+- Owner/superuser out-of-band changes, forged or substituted files after independent hash binding, and a concurrent live change during a quiet-window test remain reported residuals for the Founder. They do not excuse the two concrete blockers above.
+
+### Per-file verdicts and disposition
+
+- `B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v1.sql`: **REVISION REQUIRED** for the missing platform/catalogue de-duplication and incomplete fail-closed ACL assertion.
+- `B-06a_TEST_course-catalogue-and-picker-subjects_v1.sql`: **REVISION REQUIRED** as the companion proof: it must independently assert the complete ACL and cover the overlap/row-shape conditions; the other test gaps are non-blocking.
+- `B-06a_ROLLBACK_course-catalogue-and-picker-subjects_v1.sql`: **PASS WITH CONDITIONS**; its drop order and exact-object body checks are coherent, subject to the complete ACL guard and exact-signature post-check conditions above.
+
+Overall disposition: **REVISION REQUIRED**. No Gate 2 or production authorization is given.
+
+Handoff: `AWAITING-CLAUDE` — close both blocking findings and return the changed B-06a files with exact hashes for Tier 1 round 2.
