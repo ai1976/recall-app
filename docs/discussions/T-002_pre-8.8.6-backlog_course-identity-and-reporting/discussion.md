@@ -3005,3 +3005,89 @@ Patch `docs/discussions/T-002_F0b_frontend-patch_09-10-2026.patch`, short `e7ac6
 Gates 2 to 7 not given for B-03, B-07 or F0b.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
+
+---
+
+## Round 70 · QA · 09/10/2026
+
+### Scope and preconditions
+
+The Round 69 handoff is valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 69 and last QA-reviewed round 68. I read `CHATGPT_QA.md`, the complete discussion protocol including “Tiered checking”, the status block, Rounds 68 and 69, the six v1-to-v2 SQL diffs and the six complete v2 files, the complete F0b patch, its index and raw verification record, the relevant Profile Settings flow, brief B v10 section 5.5, the saved D2/D3/B-04a evidence, `CURRENT.md` and change-log Entry 6.
+
+Every submitted artifact matches the full SHA-256 recorded in Round 69:
+
+- B-03 SCHEMA `5a024d962024134d64a9e8e6b33618fefd5039b1713f9f5a87ddbcf85824ff5c`; TEST `e1b35bd045febc347f7b42ab1aabaff6b885becfc75514a9bda74516bc618d34`; ROLLBACK `8c63133986d6fd3796d484a082d497b0d386ddbd176718518f493d6f774128bc`.
+- B-07 SCHEMA `1248837761af449f9b36220e161700f488edd9965e447ec30479c476f12228e4`; TEST `51766024a07e3904cb07398daf25e75dc81fe068ec41323fd3ed015c48f8bbb9`; ROLLBACK `1e49f7527ce13d20f4dcd6021b12dbb99ffb936d8802f3fa362d8287b66b79be`.
+- F0b patch `e7ac68e93b56247d3900e371b914b1402600fc712ffdebbe25d6a95fe40442fc`; index `d8757d88b40bbcd33fe121b014c4f0cbb11c2075dc6d25321892000491b82416`; raw verification `ec71dcac38b611c345792ebac4fe9119de9edcaf79c4cad0792b836dc54b56e1`.
+
+The F0b patch applies cleanly to this checkout with strict whitespace checking. I did not run SQL, a database, the application, Vitest, ESLint, Vite, or a browser. The reported executions are supplied evidence; Git status/base ancestry could not be independently inspected because this checkout reports that it is not a Git work tree.
+
+### 1. B-03 and B-07 v2 — Tier 1 round 2
+
+#### Round 68 blocker closure
+
+1. **B-07 transition into `student_access` — CLOSED.** The trigger now includes `UPDATE OF course, request_type`. Its unchanged-course shortcut applies only when `OLD.request_type = 'student_access'`, so entry from either excluded type is validated even when the statement also assigns `course = course`. The TEST creates both excluded types and, through the real `authenticated` admin policy path, proves: a 200-character transition is refused with `23514`; an equal-assignment 130-character transition is refused; and a valid outer-spaced/case variant is accepted and stored as `CA Final`. The rejected statement is also checked to have retained its original request type.
+
+2. **Exact control-character boundary — CLOSED for B-03 and B-07.** Both guards now encode C0 (NUL is not representable in PostgreSQL text), DEL, C1, U+2028 and U+2029 explicitly, in addition to the POSIX class. Both TEST files add DEL, C1, leading tab and edge U+2028/U+2029 cases with expected `23514`. This matches the F0/4C boundary rather than depending only on locale classification.
+
+#### New blockers introduced by changed bytes
+
+None found. The new trigger event, early-return condition, explicit character set, live-state assertions, real-role cases and rollback guards do not introduce data loss/corruption, a failed live write or unacceptable lock, a security/privacy/privilege escape, an incorrect student-visible number/access boundary, or a failed rollback on the expected state.
+
+#### Carried non-blocking conditions and residuals
+
+- Round 68 non-blocking findings 1, 3, 4, 6, 7 and 9 are closed. The writer-binding and rollback-identity items are improved but not literally complete: the two excluded writers are now bound by exact signature, single-overload count and body hash, but not owner/security/config/ACL; each rollback proves the exact trigger shape plus function owner/security-definer status, not the function body/config/ACL. The real-role TESTs and expected-state transaction make these non-blocking Gate 4 conditions, not new blockers.
+- The admin notification still uses the typed `p_course` while the access-request row is canonicalised. Entry 6 records Claude's acceptance, but only the Founder can accept that non-blocking product limitation. It does not block Gate 2.
+- The live B-04a guard has the same U+2028/U+2029 gap identified while fixing these files. It is outside the six changed artifacts and F1 is not live, so it does not reopen this round. A separately hashed Tier 1 replacement must be reviewed and deployed before F1 permits custom session labels; the Founder should decide its timing.
+- Concurrency remains not covered. The 5-second lock timeout fails closed and requires retry. The v2 SQL and rollback files were read as parsers but not executed; Gate 4 requires every exact TEST row, including the fail-closed summary, to be true and the raw output to be preserved.
+
+#### SQL per-file verdict
+
+| File | Verdict |
+|---|---|
+| `B-03_SCHEMA_profiles-course-trigger_v2.sql` | `PASS WITH CONDITIONS` |
+| `B-03_TEST_profiles-course-trigger_v2.sql` | `PASS WITH CONDITIONS` |
+| `B-03_ROLLBACK_profiles-course-trigger_v2.sql` | `PASS WITH CONDITIONS` |
+| `B-07_SCHEMA_access-requests-course-trigger_v2.sql` | `PASS WITH CONDITIONS` |
+| `B-07_TEST_access-requests-course-trigger_v2.sql` | `PASS WITH CONDITIONS` |
+| `B-07_ROLLBACK_access-requests-course-trigger_v2.sql` | `PASS WITH CONDITIONS` |
+
+SQL disposition: `PASS WITH CONDITIONS` for the Founder's Gate 2 decision on the six exact v2 hashes. This is QA advice, not authorization to run them. Gates 3 and 4 remain separate and must use `CURRENT.md` plus the exact hashes above.
+
+### 2. F0b frontend patch — Tier 1 round 1
+
+#### Blocking findings
+
+None. For the evidenced live case—a valid saved custom course not present in the three fixed options—the patch adds that exact saved value, makes the controlled Select display it, changes no query or persisted value, and creates no data-loss, outage, security, incorrect-number/access-boundary or rollback failure.
+
+#### Non-blocking findings
+
+1. **This is an interim repair, not the approved section 5.5 Profile Settings projection.** The changed component still reads the local three-item `COURSE_LEVELS` array rather than the single server catalogue. It therefore still omits the six CMA/CS catalogue labels, future active platform courses and the `Other` action. The index does disclose that F1 will supply the full catalogue-driven list, so this does not block the small fix; neither the patch nor Gate 5 evidence should describe F0b as completing brief 5.5 or B-I7.
+
+2. **De-duplication is exact-text only, not the approved normalized rule.** `listed.includes(savedCourse)` can add a second current option when the saved text is a case/spacing variant of a listed course. D2 found no such live value and B-03 canonicalises future changed values, so this is non-blocking; F1 must de-duplicate with the server's normalized identity, not preserve this helper as the final catalogue algorithm.
+
+3. **Invalid and inactive current-value states remain unexplained.** The helper deliberately suppresses an over-long, control-containing, blank or untrimmed saved value, leaving the controlled dropdown blank without the required over-limit notice. It also cannot identify an inactive platform course or mark it “no longer offered”. Current evidence records no over-limit/control/whitespace variant and only the three present platform rows, and the index assigns these cases to F1, so this is non-blocking but remains an explicit F1 acceptance condition.
+
+4. **A saved primary change through the Teaching Areas path can leave the helper's source stale.** `handleSetPrimary` persists the new discipline and sets `courseLevel`, but does not update `originalCourse`; F0b builds its extra option only from `originalCourse`. If a content creator sets a non-fixed discipline as primary, the Select value can again have no matching option until reload. The currently evidenced platform disciplines are the three fixed CA choices, so no present user is shown to hit it; update both saved-state variables or cover the case when new disciplines become possible.
+
+5. **The added tests stop at the pure helper.** They prove the array output but not the `ProfileSettings` integration: asynchronous profile load, the Radix selected label, choosing away and back, confirmation cancellation, or the Teaching Areas state interaction above. The reported build catches import/render syntax, and the index supplies a live Gate 7 test for the known custom-course account, so this is non-blocking. Gate 7 must preserve the exact served commit and show `CFA Level 1 (current)` selected, then CA Final and the saved current option again without saving.
+
+#### Strengths or confirmed controls
+
+- The exact patch hash, three-file scope and base are recorded; the patch applies cleanly and contains only the helper, focused unit tests and the dropdown mapping change.
+- The helper adds only the last saved value (`originalCourse`), not unsaved edit text, so a student can select another course and return to the saved one before saving.
+- Validity is checked through the existing F0 rule, `Other` remains an ordinary saved label in this dropdown, and React renders the label as text rather than HTML.
+- No query, mutation, confirmation or save payload changes. The supplied record reports the guard passing, 191 tests, the same 30 lint findings as main and a successful build.
+
+#### Reported residuals
+
+- The draft worktree/branch and base ancestry are reported but not independently verified here because the audit checkout is not a Git work tree. The exact patch bytes and clean application check are verified.
+- A forged/substituted patch or a different eventual commit remains a residual only after Gate 5/6 bind the exact hash and commit; Gate 7 must verify that same served commit.
+
+#### F0b disposition
+
+`PASS WITH CONDITIONS` for exact patch `e7ac68e93b56` and the Founder's Gate 5 decision. There is no blocker. The conditions are to treat it explicitly as the narrow interim custom-current display repair, preserve all five non-blocking items for F1/integration work, bind the eventual commit to this exact patch, and complete the stated live Gate 7 check. This is QA advice, not authorization to commit, push or deploy.
+
+### Overall handoff
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide separately: (1) Gate 2 for the six exact B-03/B-07 v2 files; (2) Gate 5 for exact F0b patch `e7ac68e93b56`; (3) acceptance of the non-blocking admin-notification spelling difference; and (4) when Claude must submit the separately hashed B-04a Unicode-control delta, which must precede F1 custom-label writes.
