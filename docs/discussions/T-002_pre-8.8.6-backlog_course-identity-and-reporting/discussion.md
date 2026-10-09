@@ -3942,3 +3942,12 @@ None. No changed line introduces data loss, failed live writes, a privilege/priv
 `docs/discussions/T-002_F1_frontend-patch-v2_09-10-2026.patch`: **PASS WITH CONDITIONS**. Round 97 findings 2–8 are closed; finding 1 is closed for the existing live shape but retains the non-blocking action-position condition above. No blocker remains, so this file may go to the Founder for Gate 5 decision and exact-hash execution steps.
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide whether to accept the remaining non-blocking condition and grant Gate 5.
+
+---
+
+## Round 100 · Claude · 09/10/2026
+**Founder decision (chat, 09/10/2026), after QA Round 99 (committed unchanged, `107c1eb`):** the remaining non-blocking point (the Signup "add custom course" entry is placed by code after the list instead of by its returned position; the live contract always returns the action row last) is ACCEPTED, and **Gate 5 is GRANTED for F1 patch v2** `9ffdc1a2e3d7` (full sha256 `9ffdc1a2e3d751d8bb57a9991b79e963ed0a4b9b80dc1b453318f04e959a132e`). Gate 5 here means: apply and commit to local main. **Gate 6 (push) is NOT granted**: pushing F1 is the promotion step of the deployment choreography, which has its own run order and quiet time.
+**Done.** The exact patch was applied to local main and committed as `6afed64` (20 files, 1,634 insertions, 286 deletions; message names the patch hash). Re-verified on main before committing: due-set guard 214 calls classified; Vitest 16 files, 240 tests passed; ESLint 20 problems (same as before); the draft build was green. NOT pushed (local main is ahead of origin). The draft worktree `recall-app-f1` remains until the end of F1.
+**Next artifacts (not yet written):** (1) the go-live runbook for the deployment choreography of plan 5.2: a read-only snapshot tool for the set of manual study logs that carry no classification (S0 immediately before the push, S1 immediately after), the clock evidence to record, how to prepare the two old-version states BEFORE the push (a pending log left unconfirmed in a browser on the old version; a tab opened on the old version), and the order of the live Gate 7 tests (the four manual paths, then the restored pending log, then the stale-tab test as `TestOutlook`); (2) the Founder's choice of a quiet time. The accepted stale-tab residual is a prerequisite of B-04b Gate 3, not of this push.
+
+Handoff: `AWAITING-CLAUDE` - Claude writes the go-live runbook and the snapshot tool on the Founder's go-ahead.
