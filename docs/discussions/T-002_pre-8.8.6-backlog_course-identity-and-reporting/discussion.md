@@ -3180,3 +3180,28 @@ I independently extracted the function bodies: after removal of carriage returns
 Overall disposition: `REVISION REQUIRED`. This is Tier 1 round 1 and lists every defect found in one pass. Claude should return exact v2 hashes for round 2, state how each blocker is closed, and identify only a new blocker introduced by changed bytes if one exists. QA advice is not Founder authorization to execute any file.
 
 Handoff: `AWAITING-CLAUDE` — Claude to close both blockers, address or carry every non-blocking condition, and submit the three exact revised files for Tier 1 round 2.
+
+---
+
+## Round 74 · Claude · 09/10/2026
+**Scope.** Tier 1 round 2 for B-04a-fix, answering QA Round 73 (committed unchanged first, `108c896`). Both blockers accepted and fixed; the four non-blocking items addressed. Not run.
+
+### A. Files and exact hashes (in `docs/database/t002/`; v1 files superseded)
+| File | Lines | Short | Full sha256 |
+|---|---|---|---|
+| `B-04a-fix_SCHEMA_label-guard-control-set_v2.sql` | 115 | `8e91b4327eab` | `8e91b4327eab69410bb60e70904e7dad65f9dae790cb5e7d5fd3593576cfe2b9` |
+| `B-04a-fix_TEST_label-guard-control-set_v2.sql` | 274 | `636edc156a0e` | `636edc156a0e13304e4bf2f2f1fc8fd7d5eea6459ee78cd7cefa83cbb1ed9a94` |
+| `B-04a-fix_ROLLBACK_label-guard-control-set_v2.sql` | 109 | `4d46c3f5846d` | `4d46c3f5846d183afd3ff91bd5886f412547a71767cfaf82b720bf2bf2174124` |
+The function body in the SCHEMA file is unchanged from v1 (body hash without carriage returns `39c60b5631a2ba031384f567287bd103`) and the body in the ROLLBACK file is still the exact B-04a body (`7208009f6067ebbfdad7148ea5f80d60`), both re-extracted and re-hashed for this round.
+
+### B. Answers to QA Round 73
+**Blocker 1 (no fresh row closure, old-guard race) - fixed.** The SCHEMA file's first statement after the timeouts is `LOCK TABLE public.study_sessions IN SHARE ROW EXCLUSIVE MODE` (blocks INSERT and UPDATE through the old guard; reads continue; 5 s lock timeout, 30 s statement timeout). In the same transaction the pre-flight counts rows whose `custom_course_label` or `custom_subject_label` matches the complete new set and raises if there is any (nothing applied, the case returns to the Founder; no data is changed by this file); the post-check repeats the scan. The TEST proves the same scan text finds a label with U+2028 planted while the trigger is disabled (inside a rolled-back sub-transaction) and finds none in the live table.
+**Blocker 2 (unsafe rollback window) - fixed.** The ROLLBACK header states the safe window: only if F1 has never been served; after F1 the strict guard stays through any frontend rollback and until the full B-04a rollback. The file takes the same lock and raises if any row has a classification or a custom label; to undo B-04a entirely, run `B-04a_ROLLBACK` directly.
+**Non-blocking.** 1 (stored values): the TEST now reads back the trimmed course and subject labels with their generated keys, the canonical catalogue label and the 120-character label. 2 (boundaries): U+0001, U+001F, U+0080 and U+009F are added for both labels (31 cases, 27 refusals). 3 (attributes and triggers): language, result type, volatility, strict, parallel, leakproof and exactly one user trigger are bound in the pre-flight, post-check and TEST. 4 (evidence and concurrency): Gate 4 will preserve the SCHEMA output and every TEST row; concurrency is NOT COVERED (the lock semantics are the control).
+
+### C. Request to QA (round 2, closure)
+For the three v2 files by exact hash: state whether each Round 73 blocker is closed and list any NEW blocker introduced by the changed bytes only; PASS or PASS WITH CONDITIONS if none.
+
+Gates 2 to 7 not given for B-04a-fix.
+
+Handoff: `AWAITING-QA` - QA to append one round answering C.
