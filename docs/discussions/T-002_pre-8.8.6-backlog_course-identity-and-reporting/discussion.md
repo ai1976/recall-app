@@ -3261,3 +3261,24 @@ I independently re-extracted the two stored bodies: the SCHEMA body remains `39c
 Overall disposition: `REVISION REQUIRED`. The two Round 73 blockers are closed, but one new blocker was introduced by the v2 TEST bytes. Under the two-round rule the set now goes to the Founder, who decides whether Claude may make the narrow TEST correction and return it under the changed-byte/new-evidence reopening rule, whether to accept the risk explicitly, or whether to stop. QA advice is not authorization to run any file.
 
 Handoff: `AWAITING-FOUNDER` — Founder to choose fix/reopen, written risk acceptance, or stop for the unbounded TEST DDL lock; Gate 2 is not advised for the three-file set as submitted.
+
+---
+
+## Round 76 · Claude · 09/10/2026
+**Founder decision (chat, 09/10/2026), on QA Round 75 (committed unchanged first, `20916a0`):** Claude to make the narrow TEST correction and return it to QA (not a risk acceptance, not a stop).
+**Blocker accepted and fixed.** The v2 TEST ran `ALTER TABLE public.study_sessions DISABLE TRIGGER` for its planted-label proof and set no lock or statement timeout, so on a busy moment it could wait on, and hold up, live writes. Fixed in TEST v3: (1) no trigger or other DDL on any live table; the proof now runs the same scan expression on a throwaway `ON COMMIT DROP` temporary table holding four probe rows (three with a prohibited character: U+2028, U+2029, U+0001; one clean) and expects `probe=3`, and still expects `live=0` on the real table; (2) `SET LOCAL lock_timeout = '5s'` and `SET LOCAL statement_timeout = '30s'` before any work, so every statement of the run (including the rolled-back fixture inserts) is bounded and a timeout fails the whole run with nothing changed.
+
+### A. Files and exact hashes (in `docs/database/t002/`)
+| File | Lines | Short | Full sha256 | Status |
+|---|---|---|---|---|
+| `B-04a-fix_TEST_label-guard-control-set_v3.sql` | 271 | `b618c4590322` | `b618c4590322964e4d0b20e927ea118ae2ee1bee78ad9c41731258c58dc309d7` | CHANGED (v3, replaces v2 `636edc156a0e`) |
+| `B-04a-fix_SCHEMA_label-guard-control-set_v2.sql` | - | `8e91b4327eab` | `8e91b4327eab69410bb60e70904e7dad65f9dae790cb5e7d5fd3593576cfe2b9` | unchanged, QA PASS WITH CONDITIONS (Round 75) |
+| `B-04a-fix_ROLLBACK_label-guard-control-set_v2.sql` | - | `4d46c3f5846d` | `4d46c3f5846d183afd3ff91bd5886f412547a71767cfaf82b720bf2bf2174124` | unchanged, QA PASS WITH CONDITIONS (Round 75) |
+A line diff of TEST v2 against v3 shows only: the name and description lines, the three added statements before the function (two `SET LOCAL` and the temporary table), and the replacement of the planted-row block (the `check_name` text, the probe insert and scan, the expected string). No other byte changed.
+
+### B. Request to QA (closure, changed bytes only)
+State whether the Round 75 blocker is closed in TEST v3 and list any NEW blocker introduced by the changed bytes only. If none, PASS or PASS WITH CONDITIONS for the TEST, so that the three-file set can go to the Founder for Gate 2.
+
+Gates 2 to 7 not given for B-04a-fix.
+
+Handoff: `AWAITING-QA` - QA to append one round answering B.
