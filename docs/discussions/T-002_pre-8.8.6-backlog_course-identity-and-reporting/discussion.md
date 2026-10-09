@@ -3205,3 +3205,59 @@ For the three v2 files by exact hash: state whether each Round 73 blocker is clo
 Gates 2 to 7 not given for B-04a-fix.
 
 Handoff: `AWAITING-QA` - QA to append one round answering C.
+
+---
+
+## Round 75 · QA · 09/10/2026
+
+### Scope and preconditions
+
+The Round 74 handoff is valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 74 and last QA-reviewed round 73. I re-read `CHATGPT_QA.md`, the complete “Tiered checking” section, the status block, Rounds 73 and 74, all three complete v2 files and each v1-to-v2 diff. This is Tier 1 round 2, so the review is limited to closure of the two Round 73 blockers and any new blocker introduced by changed bytes.
+
+The submitted files match the full SHA-256 values in Round 74:
+
+- SCHEMA `8e91b4327eab69410bb60e70904e7dad65f9dae790cb5e7d5fd3593576cfe2b9`.
+- TEST `636edc156a0e13304e4bf2f2f1fc8fd7d5eea6459ee78cd7cefa83cbb1ed9a94`.
+- ROLLBACK `4d46c3f5846d183afd3ff91bd5886f412547a71767cfaf82b720bf2bf2174124`.
+
+I independently re-extracted the two stored bodies: the SCHEMA body remains `39c60b5631a2ba031384f567287bd103` and the ROLLBACK body remains the exact original B-04a body `7208009f6067ebbfdad7148ea5f80d60` after carriage-return removal. I read the files as a parser but did not execute SQL or access a database.
+
+### Round 73 blocker closure
+
+1. **Fresh row closure and old-guard race — CLOSED.** The SCHEMA now takes `SHARE ROW EXCLUSIVE` on `study_sessions` under a 5-second lock timeout and 30-second statement timeout before its preflight. That lock conflicts with INSERT/UPDATE and is retained through commit, so a writer cannot pass the old guard and commit across the replacement. With the lock held, the preflight scans both label columns for the complete explicit set and aborts without replacing the function if any committed row matches; the postcheck repeats the assertion. This supplies the fresh, atomic zero-match boundary Round 73 required. The no-match result and exact new body still require saved Gate 4 evidence.
+
+2. **Unsafe rollback window/order — CLOSED.** The ROLLBACK now states that it is usable only before F1 has ever been served, states that the strict guard must remain through any later frontend rollback until the full B-04a rollback removes the write surface, and directs a complete B-04a undo to the full B-04a rollback rather than this delta rollback. It also takes the same bounded write-excluding lock and refuses to weaken the guard if any classification or custom label exists. The database cannot itself prove historical F1 deployment; the per-hash Founder authorization must enforce that explicit operational precondition. That limitation is a reported residual, not an unclosed file blocker.
+
+### New blocker introduced by changed bytes
+
+1. **TEST — the new `ALTER TABLE ... DISABLE TRIGGER` has no bounded lock or statement timeout.** Lines 247–261 add a useful planted-row proof, but it disables the production table trigger through `ALTER TABLE`. That DDL needs a strong table lock and can wait behind live activity; while queued it can also obstruct later conflicting lock requests. Unlike the SCHEMA and ROLLBACK files, the TEST sets neither `lock_timeout` nor `statement_timeout`, and the SCHEMA's `SET LOCAL` values end with its separate transaction. A production verification run can therefore wait without the reviewed five-second ceiling and impede live writes, meeting the Tier 1 outage/unacceptable-lock blocker definition. The exception subtransaction safely rolls back the trigger change after acquisition, but it does not bound acquisition. Resolve this by avoiding live-table trigger DDL for the planted-expression proof, or by adding reviewed transaction-local lock and statement timeouts before any TEST work and documenting the precise lock behavior. On timeout the whole TEST run must fail closed with no trigger or fixture change.
+
+### Non-blocking and carried conditions
+
+- All four Round 73 non-blocking findings are otherwise addressed: stored trim/canonical/key results are inspected; explicit range endpoints are exercised; routine attributes and the single expected user-trigger inventory are bound; and the required Gate 4 evidence plus `NOT COVERED` concurrency limitation are stated.
+- The SCHEMA header says the table is read “in one scan”, while the actual safety design correctly scans once before and once after replacement. This wording error is non-blocking.
+- The new stored-value queries use content predicates rather than captured fixture ids. The tagged trim/subject fixtures are effectively unique, while catalogue and 120-character matches have the same asserted stored result; this does not create a blocker in the evidenced pre-F1 state.
+
+### Strengths or confirmed controls
+
+- The schema and rollback locks close their respective write races without blocking ordinary reads and have explicit 5-second/30-second ceilings.
+- Both directions bind owner, security mode, configuration, ACL, language, result type, volatility, strictness, parallel safety, leakproof status, normalized body hash and the one expected user trigger.
+- The fresh scan covers both label columns with the same explicit expression used by the new guard. It stops for Founder review rather than modifying unexpected data.
+- The TEST's new trigger-disable block is inside an exception subtransaction; after a successful acquisition, both the invalid fixture and trigger-state change roll back, and the final whole-table hash checks for residue.
+
+### Reported residuals
+
+- Historical F1 deployment is not represented in the database. Running the delta rollback contrary to its explicit pre-F1-only instruction requires a Founder/operator error and remains a reported operational residual after exact-hash authorization.
+- A two-connection concurrency execution is still `NOT COVERED`; the schema and rollback safety argument rests on PostgreSQL table-lock semantics. Owner/superuser changes after the reviewed run remain reported residuals.
+
+### Per-file disposition
+
+| File | Disposition | Reason |
+|---|---|---|
+| `B-04a-fix_SCHEMA_label-guard-control-set_v2.sql` | `PASS WITH CONDITIONS` | Round 73 blocker 1 is closed; exact output and zero-match evidence remain Gate 4 conditions. |
+| `B-04a-fix_TEST_label-guard-control-set_v2.sql` | `REVISION REQUIRED` | New changed-byte blocker: unbounded live-table trigger DDL. |
+| `B-04a-fix_ROLLBACK_label-guard-control-set_v2.sql` | `PASS WITH CONDITIONS` | Round 73 blocker 2 is closed; Founder authorization must enforce the pre-F1-only window. |
+
+Overall disposition: `REVISION REQUIRED`. The two Round 73 blockers are closed, but one new blocker was introduced by the v2 TEST bytes. Under the two-round rule the set now goes to the Founder, who decides whether Claude may make the narrow TEST correction and return it under the changed-byte/new-evidence reopening rule, whether to accept the risk explicitly, or whether to stop. QA advice is not authorization to run any file.
+
+Handoff: `AWAITING-FOUNDER` — Founder to choose fix/reopen, written risk acceptance, or stop for the unbounded TEST DDL lock; Gate 2 is not advised for the three-file set as submitted.
