@@ -3282,3 +3282,46 @@ State whether the Round 75 blocker is closed in TEST v3 and list any NEW blocker
 Gates 2 to 7 not given for B-04a-fix.
 
 Handoff: `AWAITING-QA` - QA to append one round answering B.
+
+---
+
+## Round 77 · QA · 09/10/2026
+
+### Scope and preconditions
+
+The Round 76 handoff is valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 76 and last QA-reviewed round 75. Round 76 records the Founder's decision to permit the narrow correction and reopen review under the changed-byte rule. I re-read `CHATGPT_QA.md`, the complete “Tiered checking” section, the status block, Rounds 75 and 76, TEST v3 and the complete v2-to-v3 diff. Review is limited to closure of the Round 75 blocker and any blocker introduced by those changed bytes.
+
+TEST v3 matches the submitted full SHA-256: `b618c4590322964e4d0b20e927ea118ae2ee1bee78ad9c41731258c58dc309d7`. SCHEMA v2 `8e91b4327eab69410bb60e70904e7dad65f9dae790cb5e7d5fd3593576cfe2b9` and ROLLBACK v2 `4d46c3f5846d183afd3ff91bd5886f412547a71767cfaf82b720bf2bf2174124` are unchanged from their Round 75 `PASS WITH CONDITIONS` dispositions. I read the changed SQL as a parser but did not execute SQL or access a database.
+
+### Round 75 blocker closure
+
+**CLOSED.** TEST v3 completely removes `ALTER TABLE ... DISABLE TRIGGER` and all other DDL against the live `study_sessions` table. The planted-expression proof now uses `pg_temp.b04fix_scan_probe`, a throwaway two-text-column temporary table containing three prohibited probes and one clean row; the identical regular expression must return `probe=3`, while the separate read-only live-table scan must return `live=0`.
+
+Before creating any object or invoking the test function, v3 sets transaction-local `lock_timeout = '5s'` and `statement_timeout = '30s'`. The remaining live-table operations are the already-reviewed rollback-only fixture INSERT/UPDATE paths and read-only scans; any lock wait or overlong statement now aborts the run within the stated ceiling, and their exception subtransactions plus the outer failed statement/transaction semantics leave no persistent fixture. The unbounded production-table DDL risk introduced in v2 is gone.
+
+### New blockers introduced by changed bytes
+
+None found. The temporary-table probe, timeout statements and revised expected string do not introduce data loss/corruption, an outage or unacceptable lock, a security/privacy/privilege escape, an incorrect student-visible result/access boundary, or a failed rollback.
+
+### Non-blocking changed-byte findings
+
+1. The header still says the TEST creates “one temporary function and one temporary table”; v3 creates the probe table and later the results table, so there are two temporary tables. It also says every inserted row is in a rolled-back subtransaction, whereas the four probe rows remain only in the temporary table until `ON COMMIT DROP`. Nothing persists, so both are documentation inaccuracies only.
+2. The new header says the timeouts mean the TEST “can never wait on or hold up live writes”. The accurate claim is bounded: it can wait for at most the configured lock/statement ceilings, and its ordinary rollback-only DML can still briefly participate in normal locking. The blocker is closed because the live-table DDL was removed and all remaining waits are bounded; amend the absolute wording when convenient.
+
+### Strengths or confirmed controls
+
+- The v2-to-v3 diff is narrow: timeout setup, one temporary probe table, replacement of the live-table trigger-disable block, and corresponding name/description text.
+- The probe covers both label columns and three parts of the explicit set (U+2028, U+2029 and U+0001) plus a clean negative control using exactly the schema expression.
+- The test continues to require `live=0`, exact function/trigger identity, real-role boundary behavior, stored transformations, owner-level UPDATE refusal, whole-table equality and a fail-closed summary.
+
+### Reported residuals and Gate 4 conditions
+
+- Two-connection concurrency remains `NOT COVERED`; the reviewed SCHEMA/ROLLBACK table-lock semantics are the control.
+- Gate 4 must preserve the exact SCHEMA result and every TEST v3 row, with every check and the summary true. Any timeout, SQL error, nonzero live scan or preflight mismatch is a stop, not a result to edit around.
+- ROLLBACK v2 remains pre-F1-only as stated in Round 75 and is not part of the normal production run.
+
+### Disposition
+
+`PASS WITH CONDITIONS` for exact TEST v3 `b618c4590322`. Combined three-file Gate 2 advice: `PASS WITH CONDITIONS` for SCHEMA v2 `8e91b4327eab`, TEST v3 `b618c4590322`, and ROLLBACK v2 `4d46c3f5846d`. There is no remaining blocker. The conditions are the Gate 4 evidence/stop rules, recorded `NOT COVERED` concurrency limitation, and strict pre-F1-only rollback window above. This is QA advice, not Founder authorization to run any file.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 for the exact three-file set and, separately, whether and when to grant Gate 3 for SCHEMA v2 followed by TEST v3; ROLLBACK v2 is not run.
