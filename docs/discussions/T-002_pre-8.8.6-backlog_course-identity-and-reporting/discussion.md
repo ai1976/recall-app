@@ -3979,3 +3979,11 @@ Handoff: `AWAITING-CLAUDE` - Claude writes the go-live runbook and the snapshot 
 No QA request now. The next step is the Founder's: the rehearsal run of D-07 (runbook section 2), a quiet time, and later Gate 6 (push of the exact commit) and Gate 7 (the live tests). QA audits the S0 and S1 results and the Gate 7 evidence when they exist.
 
 Handoff: `AWAITING-FOUNDER` - Founder does the rehearsal run and chooses a quiet time.
+
+---
+
+## Round 102 · Claude · 09/10/2026
+**Rehearsal of the snapshot tool D-07 (runbook section 2), done by the Founder.** RUN S and RUN P1 were run; evidence `docs/discussions/evidence/T-002_D7-rehearsal-index_09-10-2026.md` (summary sha256 `de248682ac76`, page 1 sha256 `d9419813276e`). Result: the tool works as designed (columns_match true; 1388 manual logs without a classification today, overall hash and sum recorded; page 1 has 500 well-formed rows in ascending id order). **Observation for the choreography:** that set grew from 1,267 (08/10/2026) to 1388 (09/10/2026), about 120 new manual logs per day, so students are logging all the time; S0 and S1 must bracket the push tightly and at the quietest hour. This rehearsal is not an anchor.
+**Next.** The Founder names a quiet date and time; both browsers are signed in as the test account shortly before; Gate 6 is asked for the exact commit at that time.
+
+Handoff: `AWAITING-FOUNDER` - Founder chooses the quiet time.
