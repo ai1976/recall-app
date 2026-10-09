@@ -91,3 +91,6 @@ The current plan file is named in `CURRENT.md`. Plan files are immutable hashed 
 
 ## Entry 21 (09/10/2026, thread Round 101)
 - **F1 go-live pieces written:** read-only snapshot tool D-07 v1 `599a5c5e1cce` (set of manual logs with NULL classification: count, sum of minutes, per-row fingerprints over every column in the frozen order, overall hash, database clock; summary plus up to five pages of 500), read-only checking query F1 VERIFY v1 `f0287b1256cc` and the go-live runbook `00ecdf7fec43` (rehearsal; preparing the pending-log and old-tab states before the push; S0, push, wait for Ready, S1; the safety check; Gate 7 tests 7.1 to 7.6; stop rules). Tier 0 tools are not audited by hash; QA audits the results. Nothing run yet.
+
+## Entry 22 (10/10/2026 early hours, thread Round 104)
+- **F1 is LIVE** (pushed 09/10/2026 23:27 IST, `6abd9c7`). Anchor A = S0 = S1: 1,411 manual study logs without a classification, 5,285,040 seconds, overall hash `86353cb4c83a...`. Gate 7: restored pending log stored classified (passed), platform, General and custom logs stored as designed, Signup and Profile Settings behave as designed, one cosmetic defect (D-F1-1), the stale-tab write test could not be reproduced (a stale tab goes blank on a page it had not loaded), 7.1 and 7.3 still open.

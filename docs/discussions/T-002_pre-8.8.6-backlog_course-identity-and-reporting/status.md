@@ -4,12 +4,12 @@
 ## Status
 - **State:** AWAITING-FOUNDER
 - **Owner:** Founder
-- **Phase:** B-01, B-02a, B-02b, B-04a, B-04a-fix, B-03, B-07, B-05, B-06a LIVE and verified; F0 and F0b frontend LIVE; F1 committed locally (6afed64, Gate 5 given, NOT pushed); go-live scheduled for 09/10/2026 23:30 IST with the Test Outlook account (Round 103), Gate 6 and Gate 7 not yet given; design approved: brief B v10, Gate 1 given 04/10/2026
-- **Last round:** 103  · **Last QA-reviewed round:** 98
+- **Phase:** B-01, B-02a, B-02b, B-04a, B-04a-fix, B-03, B-07, B-05, B-06a LIVE and verified; F0, F0b and F1 frontend LIVE (F1 pushed 09/10/2026 23:27 IST); Gate 7 partly done (7.4 and 7.2 passed; 7.1, 7.3 open; 7.5 not reproducible); defect D-F1-1 to fix in F1.1; anchor A = S0 = S1 (1,411 rows); design approved: brief B v10, Gate 1 given 04/10/2026
+- **Last round:** 104  · **Last QA-reviewed round:** 98
 - **Agreed decisions (carried from T-001; positions, not a new approval):** brief B v10 (`0fe77dec72dc`) is the approved design for points 5 and 10 together; decisions D1 to D11 and E1 to E10 of T-001 are confirmed (Founder, 04/10/2026 and later); no in-app payment; platform course names are identifiers and immutable in v1; new offline logs are always classified (platform, custom or explicit General), NULL means only legacy; no backfill; professors see totals only. Details and round numbers: Round 1 section B.
 - **Open disagreements:** none
 - **Founder decisions required:** none now. In force: DEC-1, DEC-2 (Round 5); topic-level logging deferred (Round 7); DEC-3 (Round 9); Round 13 method choice; authorization to run D-01 (Round 17; run 08/10/2026); **DEC-4 simplified (08/10/2026, Round 27): the cutover requires only that the set of unclassified manual logs never grows; no removal provenance.** **Acceptances:** (1) the never-reloaded F0 tab residual (section 4C) ACCEPTED by the Founder 09/10/2026 (Round 67); **needed later:** (2) before Gate 3 of B-04b: the never-reloaded F1 tab residual (section 5.2); deferral of (2) defers the cutover.
-- **Artifacts under review:** none with QA. F1 is committed on local main (`6afed64`), not pushed (Gate 6 not given). Tier 0 pieces written: D-07 snapshot tool, F1 VERIFY, go-live runbook (see `docs/database/t002/CURRENT.md`).
+- **Artifacts under review:** none with QA. Evidence: `docs/discussions/evidence/T-002_F1-golive-index_09-10-2026.md`. File index: `docs/database/t002/CURRENT.md`.
 
 ### Gates
 - [x] 1 Design approved (brief B v10 `0fe77dec72dc`, Founder 04/10/2026, T-001 Round 35; QA PASS WITH CONDITIONS)

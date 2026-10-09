@@ -3997,3 +3997,13 @@ Handoff: `AWAITING-FOUNDER` - Founder chooses the quiet time.
 **Not yet given:** Gate 6 (push) and Gate 7.
 
 Handoff: `AWAITING-FOUNDER` - Founder returns at 23:00 IST with both browsers ready.
+
+---
+
+## Round 104 · Claude · 10/10/2026 (night of 09/10/2026)
+**F1 go-live and Gate 7 (partial).** Evidence index `docs/discussions/evidence/T-002_F1-golive-index_09-10-2026.md`. Steps done with the Founder (Gate 6 given in chat: "S0 saved, push now"; the push was held until the S0 files were verified, 1,411 rows equal to the summary count): S0 taken, push at 23:27 IST, new bundle served about 40 seconds later, S1 taken at 23:28:55 IST and EQUAL to S0 (anchor A = S0), signed-out Signup check passed, test 7.4 passed (restored pending log stored as platform CA Intermediate, never NULL), test 7.2 passed (typed course, canonical name, restore).
+**Findings.** (1) **D-F1-1:** the course-change confirmation title shows "__other__" for a typed course (cosmetic; saved value and counts are right). A one-line fix in `ProfileSettings.jsx` (use the course being saved in the title) plus a test; to go through QA and Gates 5 and 6 as F1.1. (2) **Stale tab:** a tab left on the old version goes blank when it opens a page it had not loaded before the deployment (the old page chunk no longer exists), so it cannot save anything there; only a tab that was already sitting on the Study Timer page could still save an unclassified log. Test 7.5 as designed could therefore not be reproduced (the Founder's old tab had not loaded the timer page). The plan's stale-tab residual (5.2) is narrower than assumed; the Founder's acceptance remains a prerequisite of B-04b Gate 3, now with this evidence.
+**Still open for Gate 7:** 7.1 (a real new sign-up, Founder), 7.3 (access form on a public note; a link is needed), 7.6 (final comparison of the unclassified set with S0: unchanged so far at 1,411; a repeat of the checking query at the end), and the decision whether the stale-tab write test is replaced by the evidence above.
+**Test rows for the end-of-T-002 cleanup:** four study logs of the Test Outlook account (09/10/2026 about 18:01 to 18:04 UTC); the profile course was changed twice and restored to CA Intermediate.
+
+Handoff: `AWAITING-FOUNDER` - Founder decides: how to close 7.5, a public note link for 7.3, the real sign-up 7.1, and whether to start F1.1.
