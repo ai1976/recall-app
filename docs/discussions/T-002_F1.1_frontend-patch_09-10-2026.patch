@@ -1,0 +1,72 @@
+diff --git a/src/pages/dashboard/Profile/ProfileSettings.jsx b/src/pages/dashboard/Profile/ProfileSettings.jsx
+index 44deb91..9d527da 100644
+--- a/src/pages/dashboard/Profile/ProfileSettings.jsx
++++ b/src/pages/dashboard/Profile/ProfileSettings.jsx
+@@ -94,6 +94,8 @@ export default function ProfileSettings() {
+   const [originalCourse, setOriginalCourse] = useState('');
+   const [confirmOpen, setConfirmOpen] = useState(false);
+   const [coursePreview, setCoursePreview] = useState(null);
++  // The course the confirmation dialog is about (the typed text or the listed course that will be saved), not the dropdown's own value.
++  const [pendingCourse, setPendingCourse] = useState('');
+   const [previewLoading, setPreviewLoading] = useState(false);
+   const [institutionSelect, setInstitutionSelect] = useState('');
+   const [customInstitution, setCustomInstitution] = useState('');
+@@ -340,6 +342,7 @@ export default function ProfileSettings() {
+       const { data, error } = await supabase.rpc('preview_course_change', { p_new_course: values.courseToSave });
+       if (error) throw error;
+       setCoursePreview(data);
++      setPendingCourse(values.courseToSave || '');
+       setConfirmOpen(true);
+     } catch (error) {
+       console.error('Error previewing course change:', error);
+@@ -992,7 +995,7 @@ export default function ProfileSettings() {
+       <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open) cancelCourseChange(); }}>
+         <DialogContent>
+           <DialogHeader>
+-            <DialogTitle>Change your course to {courseLevel}?</DialogTitle>
++            <DialogTitle>Change your course to {pendingCourse}?</DialogTitle>
+             <DialogDescription asChild>
+               <div className="space-y-2 text-sm text-gray-600">
+                 {coursePreview?.archive_count > 0 ? (
+@@ -1011,7 +1014,7 @@ export default function ProfileSettings() {
+                 )}
+                 {coursePreview?.restore_count > 0 && (
+                   <p>
+-                    <strong>{coursePreview.restore_count}</strong> previously archived {courseLevel} card{coursePreview.restore_count === 1 ? '' : 's'}{' '}
++                    <strong>{coursePreview.restore_count}</strong> previously archived {pendingCourse} card{coursePreview.restore_count === 1 ? '' : 's'}{' '}
+                     will return to My Study.
+                   </p>
+                 )}
+diff --git a/src/pages/dashboard/Profile/ProfileSettings.test.jsx b/src/pages/dashboard/Profile/ProfileSettings.test.jsx
+index a7a00cf..a35b4b0 100644
+--- a/src/pages/dashboard/Profile/ProfileSettings.test.jsx
++++ b/src/pages/dashboard/Profile/ProfileSettings.test.jsx
+@@ -131,6 +131,28 @@ describe('Profile Settings course (T-002 F1)', () => {
+     expect(updateProfileDueFields.mock.calls[0][1].course_level).toBe('CFA Level 1');
+   });
+ 
++  it('names the typed course in the confirmation, never the dropdown\'s own value (defect D-F1-1)', async () => {
++    await loaded();
++    openCourseList();
++    fireEvent.click(await screen.findByRole('option', { name: 'Other, type your own' }));
++    fireEvent.change(await screen.findByLabelText('Your course'), { target: { value: '  ACCA  ' } });
++    fireEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
++    const title = await screen.findByText(/Change your course to/);
++    expect(title.textContent).toBe('Change your course to ACCA?');
++    expect(document.body.textContent).not.toMatch(/__other__/);
++    expect(rpc).toHaveBeenCalledWith('preview_course_change', { p_new_course: 'ACCA' });
++  });
++
++  it('names a listed course in the confirmation and the saved listed course when a typed one matches it', async () => {
++    await loaded();
++    openCourseList();
++    fireEvent.click(await screen.findByRole('option', { name: 'Other, type your own' }));
++    fireEvent.change(await screen.findByLabelText('Your course'), { target: { value: 'ca   foundation' } });
++    fireEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
++    const title = await screen.findByText(/Change your course to/);
++    expect(title.textContent).toBe('Change your course to CA Foundation?');
++  });
++
+   it('blocks an invalid typed course with a message and saves nothing', async () => {
+     await loaded();
+     openCourseList();

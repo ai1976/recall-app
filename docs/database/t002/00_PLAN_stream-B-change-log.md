@@ -94,3 +94,6 @@ The current plan file is named in `CURRENT.md`. Plan files are immutable hashed 
 
 ## Entry 22 (10/10/2026 early hours, thread Round 104)
 - **F1 is LIVE** (pushed 09/10/2026 23:27 IST, `6abd9c7`). Anchor A = S0 = S1: 1,411 manual study logs without a classification, 5,285,040 seconds, overall hash `86353cb4c83a...`. Gate 7: restored pending log stored classified (passed), platform, General and custom logs stored as designed, Signup and Profile Settings behave as designed, one cosmetic defect (D-F1-1), the stale-tab write test could not be reproduced (a stale tab goes blank on a page it had not loaded), 7.1 and 7.3 still open.
+
+## Entry 23 (09/10/2026, thread Round 105)
+- **F1.1 patch `35fef09763ed` written** (defect D-F1-1: the Profile Settings course-change confirmation shows the course being saved, not the dropdown's internal value). Not pushed.

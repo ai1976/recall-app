@@ -28,5 +28,6 @@ Operators: before running anything, find the artifact here and check that the fi
 | D-07 snapshot of the manual study logs without a classification (read-only; S0 and S1) | `D-07_DIAGNOSTIC_D7_manual-null-snapshot_v1.sql` `599a5c5e1cce` | thread Round 101 | 0 | REHEARSAL run 09/10/2026; S0 and S1 TAKEN 09/10/2026 (equal; anchor A = S0, 1,411 rows); evidence index `T-002_F1-golive-index_09-10-2026.md` |
 | F1 VERIFY (read-only; what the Gate 7 tests stored for the test account) | `F1_VERIFY_gate7-test-sessions_v1.sql` `f0287b1256cc` | thread Round 101 | 0 | written; not run yet |
 | F1 go-live runbook | `docs/discussions/T-002_F1_go-live-runbook_09-10-2026.md` `00ecdf7fec43` | thread Round 101 | procedure | written; waiting for the Founder's rehearsal, quiet time and Gate 6 |
+| F1.1 frontend patch (dialog title for a typed course; not SQL) | `docs/discussions/T-002_F1.1_frontend-patch_09-10-2026.patch` `35fef09763ed` | Round 105 | frontend | submitted to QA; NOT pushed; Gates 5, 6 and 7 not given |
 
 Every other `D-0x` and `00_PLAN_*` file in this folder is SUPERSEDED.

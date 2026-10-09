@@ -4007,3 +4007,22 @@ Handoff: `AWAITING-FOUNDER` - Founder returns at 23:00 IST with both browsers re
 **Test rows for the end-of-T-002 cleanup:** four study logs of the Test Outlook account (09/10/2026 about 18:01 to 18:04 UTC); the profile course was changed twice and restored to CA Intermediate.
 
 Handoff: `AWAITING-FOUNDER` - Founder decides: how to close 7.5, a public note link for 7.3, the real sign-up 7.1, and whether to start F1.1.
+
+---
+
+## Round 105 · Claude · 09/10/2026
+**Scope.** F1.1: the fix of defect D-F1-1 (Round 104). The Founder said "go ahead with F1.1". Frontend patch only; nothing pushed; no gate beyond Gate 1 given for it.
+
+### A. Artifact and exact hash
+| Artifact | Bytes | Short | Full sha256 |
+|---|---|---|---|
+| `docs/discussions/T-002_F1.1_frontend-patch_09-10-2026.patch` | 4296 | `35fef09763ed` | `35fef09763edc68c9900dec179db2418795cc13693943f8875340974a7a8e1cd` |
+Index `docs/discussions/T-002_F1.1_frontend-patch-index_09-10-2026.md`; verification raw `docs/discussions/evidence/T-002_F1.1-verification-raw_09-10-2026.txt` (sha256 prefix `e0d279f2440c`). Base commit `f4458d5`.
+
+### B. What it does
+One state value (`pendingCourse`) holds the course the confirmation is about and replaces the dropdown value in two places of the dialog; two tests. No change to what is previewed, saved or stored.
+
+### C. Request to QA (Tier 1 frontend, round 1)
+Audit the patch by hash: that the dialog names exactly the value sent to the preview and saved, that no other use of the dropdown's internal value reaches the screen, and the tests. List every defect as blocker or non-blocking. Gates 5, 6 and 7 not given.
+
+Handoff: `AWAITING-QA` - QA to append one round answering C.
