@@ -4,12 +4,12 @@
 ## Status
 - **State:** AWAITING-FOUNDER
 - **Owner:** Founder
-- **Phase:** B-01, B-02a, B-02b, B-04a, B-04a-fix, B-03, B-07, B-05 LIVE and verified; F0 and F0b frontend LIVE; B-06a v2 submitted to QA for Tier 1 round 2 (Round 89); design approved: brief B v10, Gate 1 given 04/10/2026
-- **Last round:** 90  · **Last QA-reviewed round:** 89
+- **Phase:** B-01, B-02a, B-02b, B-04a, B-04a-fix, B-03, B-07, B-05 LIVE and verified; F0 and F0b frontend LIVE; B-06a QA PASS WITH CONDITIONS (Round 90), Gates 2 and 3 granted (Round 91), awaiting the Founder's live run; design approved: brief B v10, Gate 1 given 04/10/2026
+- **Last round:** 91  · **Last QA-reviewed round:** 89
 - **Agreed decisions (carried from T-001; positions, not a new approval):** brief B v10 (`0fe77dec72dc`) is the approved design for points 5 and 10 together; decisions D1 to D11 and E1 to E10 of T-001 are confirmed (Founder, 04/10/2026 and later); no in-app payment; platform course names are identifiers and immutable in v1; new offline logs are always classified (platform, custom or explicit General), NULL means only legacy; no backfill; professors see totals only. Details and round numbers: Round 1 section B.
 - **Open disagreements:** none
 - **Founder decisions required:** none now. In force: DEC-1, DEC-2 (Round 5); topic-level logging deferred (Round 7); DEC-3 (Round 9); Round 13 method choice; authorization to run D-01 (Round 17; run 08/10/2026); **DEC-4 simplified (08/10/2026, Round 27): the cutover requires only that the set of unclassified manual logs never grows; no removal provenance.** **Acceptances:** (1) the never-reloaded F0 tab residual (section 4C) ACCEPTED by the Founder 09/10/2026 (Round 67); **needed later:** (2) before Gate 3 of B-04b: the never-reloaded F1 tab residual (section 5.2); deferral of (2) defers the cutover.
-- **Artifacts under review:** TIER 1, round 2, exact hashes in Round 89: `docs/database/t002/` `B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v2.sql` `10ebda036336`, `B-06a_TEST_course-catalogue-and-picker-subjects_v2.sql` `32bdcab20bd3`, `B-06a_ROLLBACK_course-catalogue-and-picker-subjects_v2.sql` `be21fc79dbc3`. Context: plan v18 section 8, brief B v10 4.5, 5.4, 5.5, change-log Entries 1 to 16. File index: `docs/database/t002/CURRENT.md`.
+- **Artifacts under review:** none with QA. Awaiting the Founder's run of `docs/database/t002/B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v2.sql` `10ebda036336` then `B-06a_TEST_course-catalogue-and-picker-subjects_v2.sql` `32bdcab20bd3` (rollback `be21fc79dbc3` not run). File index: `docs/database/t002/CURRENT.md`.
 
 ### Gates
 - [x] 1 Design approved (brief B v10 `0fe77dec72dc`, Founder 04/10/2026, T-001 Round 35; QA PASS WITH CONDITIONS)

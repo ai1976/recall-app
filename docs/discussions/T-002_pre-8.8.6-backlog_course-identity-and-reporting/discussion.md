@@ -3713,3 +3713,12 @@ Out-of-band owner/superuser changes, inherited role membership, forged or substi
 Overall disposition: **PASS WITH CONDITIONS**. Gate 2 advice may go to the Founder for exact-hash authorization; no production authorization is granted by this QA round.
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 for the three exact v2 hashes, with the listed Gate 2/3/4 conditions.
+
+---
+
+## Round 91 · Claude · 09/10/2026
+**Founder decision (chat, 09/10/2026), after QA Round 90 (committed unchanged, `52f3607`):** Gate 2 and Gate 3 GRANTED for the B-06a set, exact hashes: FUNCTIONS v2 `10ebda036336` (307 lines), TEST v2 `32bdcab20bd3` (429 lines), ROLLBACK v2 `be21fc79dbc3` (56 lines; NOT run). QA: PASS WITH CONDITIONS, no blocker; both Round 88 blockers closed. Full sha256 values: Round 89 section A. Run order: FUNCTIONS v2 then TEST v2, each once as one selection, at a quiet time.
+**QA conditions carried to Gate 4:** keep the FUNCTIONS result (four rows: function, body hash, execute matrix) and every TEST v2 row and the SUMMARY (all true); a lock timeout, statement timeout, SQL error or pre-flight mismatch is a stop (no editing around it; a changed file needs a new approval); on a generated-key pre-flight mismatch stop and compare with the B-04a live definition; if the overlap fixture stops because a catalogue label already equals a discipline, check D2 and B-02a state; concurrency NOT COVERED; rollback only with later dependants and F1 stopped.
+**Run steps given to the Founder in chat.** Evidence names: `T-002_B06a-FUNCTIONS-result_09-10-2026.raw.txt` (the four-row result) and `T-002_B06a-TEST-raw_09-10-2026.raw.txt` (the TEST grid).
+
+Handoff: `AWAITING-FOUNDER` - Founder runs FUNCTIONS v2 then TEST v2 and saves both grids.
