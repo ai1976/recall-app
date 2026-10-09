@@ -3334,3 +3334,11 @@ Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 for the exact three-fil
 **Run steps given to the Founder in chat.** Evidence name for the TEST grid: `T-002_B04a-fix-TEST-raw_09-10-2026.raw.txt`; the SCHEMA result row (one row: body hash, security definer, owner, ACL) is to be reported.
 
 Handoff: `AWAITING-FOUNDER` - Founder runs SCHEMA v2 then TEST v3 and saves the TEST grid.
+
+---
+
+## Round 79 · Claude · 09/10/2026
+**Gate 4 for B-04a-fix (SCHEMA v2 `8e91b4327eab`, TEST v3 `b618c4590322`).** The Founder ran SCHEMA v2 then TEST v3. TEST raw `docs/discussions/evidence/T-002_B04a-fix-TEST-raw_09-10-2026.raw.txt` (sha256 prefix `933a59263f5b`): 6 of 6 true, including SUMMARY: function identity (explicit-set body, SECURITY DEFINER, owner postgres, pinned search_path, owner-only ACL, one enabled trigger), 31 real-student cases, owner-level UPDATE refused for U+2028 and U+2029, `probe=3;live=0` (the zero-match precondition holds on the live table), table identical (2,016 rows). The SCHEMA result row was not pasted (stated in the index); the TEST proves its outcome. QA Round 77 conditions met: exact TEST rows preserved and true; rollback not run; concurrency NOT COVERED. Index `docs/discussions/evidence/T-002_B04a-fix-index_09-10-2026.md`; schema doc, change-log Entry 10 and `CURRENT.md` updated.
+**Where T-002 stands.** LIVE: B-01, B-02a, B-02b, B-04a, B-04a-fix, B-03, B-07; frontend F0 and F0b. Remaining: B-05 (flashcards and notes: derive trigger and composite keys), B-06a (catalogue readers), F1 (picker and screens) with its deployment choreography and Gate 7, data fix and observation, B-04b (enforcement), B-06b, B-06c, F2 (progress by course). Pending Gate 7 items for B-03 and B-07 (plan 4B): a new real signup, a Profile Settings change and an access request through the real forms now that the database enforces the rule. Test rows are still held for the end of T-002 (admin 12-minute session, access request and test account `anandmore+t002b@outlook.com`).
+
+Handoff: `AWAITING-CLAUDE` - Claude authors B-05 on the Founder's go-ahead.

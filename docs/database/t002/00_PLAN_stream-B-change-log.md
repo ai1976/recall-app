@@ -49,3 +49,6 @@ The current plan file is named in `CURRENT.md`. Plan files are immutable hashed 
 
 ## Entry 9 (09/10/2026, thread Round 76; answers QA Round 75)
 - **B-04a-fix TEST v3 (`b618c4590322`) supersedes TEST v2 (`636edc156a0e`):** the v2 TEST disabled a trigger on the live `study_sessions` with `ALTER TABLE` and set no lock or statement timeout, so it could wait on live writes (QA Round 75 new blocker). v3 changes no trigger and runs the scan-expression proof on a throwaway temporary table, and sets `lock_timeout` 5 s and `statement_timeout` 30 s before any work. SCHEMA v2 (`8e91b4327eab`) and ROLLBACK v2 (`4d46c3f5846d`) are unchanged and stay QA PASS WITH CONDITIONS. Carried, non-blocking: the SCHEMA header says the labels are read "in one scan" (the file scans once before and once after the replacement); wording only, not changed so that the audited SCHEMA hash stays.
+
+## Entry 10 (09/10/2026, thread Round 79)
+- **B-04a-fix is LIVE** (SCHEMA v2 `8e91b4327eab`, TEST v3 `b618c4590322`: 6 of 6 true). The live `fn_study_sessions_label_guard` now refuses C0, DEL, C1, U+2028 and U+2029 explicitly in both labels. Strict guard stays in place through F1 and any frontend rollback; the fix's ROLLBACK is for the pre-F1 window only (it is not run).
