@@ -82,3 +82,6 @@ The current plan file is named in `CURRENT.md`. Plan files are immutable hashed 
 
 ## Entry 18 (09/10/2026, thread Round 95)
 - **B-06a is LIVE and verified** (FUNCTIONS v2 `10ebda036336`, TEST v3 `596636a49352`: 10 of 10 true). Four functions exist: `fn_course_options_core(text, uuid)` (owner only), `get_course_options_public()` (anon, authenticated), `get_course_options(text)` and `get_picker_subjects(uuid, text)` (authenticated). Nothing calls them yet; F1 is their first caller. ROLLBACK v2 is not run.
+
+## Entry 19 (09/10/2026, thread Round 96)
+- **F1 frontend patch `0c8cdb05d7fe` written** (Signup, Profile Settings, access form and the study-log picker render the B-06a catalogue; every manual log is stored classified; three new RPC names classified in the due-set guard). Not pushed. The deployment choreography (S0 snapshot, promote, S1 snapshot) and Gate 7 follow after QA and Gates 5 and 6.

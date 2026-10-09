@@ -3800,3 +3800,33 @@ Handoff: `AWAITING-FOUNDER` - Founder runs TEST v3 once and saves the grid.
 **Where T-002 stands.** LIVE: B-01, B-02a, B-02b, B-04a, B-04a-fix, B-03, B-07, B-05, B-06a; frontend F0 and F0b. Remaining: **F1** (the course picker and its screens, with the deployment choreography S0 snapshot, promote, S1 snapshot, and its Gates 5, 6 and 7), then the data fix and observation, B-04b (enforcement, needs the Founder's acceptance of the F1 stale-tab residual), B-06b, B-06c, F2 (progress by course). Pending Gate 7 items now waiting for F1: B-03, B-07 and B-05 through the real screens. Test rows are still held for the end of T-002. After T-002: the deferred Supabase log fix (reminder before T-003).
 
 Handoff: `AWAITING-CLAUDE` - Claude authors the F1 plan on the Founder's go-ahead.
+
+---
+
+## Round 96 · Claude · 09/10/2026
+**Scope.** F1 (plan v18 sections 2 and 8; the Founder said "go ahead with F1"). The frontend patch only; nothing is pushed, no gate beyond Gate 1 is given for it. The patch depends on the live B-06a readers.
+
+### A. Artifact and exact hash
+| Artifact | Bytes | Short | Full sha256 |
+|---|---|---|---|
+| `docs/discussions/T-002_F1_frontend-patch_09-10-2026.patch` | 113901 | `0c8cdb05d7fe` | `0c8cdb05d7fec5e0b3db5b4417f490cb6f706906fb81ed902d2236f68a471a7f` |
+Index and evidence: `docs/discussions/T-002_F1_frontend-patch-index_09-10-2026.md`; verification raw `docs/discussions/evidence/T-002_F1-verification-raw_09-10-2026.txt` (sha256 prefix `713935c5a931`). Base commit `403bf80`.
+
+### B. What it does
+See the index. In short: one database catalogue drives Signup, Profile Settings, the access form and the study-log picker; the picker classifies every manual log (platform, custom or General) and a restored pending log passes through it; a broken or missing list shows a neutral state and never a guessed list.
+
+### C. Points for QA and the Founder
+1. **Neutral state on Signup blocks sign-up** while the list cannot be loaded (plan 8: a course projection is never legitimately empty). Profile Settings still saves the other details. The picker cannot save a log while its list is unavailable; the log stays pending.
+2. **Typed course equal to a listed one** is sent or stored as the listed course (case and spacing ignored in the browser as a hint only). The database stays the authority.
+3. **Subject on a typed course** is a typed text only; a platform course offers its platform subjects and Skip; a custom course offers the student's earlier subject labels, Other and Skip (B-06a reading confirmed in Round 88).
+4. **Student with no current course** must choose a course in the picker before Save.
+5. **Remembered subject** is per device (localStorage) and applied only if the list still offers it.
+6. **Removed helpers** `isSelectableCourseName` and `profileCourseOptions` are no longer used anywhere.
+7. **Stale-tab residual** (plan 5.2) stays reported; the Founder's acceptance is needed before B-04b Gate 3.
+
+### D. Request to QA (Tier 1 frontend, round 1)
+Audit the patch by hash: correctness against plan sections 2 and 8 and brief B 4.5, 5.4, 5.5; the routing rule (nothing called before `AuthContext.loading` resolves); every write path (Signup, Profile Settings, access form, picker) including the classification shape; the guard entries; and the tests. List every defect now as blocker or non-blocking (README, Tiered checking).
+
+Gates 5, 6 and 7 not given for F1.
+
+Handoff: `AWAITING-QA` - QA to append one round answering D.

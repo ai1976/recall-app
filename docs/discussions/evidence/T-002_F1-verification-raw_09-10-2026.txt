@@ -1,0 +1,250 @@
+T-002 F1 verification, draft worktree recall-app-f1 (branch t002-f1-draft), base commit 403bf80, Node v24.11.1, 09/10/2026
+
+## due-set guard (node scripts/dueSetGuard.run.mjs)
+due-set guard passed: 214 database calls, all classified (214 manifest entries).
+
+## vitest (npx vitest run --reporter=verbose, ANSI removed)
+ ✓ src/lib/studyTracker.test.js > validateRecord > accepts a plausible recent v2 record 27ms
+ ✓ src/lib/studyTracker.test.js > validateRecord > rejects a legacy / wrong-version record 1ms
+ ✓ src/lib/studyTracker.test.js > validateRecord > rejects active time longer than the wall-clock span, over 4h, or future-dated 1ms
+ ✓ src/lib/studyTracker.test.js > validateRecord > flags a record older than 7 days as too_old but accepts one just inside 0ms
+ ✓ src/lib/studyTracker.test.js > persistRecord > saves with the stable session_id and the recorded active duration (never now - start) 1ms
+ ✓ src/lib/studyTracker.test.js > persistRecord > treats a duplicate on the session index as already saved, not an error 0ms
+ ✓ src/lib/studyTracker.test.js > persistRecord > separates permanent rejection (23514) from transient failure 1ms
+ ✓ src/lib/studyTracker.test.js > persistRecord > skips sessions under the 10 second noise floor 1ms
+ ✓ src/lib/studyTracker.test.js > recovery > recovers a recent interrupted session from its recorded active time and dates it by lastActiveAt 2ms
+ ✓ src/lib/studyTracker.test.js > recovery > discards a record older than 7 days without saving or inventing any duration 1ms
+ ✓ src/lib/studyTracker.test.js > recovery > never converts a legacy started_at record into elapsed wall-clock study time 1ms
+ ✓ src/lib/studyTracker.test.js > recovery > leaves another account's record alone on a shared browser 1ms
+ ✓ src/lib/studyTracker.test.js > recovery > keeps the record when the save fails, and removes it once a retry succeeds 1ms
+ ✓ src/lib/studyTracker.test.js > recovery > concurrent recovery attempts produce exactly one insert 0ms
+ ✓ src/lib/studyTracker.test.js > recovery > a duplicate on a second recovery pass still clears the local record 1ms
+ ✓ src/lib/studyTracker.test.js > StudyTracker > counts active time from heartbeats and saves it (not now - start) on finalize 5ms
+ ✓ src/lib/studyTracker.test.js > StudyTracker > pauses (does not end) while the tab is hidden and resumes the same session 17ms
+ ✓ src/lib/studyTracker.test.js > StudyTracker > stops counting after 10 idle minutes, keeps the session, and resumes only on request 7ms
+ ✓ src/lib/studyTracker.test.js > StudyTracker > a laptop that sleeps with the tab open only adds one capped heartbeat gap 1ms
+ ✓ src/lib/studyTracker.test.js > StudyTracker > saves at four hours of active time and STOPS; a new session needs an explicit choice 43ms
+ ✓ src/lib/studyTracker.test.js > StudyTracker > double finalize (double click / two exits) shares one save 1ms
+ ✓ src/lib/studyTracker.test.js > StudyTracker > a failed save keeps the session, reports save_failed, and a retry is idempotent 1ms
+ ✓ src/lib/studyTracker.test.js > StudyTracker > leave-without-logging discards the session 1ms
+ ✓ src/lib/studyTracker.test.js > StudyTracker > unmount checkpoints locally and never writes to the server 1ms
+ ✓ src/lib/studyTracker.test.js > StudyTracker > is blocked while another tab owns the user lock, and free once that lock goes stale (fallback lock) 1ms
+ ✓ src/lib/studyTracker.test.js > StudyTracker > finalize before the session has begun never lets it begin 0ms
+ ✓ src/lib/studyTracker.test.js > StudyTracker > Study Mode and Practice Mode share identical semantics (only the source differs) 3ms
+ ✓ src/contexts/StudyTimerContext.test.jsx > StudyTimerContext.confirmCategory (T-002 F1) > stores the classification columns together with the category, for a platform, a custom and a General log 19ms
+ ✓ src/contexts/StudyTimerContext.test.jsx > StudyTimerContext.confirmCategory (T-002 F1) > stores a restored pending log classified: a log left unconfirmed before the upgrade passes through the same call 4ms
+ ✓ src/contexts/StudyTimerContext.test.jsx > StudyTimerContext.confirmCategory (T-002 F1) > writes nothing and keeps the pending log when the classification is missing or malformed (never a manual log without one) 3ms
+ ✓ src/contexts/StudyTimerContext.test.jsx > StudyTimerContext.confirmCategory (T-002 F1) > keeps the pending log and throws when the database refuses the row 3ms
+ ✓ src/contexts/StudyTimerContext.test.jsx > StudyTimerContext.confirmCategory (T-002 F1) > still refuses an unknown category 2ms
+ ✓ src/contexts/DueSnapshotContext.test.jsx > foldBuckets > orders by bucket_index and fills missing lanes with zero 4ms
+ ✓ src/contexts/DueSnapshotContext.test.jsx > the snapshot > is loading until the first answer, then publishes both RPCs as one snapshot 97ms
+ ✓ src/contexts/DueSnapshotContext.test.jsx > the snapshot > publishes nothing when only one of the two RPCs fails, and shows no snapshot rather than a zero 75ms
+ ✓ src/components/RichText.test.jsx > RichText > renders plain text as a single <p> with the exact given className (zero regression) 32ms
+ ✓ src/components/RichText.test.jsx > RichText > renders a table with semantic <thead>/<tbody> and no dangerouslySetInnerHTML 198ms
+ ✓ src/components/RichText.test.jsx > RichText > renders trailing empty cells as empty <td> elements, not fewer columns 6ms
+ ✓ src/components/RichText.test.jsx > RichText > renders multiple tables in source order within one field 16ms
+ ✓ src/components/RichText.test.jsx > RichText > wraps the table in a horizontal-scroll container 6ms
+ ✓ src/components/RichText.test.jsx > RichText > falls back to plain paragraph rendering for malformed markers, not a crash 1ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > data and structure > reads the split RPC for 90 days and draws 91 focusable day buttons 121ms
+ ✓ src/components/dashboard/StudyTimerWidget.test.jsx > Study log picker (T-002 F1) > shows the current course already chosen and the subject skipped, and the picker for a restored pending log 89ms
+ ✓ src/components/progress/ForecastCard.test.jsx > ForecastCard > shows the number in the tone it was given when the value is known, including a real zero in the calm tone 49ms
+ ✓ src/components/progress/ForecastCard.test.jsx > ForecastCard > shows a dash and the quiet tone when the value is unknown, whatever tone the page asked for 31ms
+ ✓ src/components/progress/ForecastCard.test.jsx > ForecastCard > keeps the amber and danger tones for known values 3ms
+ ✓ src/pages/auth/Signup.test.jsx > Signup course list (T-002 F1) > reads the public catalogue and nothing else: no table read, the database order, one custom-course entry 124ms
+ ✓ src/contexts/DueSnapshotContext.test.jsx > the snapshot > keeps the previous numbers and sets an error when a refresh fails, then recovers on the next success 66ms
+ ✓ src/contexts/DueSnapshotContext.test.jsx > the snapshot > discards a stale answer: an older, slower request never overwrites a newer one 15ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > data and structure > gives every day an accessible name with date, in-app, offline, total and reviews, and removes the native title 191ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > data and structure > shows the summary line and an error message when the RPC fails 79ms
+ ✓ src/pages/auth/Signup.test.jsx > Signup course list (T-002 F1) > shows a neutral state and sends nothing when the list cannot be loaded or breaks the contract 207ms
+ ✓ src/contexts/DueSnapshotContext.test.jsx > the snapshot > refreshes when a due-changing wrapper signals 93ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > hover and focus show a card; tap or Enter pins it > hover shows the card with date, in-app, offline, total and reviews, and leaving hides it 106ms
+ ✓ src/pages/auth/Signup.test.jsx > Signup custom course (T-002 F0) > sends the trimmed custom course to signUp 70ms
+ ✓ src/contexts/DueSnapshotContext.test.jsx > the snapshot > refreshIfStale does nothing within 60 seconds, refreshes after 60 seconds, and does not duplicate the first load 147ms
+ ✓ src/contexts/DueSnapshotContext.test.jsx > the snapshot > does not start a second load while the very first one is still in flight 2ms
+ ✓ scripts/dueSetGuard.test.mjs > the real tree > has a reviewed manifest entry for every call, none stale, none duplicated, and passes every structural rule 752ms
+ ✓ src/components/dashboard/StudyTimerWidget.test.jsx > Study log picker (T-002 F1) > saves a platform log with the discipline and the category, and remembers the subject on this device 245ms
+ ✓ scripts/dueSetGuard.test.mjs > the real tree > keeps every due-changing call inside the wrapper module 1ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > an unclassified literal-named RPC 0ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > an unclassified table write 0ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > a variable-held RPC name outside the wrapper module 0ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > a variable-held RPC name chosen through a map 0ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > a variable table name 0ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > a profile update whose payload is a spread or a variable 1ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > a profile update of course_level or timezone outside the wrapper module, including a multi-line object 0ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > a due-mutating RPC outside the wrapper module, even when the manifest says not-due-changing 1ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > any friendship write, and a card or note delete, outside the wrapper module 1ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > sending or creating a friendship is also a friendship write and belongs in the wrapper module (an upsert can replace an accepted row) 0ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > an ALIASED client is still recognised (so its calls need classification), not ignored 2ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > a call on something that is not the Supabase client binding 0ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > other backend transports are listed, not ignored: fetch, functions.invoke, storage writes and client creation 1ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > the client used as a value or destructured cannot hide a call 1ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > does not confuse an ordinary Map or Set delete with a database write 0ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > a stale manifest entry and a duplicate manifest entry 0ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > a due-changing classification anywhere but the wrapper module, and a not-due-changing one inside it 0ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > a manifest entry without a real reason or an allowed basis 0ms
+ ✓ scripts/dueSetGuard.test.mjs > planted cases the guard must refuse > call identities do not depend on line numbers: moving a call down keeps its identity, a repeat gets an ordinal 0ms
+ ✓ scripts/dueSetGuard.test.mjs > per-name RPC classification and the new table rules > an RPC name that has no classification from the evidence 0ms
+ ✓ scripts/dueSetGuard.test.mjs > per-name RPC classification and the new table rules > a due-changing RPC name called outside the wrapper module 0ms
+ ✓ scripts/dueSetGuard.test.mjs > per-name RPC classification and the new table rules > a manifest entry that disagrees with the RPC classification 0ms
+ ✓ scripts/dueSetGuard.test.mjs > per-name RPC classification and the new table rules > an RPC called inside the wrapper module that is not classified due-changing 0ms
+ ✓ scripts/dueSetGuard.test.mjs > per-name RPC classification and the new table rules > a flashcards update of target_course, question_type, visibility, subject_id or discipline_id, or of an unreadable payload, outside the wrapper module 1ms
+ ✓ scripts/dueSetGuard.test.mjs > per-name RPC classification and the new table rules > a deck delete and any friendship write outside the wrapper module 0ms
+ ✓ src/pages/auth/Signup.test.jsx > Signup custom course (T-002 F0) > shows a visible message and sends nothing for whitespace-only, 121-character and control-character courses 157ms
+ ✓ src/pages/auth/Signup.test.jsx > Signup custom course (T-002 F0) > accepts exactly 120 characters 57ms
+ ✓ src/pages/auth/Signup.test.jsx > Signup custom course (T-002 F0) > accepts the word Other as a typed course (the dropdown value is never sent) 62ms
+ ✓ src/contexts/DueSnapshotContext.test.jsx > the snapshot > retries on page entry when the first load failed (no snapshot yet) 141ms
+ ✓ src/components/dashboard/StudyTimerWidget.test.jsx > Study log picker (T-002 F1) > keeps Save disabled until a category is chosen 101ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > hover and focus show a card; tap or Enter pins it > keyboard focus shows the card and blurring out of the heatmap hides it 88ms
+ ✓ src/components/dashboard/StudyTimerWidget.test.jsx > Study log picker (T-002 F1) > saves General with no course columns 112ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > hover and focus show a card; tap or Enter pins it > a tap pins the card, a second tap on the same day closes it even while hovered and focused 204ms
+ ✓ src/contexts/DueSnapshotContext.test.jsx > the snapshot > refreshes when the tab becomes visible only if the snapshot is older than 60 seconds 161ms
+ ✓ src/contexts/DueSnapshotContext.test.jsx > the snapshot > clears the snapshot and stops fetching when the user signs out 105ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > hover and focus show a card; tap or Enter pins it > tapping another day moves the pin; the card for a day with no activity says so 103ms
+ ✓ src/components/dashboard/StudyTimerWidget.test.jsx > Study log picker (T-002 F1) > saves an earlier custom course as text and a typed course trimmed 109ms
+ ✓ src/pages/dashboard/Profile/ProfileSettings.test.jsx > Profile Settings course (T-002 F1) > reads the profile list from the database and shows the saved course, marked when it is the student's own custom course 371ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > closing a pinned card > Escape closes it 107ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > closing a pinned card > focus leaving the heatmap closes it, but moving focus to another day inside the heatmap does not 96ms
+ ✓ src/components/dashboard/StudyTimerWidget.test.jsx > Study log picker (T-002 F1) > lets the student type a course and a subject, and blocks invalid text with a message 153ms
+ ✓ src/components/dashboard/StudyTimerWidget.test.jsx > Study log picker (T-002 F1) > keeps the session and the choices when saving fails, and explains a refused name 62ms
+ ✓ src/pages/dashboard/Profile/ProfileSettings.test.jsx > Profile Settings course (T-002 F1) > marks an inactive current course as no longer offered 148ms
+ ✓ src/components/dashboard/StudyTimerWidget.test.jsx > Study log picker (T-002 F1) > offers no choice and cannot save when the course list breaks the contract 39ms
+ ✓ src/components/dashboard/StudyTimerWidget.test.jsx > Study log picker (T-002 F1) > starts without a course when the student has no current course and will not save until one is chosen 50ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > closing a pinned card > a pointer press outside the heatmap closes it (a touch tap does not always move focus) 79ms
+ ✓ src/components/ui/ContentPreviewWall.test.jsx > ContentPreviewWall course field (T-002 F0) > offers a real text input instead of the literal Other, and sends the trimmed typed course 580ms
+ ✓ src/pages/dashboard/Profile/ProfileSettings.test.jsx > Profile Settings course (T-002 F1) > says why when the saved course is too long to use as a name 134ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > closing a pinned card > a pointer press inside the heatmap does not close it 60ms
+ ✓ src/components/ui/ContentPreviewWall.test.jsx > ContentPreviewWall course field (T-002 F0) > blocks a whitespace-only, over-long or control-character course with a visible message and no request 285ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > keyboard navigation > has exactly one tab stop, on today, and arrow keys move by day and by week 180ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > keyboard navigation > after moving, the day that has focus is the one tab stop 107ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > motion and layout > only animates under motion-safe, so reduced motion is respected 50ms
+ ✓ src/components/progress/StudyHeatmap.test.jsx > motion and layout > draws future days of the current week as inert spacers, not buttons 28ms
+ ✓ src/components/ui/ContentPreviewWall.test.jsx > ContentPreviewWall course field (T-002 F0) > accepts the word Other as a typed course (no reserved word) and never sends the dropdown value 213ms
+ ✓ src/components/ui/ContentPreviewWall.test.jsx > ContentPreviewWall course field (T-002 F0) > still sends a listed course unchanged 186ms
+ ✓ src/pages/dashboard/Profile/ProfileSettings.test.jsx > Profile Settings course (T-002 F1) > saves a typed course trimmed after the confirmation preview, and reads back what the database stored 529ms
+ ✓ src/components/ui/ContentPreviewWall.test.jsx > ContentPreviewWall course field (T-002 F0) > sends a typed course that is already in the list as that listed course 190ms
+ ✓ src/components/ui/ContentPreviewWall.test.jsx > ContentPreviewWall course list (T-002 F1) > uses the public list for a visitor and the access list for a signed-in student, never before the session state is known 60ms
+ ✓ src/components/ui/ContentPreviewWall.test.jsx > ContentPreviewWall course list (T-002 F1) > preselects the signed-in student's current course, including one that is no longer offered 59ms
+ ✓ src/components/ui/ContentPreviewWall.test.jsx > ContentPreviewWall course list (T-002 F1) > leaves the field empty and says why when the saved course is too long 61ms
+ ✓ src/components/ui/ContentPreviewWall.test.jsx > ContentPreviewWall course list (T-002 F1) > shows a neutral state and sends nothing when the list breaks the contract 54ms
+ ✓ src/pages/dashboard/Profile/ProfileSettings.test.jsx > Profile Settings course (T-002 F1) > blocks an invalid typed course with a message and saves nothing 266ms
+ ✓ src/pages/dashboard/Profile/ProfileSettings.test.jsx > Profile Settings course (T-002 F1) > does not block saving the other details when the course list cannot be loaded 113ms
+ ✓ src/lib/heatmapGrid.test.js > calendar dates are local, never UTC > ymd and parseYmd round-trip for every day of a year, including DST changes 6ms
+ ✓ src/lib/heatmapGrid.test.js > calendar dates are local, never UTC > a late-evening local time keeps its own calendar date (the failure of toISOString() west of UTC and early morning east of it) 0ms
+ ✓ src/lib/heatmapGrid.test.js > calendar dates are local, never UTC > parseYmd builds the date from its parts: month and day are exactly those of the string 1ms
+ ✓ src/lib/heatmapGrid.test.js > calendar dates are local, never UTC > the heatmap code contains no toISOString() and no Date constructed from a date string 1ms
+ ✓ src/lib/heatmapGrid.test.js > buildGrid > is whole weeks of 7 days, Sunday first, covers the window, and the last drawn cell is today 2ms
+ ✓ src/lib/heatmapGrid.test.js > buildGrid > draws only the window local today - 90 .. local today (91 days): older cells and future cells are not drawn 0ms
+ ✓ src/lib/heatmapGrid.test.js > buildGrid > carries in-app, offline, total and reviews per day and shades by the stronger signal (offline-only study is not grey) 0ms
+ ✓ src/lib/heatmapGrid.test.js > buildGrid > copes with missing fields and with no rows 1ms
+ ✓ src/lib/heatmapGrid.test.js > labels, streak and wording > month labels appear once, on the first drawn week that contains the 1st 1ms
+ ✓ src/lib/heatmapGrid.test.js > labels, streak and wording > longest streak counts consecutive calendar days across month ends 0ms
+ ✓ src/lib/heatmapGrid.test.js > labels, streak and wording > the accessible text names the date, in-app, offline, total and reviews in words (not colour alone) 24ms
+ ✓ src/lib/heatmapGrid.test.js > labels, streak and wording > formats study time 0ms
+ ✓ src/lib/dueSet.test.js > the signal > is immediate by default and reaches every subscriber once 4ms
+ ✓ src/lib/dueSet.test.js > the signal > coalesces debounced calls into one signal after 1.5 seconds 2ms
+ ✓ src/lib/dueSet.test.js > the signal > flush sends a pending debounced signal now, once, and does nothing when none is pending 1ms
+ ✓ src/lib/dueSet.test.js > the signal > an immediate signal replaces a pending debounced one (no double signal) 0ms
+ ✓ src/lib/dueSet.test.js > the signal > a failing subscriber does not stop the others 1ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > skipCard calls its RPC with the same arguments, returns the result and signals exactly once on success 1ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > suspendCard calls its RPC with the same arguments, returns the result and signals exactly once on success 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > unsuspendCard calls its RPC with the same arguments, returns the result and signals exactly once on success 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > resetCard calls its RPC with the same arguments, returns the result and signals exactly once on success 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > skipTopicCards calls its RPC with the same arguments, returns the result and signals exactly once on success 1ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > suspendTopicCards calls its RPC with the same arguments, returns the result and signals exactly once on success 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > addToMyCards calls its RPC with the same arguments, returns the result and signals exactly once on success 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > removeFromMyCards calls its RPC with the same arguments, returns the result and signals exactly once on success 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > skipCard never signals on failure and returns the error result 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > suspendCard never signals on failure and returns the error result 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > unsuspendCard never signals on failure and returns the error result 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > resetCard never signals on failure and returns the error result 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > skipTopicCards never signals on failure and returns the error result 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > suspendTopicCards never signals on failure and returns the error result 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > addToMyCards never signals on failure and returns the error result 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > removeFromMyCards never signals on failure and returns the error result 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers > applyReview is debounced: one signal for rapid answers, none on failure 1ms
+ ✓ src/lib/dueSet.test.js > bulk My Cards > runs chunks of 500, sums the counts and signals once after the last chunk 1ms
+ ✓ src/lib/dueSet.test.js > bulk My Cards > uses the right RPC for resume and remove 0ms
+ ✓ src/lib/dueSet.test.js > bulk My Cards > stops at the first failing chunk, still signals once because an earlier chunk succeeded, and returns the error 0ms
+ ✓ src/lib/dueSet.test.js > bulk My Cards > does not signal when the very first chunk fails or when there is nothing to do 1ms
+ ✓ src/lib/dueSet.test.js > bulk My Cards > refuses an unknown action without calling the database 0ms
+ ✓ src/lib/dueSet.test.js > profile writes > signals when course_level or timezone was set and the update succeeded 1ms
+ ✓ src/lib/dueSet.test.js > profile writes > does not signal for other profile fields or on failure 1ms
+ ✓ src/lib/dueSet.test.js > friendship, card and note writes > setFriendshipStatus updates status and updated_at and signals on success only 1ms
+ ✓ src/lib/dueSet.test.js > friendship, card and note writes > deleteFriendship, deleteFlashcard, deleteFlashcards and deleteNote delete the right rows and signal on success only 1ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > addBatchToMyCards calls its RPC with the same arguments and signals once on success, never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > createFlashcardBatches calls its RPC with the same arguments and signals once on success, never on failure 1ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > adminChangeRole calls its RPC with the same arguments and signals once on success, never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > adminDeleteNote calls its RPC with the same arguments and signals once on success, never on failure 1ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > adminDeleteUserData calls its RPC with the same arguments and signals once on success, never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > adminGrantAccess calls its RPC with the same arguments and signals once on success, never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > adminReactivateUser calls its RPC with the same arguments and signals once on success, never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > adminSuspendUser calls its RPC with the same arguments and signals once on success, never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > approveEducatorApplication calls its RPC with the same arguments and signals once on success, never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > approveFeaturedNomination calls its RPC with the same arguments and signals once on success, never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > nominateFeaturedContent calls its RPC with the same arguments and signals once on success, never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > rejectFeaturedNomination calls its RPC with the same arguments and signals once on success, never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > unfeatureContent calls its RPC with the same arguments and signals once on success, never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > linkAccessRequest calls its RPC with the same arguments and signals once on success, never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > toggleUpvote signals after the 1.5 second debounce on success and never on failure 1ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > updateDailyGoal signals after the 1.5 second debounce on success and never on failure 1ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > inviteToGroup signals after the 1.5 second debounce on success and never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > leaveGroup signals after the 1.5 second debounce on success and never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > unassignProfessorFromBatch signals after the 1.5 second debounce on success and never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > submitAccessRequest signals after the 1.5 second debounce on success and never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > submitEducatorApplication signals after the 1.5 second debounce on success and never on failure 0ms
+ ✓ src/lib/dueSet.test.js > RPC wrappers added from the W1 and W2 evidence > submitInstituteInquiry signals after the 1.5 second debounce on success and never on failure 0ms
+ ✓ src/lib/dueSet.test.js > deck, friend-request and flashcard-update writes > deleteDeck deletes the deck and signals on success only 0ms
+ ✓ src/lib/dueSet.test.js > deck, friend-request and flashcard-update writes > upsertFriendRequest upserts the row with the conflict key and signals on success only 0ms
+ ✓ src/lib/dueSet.test.js > deck, friend-request and flashcard-update writes > updateFlashcardsByBatch signals only when it sets a due-relevant column (target_course, question_type, visibility; subject_id and discipline_id are covered next) 0ms
+ ✓ src/lib/dueSet.test.js > deck, friend-request and flashcard-update writes > updateFlashcardsByBatch also signals when it sets subject_id or discipline_id (T-002 F0) 0ms
+ ✓ src/lib/dueSet.test.js > deck, friend-request and flashcard-update writes > updateFlashcardVisibility and updateFlashcardsVisibility set only the visibility and signal on success 0ms
+ ✓ src/lib/courseOptions.test.js > checkCourseRows (the contract of the course readers) > accepts the public list and the picker list, sorted by position 3ms
+ ✓ src/lib/courseOptions.test.js > checkCourseRows (the contract of the course readers) > refuses anything that breaks the contract 1ms
+ ✓ src/lib/courseOptions.test.js > checkCourseRows (the contract of the course readers) > requires General on the picker list and refuses it on every other list 0ms
+ ✓ src/lib/courseOptions.test.js > checkSubjectRows > accepts a list that ends with Skip and refuses a list without it 1ms
+ ✓ src/lib/courseOptions.test.js > fetch wrappers > uses the public reader without a session and the authenticated reader with one 1ms
+ ✓ src/lib/courseOptions.test.js > fetch wrappers > reports a failed call and a contract failure as not ok 0ms
+ ✓ src/lib/courseOptions.test.js > fetch wrappers > asks the subject list with exactly one argument 0ms
+ ✓ src/lib/courseOptions.test.js > buildClassification (the columns of a manual log) > stores a platform course with its discipline and an optional platform subject 0ms
+ ✓ src/lib/courseOptions.test.js > buildClassification (the columns of a manual log) > refuses a typed subject on a platform course 0ms
+ ✓ src/lib/courseOptions.test.js > buildClassification (the columns of a manual log) > stores an earlier custom label as custom text, with an optional subject label 0ms
+ ✓ src/lib/courseOptions.test.js > buildClassification (the columns of a manual log) > stores a typed course trimmed, recognises a typed platform course, and refuses invalid text 0ms
+ ✓ src/lib/courseOptions.test.js > buildClassification (the columns of a manual log) > stores General with nothing else and refuses a missing course 0ms
+ ✓ src/lib/courseOptions.test.js > isClassification > accepts exactly the shapes the picker builds 0ms
+ ✓ src/lib/courseOptions.test.js > isClassification > refuses a missing, mixed or empty shape 0ms
+ ✓ src/lib/courseOptions.test.js > small helpers > matches a typed course to a row ignoring case and spacing, never to an action row 0ms
+ ✓ src/lib/courseOptions.test.js > small helpers > starts the picker on the current course, or on nothing 0ms
+ ✓ src/lib/courseOptions.test.js > small helpers > describes rows the way the dropdowns show them 0ms
+ ✓ src/lib/courseOptions.test.js > small helpers > remembers the last subject per course on this device only 1ms
+ ✓ src/lib/parseRichText.test.js > parseRichText > Fixture A: parses two tables correctly with genuinely empty cells preserved 4ms
+ ✓ src/lib/parseRichText.test.js > parseRichText > Fixture B: roman-numeral list and bullets remain paragraph content, not tables 1ms
+ ✓ src/lib/parseRichText.test.js > parseRichText > Fixture C: parses all three tables in order and retains the 7th empty trailing column 1ms
+ ✓ src/lib/parseRichText.test.js > parseRichText > Fixture D: escaped pipe produces a single cell containing the literal | 0ms
+ ✓ src/lib/parseRichText.test.js > parseRichText > Fixture E: plain text with no table markers remains exact single paragraph 0ms
+ ✓ src/lib/parseRichText.test.js > parseRichText > unclosed [[TABLE]] falls back to the entire original text 0ms
+ ✓ src/lib/parseRichText.test.js > parseRichText > orphan [[/TABLE]] falls back to the entire original text 0ms
+ ✓ src/lib/parseRichText.test.js > parseRichText > nested opening markers fall back to the entire original text 0ms
+ ✓ src/lib/parseRichText.test.js > parseRichText > multiple valid table blocks retain source order 0ms
+ ✓ src/lib/parseRichText.test.js > parseRichText > CRLF input behaves equivalently to LF input 0ms
+ ✓ src/lib/parseRichText.test.js > parseRichText > plain text containing a normal | outside table markers is never treated as a table 0ms
+ ✓ src/lib/parseRichText.test.js > parseRichText > a marker-like substring embedded in prose is not detected as a marker 0ms
+ ✓ src/lib/courseLabel.test.js > validateCourseLabel (T-002 F0, brief B 5.1) > refuses empty, missing and blank-after-trim values with a message 1ms
+ ✓ src/lib/courseLabel.test.js > validateCourseLabel (T-002 F0, brief B 5.1) > accepts 1 and 120 characters and refuses 121, without truncating 1ms
+ ✓ src/lib/courseLabel.test.js > validateCourseLabel (T-002 F0, brief B 5.1) > counts the trimmed text: 120 characters plus outer spaces is accepted and stored trimmed 0ms
+ ✓ src/lib/courseLabel.test.js > validateCourseLabel (T-002 F0, brief B 5.1) > counts characters like the database (code points), not UTF-16 units 0ms
+ ✓ src/lib/courseLabel.test.js > validateCourseLabel (T-002 F0, brief B 5.1) > trims outer spaces and keeps inner spacing as typed 0ms
+ ✓ src/lib/courseLabel.test.js > validateCourseLabel (T-002 F0, brief B 5.1) > refuses a control character anywhere, including at the edges (nothing is silently removed) 0ms
+ ✓ src/lib/courseLabel.test.js > validateCourseLabel (T-002 F0, brief B 5.1) > treats the word Other as an ordinary custom label (no reserved word, plan v18 section 6) 0ms
+ ✓ src/lib/courseLabel.test.js > validateCourseLabel (T-002 F0, brief B 5.1) > accepts ordinary custom and non-Latin course names 0ms
+ Test Files  16 passed (16)
+      Tests  232 passed (232)
+
+## eslint (node node_modules/eslint/bin/eslint.js src), summary lines
+✖ 20 problems (13 errors, 7 warnings)
+  0 errors and 3 warnings potentially fixable with the `--fix` option.
+
+
+## vite build, last lines
+dist/assets/index-Dq2q8xxW.js                      329.85 kB │ gzip:  98.91 kB
+dist/assets/BarChart-6Wu_KtLg.js                   356.42 kB │ gzip: 106.76 kB
+✓ built in 7.93s
