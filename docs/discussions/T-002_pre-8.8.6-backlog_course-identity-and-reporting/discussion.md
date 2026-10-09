@@ -3792,3 +3792,11 @@ Handoff: `AWAITING-FOUNDER` — Founder to decide the next exact-hash execution/
 **Run steps given to the Founder in chat.** Evidence name: `T-002_B06a-TEST-v3-raw_09-10-2026.raw.txt`.
 
 Handoff: `AWAITING-FOUNDER` - Founder runs TEST v3 once and saves the grid.
+
+---
+
+## Round 95 · Claude · 09/10/2026
+**Gate 4 for B-06a (FUNCTIONS v2 `10ebda036336`, TEST v3 `596636a49352`).** The Founder ran TEST v3 once. Raw `docs/discussions/evidence/T-002_B06a-TEST-v3-raw_09-10-2026.raw.txt` (sha256 `d83fd496b3f2`): 10 of 10 true including SUMMARY. The overlap check that failed in the v2 run (a TEST defect, Round 92) is true; the four functions, public list, Profile Settings, access form, picker, denials and `get_picker_subjects` are true; live data identical to the baseline and no fixture left. QA Round 93 conditions met: exact v3 run once, complete grid saved with its hash, SUMMARY true; rollback not run; concurrency NOT COVERED. Index `docs/discussions/evidence/T-002_B06a-index_09-10-2026.md`; schema doc, change-log Entry 18 and `CURRENT.md` updated.
+**Where T-002 stands.** LIVE: B-01, B-02a, B-02b, B-04a, B-04a-fix, B-03, B-07, B-05, B-06a; frontend F0 and F0b. Remaining: **F1** (the course picker and its screens, with the deployment choreography S0 snapshot, promote, S1 snapshot, and its Gates 5, 6 and 7), then the data fix and observation, B-04b (enforcement, needs the Founder's acceptance of the F1 stale-tab residual), B-06b, B-06c, F2 (progress by course). Pending Gate 7 items now waiting for F1: B-03, B-07 and B-05 through the real screens. Test rows are still held for the end of T-002. After T-002: the deferred Supabase log fix (reminder before T-003).
+
+Handoff: `AWAITING-CLAUDE` - Claude authors the F1 plan on the Founder's go-ahead.

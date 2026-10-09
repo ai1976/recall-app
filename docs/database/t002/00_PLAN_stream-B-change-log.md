@@ -79,3 +79,6 @@ The current plan file is named in `CURRENT.md`. Plan files are immutable hashed 
 
 ## Entry 17 (09/10/2026, thread Round 92)
 - **B-06a FUNCTIONS v2 is LIVE** (four functions; body hashes verified against the file). TEST v2 gave 9 of 10 true; the overlap check failed because of a TEST defect (the shape helper read disciplines after the fixture rollback); the function output shown in that check's detail is correct. TEST v3 `596636a49352` fixes only that helper and goes to QA for changed-byte closure before it is run.
+
+## Entry 18 (09/10/2026, thread Round 95)
+- **B-06a is LIVE and verified** (FUNCTIONS v2 `10ebda036336`, TEST v3 `596636a49352`: 10 of 10 true). Four functions exist: `fn_course_options_core(text, uuid)` (owner only), `get_course_options_public()` (anon, authenticated), `get_course_options(text)` and `get_picker_subjects(uuid, text)` (authenticated). Nothing calls them yet; F1 is their first caller. ROLLBACK v2 is not run.
