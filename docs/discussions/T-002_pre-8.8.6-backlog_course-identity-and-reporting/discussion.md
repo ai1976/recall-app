@@ -2846,3 +2846,16 @@ Handoff: `AWAITING-FOUNDER` - Founder runs Gate 7 and reports.
 Not tested live: the valid-submit path (creates an account; Founder only, optional), the access form (needs a self-registered student session), Profile Settings course change (moves a real student's cards; only on a disposable account).
 
 Handoff: `AWAITING-FOUNDER` - Founder signs in as a self-registered student in the pane for part 2 (access form).
+
+---
+
+## Round 65 · Claude · 09/10/2026
+**Gate 7, part 2: live access form (Founder created the test account `anandmore+t002b@outlook.com` through Signup and signed in in the pane browser; Claude drove the page; served bundle `index-DpPHawYa.js`).** The account `Test outlook` first tried was not a self-registered account (the professor note showed in full, no form), so it could not be used. The new `Anand Testing T002` student account sees the form on the professor note "SM1 Ch7 Overall Scheme of Valuation (Sec 15)" (note id `65d358e0-0dac-4d6c-bfd4-924e40c23670`).
+- The course list ends with "Other (type your course)" (the old literal `Other` entry is gone) - PASS. Choosing it shows a "Your course" text box - PASS.
+- Messages while typing (button stays disabled): 121 letters "too long (121 characters)..." - PASS; spaces only "Please enter your course name." - PASS; a tab inside and a trailing tab "...cannot contain line breaks, tabs or other control characters." - PASS; empty box: no message, button disabled - as designed.
+- **Valid submit (Founder approved ONE test request in chat, values: Name `T002 Test`, email `anandmore+t002b@outlook.com`, WhatsApp `+910000000000`, course typed with spaces around: `  CFA Level 1  `).** The request body captured from the page for `submit_access_request` carried `"p_course":"CFA Level 1"` (trimmed, not `Other`, not the dropdown value) - PASS. The page showed "Thanks, we'll review this and reach out!".
+- Signup valid path: the test account was created by the Founder (course typed with spaces around, the instruction given in the previous turn). What Signup actually stored is to be confirmed by the read-only query `docs/database/t002/F0_VERIFY_signup-profile-course_v1.sql` (Tier 0, one SELECT, not run yet; expected `[CFA Level 1]`, len 11, trimmed true). Observation, not a defect of F0: Profile Settings shows an empty Primary Course dropdown for a custom course, because its fixed list does not contain it.
+- Profile Settings course change: NOT tested live (a change would archive the test account's cards; the check in the code is covered by tests and runs only on a changed course).
+**Test rows to remove at the end of T-002 (Founder instruction):** (1) the 12-minute `reading` manual study session on the admin account, 08/10/2026; (2) the access request with email `anandmore+t002b@outlook.com`, name `T002 Test`, created 09/10/2026; (3) the test student account `anandmore+t002b@outlook.com` (auth user and profile; `Test outlook` account predates this work).
+
+Handoff: `AWAITING-FOUNDER` - Founder runs the one read-only query and saves the grid; then Claude records Gate 7 complete.
