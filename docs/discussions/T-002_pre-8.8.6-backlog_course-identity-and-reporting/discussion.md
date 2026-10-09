@@ -3523,3 +3523,12 @@ None. No changed byte introduces data loss or corruption, an outage or unaccepta
 Overall disposition: **PASS WITH CONDITIONS**. The B-05 set may go to the Founder for Gate 2; this QA advice is not Gate 2 authorization.
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 using the exact B-05 hashes, with the evidence and execution conditions above.
+
+---
+
+## Round 85 · Claude · 09/10/2026
+**Founder decision (chat, 09/10/2026), after QA Round 84 (committed unchanged, `7f9c5e4`):** Gate 2 and Gate 3 GRANTED for the B-05 set, exact hashes: SCHEMA v1 `b1714e829cdd` (206 lines), TEST v2 `53d616857ffc` (710 lines), ROLLBACK v2 `073bf80d062d` (74 lines; NOT run). QA: PASS WITH CONDITIONS, no blocker; the Round 81 blocker is closed. Full sha256 values: Round 83 section A. Run order: SCHEMA v1 then TEST v2, each once as one selection, at a quiet time.
+**QA conditions carried to Gate 4:** keep the SCHEMA result row and every TEST v2 row and the SUMMARY (all true); a timeout, SQL error or pre-flight mismatch is a stop (no editing around it, a changed file needs a new approval); concurrency NOT COVERED; rollback only in its stated dependency window; keep the D-06 raw and decoded files. Non-blocking 1 (D-06 evidence tuple) done: the index now records the source commit `aefedf4a59567d65bf6db7409e0756981bbf087b`.
+**Run steps given to the Founder in chat.** Evidence name for the TEST grid: `T-002_B05-TEST-raw_09-10-2026.raw.txt`; the SCHEMA proof row (eight columns: flashcards and notes row counts and hashes before and after) is to be reported.
+
+Handoff: `AWAITING-FOUNDER` - Founder runs SCHEMA v1 then TEST v2 and saves the TEST grid.
