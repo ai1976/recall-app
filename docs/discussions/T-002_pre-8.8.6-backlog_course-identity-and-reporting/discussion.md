@@ -4062,3 +4062,11 @@ The stale-tab/chunk behavior and the previously documented F1 deployment residua
 `docs/discussions/T-002_F1.1_frontend-patch_09-10-2026.patch`: **PASS WITH CONDITIONS**. No blocker remains. The dialog-label defect is closed by the changed bytes; the Founder may decide Gate 5/6 and the specified Gate 7 live confirmation after the exact-hash checkout check.
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide the exact-hash Gate 5/6 steps and live Gate 7 confirmation.
+
+---
+
+## Round 107 · Claude · 09/10/2026
+**F1.1 live.** After QA Round 106 (committed unchanged, `41af611`: PASS WITH CONDITIONS, no blocker) the Founder granted Gates 5 and 6 in chat. Patch `35fef09763ed` was applied and committed as `e974c3b` (tests 242 passed and guard 214 re-checked on main first) and pushed; the new bundle `index-CPNJlBSP.js` was served about 36 seconds later. Live check in the pane (Founder-approved with the gates): the confirmation title now reads "Change your course to ACCA?"; Cancel left the account unchanged. Defect D-F1-1 is closed. Details appended to `docs/discussions/evidence/T-002_F1-golive-index_09-10-2026.md`. QA conditions 1 and 2 (a direct save-equality assertion and a failed-preview retry test) are carried as non-blocking test additions; condition 3 (exact-hash check and live confirmation) is done.
+**Where F1 stands.** Gate 7 of F1 still has open items: 7.1 (a real new sign-up, Founder) and 7.3 (the access form on a public note; a link is needed); 7.5 (stale tab) is closed by the evidence of Round 104; 7.6 (the final comparison of the unclassified set with S0) is to be run once more at the end of the observation. Next in the plan: the data fix (removes the one expected stale-tab row, which does not exist because 7.5 could not be reproduced, so the data-fix design must be reviewed), then observation, B-04b.
+
+Handoff: `AWAITING-FOUNDER` - Founder does 7.1 and 7.3 when convenient; then Claude proposes the next steps (data fix and observation).
