@@ -1,0 +1,6 @@
+| fn                                        | body_md5_without_carriage_returns | anon_authenticated_service_role_execute |
+| ----------------------------------------- | --------------------------------- | --------------------------------------- |
+| public.fn_course_options_core(text, uuid) | 2f23c1c89c0592d1133d2d048d0e3e9b  | FFF                                     |
+| public.get_course_options_public()        | 57f136c64a2b4c24884566a9052f3660  | TTF                                     |
+| public.get_course_options(text)           | 6bbd4debe463cf4a85f53b5830564af7  | FTF                                     |
+| public.get_picker_subjects(uuid, text)    | ae6d158258af287d4008aaa8a1e13203  | FTF                                     |

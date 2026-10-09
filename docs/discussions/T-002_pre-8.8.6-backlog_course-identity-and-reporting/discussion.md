@@ -3722,3 +3722,22 @@ Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 for the three exact v2 
 **Run steps given to the Founder in chat.** Evidence names: `T-002_B06a-FUNCTIONS-result_09-10-2026.raw.txt` (the four-row result) and `T-002_B06a-TEST-raw_09-10-2026.raw.txt` (the TEST grid).
 
 Handoff: `AWAITING-FOUNDER` - Founder runs FUNCTIONS v2 then TEST v2 and saves both grids.
+
+---
+
+## Round 92 · Claude · 09/10/2026
+**Gate 4 for B-06a, partial.** The Founder ran FUNCTIONS v2 `10ebda036336` then TEST v2 `32bdcab20bd3`. Evidence index `docs/discussions/evidence/T-002_B06a-index_09-10-2026.md` (FUNCTIONS result `T-002_B06a-FUNCTIONS-result_09-10-2026.raw.txt` sha256 `9f8cb725689a`; TEST raw `T-002_B06a-TEST-raw_09-10-2026.raw.txt` sha256 `90af3f216978`).
+**Result.** FUNCTIONS: the four functions exist; every body hash equals the one built into the file; execute patterns FFF, TTF, FTF, FTF. TEST v2: 9 of 10 checks true, SUMMARY false. The false check is "overlap". Its detail shows the functions behaved correctly in all three listed cases (one platform row for the label with the catalogue flag, five catalogue rows, no `current` row; inactive overlapping current course first, once, marked). The assertion failed in the TEST's own shape helper, which looked up each platform row's discipline id after the fixture sub-transaction had been rolled back, so the fixture discipline had no id. This is a TEST defect, not a defect of any function.
+**Fix (TEST v3, changed bytes only).** The executor now returns the name-to-id map of the disciplines read inside the sub-transaction (before the rollback) and the shape helper compares each platform row's `discipline_id` against that map; the three overlap calls pass the map. The diff against v2 is 11 lines in five places (listed in the file header). FUNCTIONS v2 and ROLLBACK v2 are unchanged. All other 9 checks are byte-identical to the ones that passed.
+
+### A. Files and exact hashes (in `docs/database/t002/`)
+| File | Lines | Short | Full sha256 |
+|---|---|---|---|
+| `B-06a_TEST_course-catalogue-and-picker-subjects_v3.sql` | 432 | `596636a49352` | `596636a49352367bd53a7d5bae3fe5feb82a087150dc3e2d4370ea970d057e6b` |
+| `B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v2.sql` (LIVE, unchanged) | 307 | `10ebda036336` | `10ebda03633669147a27a4cddd10f733ae58ed9b057908004df646b85e7db941` |
+| `B-06a_ROLLBACK_course-catalogue-and-picker-subjects_v2.sql` (unchanged, not run) | 56 | `be21fc79dbc3` | `be21fc79dbc393c2d40f5b559a72c99442672ff4449b9cf5c5ba938d2ba74e43` |
+
+### B. Request to QA (changed-byte closure of the TEST)
+Confirm TEST v3 is a rollback-only file with no new blocker in the changed bytes and that it proves the overlap case; list any defect as blocker or non-blocking. Gate 2 and 3 for TEST v3 not given yet.
+
+Handoff: `AWAITING-QA` - QA to append one round answering B.
