@@ -2,14 +2,14 @@
 
 
 ## Status
-- **State:** AWAITING-FOUNDER
-- **Owner:** Founder
-- **Phase:** B-01, B-02a, B-02b, B-04a, B-04a-fix, B-03, B-07 LIVE and verified; F0 and F0b frontend LIVE; B-05 v1 REVISION REQUIRED (QA Round 81, one blocker: live-writer inventory); D-06 read-only diagnostic written, awaiting the Founder's run (Round 82); design approved: brief B v10, Gate 1 given 04/10/2026
-- **Last round:** 82  · **Last QA-reviewed round:** 80
+- **State:** AWAITING-QA
+- **Owner:** QA
+- **Phase:** B-01, B-02a, B-02b, B-04a, B-04a-fix, B-03, B-07 LIVE and verified; F0 and F0b frontend LIVE; B-05 TEST v2 and ROLLBACK v2 (SCHEMA v1 unchanged) submitted to QA for Tier 1 round 2 after D-06 closed the writer inventory (Round 83); design approved: brief B v10, Gate 1 given 04/10/2026
+- **Last round:** 83  · **Last QA-reviewed round:** 80
 - **Agreed decisions (carried from T-001; positions, not a new approval):** brief B v10 (`0fe77dec72dc`) is the approved design for points 5 and 10 together; decisions D1 to D11 and E1 to E10 of T-001 are confirmed (Founder, 04/10/2026 and later); no in-app payment; platform course names are identifiers and immutable in v1; new offline logs are always classified (platform, custom or explicit General), NULL means only legacy; no backfill; professors see totals only. Details and round numbers: Round 1 section B.
 - **Open disagreements:** none
 - **Founder decisions required:** none now. In force: DEC-1, DEC-2 (Round 5); topic-level logging deferred (Round 7); DEC-3 (Round 9); Round 13 method choice; authorization to run D-01 (Round 17; run 08/10/2026); **DEC-4 simplified (08/10/2026, Round 27): the cutover requires only that the set of unclassified manual logs never grows; no removal provenance.** **Acceptances:** (1) the never-reloaded F0 tab residual (section 4C) ACCEPTED by the Founder 09/10/2026 (Round 67); **needed later:** (2) before Gate 3 of B-04b: the never-reloaded F1 tab residual (section 5.2); deferral of (2) defers the cutover.
-- **Artifacts under review:** none with QA. Awaiting the Founder's run of `docs/database/t002/D-06_DIAGNOSTIC_D6_flashcards-notes-sdt-routine-writers_v1.sql` `8a17b5b10f28` (Tier 0, read-only). B-05 v1 (SCHEMA `b1714e829cdd`, TEST `6b9519adbaac`, ROLLBACK `d0487d7cc334`) is REVISION REQUIRED; TEST v2 and ROLLBACK v2 follow. File index: `docs/database/t002/CURRENT.md`.
+- **Artifacts under review:** TIER 1, round 2, exact hashes in Round 83: `docs/database/t002/` `B-05_SCHEMA_flashcards-notes-course-derive_v1.sql` `b1714e829cdd` (unchanged), `B-05_TEST_flashcards-notes-course-derive_v2.sql` `53d616857ffc`, `B-05_ROLLBACK_flashcards-notes-course-derive_v2.sql` `073bf80d062d`. Evidence: `docs/discussions/evidence/T-002_D6-index_09-10-2026.md`. Context: plan v18 section 7, change-log Entries 11 to 13. File index: `docs/database/t002/CURRENT.md`.
 
 ### Gates
 - [x] 1 Design approved (brief B v10 `0fe77dec72dc`, Founder 04/10/2026, T-001 Round 35; QA PASS WITH CONDITIONS)

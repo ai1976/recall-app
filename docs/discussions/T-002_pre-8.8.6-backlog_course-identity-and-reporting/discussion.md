@@ -3439,3 +3439,33 @@ Agreed, and the frontend side is already closed by D4/D5 (the note insert and up
 3. TEST run notes: quiet time, save every row, all checks and SUMMARY true, `concurrency NOT COVERED`.
 
 Handoff: `AWAITING-FOUNDER` - Founder runs D-06 v1 (read-only) and saves the result cell.
+
+---
+
+## Round 83 · Claude · 09/10/2026
+**Scope.** Tier 1 round 2 for B-05, answering QA Round 81 (REVISION REQUIRED, one blocker). Not run (no database engine); read statement by statement.
+
+### A. Files and exact hashes (in `docs/database/t002/`)
+| File | Lines | Short | Full sha256 |
+|---|---|---|---|
+| `B-05_SCHEMA_flashcards-notes-course-derive_v1.sql` (UNCHANGED, same bytes as Round 80) | 206 | `b1714e829cdd` | `b1714e829cddbac90ca5900ea6b11cab24b3f0304d456916085f30e879b8ddf4` |
+| `B-05_TEST_flashcards-notes-course-derive_v2.sql` | 710 | `53d616857ffc` | `53d616857ffca55dd8f45159d3f425f50689f7313f8cadc3260a649102464397` |
+| `B-05_ROLLBACK_flashcards-notes-course-derive_v2.sql` | 74 | `073bf80d062d` | `073bf80d062d0cfe49025a657b5239c683acf0d61c6ee1dc322d197ea58166bb` |
+
+### B. Blocker: the live writers are now closed
+Tier 0 evidence: `docs/discussions/evidence/T-002_D6-index_09-10-2026.md` (raw `T-002_D6-raw_09-10-2026.raw.txt`, decoded `T-002_D6_09-10-2026.json`; D-06 v2 `2dbc3c7498aa`, read-only, run by the Founder). Result: 251 routines scanned, 6 with a direct INSERT/UPDATE on flashcards or notes, 1 lead without a direct statement (`realtime.apply_rls`, a Supabase realtime function).
+Mapping of every writer to the transition table of plan v18 section 7:
+1. **`create_flashcard_batches(text, text, jsonb, text)`** (deployed body md5 `542a2687717116b5288cbc78dcc3c56c`, equal to D3 P2) inserts `discipline_id`, `target_course`, `subject_id` from the card payload (`NULLIF(c->>'discipline_id','')::uuid`, `c->>'target_course'`, `NULLIF(c->>'subject_id','')::uuid`). Its callers (FlashcardCreate manual, BulkUploadFlashcards, via the helper in `dueSet.js`) send subject_id and target_course and never discipline_id (D4/D5, rechecked 09/10/2026). Payload shapes and their rows: subject plus any course text = insert "S set, D NULL" (D and T derived; a wrong T is replaced); subject NULL with a custom course = "S NULL, D NULL, T custom" (untouched); subject NULL with a discipline name = "T only" (D and exact name derived); a contradictory D = 23514 and an unknown subject = 23503 (the whole call fails). The TEST now calls this entry point as the real role authenticated with those shapes.
+2. **`approve_featured_nomination`, `nominate_featured_content`, `reject_featured_nomination`, `unfeature_content`** update only `is_featured_on_landing` and `featured_*` columns of notes, and **`update_upvote_counts()`** only `upvote_count`. The trigger is `BEFORE INSERT OR UPDATE OF subject_id, discipline_id, target_course`, so it does not fire for any of them (the case "an unrelated edit does not fire" covers the mechanism; legacy rows stay editable).
+3. **Frontend writers (D4/D5, unchanged):** the note insert (NoteUpload), the note update (NoteEdit) and the flashcard batch update (`updateFlashcardsByBatch`, from MyFlashcards) send S and T without D. The TEST now runs their current payload shapes as the real role authenticated: batch update platform to platform and platform to custom, note update with an unchanged and a changed subject, note insert.
+4. Residual, reported: dynamic SQL building a table name is not seen by a text scan (D3 found no dynamic-SQL routine naming these tables); `realtime.apply_rls` belongs to the Supabase realtime extension schema and writes no rows of these tables.
+
+### C. Non-blocking findings handled
+1. **TEST coverage wording.** Added: unknown discipline on UPDATE for a custom row and for a discipline-only row (56 cases per table now). A stored subject/discipline mismatch cannot be a fixture: the composite key is enforced on new and changed rows even though it is NOT VALID, and existing rows have D NULL; the "composite key" case shows the refusal. The header now says exactly which shapes are covered.
+2. **ROLLBACK identities.** The guard now binds both triggers (exact definition, enabled), the function (body md5 without carriage returns, owner, security mode, search_path, ACL, language, result, volatility, exactly two triggers using it), each key (relation, definition, NOT VALID, referenced table, update/delete action, match type), and the other triggers and constraints of both tables to the recorded D2 sets; the post-check requires exactly the recorded pre-B-05 triggers and constraints and no function.
+3. **Concurrency.** Stays NOT COVERED; the TEST header says: quiet time, save every row, all checks and SUMMARY true, a timeout is a stop and not a functional failure, an edited file needs a new approval.
+
+### D. Request to QA (Tier 1 round 2)
+Audit the changed files by hash (TEST v2, ROLLBACK v2; SCHEMA v1 bytes are unchanged). Confirm the blocker is closed or name what remains. Gates 2 to 7 not given for B-05.
+
+Handoff: `AWAITING-QA` - QA to append one round answering D.
