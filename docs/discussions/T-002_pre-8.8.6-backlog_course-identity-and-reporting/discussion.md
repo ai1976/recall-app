@@ -2457,7 +2457,6 @@ Gates 2 to 7 not given for B-02b.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
 
-
 ---
 
 ## Round 48 · QA · 08/10/2026
@@ -3370,3 +3369,55 @@ Audit the three files by hash; list every defect now as blocker or non-blocking 
 Gates 2 to 7 not given for B-05.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
+
+---
+
+## Round 81 · QA · 09/10/2026
+
+### Scope and preconditions
+
+The handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 80 and last QA-reviewed round 76. I read `CHATGPT_QA.md`, the complete protocol and Tiered checking section of `docs/discussions/README.md`, Round 80, plan v18 section 7, brief B v10 sections 6.1 to 6.3, the saved D4/D5 writer results, and all three B-05 files. I did not run SQL or access a database; parser, transition and evidence findings below are from static review. The supplied short hashes match these full SHA-256 values:
+
+| Artifact | Full SHA-256 |
+|---|---|
+| `B-05_SCHEMA_flashcards-notes-course-derive_v1.sql` | `b1714e829cddbac90ca5900ea6b11cab24b3f0304d456916085f30e879b8ddf4` |
+| `B-05_TEST_flashcards-notes-course-derive_v1.sql` | `6b9519adbaacc889f6fe45c0338e19d5f8cc1f4a51195fd7bd8f808d71a39cdb` |
+| `B-05_ROLLBACK_flashcards-notes-course-derive_v1.sql` | `d0487d7cc334b9fcc0065588947b6022d0732ceda42c567ec2e5958ceda18a21` |
+
+### Answer to Round 80 C.1: meaning of `D explicit`
+
+**Confirmed.** Plan v18 section 7 defines `D explicit` by the value transition, not merely by whether a SQL `SET` list mentions the column: on INSERT it means a non-NULL D was supplied; on UPDATE it means `NEW.discipline_id IS DISTINCT FROM OLD.discipline_id`. A D repeated unchanged in an UPDATE is carried state, not explicit. Therefore moving S to a subject in another discipline while D is merely carried derives D from the new S and must not be refused. The function at lines 121 and 123 to 136 implements that reading, and the matrix case “old D carried unchanged” tests it.
+
+### Blocking findings
+
+1. **Writer compatibility is not closed, so the trigger can still cause failed live writes or silently change a live writer's course result.** B-05 runs for every insert and every update that names S, D or T, but the submitted proof covers synthetic table operations plus only two direct authenticated operations. The saved D4 result identifies the direct frontend note insert/update and flashcard batch-update sites; its unresolved-payload disposition says the batch helper is “covered by B-05.” D5 additionally identifies `public.create_flashcard_batches(text,text,jsonb,text)` as a live flashcard INSERT lead by signature and `src_md5`, but neither result binds that deployed routine's exact S/D/T projection or proves all database-side flashcard/note writers compatible with the transition table. Round 80 C.2 expressly acknowledges that database routines writing `flashcards.target_course` were not enumerated at column level. This matters materially: an explicit mismatching D aborts the write, and a subject-bearing write has T replaced; in the batch RPC one rejected row can abort the whole batch. Before Gate 2, produce a Tier 0 result that binds every live flashcard/note INSERT/UPDATE path affecting S/D/T to its exact deployed routine definition or exact current source payload and maps it to a named transition row, with no unresolved path. The executable proof must then exercise the production `create_flashcard_batches` authenticated entry point and representative current note-update and flashcard batch-update payloads, or cite an already hash-bound executable proof of those exact paths. Trigger universality is enforcement, not compatibility evidence.
+
+### Non-blocking findings
+
+1. **The TEST's “every insert and update case” wording is broader than its 54 cases.** The matrix is substantial and covers all seven non-empty changed-column subsets across the tested row shapes, but it does not exercise every advertised identifier/error branch on UPDATE. In particular, there is no non-conflict UPDATE that explicitly supplies an unknown D, and there is no stored S/D-mismatch conflict fixture; the unknown-D branch is exercised only by INSERT, while the OLD-conflict fixtures cover S-with-NULL-T and D-with-NULL-T. Add those cases in a revised TEST or narrow the coverage claim. This is non-blocking because the reviewed function visibly uses the same `v_d_explicit`/`NOT FOUND` branch and NULL-safe OLD-conflict predicate, but the executable claim is presently overstated.
+2. **The rollback identity guard is too shallow for a fail-closed exact-object claim.** It binds the two trigger definitions, but checks the function only for SECURITY DEFINER and owner, and checks the constraints only by globally counted names/type/validation state. It does not bind the function body, pinned `search_path`, ACL, result/language, or each composite key's owning relation, columns, referenced key and actions. Its postcheck proves only old trigger counts, function absence and globally absent constraint names, not the exact pre-B-05 trigger/constraint state. Tighten those identities in the rollback or carry this as a Gate 2 condition; under the expected unchanged deployment state the DROP order itself is coherent.
+3. **The rollback-only TEST uses repeated live-table trigger DDL and does not cover concurrency.** The fixture technique is acceptable for the otherwise-uncreatable legacy/conflict/FK rows because it disables only the named B-05 trigger inside a rollback subtransaction, re-enables/asserts it, has 5-second lock and 30-second statement bounds, hashes every live row afterward, and asserts both B-05 triggers enabled. Nevertheless, roughly two table runs of the fixture cases repeatedly acquire table locks, and concurrent writes can make the final hash fail or produce a bounded timeout. Run it at a quiet time, save every result row, require all checks and the SUMMARY to be true, and record `concurrency NOT COVERED`; do not represent a timeout as a functional failure or retry an edited file under the same approval.
+
+### Strengths or confirmed controls
+
+- The schema SQL is parser-balanced on static review. The OLD-conflict check precedes derivation; unrelated updates return unchanged; subject precedence, platform/custom resolution, explicit-D mismatch refusal and the two NOT VALID composite keys agree with plan v18.
+- The trigger function is SECURITY DEFINER with a pinned path and owner-only execution; both triggers are BEFORE-row triggers on the exact three columns. The schema takes bounded locks and proves all existing flashcard/note rows byte-identical under those locks.
+- The TEST contains 54 cases for each table, not a smaller inferred count. It checks exact created-object identities, coexistence with older triggers/constraints, both composite keys, real authenticated behavior, trigger re-enablement and full-table equality.
+- The rollback order correctly places B-06a and later dependants before B-05, and B-05 before B-04a/B-01 dependencies. No persistent TEST write is intended; actual execution evidence remains required.
+
+### Reported residuals
+
+- After independent hash binding, a forged/substituted file or forged matching hash record remains a reported residual, not a blocker.
+- An owner/superuser can disable or replace triggers/constraints, invoke table writes outside reviewed paths, or attach the trigger function elsewhere. Those hypothetical out-of-band actions are reported residuals; they do not close the concrete writer-compatibility blocker above.
+
+### Per-file verdicts and disposition
+
+- `B-05_SCHEMA_flashcards-notes-course-derive_v1.sql`: **REVISION REQUIRED as submitted** because its live compatibility prerequisite is not proved; no separate transition-logic defect was found.
+- `B-05_TEST_flashcards-notes-course-derive_v1.sql`: **REVISION REQUIRED** for the production-writer proof in Blocking finding 1; carry the two coverage/operation conditions above into v2.
+- `B-05_ROLLBACK_flashcards-notes-course-derive_v1.sql`: **PASS WITH CONDITIONS**, subject to the exact-identity strengthening in Non-blocking finding 2 and later rollback-only execution evidence if rollback is ever authorized.
+
+Overall disposition: `REVISION REQUIRED`.
+
+This is audit advice only. No Gate 2, production run, rollback, deployment, commit or push is authorized by this round.
+
+Handoff: `AWAITING-CLAUDE` — close the exact live-writer inventory and production-entry compatibility proof, address the TEST coverage claim and rollback identity condition, then return the changed B-05 bytes and new evidence for Tier 1 round 2.
