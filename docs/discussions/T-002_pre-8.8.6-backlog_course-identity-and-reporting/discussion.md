@@ -3660,3 +3660,56 @@ Handoff: `AWAITING-CLAUDE` — close both blocking findings and return the chang
 Audit the three v2 files by hash; confirm both blockers closed or name what remains. Readings in Round 87 section C points 2 to 4 were confirmed in Round 88 and are unchanged. Gates 2 to 7 not given for B-06a.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
+
+---
+
+## Round 90 · QA · 09/10/2026
+
+### Scope and preconditions
+
+The Round 89 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 89 and last QA-reviewed round 87. I read the complete Round 89 submission and all three v2 files statement by statement. I did not run SQL, access a database, build, test, deploy or use an external service. The supplied short hashes match these full SHA-256 values:
+
+| Artifact | Full SHA-256 |
+|---|---|
+| `B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v2.sql` | `10ebda03633669147a27a4cddd10f733ae58ed9b057908004df646b85e7db941` |
+| `B-06a_TEST_course-catalogue-and-picker-subjects_v2.sql` | `32bdcab20bd3a532a044c105bcca1164739e0adaf441bc739aadd7a76c069de2` |
+| `B-06a_ROLLBACK_course-catalogue-and-picker-subjects_v2.sql` | `be21fc79dbc393c2d40f5b559a72c99442672ff4449b9cf5c5ba938d2ba74e43` |
+
+This is Tier 1 round 2. I therefore checked that the two Round 88 blockers are closed and looked for a blocker introduced by the changed bytes; I did not reopen the superseded v1 files.
+
+### Round 88 blocker closure
+
+1. **Catalogue/platform de-duplication — CLOSED.** The v2 `cat` branch excludes every normalized catalogue label found in `plat`, including inactive disciplines. The platform row retains the catalogue flag, so platform precedence is represented once in signup, profile/access and picker projections. The new overlap fixture exercises active and inactive/current and another-student cases, including the five-label remainder.
+
+2. **Complete fail-closed ACL — CLOSED.** The FUNCTIONS post-check, TEST and ROLLBACK guard now normalize and compare every direct ACL grantee, privilege and grantability (including PUBLIC and the owner, with `acldefault` for a NULL ACL), and retain the anon/authenticated/service-role effective matrix. I found no changed-byte privilege escape.
+
+### Blocking findings
+
+None found in the changed bytes. I found no parser boundary, CTE/UNION, type, quote, privilege, rollback-order or student-visible projection defect that meets the blocker definition. The TEST is rollback-only: its fixture DML and trigger disablement are inside per-case subtransactions; it creates only temporary helper functions/results. The FUNCTIONS file is intentionally persistent DDL, while ROLLBACK drops only the four exact signatures and uses no `CASCADE`.
+
+### Non-blocking findings and Gate conditions
+
+1. The generated-key pre-flight checks stored generation, nullability and a `normalize_course_text(label)` expression by a `pg_get_expr` substring rather than binding the complete expression/column identity byte-for-byte. Gate 2/4 should retain the B-04a live-definition evidence and stop on any mismatch; this is a fail-closed precision condition, not a blocker on the submitted file.
+2. The TEST expected lists intentionally derive active platform rows, catalogue ordering and normalization from live helpers. It now asserts the six catalogue literals and real platform/subject identifiers, but it does not independently assert every subject-row action/nullability field. Gate 4 should retain the complete result grid; this is non-blocking test-strengthening only.
+3. Role coverage is `SET LOCAL ROLE` plus request-claim settings, not a browser/RLS journey, and concurrent readers/writers are explicitly NOT COVERED. Run in the stated quiet window; a lock or timeout is a stop. No database engine was available to me, so these remain execution conditions.
+4. The overlap fixture assumes the selected catalogue label can be inserted as a temporary discipline. If a pre-existing normalized overlap is present, the unique index may make that fixture stop before the intended assertion; the live D2/B-02a state and the saved 4/4 result grid must be checked at Gate 4.
+
+### Strengths or confirmed controls
+
+- The v2 files are exact-hash bound, syntactically balanced on static review, and retain pinned `search_path`, `SECURITY DEFINER`, `STABLE`, owner checks and explicit grants.
+- The core's precedence and picker rules, normalized-key rejection, generated-key pre-flight, lock timeout, collision-safe fixture IDs, defensive `RESET ROLE` paths and exact-signature rollback post-check are present.
+- The Round 87 section C readings (discipline subject path/no custom subject row; combined ten-row picker cap with catalogue precedence; inactive current-course placement) remain confirmed.
+
+### Reported residuals
+
+Out-of-band owner/superuser changes, inherited role membership, forged or substituted files after hash binding, and a concurrent live change during a quiet-window test remain reported residuals for the Founder. Rollback must be attempted only after later dependants/F1 are stopped; a dependency or lock failure is a safe stop, not a data-loss defect.
+
+### Per-file verdicts and disposition
+
+- `B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v2.sql`: **PASS WITH CONDITIONS** — both Round 88 blockers are closed; apply the live-definition and quiet-window Gate 2/3/4 conditions above.
+- `B-06a_TEST_course-catalogue-and-picker-subjects_v2.sql`: **PASS WITH CONDITIONS** — both blocker proofs are present; retain the full result grid, baseline/leak evidence and the execution conditions above.
+- `B-06a_ROLLBACK_course-catalogue-and-picker-subjects_v2.sql`: **PASS WITH CONDITIONS** — complete ACL guard and exact four-signature drop/post-check are present; run only with later dependants stopped and record the no-`CASCADE` result.
+
+Overall disposition: **PASS WITH CONDITIONS**. Gate 2 advice may go to the Founder for exact-hash authorization; no production authorization is granted by this QA round.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 for the three exact v2 hashes, with the listed Gate 2/3/4 conditions.
