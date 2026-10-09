@@ -2457,6 +2457,7 @@ Gates 2 to 7 not given for B-02b.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
 
+
 ---
 
 ## Round 48 · QA · 08/10/2026
@@ -2900,3 +2901,75 @@ Audit the six files by hash. List every defect now as blocker or non-blocking (R
 Gates 2 to 7 not given for B-03 and B-07.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
+
+---
+
+## Round 68 · QA · 09/10/2026
+
+### Scope and preconditions
+
+The Round 67 handoff is valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 67 and last QA-reviewed round 61. I read `CHATGPT_QA.md`, the complete protocol including README “Tiered checking”, the status block, Round 67, brief B v10 sections 5.1 to 5.3a, plan v18 section 6 and change-log Entry 5, the saved D2/D3 evidence relevant to `profiles` and `access_requests`, and all six submitted files statement by statement. All supplied hashes independently match in full:
+
+- B-03 SCHEMA `9ac3c2e6ff47eafdc4daa76e9a3de80cee2ad89c03db412535d96c29f6827eb6`; TEST `160018d13ebd0d3bdd392a312523988f2275dff24e3b64e626ffa735084f78ce`; ROLLBACK `67448c2e38b2720ea60e47acfb2f5715697fd948ed37da879cbd99f3170b3b2e`.
+- B-07 SCHEMA `8ca0062e0e8dd78684b97c5efec09873706929ad259a4f5a23a4a48c89e0b8a6`; TEST `0f094074a7fd93de346b59a3e41060010c8ef7b3d52df7b32b9ecf9fb2222768`; ROLLBACK `676e7735d0144c7db82caf2bda0dfda3205b14609f048b8ed7300f9092c3c2bb`.
+
+I did not run SQL or use a database engine. Parser, role, trigger and rollback conclusions below are from reading the files and the saved raw catalogue evidence. Git status could not be verified because this checkout reports that it is not a Git work tree.
+
+### B-07 scope decision
+
+**The limit to `request_type = 'student_access'` is acceptable and preferable.** `submit_access_request` writes one course label, while the two other request types deliberately overload `course` with multi-course or general free text. Applying the 120-character single-label rule to those other types could fail valid live submissions. The approved interpretation should therefore be “the access-request course-label field for student-access requests”, not every semantic use of the physical column. This is QA design advice; the Founder remains the approver. The implementation must nevertheless enforce the invariant on every row entering the `student_access` state, which v1 does not yet do.
+
+### Blocking findings
+
+1. **B-07 can enter `student_access` without validation.** The trigger is `BEFORE INSERT OR UPDATE OF course` with a predicate on `NEW.request_type`. An update that changes only `request_type` from `institute_inquiry` or `educator_application` to `student_access` never fires it, so the deliberately permitted 200-character, outer-spaced or multi-course value becomes an invalid student-access course. This is reachable by a real authenticated administrator: D2 records table-level UPDATE plus the “Admins can update access request status” UPDATE policy, whose policy expression limits rows but not columns. If an update sets both `request_type` and `course = course`, the trigger fires but the function's course-equality early return still skips validation. That is contract-invalid stored data, not an owner/superuser hypothetical. The trigger must also cover `UPDATE OF request_type`, and the no-op return must apply only when the old row was already `student_access` (or otherwise ensure that entry into the type validates). The TEST must exercise both transition forms through a real authenticated admin.
+
+2. **The database control-character boundary is not the exact F0/4C boundary.** Both guard functions rely only on `v ~ '[[:cntrl:]]'`; both TEST files prove only C0 tab/newline cases. F0's accepted rule explicitly includes C0, DEL, C1, U+2028 and U+2029, and the Founder's 4C acceptance says a stale tab's control-character value will receive a database refusal. U+2028/U+2029 are Unicode line/paragraph separators rather than POSIX `cntrl` characters, and the class is locale-dependent; v1 therefore neither encodes nor proves that accepted invariant. A stale or direct path can store prohibited text if those separators are not classified as `cntrl`. Encode the complete set explicitly and add C0, DEL/C1, U+2028 and U+2029 cases, including edge positions, to both TEST files. This applies to B-03 and B-07.
+
+### Non-blocking findings
+
+1. **B-07's update checks are not run as the claimed real role.** The test resets `authenticated` before selecting the row and performs the status, equal-course and changed-course updates as the SQL-editor owner. It therefore proves trigger mechanics, not the real admin UPDATE/RLS path. Use an authenticated admin JWT/role for the reachable update cases; a student is not the role allowed by the recorded UPDATE policy.
+
+2. **The two excluded writers are not exactly and unambiguously bound.** The pre-flight selects `submit_educator_application` and `submit_institute_inquiry` by schema plus name only and hashes `prosrc`. It does not bind the D3 signature or assert one matching row; an overload can make `SELECT INTO` choose one row without proving which writer was checked. Bind each exact `regprocedure` identity and its relevant owner/security/config/definition facts.
+
+3. **The TEST does not exercise the real excluded-writer entry points.** Direct owner inserts show that the trigger predicate excludes the two request types, but do not prove that `submit_institute_inquiry` and `submit_educator_application`, under their granted real roles, still write those exact types and succeed with their permitted free text. Add rollback-only calls to the exact functions or explicitly carry this as a Gate 4 condition.
+
+4. **Relevant live-state metadata is only partly fail-closed.** Both SCHEMA files check that an object named `disciplines_normalized_name_uidx` exists, not that it is the expected unique, valid and ready expression index. B-07 also binds column names/types but not the `course NOT NULL` and `request_type NOT NULL DEFAULT 'student_access'` facts on which its omitted-type insert path and scope predicate rely. Bind the exact index and the relevant null/default metadata, or make the post-deployment TEST results explicit Gate 4 stop conditions.
+
+5. **Notifications retain the pre-trigger course text.** `submit_access_request` inserts `p_course`; B-07 canonicalises only the row's `NEW.course`, after which the same function builds each admin notification message and metadata from the original `p_course`. A request stored as `CA Final` can therefore notify `  ca   final `. This is not a Tier 1 blocker under the exact definition because it is not a student-visible number or access boundary, but it is a real duplicate-value inconsistency. Either make the writer use the stored canonical value or record the admin-notification difference as an accepted limitation.
+
+6. **The TEST summary can report success while a check is NULL.** `bool_and(pass)` ignores NULL. The detailed grid would expose it, but the row labelled “every check passed” is not fail-closed. Use `bool_and(pass IS TRUE)` in both TEST files.
+
+7. **Function ownership is assumed until the later TEST.** The SCHEMA files create SECURITY DEFINER functions without first asserting the execution owner or assigning owner `postgres`; a run by another sufficiently privileged role can persist a differently owned function and only be detected by the subsequent TEST. Add a pre-flight owner assertion or make same-session schema-plus-test execution and immediate rollback on any false result an explicit Gate 3/4 condition.
+
+8. **The ROLLBACK files do not fail closed on object identity or their postcondition.** They use `DROP ... IF EXISTS` without proving that the trigger/function are the exact B-03/B-07 objects, and their final SELECT labels an expected trigger count but does not raise if the count or function-removal boolean is wrong. Under the expected live state they undo the intended objects atomically, so this is non-blocking; exact-definition pre-flight and raising postchecks would make rollback evidence unambiguous.
+
+9. **The status record contains stale non-handoff text that QA is not permitted to edit.** It still says the 4C acceptance is “needed later”, and the per-file progress line says B-02b/B-04a are not authored and B-03/B-07 are not authored despite the phase and Round 67. Claude should correct those owner-maintained fields next round; this QA edit changes only the four permitted handoff fields.
+
+### Strengths or confirmed controls
+
+- The six exact hashes match, the files use plain CREATE and bounded locks, and the SCHEMA transactions hash the complete target relation before and after to prove they do not rewrite existing rows.
+- The trigger functions are SECURITY DEFINER with pinned search paths and no direct execute grant to client roles; their canonical resolver dependency is schema-qualified and bound to the verified B-01 identity.
+- B-03 correctly preserves NULL and unchanged legacy values, validates changed values, runs before the existing archive/restore trigger, and tests the real signup chain and a newly added discipline inside rolled-back subtransactions.
+- B-07 correctly guards inserts and course changes for rows already in the `student_access` type, while leaving the two different free-text meanings outside the label rule.
+- Both TEST files isolate fixtures in exception subtransactions and finish with full-row count/hash comparisons; both ROLLBACK files take bounded table locks and remove only their named trigger/function pair in the expected state.
+
+### Reported residuals
+
+- The disclosed concurrency limit remains: a busy table can hit the 5-second lock timeout and the run must be retried; no unacceptable lock is silently accepted.
+- After deployment, an owner or superuser can disable/replace the trigger or bypass ordinary role boundaries. That is a reported residual, not a blocker in these files.
+- Rollback cannot reconstruct the pre-canonical spelling of values written while the triggers were live; the files disclose that equivalent canonical text remains.
+
+### Per-file verdicts and disposition
+
+| File | Verdict |
+|---|---|
+| `B-03_SCHEMA_profiles-course-trigger_v1.sql` | `REVISION REQUIRED` — control-set blocker 2 |
+| `B-03_TEST_profiles-course-trigger_v1.sql` | `REVISION REQUIRED` — must prove blocker 2 and close the listed test conditions |
+| `B-03_ROLLBACK_profiles-course-trigger_v1.sql` | `PASS WITH CONDITIONS` — non-blocking rollback identity/postcheck condition |
+| `B-07_SCHEMA_access-requests-course-trigger_v1.sql` | `REVISION REQUIRED` — transition blocker 1 and control-set blocker 2 |
+| `B-07_TEST_access-requests-course-trigger_v1.sql` | `REVISION REQUIRED` — must prove both blockers through the correct real roles |
+| `B-07_ROLLBACK_access-requests-course-trigger_v1.sql` | `PASS WITH CONDITIONS` — non-blocking rollback identity/postcheck condition |
+
+Overall disposition: `REVISION REQUIRED`. This is Tier 1 round 1; all defects found in the six v1 files are listed above for one revision. Gates 2 to 7 are not advised. QA did not execute SQL or authorize execution.
+
+Handoff: `AWAITING-CLAUDE` — Claude to revise the B-03/B-07 SCHEMA and TEST files for the two blockers, address or explicitly carry every non-blocking condition, and return only changed-byte/new-blocker scope for Tier 1 round 2.
