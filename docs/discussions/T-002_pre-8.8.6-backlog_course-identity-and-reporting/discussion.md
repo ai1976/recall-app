@@ -3830,3 +3830,51 @@ Audit the patch by hash: correctness against plan sections 2 and 8 and brief B 4
 Gates 5, 6 and 7 not given for F1.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
+
+---
+
+## Round 97 · QA · 09/10/2026
+
+### Scope and hash checks
+
+I read the complete Round 96 request, the index, the saved verification output, and the complete F1 patch. The patch hash is the requested `0c8cdb05d7fec5e0b3db5b4417f490cb6f706906fb81ed902d2236f68a471a7f` (short `0c8cdb05d7fe`). The saved verification raw hash is `713935c5a9313ee12e5a99e1fe3140a746dba4ff196c39e55271bfacab7b7ca3`. I did not run the application, database, build, or tests; this round audits the saved files and exact patch text.
+
+### Blocking findings
+
+None. The changed write paths do not show data loss, a privilege or access escape, an incorrect stored classification, or a failed rollback. Signup blocks submission without a valid public catalogue; Profile Settings uses the authenticated catalogue and the due wrapper; the access form blocks submission until its list is ready; and the picker rejects an absent/malformed classification before `study_sessions` insert and keeps a failed save pending. The three new RPCs are represented in both guard files as not-due-changing, and the saved guard result reports 214 calls classified.
+
+### Non-blocking findings
+
+1. **Signup does not preserve the catalogue's global order.** `allCourses` is split into hard-coded CA, CMA, CS and “Other Courses” optgroups. Any database order interleaving those groups, or a label that changes group, is displayed in a different order even though the patch says every surface renders the database order. The fixture only exercises the current grouped order. This is a presentation/contract defect, not an access or data-integrity blocker.
+
+2. **The subject-row contract is under-validated.** `checkSubjectRows` requires exactly one `skip` and permits zero or one `other_action`, but does not require the `other_action` row or its `action = enter_text`; it also does not validate action/nullability/flag fields on the other rows. A malformed successful reader result can therefore hide the typed-subject choice instead of entering the required neutral state. The trusted live reader and optional/skippable subject keep this non-blocking, but the validation and tests should be tightened before Gate 5.
+
+3. **A subject-reader error is not rendered neutral.** `StudyLogCoursePicker` says the subject list could not be loaded but leaves Save enabled and permits a platform/custom course-only log. Omitting a subject is a valid user choice, so this does not corrupt a log; however plan v18 section 8 says a failed subject call is a contract failure with a neutral state. Either the plan/UI exception must be made explicit or Save must wait for a successful subject result.
+
+4. **Unexpected rejected reader promises are not handled.** `fetchCourseOptions` and `fetchPickerSubjects`, and both hooks that call them, handle `{ error }` and malformed data but have no `catch`. A genuine rejected RPC promise leaves the corresponding hook in `loading` indefinitely (no neutral state or retry). Supabase's normal PostgREST path generally resolves failures as `{ error }`, so this is robustness coverage rather than a current data/security blocker; add rejection tests and a catch before Gate 5.
+
+5. **Profile Settings has no submit-time catalogue-readiness guard.** The select is disabled on an error, but `collectProfileValues`/`persistProfile` can still submit a previously selected or typed course if a reload fails after the selection was made. Other profile fields are deliberately still saveable; the course value should be held/cleared while the list is unavailable so a failed reader cannot authorize a stale course change.
+
+6. **Profile readback failure is silently treated as success.** After a course write, `persistProfile` ignores `savedError` and falls back to the submitted value. If the database canonicalizes the value and the readback fails, the form and `originalCourse` can display/compare the non-canonical text. The write itself is not lost, but the required readback proof and its failure path are absent from the tests.
+
+7. **The routing rule is enforced for catalogue RPCs, not literally for all rendering/reads.** `useCourseOptions` waits for `AuthContext.loading`, which is correct for the wrapper calls. The screens and controls render while loading, and `ContentPreviewWall`'s direct `profiles` read is gated by `user` rather than explicitly by `loading`. With the current AuthContext implementation `user` remains null until loading resolves, so no current privilege leak is shown; this is a specification/defensive-gating condition, not a blocker.
+
+8. **Changed-byte test coverage is incomplete for the above cases.** The saved 232-test run covers resolved RPC errors, the principal routes, each classification and save refusal, but not a rejected RPC promise, a subject-list error followed by Save, a stale Profile selection after a failed reload, a failed canonical readback, or a deliberately interleaved catalogue order. These are Gate 5 test/evidence conditions, not newly introduced live-data failures.
+
+9. The saved verification is from the uncommitted draft worktree; its 20 ESLint problems are reported as the same baseline problems and the build passed. Gate 5 still requires applying/reviewing this exact hash in the intended checkout and preserving the guard/test evidence. No Gate 5, 6 or 7 authorization is implied by this QA round.
+
+### Strengths and confirmed controls
+
+- The exact patch and saved evidence hashes were checked; the patch applies cleanly according to the supplied index.
+- No old Signup `notes`/`flashcards` course reads remain. The public/authenticated routing, typed-row catalogue, `__other__` sentinel, profile/access write guards, classification shape check, restored-pending path, and DB-refusal pending behavior are all present in the changed bytes.
+- `study_sessions` receives only the classification shapes built by the picker; invalid or missing shapes return before insert. The guard entries classify the three new readers as read-only and the evidence records the due-set pass.
+
+### Reported residuals
+
+The previously documented stale-tab/old-bundle path can still create an unclassified manual log until that tab reloads. It is outside this patch's prevention boundary and remains the previously accepted/Founder-controlled residual for the later B-04b cutover; it is not a new F1 blocker.
+
+### Disposition
+
+`docs/discussions/T-002_F1_frontend-patch_09-10-2026.patch`: **PASS WITH CONDITIONS**. No blocker remains in this first Tier-1 round. The non-blocking conditions above (especially the catalogue ordering and failed-subject/readiness semantics) should be resolved or explicitly carried into the Founder’s Gate 5 decision; the saved evidence is not itself Gate 5 authorization.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide whether to accept the listed conditions and grant Gate 5, or send a targeted revision to Claude.
