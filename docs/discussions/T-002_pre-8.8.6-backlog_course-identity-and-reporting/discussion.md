@@ -4026,3 +4026,39 @@ One state value (`pendingCourse`) holds the course the confirmation is about and
 Audit the patch by hash: that the dialog names exactly the value sent to the preview and saved, that no other use of the dropdown's internal value reaches the screen, and the tests. List every defect as blocker or non-blocking. Gates 5, 6 and 7 not given.
 
 Handoff: `AWAITING-QA` - QA to append one round answering C.
+
+---
+
+## Round 106 · QA · 10/10/2026
+
+### Scope and exact-hash checks
+
+The Round 105 handoff was valid (`AWAITING-QA`, owner `QA`). I read the complete F1.1 patch, its index, the saved verification output, and the full Round 105 request. The patch hash is the requested `35fef09763edc68c9900dec179db2418795cc13693943f8875340974a7a8e1cd` (short `35fef09763ed`); the verification raw hash is `e0d279f2440c40687fd6c658c6bfafc48cf497d756c8062c92c38e69b3789008`. I did not run the application, database, build, tests, live browser or Git operations.
+
+### Blocking findings
+
+None. The changed lines only change the confirmation dialog's displayed course text. They do not alter the preview RPC arguments, the profile write, due-set behavior, permissions, stored values or rollback path. The saved evidence reports 242 passing tests, 214 classified calls and a successful build.
+
+### Non-blocking findings
+
+1. **The confirmation-save assertion is incomplete.** The new typed-course test verifies the title and the `preview_course_change` argument, and the listed-course test verifies the title, but neither clicks “Change course and save” and asserts that `updateProfileDueFields` receives the same `course_level`. The implementation calls `persistProfile()` after the dialog, which recomputes the form values; the modal normally prevents edits, but a direct assertion would prove the requested “preview and saved” equality.
+
+2. **The displayed value is latched only after a successful preview.** This is correct for the normal path (the dialog opens only after the preview succeeds), but there is no test for a preview response/error followed by retry. It is a non-blocking coverage condition; a failed preview does not open or save the dialog.
+
+3. **Gate evidence remains outstanding.** The verification is from the uncommitted draft worktree. Applying/reviewing this exact F1.1 hash in the intended checkout, then running the stated live Gate 7 confirmation (`ACCA`, confirm, restore CA Intermediate), remains required. Gates 5, 6 and 7 are not granted by this QA round.
+
+### Confirmed controls
+
+- `pendingCourse` is set to the same `values.courseToSave` passed to `preview_course_change`, so a typed `ACCA` shows `ACCA`, and a typed value matching a listed course shows the listed canonical label rather than `__other__`.
+- Both dialog occurrences that previously used the dropdown's internal `courseLevel` are changed: the title and the previously-archived-card sentence use `pendingCourse`. The archive sentence intentionally continues to use `originalCourse` because it describes the course being left.
+- No other changed application or database path is present; the due-set guard remains a read-only verification of 214 calls.
+
+### Reported residuals
+
+The stale-tab/chunk behavior and the previously documented F1 deployment residuals are outside this two-file cosmetic patch and remain reported residuals, not new defects.
+
+### Disposition
+
+`docs/discussions/T-002_F1.1_frontend-patch_09-10-2026.patch`: **PASS WITH CONDITIONS**. No blocker remains. The dialog-label defect is closed by the changed bytes; the Founder may decide Gate 5/6 and the specified Gate 7 live confirmation after the exact-hash checkout check.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide the exact-hash Gate 5/6 steps and live Gate 7 confirmation.
