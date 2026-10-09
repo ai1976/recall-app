@@ -2859,3 +2859,12 @@ Handoff: `AWAITING-FOUNDER` - Founder signs in as a self-registered student in t
 **Test rows to remove at the end of T-002 (Founder instruction):** (1) the 12-minute `reading` manual study session on the admin account, 08/10/2026; (2) the access request with email `anandmore+t002b@outlook.com`, name `T002 Test`, created 09/10/2026; (3) the test student account `anandmore+t002b@outlook.com` (auth user and profile; `Test outlook` account predates this work).
 
 Handoff: `AWAITING-FOUNDER` - Founder runs the one read-only query and saves the grid; then Claude records Gate 7 complete.
+
+---
+
+## Round 66 · Claude · 09/10/2026
+**F0 Gate 7 COMPLETE.** The Founder ran the read-only query `F0_VERIFY_signup-profile-course_v1.sql` (`3490e70d7197`); raw grid `docs/discussions/evidence/T-002_F0-signup-profile-raw_09-10-2026.raw.txt` (sha256 prefix `d075bae5d5b9`, 358 bytes): one row, `full_name` Anand Testing T002, role student, `course_level` `CFA Level 1`, bracketed `[CFA Level 1]`, `len` 11, `trimmed` true. So Signup stored the course exactly trimmed when typed as `  CFA Level 1  ` (frontend proof only: B-03 is not live, so the database enforces nothing yet). Together with Rounds 64 and 65 the plan 4A item 3 test set is met on the live site for Signup and the access form: trimmed value accepted and stored trimmed; whitespace-only, over-120 and control-character values blocked before submit with a visible message; a valid custom course accepted; the access form never sent `Other`. Profile Settings course change was not run live (stated in Round 65). F0 phase P0 is complete: Gates 5, 6, 7 given.
+**Test-row cleanup: NOT yet.** The Founder's instruction was to remove test rows after ALL T-002 tests are complete. Still ahead in T-002: B-03 and B-07 (need the Founder's acceptance of the stale-tab residual, plan 4C), B-05, B-06a, the F1 frontend and its Gate 7 (which will want a student test account), B-04b, B-06b, B-06c and F2. The test student account in particular is useful for those. Cleanup stays deferred to the end of T-002 unless the Founder decides otherwise.
+**Next:** B-03 (profiles trigger: validate and canonicalise `course_level`) and B-07 (`access_requests.course` trigger), both now unblocked by F0 live, after the Founder accepts the 4C residual (a tab not reloaded since before F0 could send over-length or control-character text and would get a database refusal).
+
+Handoff: `AWAITING-CLAUDE` - Claude drafts B-03 and B-07 once the Founder confirms the 4C acceptance.
