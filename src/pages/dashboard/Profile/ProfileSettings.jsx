@@ -24,7 +24,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useExamDateContext } from '@/contexts/ExamDateContext';
 import { MONTH_NAMES, buildExamMonthValue, daysUntilExamDate } from '@/lib/examDate';
 import ChangeEmail from '@/components/profile/ChangeEmail';
-import { validateCourseLabel } from '@/lib/courseLabel';
+import { validateCourseLabel, profileCourseOptions } from '@/lib/courseLabel';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const EXAM_YEAR_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2];
@@ -510,9 +510,9 @@ export default function ProfileSettings() {
                 <SelectValue placeholder="Select your active course" />
               </SelectTrigger>
               <SelectContent>
-                {COURSE_LEVELS.map((level) => (
-                  <SelectItem key={level} value={level}>
-                    {level}
+                {profileCourseOptions(COURSE_LEVELS, originalCourse).map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
