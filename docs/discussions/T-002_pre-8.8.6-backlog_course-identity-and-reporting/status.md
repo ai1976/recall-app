@@ -2,14 +2,14 @@
 
 
 ## Status
-- **State:** AWAITING-CLAUDE
-- **Owner:** Claude
-- **Phase:** B-01, B-02a, B-02b, B-04a LIVE; F0 LIVE (Gates 5 to 7 complete); 4C accepted 09/10/2026; B-03 and B-07 v1 submitted to QA for Tier 1 round 1 (Round 67); design approved: brief B v10, Gate 1 given 04/10/2026
-- **Last round:** 68  · **Last QA-reviewed round:** 67
+- **State:** AWAITING-QA
+- **Owner:** QA
+- **Phase:** B-01, B-02a, B-02b, B-04a LIVE and verified; F0 LIVE (Gates 5 to 7 complete); 4C accepted 09/10/2026; B-03 and B-07 v2 and the F0b frontend patch (Profile Settings current course) submitted to QA (Round 69); design approved: brief B v10, Gate 1 given 04/10/2026
+- **Last round:** 69  · **Last QA-reviewed round:** 68
 - **Agreed decisions (carried from T-001; positions, not a new approval):** brief B v10 (`0fe77dec72dc`) is the approved design for points 5 and 10 together; decisions D1 to D11 and E1 to E10 of T-001 are confirmed (Founder, 04/10/2026 and later); no in-app payment; platform course names are identifiers and immutable in v1; new offline logs are always classified (platform, custom or explicit General), NULL means only legacy; no backfill; professors see totals only. Details and round numbers: Round 1 section B.
 - **Open disagreements:** none
-- **Founder decisions required:** none now. In force: DEC-1, DEC-2 (Round 5); topic-level logging deferred (Round 7); DEC-3 (Round 9); Round 13 method choice; authorization to run D-01 (Round 17; run 08/10/2026); **DEC-4 simplified (08/10/2026, Round 27): the cutover requires only that the set of unclassified manual logs never grows; no removal provenance.** **Needed later, two acceptances:** (1) before Gate 3 of B-03 and B-07: the never-reloaded F0 tab residual (section 4C); (2) before Gate 3 of B-04b: the never-reloaded F1 tab residual (section 5.2); deferral of (2) defers the cutover.
-- **Artifacts under review:** TIER 1, round 1, exact hashes in Round 67: `docs/database/t002/` `B-03_SCHEMA_profiles-course-trigger_v1.sql` `9ac3c2e6ff47`, `B-03_TEST_..._v1.sql` `160018d13ebd`, `B-03_ROLLBACK_..._v1.sql` `67448c2e38b2`, `B-07_SCHEMA_access-requests-course-trigger_v1.sql` `8ca0062e0e8d`, `B-07_TEST_..._v1.sql` `0f094074a7fd`, `B-07_ROLLBACK_..._v1.sql` `676e7735d014`. Context: plan v18 section 6 plus change-log Entries 1 to 5; D2, D3 and B-04a VERIFY evidence; live B-01, B-02a, B-04a. File index: `docs/database/t002/CURRENT.md`.
+- **Founder decisions required:** none now. In force: DEC-1, DEC-2 (Round 5); topic-level logging deferred (Round 7); DEC-3 (Round 9); Round 13 method choice; authorization to run D-01 (Round 17; run 08/10/2026); **DEC-4 simplified (08/10/2026, Round 27): the cutover requires only that the set of unclassified manual logs never grows; no removal provenance.** **Acceptances:** (1) the never-reloaded F0 tab residual (section 4C) ACCEPTED by the Founder 09/10/2026 (Round 67); **needed later:** (2) before Gate 3 of B-04b: the never-reloaded F1 tab residual (section 5.2); deferral of (2) defers the cutover.
+- **Artifacts under review:** (1) TIER 1 round 2, exact hashes in Round 69: `docs/database/t002/` `B-03_SCHEMA_profiles-course-trigger_v2.sql` `5a024d962024`, `B-03_TEST_..._v2.sql` `e1b35bd045fe`, `B-03_ROLLBACK_..._v2.sql` `8c63133986d6`, `B-07_SCHEMA_access-requests-course-trigger_v2.sql` `1248837761af`, `B-07_TEST_..._v2.sql` `51766024a07e`, `B-07_ROLLBACK_..._v2.sql` `1e49f7527ce1` (v1 files superseded); (2) TIER 1 round 1: frontend patch `docs/discussions/T-002_F0b_frontend-patch_09-10-2026.patch` `e7ac68e93b56` (index `docs/discussions/T-002_F0b_frontend-patch-index_09-10-2026.md`; raw verification `docs/discussions/evidence/T-002_F0b-verification-raw_09-10-2026.txt`), base `340a44e`. Context: plan v18 section 6 plus change-log Entries 1 to 6; D2, D3 and B-04a VERIFY evidence; brief B v10 5.5. File index: `docs/database/t002/CURRENT.md`.
 
 ### Gates
 - [x] 1 Design approved (brief B v10 `0fe77dec72dc`, Founder 04/10/2026, T-001 Round 35; QA PASS WITH CONDITIONS)
@@ -20,7 +20,7 @@
 - [ ] 6 Commit/push authorized
 - [ ] 7 Live verification accepted
 
-- Per-file progress (stream B, Tier 1): **B-01 v2 and B-02a v2: Gates 2, 3 and 4 done 08/10/2026**; B-02b, B-03, B-07, B-04a, B-05, B-06a not yet authored.
+- Per-file progress (stream B, Tier 1): **B-01 v2, B-02a v2, B-02b v2, B-04a v1: Gates 2, 3 and 4 done (08/10/2026); F0 frontend patch v2: Gates 5, 6 and 7 done (08/10 to 09/10/2026)**; B-03 v2, B-07 v2 and the F0b patch with QA (Round 69); B-05 and B-06a not yet authored; B-04b, F1, B-06b, B-06c and F2 later.
 ## Files
 - `discussion.md` (this folder): rounds 1 onward, append-only. **Integrity of rounds 1 to 8 (corrected 08/10/2026, Round 11):** the byte range from the first divider line `---` (the one immediately followed by `## Round 1`) through the end of the file as it stood after Round 8 has sha256 `6d122337c6fe360de9295bd1149992e4d48113515c620826f5238d43bdc643f8` (QA Round 10; reproduced by Claude from Git blobs of commits `01c05f4` and `5f06168`, identical in both). The earlier value `6e3e55f0fa80935bca14d57335a088ed5defd950d66c7cab79624f07ba0bf80f` is the same bytes with one extra leading line-feed before that divider. The first definition (starting at `---`) is canonical from now on.
 - Evidence: `docs/discussions/evidence/` (flat, shared with T-001; unchanged).

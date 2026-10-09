@@ -2973,3 +2973,35 @@ I did not run SQL or use a database engine. Parser, role, trigger and rollback c
 Overall disposition: `REVISION REQUIRED`. This is Tier 1 round 1; all defects found in the six v1 files are listed above for one revision. Gates 2 to 7 are not advised. QA did not execute SQL or authorize execution.
 
 Handoff: `AWAITING-CLAUDE` — Claude to revise the B-03/B-07 SCHEMA and TEST files for the two blockers, address or explicitly carry every non-blocking condition, and return only changed-byte/new-blocker scope for Tier 1 round 2.
+
+---
+
+## Round 69 · Claude · 09/10/2026
+**Scope.** (1) Tier 1 round 2 for B-03 and B-07, answering QA Round 68 (committed unchanged first, `340a44e`). (2) The small Profile Settings fix the Founder asked for ("do the small fix as discussed earlier"), submitted as a separate frontend patch. Nothing run, nothing pushed.
+
+### A. B-03 and B-07 v2 files (in `docs/database/t002/`; v1 files superseded)
+| File | Lines | Short | Full sha256 |
+|---|---|---|---|
+| `B-03_SCHEMA_profiles-course-trigger_v2.sql` | 122 | `5a024d962024` | `5a024d962024134d64a9e8e6b33618fefd5039b1713f9f5a87ddbcf85824ff5c` |
+| `B-03_TEST_profiles-course-trigger_v2.sql` | 186 | `e1b35bd045fe` | `e1b35bd045febc347f7b42ab1aabaff6b885becfc75514a9bda74516bc618d34` |
+| `B-03_ROLLBACK_profiles-course-trigger_v2.sql` | 39 | `8c63133986d6` | `8c63133986d6fd3796d484a082d497b0d386ddbd176718518f493d6f774128bc` |
+| `B-07_SCHEMA_access-requests-course-trigger_v2.sql` | 138 | `1248837761af` | `1248837761af449f9b36220e161700f488edd9965e447ec30479c476f12228e4` |
+| `B-07_TEST_access-requests-course-trigger_v2.sql` | 217 | `51766024a07e` | `51766024a07e3904cb07398daf25e75dc81fe068ec41323fd3ed015c48f8bbb9` |
+| `B-07_ROLLBACK_access-requests-course-trigger_v2.sql` | 38 | `1e49f7527ce1` | `1e49f7527ce13d20f4dcd6021b12dbb99ffb936d8802f3fa362d8287b66b79be` |
+
+### B. Answers to QA Round 68
+**Blocker 1 (request_type transition) - fixed.** The B-07 trigger now fires on `UPDATE OF course, request_type`; the unchanged-course return applies only when the OLD row was already `student_access`. The TEST, run as a real admin (role authenticated, JWT of an admin profile), changes `request_type` into `student_access` three ways: a 200-character institute course (refused 23514), a 130-character educator course with `course = course` (refused 23514), a valid short course with outer spaces and odd case (accepted and stored as `CA Final`).
+**Blocker 2 (control set) - fixed.** Both guard functions now use the explicit set C0, DEL, C1, U+2028, U+2029 (`[[:cntrl:]]` plus `\u0001-\u001f`, `\u007f-\u009f`, `\u2028`, `\u2029`). Both TESTs add DEL and C1 inside, U+2028 trailing, U+2029 leading and a leading tab, in addition to the earlier tab and newline cases.
+**Non-blocking.** 1 (updates as the real role): done, as a real admin. 2 (exact writers): exact `regprocedure` signatures, one overload each, source hashes. 3 (real excluded writers): the TEST calls `submit_institute_inquiry` and `submit_educator_application` as the real functions under role anon and checks request type and stored course. 4 (metadata): exact B-02a index and the NOT NULL and default facts bound. 5 (notification text): accepted limitation, change-log Entry 6. 6 (summary): `bool_and(pass IS TRUE)`. 7 (owner): the pre-flight stops unless the executing role is `postgres` (VERIFY of 08/10/2026 showed `postgres`). 8 (rollbacks): they prove the objects first and raise on a wrong end state. 9 (status text): corrected in `status.md` this round.
+**Own finding (live B-04a function).** `fn_study_sessions_label_guard` uses the same locale class and so does not refuse U+2028 and U+2029 (change-log Entry 6). No stored value can have used it yet. Proposed: a small Tier 1 delta after B-03 and B-07; Founder to say when.
+
+### C. F0b frontend patch (Profile Settings shows a saved custom course)
+Patch `docs/discussions/T-002_F0b_frontend-patch_09-10-2026.patch`, short `e7ac68e93b56`, full sha256 `e7ac68e93b56247d3900e371b914b1402600fc712ffdebbe25d6a95fe40442fc`, base `340a44e`; index `docs/discussions/T-002_F0b_frontend-patch-index_09-10-2026.md`; raw verification `docs/discussions/evidence/T-002_F0b-verification-raw_09-10-2026.txt` (guard passes, 191 tests, lint 30 as main, build passes). 3 files, 45 insertions. The Primary Course dropdown adds the student's saved course as `<course> (current)` when it is not one of the three listed courses (brief B 5.5), so it is never blank; only the saved value is added; invalid saved values are not offered; no query or save change. Draft worktree `recall-app-f0b`, uncommitted, not pushed.
+
+### D. Requests to QA
+1. Tier 1 round 2 for the six v2 files by exact hash: state whether each Round 68 blocker is closed and list any NEW blocker introduced by the changed bytes only; PASS or PASS WITH CONDITIONS if none.
+2. Tier 1 round 1 for the F0b patch by exact hash: list every defect now as blocker or non-blocking.
+
+Gates 2 to 7 not given for B-03, B-07 or F0b.
+
+Handoff: `AWAITING-QA` - QA to append one round answering D.

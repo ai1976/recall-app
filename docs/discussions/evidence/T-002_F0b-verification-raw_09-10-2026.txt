@@ -1,0 +1,27 @@
+# T-002 F0b (Profile Settings current-course option) verification, raw output, 09/10/2026. Worktree recall-app-f0b (branch t002-f0b-draft), base 340a44e (main), uncommitted draft.
+## node --version
+v24.11.1
+## guard
+due-set guard passed: 211 database calls, all classified (211 manifest entries).
+exit=0
+## npx vitest run
+
+ RUN  v5.0.1 C:/Users/Anand/Desktop/recall-app-f0b
+
+
+ Test Files  12 passed (12)
+      Tests  191 passed (191)
+   Start at  06:49:57
+   Duration  5.75s (environment 70%, setup 12%, tests 10%, transform 4%, import 3%, worker 1%)
+
+exit=0
+## npx eslint . (summary)
+  235:5   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+  60:5   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+  28:5  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+✖ 30 problems (23 errors, 7 warnings)
+## base: 30 problems (23 errors, 7 warnings)
+## npx vite build (last lines)
+[2mdist/[22m[36massets/BarChart-CQtvSSl7.js                   [39m[1m[2m356.42 kB[22m[1m[22m[2m │ gzip: 106.76 kB[22m
+[32m✓ built in 14.05s[39m
+exit=0

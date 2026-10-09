@@ -1,0 +1,89 @@
+diff --git a/src/lib/courseLabel.js b/src/lib/courseLabel.js
+index 54e02ec..41712e9 100644
+--- a/src/lib/courseLabel.js
++++ b/src/lib/courseLabel.js
+@@ -48,3 +48,18 @@ export function isSelectableCourseName(name) {
+   const check = validateCourseLabel(name);
+   return check.ok && check.value === name && name.toLowerCase() !== 'other';
+ }
++
++/**
++ * Options of the Profile Settings course dropdown (brief B 5.5): the listed courses, plus the student's SAVED course when it is not one of them
++ * (for example a custom course typed at Signup), marked "(current)", so the dropdown never shows blank for a saved custom course. A saved value that
++ * fails the label rule (over-long, control characters, blank) is not offered. Only the saved value is added, never the value being edited, so the
++ * student can switch to another course and back.
++ */
++export function profileCourseOptions(listed, savedCourse) {
++  const options = listed.map((value) => ({ value, label: value }));
++  if (typeof savedCourse === 'string' && !listed.includes(savedCourse)) {
++    const check = validateCourseLabel(savedCourse);
++    if (check.ok && check.value === savedCourse) options.push({ value: savedCourse, label: `${savedCourse} (current)` });
++  }
++  return options;
++}
+diff --git a/src/lib/courseLabel.test.js b/src/lib/courseLabel.test.js
+index 6f424a8..841fa32 100644
+--- a/src/lib/courseLabel.test.js
++++ b/src/lib/courseLabel.test.js
+@@ -1,5 +1,5 @@
+ import { describe, it, expect } from 'vitest';
+-import { validateCourseLabel, isSelectableCourseName, COURSE_LABEL_MAX } from '@/lib/courseLabel';
++import { validateCourseLabel, isSelectableCourseName, profileCourseOptions, COURSE_LABEL_MAX } from '@/lib/courseLabel';
+ 
+ describe('validateCourseLabel (T-002 F0, brief B 5.1)', () => {
+   it('refuses empty, missing and blank-after-trim values with a message', () => {
+@@ -68,3 +68,28 @@ describe('isSelectableCourseName (Signup options read from existing content)', (
+     }
+   });
+ });
++
++describe('profileCourseOptions (Profile Settings dropdown)', () => {
++  const listed = ['CA Foundation', 'CA Intermediate', 'CA Final'];
++
++  it('returns just the listed courses when the saved course is listed, empty or missing', () => {
++    const plain = listed.map((value) => ({ value, label: value }));
++    expect(profileCourseOptions(listed, 'CA Final')).toEqual(plain);
++    expect(profileCourseOptions(listed, '')).toEqual(plain);
++    expect(profileCourseOptions(listed, null)).toEqual(plain);
++    expect(profileCourseOptions(listed, undefined)).toEqual(plain);
++  });
++
++  it('adds a saved custom course at the end, marked current, so the dropdown is never blank for it', () => {
++    const options = profileCourseOptions(listed, 'CFA Level 1');
++    expect(options).toHaveLength(4);
++    expect(options[3]).toEqual({ value: 'CFA Level 1', label: 'CFA Level 1 (current)' });
++    expect(profileCourseOptions(listed, 'Other')[3]).toEqual({ value: 'Other', label: 'Other (current)' });
++  });
++
++  it('does not offer a saved value that fails the label rule (over-long, control character, untrimmed, blank)', () => {
++    for (const bad of ['x'.repeat(121), 'a	b', ' CFA ', '   ']) {
++      expect(profileCourseOptions(listed, bad)).toHaveLength(3);
++    }
++  });
++});
+diff --git a/src/pages/dashboard/Profile/ProfileSettings.jsx b/src/pages/dashboard/Profile/ProfileSettings.jsx
+index 1db46c7..9a55ae1 100644
+--- a/src/pages/dashboard/Profile/ProfileSettings.jsx
++++ b/src/pages/dashboard/Profile/ProfileSettings.jsx
+@@ -24,7 +24,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
+ import { useExamDateContext } from '@/contexts/ExamDateContext';
+ import { MONTH_NAMES, buildExamMonthValue, daysUntilExamDate } from '@/lib/examDate';
+ import ChangeEmail from '@/components/profile/ChangeEmail';
+-import { validateCourseLabel } from '@/lib/courseLabel';
++import { validateCourseLabel, profileCourseOptions } from '@/lib/courseLabel';
+ 
+ const CURRENT_YEAR = new Date().getFullYear();
+ const EXAM_YEAR_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2];
+@@ -510,9 +510,9 @@ export default function ProfileSettings() {
+                 <SelectValue placeholder="Select your active course" />
+               </SelectTrigger>
+               <SelectContent>
+-                {COURSE_LEVELS.map((level) => (
+-                  <SelectItem key={level} value={level}>
+-                    {level}
++                {profileCourseOptions(COURSE_LEVELS, originalCourse).map((option) => (
++                  <SelectItem key={option.value} value={option.value}>
++                    {option.label}
+                   </SelectItem>
+                 ))}
+               </SelectContent>
