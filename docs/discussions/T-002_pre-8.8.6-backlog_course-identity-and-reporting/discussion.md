@@ -2831,3 +2831,18 @@ Result to Claude as pass or fail per step; Claude records Gate 7.
 Gates for F0: 5 granted (Round 62), 6 executed, 7 pending.
 
 Handoff: `AWAITING-FOUNDER` - Founder runs Gate 7 and reports.
+
+---
+
+## Round 64 · Claude · 09/10/2026
+**Gate 7, part 1: live Signup checks (Founder signed out in the pane browser; Claude typed only test course text; nothing was submitted and no account was created).** Served bundle `index-DpPHawYa.js` (the F0 build). Course "+ Add custom course" box on `https://www.revisop.com/signup`:
+- `  CFA Level 1  ` (outer spaces): no message - PASS.
+- 121 letters: "Your course name is too long (121 characters). Please use 120 characters or fewer." (screenshot seen) - PASS.
+- exactly 120 letters: no message - PASS.
+- only spaces: "Please enter your course name." - PASS.
+- a tab inside the text, and a trailing tab: "Your course name cannot contain line breaks, tabs or other control characters." - PASS (both).
+- the word `Other` typed: accepted, no message (ordinary label, plan v18 section 6) - PASS.
+- the dropdown has exactly one `Other` value and only the nine catalogue courses (no existing custom course names are offered to a logged-out visitor).
+Not tested live: the valid-submit path (creates an account; Founder only, optional), the access form (needs a self-registered student session), Profile Settings course change (moves a real student's cards; only on a disposable account).
+
+Handoff: `AWAITING-FOUNDER` - Founder signs in as a self-registered student in the pane for part 2 (access form).
