@@ -2,24 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Signup from '@/pages/auth/Signup';
+import { publicRows } from '@/lib/courseOptions.fixtures';
 
 const signUp = vi.fn();
-vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ signUp: (...a) => signUp(...a) }) }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ signUp: (...a) => signUp(...a), user: null, loading: false }) }));
 
-let courseRows = [];
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: () => ({
-      select: () => ({ not: () => Promise.resolve({ data: courseRows, error: null }) }),
-    }),
-  },
-}));
+const rpc = vi.fn();
+vi.mock('@/lib/supabase', () => ({ supabase: { rpc: (...a) => rpc(...a) } }));
 
 beforeEach(() => {
   signUp.mockReset();
   signUp.mockResolvedValue({ user: { identities: [{ id: 1 }] } });
+  rpc.mockReset();
+  rpc.mockResolvedValue({ data: publicRows(), error: null });
   vi.spyOn(window, 'alert').mockImplementation(() => {});
-  courseRows = [];
 });
 
 function renderSignup() {
@@ -34,9 +30,55 @@ function fillBasics() {
 
 async function chooseCustom() {
   const select = await screen.findByLabelText(/which course/i);
-  fireEvent.change(select, { target: { value: 'Other' } });
+  await waitFor(() => expect(select).not.toBeDisabled());
+  fireEvent.change(select, { target: { value: '__other__' } });
   return screen.findByLabelText(/specify your course/i);
 }
+
+describe('Signup course list (T-002 F1)', () => {
+  it('reads the public catalogue and nothing else: no table read, the database order, one custom-course entry', async () => {
+    renderSignup();
+    const select = await screen.findByLabelText(/which course/i);
+    await waitFor(() => expect(select).not.toBeDisabled());
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith('get_course_options_public');
+    const values = Array.from(select.options).map((o) => o.value);
+    expect(values).toEqual([
+      '', 'CA Final', 'CA Foundation', 'CA Intermediate',
+      'CMA Foundation', 'CMA Intermediate', 'CMA Final', 'CS Foundation', 'CS Executive', 'CS Professional', '__other__',
+    ]);
+  });
+
+  it('shows the courses in the order the database serves them, even when that mixes the old CA, CMA and CS groups', async () => {
+    const rows = publicRows();
+    const mixed = [rows[3], rows[0], rows[6], rows[1], rows[4], rows[2], rows[5], rows[7], rows[8], rows[9]].map((row, i) => ({ ...row, position: i + 1 }));
+    rpc.mockResolvedValue({ data: mixed, error: null });
+    renderSignup();
+    const select = await screen.findByLabelText(/which course/i);
+    await waitFor(() => expect(select).not.toBeDisabled());
+    expect(Array.from(select.options).map((o) => o.value)).toEqual([
+      '', 'CMA Foundation', 'CA Final', 'CS Foundation', 'CA Foundation', 'CMA Intermediate', 'CA Intermediate', 'CMA Final', 'CS Executive', 'CS Professional', '__other__',
+    ]);
+    expect(select.querySelectorAll('optgroup')).toHaveLength(0);
+  });
+
+  it('shows a neutral state and sends nothing when the list cannot be loaded or breaks the contract', async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: 'down' } });
+    renderSignup();
+    fillBasics();
+    const select = await screen.findByLabelText(/which course/i);
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/could not be loaded/i));
+    expect(select).toBeDisabled();
+    fireEvent.submit(select.closest('form'));
+    expect(signUp).not.toHaveBeenCalled();
+
+    rpc.mockResolvedValue({ data: publicRows().filter((row) => row.kind !== 'other_action'), error: null });
+    fireEvent.click(screen.getByRole('button', { name: /try again/i }));
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/could not be loaded/i));
+    expect(select).toBeDisabled();
+  });
+});
 
 describe('Signup custom course (T-002 F0)', () => {
   it('sends the trimmed custom course to signUp', async () => {
@@ -79,21 +121,13 @@ describe('Signup custom course (T-002 F0)', () => {
     expect(signUp.mock.calls[0][3]).toBe('y'.repeat(120));
   });
 
-  it('does not offer existing course names that fail the rule, or the word Other, as dropdown options', async () => {
-    courseRows = [
-      { target_course: 'CFA Level 1' },
-      { target_course: 'x'.repeat(121) },
-      { target_course: 'bad\tname' },
-      { target_course: 'Other' },
-      { target_course: ' padded ' },
-    ];
+  it('accepts the word Other as a typed course (the dropdown value is never sent)', async () => {
     renderSignup();
-    const select = await screen.findByLabelText(/which course/i);
-    await waitFor(() => expect(Array.from(select.options).map((o) => o.value)).toContain('CFA Level 1'));
-    const values = Array.from(select.options).map((o) => o.value);
-    expect(values).not.toContain('x'.repeat(121));
-    expect(values).not.toContain('bad\tname');
-    expect(values).not.toContain(' padded ');
-    expect(values.filter((v) => v === 'Other')).toHaveLength(1);
+    fillBasics();
+    const input = await chooseCustom();
+    fireEvent.change(input, { target: { value: 'Other' } });
+    fireEvent.submit(input.closest('form'));
+    await waitFor(() => expect(signUp).toHaveBeenCalledTimes(1));
+    expect(signUp.mock.calls[0][3]).toBe('Other');
   });
 });

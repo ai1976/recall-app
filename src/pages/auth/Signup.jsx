@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
-import { validateCourseLabel, isSelectableCourseName } from '@/lib/courseLabel';
+import { validateCourseLabel } from '@/lib/courseLabel';
+import { OTHER_OPTION } from '@/lib/courseOptions';
+import { useCourseOptions } from '@/hooks/useCourseOptions';
 
 export default function Signup() {
   const [email, setEmail] = useState('');
@@ -10,16 +11,19 @@ export default function Signup() {
   const [fullName, setFullName] = useState('');
   const [courseLevel, setCourseLevel] = useState('');
   const [customCourse, setCustomCourse] = useState('');
-  const [allCourses, setAllCourses] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const { signUp } = useAuth();
+  // The course list is the database's public catalogue (T-002 F1): active platform courses, then the CMA and CS labels, in the database's order.
+  const courseList = useCourseOptions('signup');
+  const allCourses = courseList.rows.filter((row) => row.kind === 'platform' || row.kind === 'catalogue').map((row) => row.label);
+  const otherRow = courseList.rows.find((row) => row.kind === 'other_action');
+  const coursesReady = courseList.status === 'ready';
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    fetchAllCourses();
     // Preserve ref token from invite link so Dashboard can link it after login.
     // This is a write-only point (the key is read in Dashboard.jsx, where the
     // recall_* → revisop_* migrate-on-mount lives) — just write the new key here.
@@ -28,68 +32,9 @@ export default function Signup() {
   }, []);
 
   // Shown while typing, before submit: the same rule the database applies (an empty box is reported by the form on submit).
-  const customCourseError = courseLevel === 'Other' && customCourse !== '' && !validateCourseLabel(customCourse).ok
+  const customCourseError = courseLevel === OTHER_OPTION && customCourse !== '' && !validateCourseLabel(customCourse).ok
     ? validateCourseLabel(customCourse).error
     : '';
-
-  const fetchAllCourses = async () => {
-    try {
-      const { data: noteCourses, error: noteError } = await supabase
-        .from('notes')
-        .select('target_course')
-        .not('target_course', 'is', null);
-
-      const { data: flashcardCourses, error: flashError } = await supabase
-        .from('flashcards')
-        .select('target_course')
-        .not('target_course', 'is', null);
-
-      // Sprint 8.8.5f: the old read of profiles.course_level was removed - a visitor who is not logged in is never allowed to read
-      // profiles (it always returned nothing), and the profiles table is no longer open to the logged-out role at all.
-      if (noteError) throw noteError;
-      if (flashError) throw flashError;
-
-      const predefinedCourses = [
-        'CA Foundation',
-        'CA Intermediate',
-        'CA Final',
-        'CMA Foundation',
-        'CMA Intermediate',
-        'CMA Final',
-        'CS Foundation',
-        'CS Executive',
-        'CS Professional'
-      ];
-
-      const customFromNotes = noteCourses?.map(n => n.target_course) || [];
-      const customFromFlashcards = flashcardCourses?.map(f => f.target_course) || [];
-      const allCustomCourses = [...new Set([
-        ...customFromNotes,
-        ...customFromFlashcards
-      ])];
-
-      const uniqueCustomCourses = allCustomCourses.filter(
-        course => !predefinedCourses.includes(course) && isSelectableCourseName(course)
-      );
-
-      const mergedCourses = [...predefinedCourses, ...uniqueCustomCourses.sort()];
-
-      setAllCourses(mergedCourses);
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-      setAllCourses([
-        'CA Foundation',
-        'CA Intermediate',
-        'CA Final',
-        'CMA Foundation',
-        'CMA Intermediate',
-        'CMA Final',
-        'CS Foundation',
-        'CS Executive',
-        'CS Professional'
-      ]);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -101,13 +46,18 @@ export default function Signup() {
       return;
     }
 
+    if (!coursesReady) {
+      setError('The course list could not be loaded. Please refresh the page and try again.');
+      return;
+    }
+
     if (!courseLevel) {
       setError('Please select your course');
       return;
     }
 
     let customCourseValue = null;
-    if (courseLevel === 'Other') {
+    if (courseLevel === OTHER_OPTION) {
       const check = validateCourseLabel(customCourse);
       if (!check.ok) {
         setError(check.error);
@@ -119,7 +69,7 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      const finalCourseLevel = courseLevel === 'Other' ? customCourseValue : courseLevel;
+      const finalCourseLevel = courseLevel === OTHER_OPTION ? customCourseValue : courseLevel;
       
       const result = await signUp(email, password, fullName, finalCourseLevel);
 
@@ -217,72 +167,31 @@ export default function Signup() {
               value={courseLevel}
               onChange={(e) => setCourseLevel(e.target.value)}
               required
+              disabled={!coursesReady}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent"
             >
-              <option value="">Select your course...</option>
+              <option value="">{courseList.status === 'error' ? 'Courses could not be loaded' : 'Select your course...'}</option>
               
-              <optgroup label="Chartered Accountancy (CA)">
-                {allCourses
-                  .filter(course => course.startsWith('CA '))
-                  .map(course => (
-                    <option key={course} value={course}>
-                      {course}
-                    </option>
-                  ))
-                }
-              </optgroup>
+              {/* The database's order, as served (T-002 F1): no list or grouping of our own. */}
+              {allCourses.map((course) => (
+                <option key={course} value={course}>
+                  {course}
+                </option>
+              ))}
 
-              <optgroup label="Cost & Management Accountant (CMA)">
-                {allCourses
-                  .filter(course => course.startsWith('CMA '))
-                  .map(course => (
-                    <option key={course} value={course}>
-                      {course}
-                    </option>
-                  ))
-                }
-              </optgroup>
-
-              <optgroup label="Company Secretary (CS)">
-                {allCourses
-                  .filter(course => course.startsWith('CS '))
-                  .map(course => (
-                    <option key={course} value={course}>
-                      {course}
-                    </option>
-                  ))
-                }
-              </optgroup>
-
-              {allCourses.some(course => 
-                !course.startsWith('CA ') && 
-                !course.startsWith('CMA ') && 
-                !course.startsWith('CS ')
-              ) && (
-                <optgroup label="Other Courses">
-                  {allCourses
-                    .filter(course => 
-                      !course.startsWith('CA ') && 
-                      !course.startsWith('CMA ') && 
-                      !course.startsWith('CS ')
-                    )
-                    .map(course => (
-                      <option key={course} value={course}>
-                        {course}
-                      </option>
-                    ))
-                  }
-                </optgroup>
-              )}
-
-              <option value="Other">+ Add custom course</option>
+              {otherRow && <option value={OTHER_OPTION}>+ Add custom course</option>}
             </select>
             <p className="text-xs text-gray-500 mt-1">
               Don't see your course? Select "Add custom course"
             </p>
+            {courseList.status === 'error' && (
+              <p role="alert" className="text-xs text-red-600 mt-1">
+                The course list could not be loaded. <button type="button" onClick={courseList.reload} className="underline">Try again</button>
+              </p>
+            )}
           </div>
 
-          {courseLevel === 'Other' && (
+          {courseLevel === OTHER_OPTION && (
             <div>
               <label htmlFor="customCourse" className="block text-sm font-medium text-gray-700 mb-2">
                 Specify your course

@@ -1390,6 +1390,33 @@
     "writes_table_with_unresolved_trigger": [],
     "needs_manual_review": false
    }
+  },
+  "get_course_options": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   },
+   "evidence": "T-002 B-06a: read-only reader, no write in the saved live body (docs/database/t002/B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v2.sql); not part of the T-001 W1 snapshot"
+  },
+  "get_course_options_public": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   },
+   "evidence": "T-002 B-06a: read-only reader, no write in the saved live body (docs/database/t002/B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v2.sql); not part of the T-001 W1 snapshot"
+  },
+  "get_picker_subjects": {
+   "classification": "not-due-changing",
+   "w1": {
+    "due_input_writes_transitive": [],
+    "due_input_writes_indirect": [],
+    "needs_manual_review": false
+   },
+   "evidence": "T-002 B-06a: read-only reader, no write in the saved live body (docs/database/t002/B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v2.sql); not part of the T-001 W1 snapshot"
   }
  }
 }

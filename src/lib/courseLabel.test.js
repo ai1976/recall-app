@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateCourseLabel, isSelectableCourseName, profileCourseOptions, COURSE_LABEL_MAX } from '@/lib/courseLabel';
+import { validateCourseLabel, COURSE_LABEL_MAX } from '@/lib/courseLabel';
 
 describe('validateCourseLabel (T-002 F0, brief B 5.1)', () => {
   it('refuses empty, missing and blank-after-trim values with a message', () => {
@@ -56,40 +56,5 @@ describe('validateCourseLabel (T-002 F0, brief B 5.1)', () => {
   it('accepts ordinary custom and non-Latin course names', () => {
     expect(validateCourseLabel('CFA Level 1').ok).toBe(true);
     expect(validateCourseLabel('एमबीए प्रथम वर्ष').ok).toBe(true);
-  });
-});
-
-describe('isSelectableCourseName (Signup options read from existing content)', () => {
-  it('keeps clean labels and drops over-long, control-character, blank, untrimmed, non-text and the dropdown word Other', () => {
-    expect(isSelectableCourseName('CFA Level 1')).toBe(true);
-    const bad = ['x'.repeat(121), 'a\tb', '', '   ', ' CFA ', 'Other', 'OTHER', null, undefined, 42];
-    for (const v of bad) {
-      expect(isSelectableCourseName(v)).toBe(false);
-    }
-  });
-});
-
-describe('profileCourseOptions (Profile Settings dropdown)', () => {
-  const listed = ['CA Foundation', 'CA Intermediate', 'CA Final'];
-
-  it('returns just the listed courses when the saved course is listed, empty or missing', () => {
-    const plain = listed.map((value) => ({ value, label: value }));
-    expect(profileCourseOptions(listed, 'CA Final')).toEqual(plain);
-    expect(profileCourseOptions(listed, '')).toEqual(plain);
-    expect(profileCourseOptions(listed, null)).toEqual(plain);
-    expect(profileCourseOptions(listed, undefined)).toEqual(plain);
-  });
-
-  it('adds a saved custom course at the end, marked current, so the dropdown is never blank for it', () => {
-    const options = profileCourseOptions(listed, 'CFA Level 1');
-    expect(options).toHaveLength(4);
-    expect(options[3]).toEqual({ value: 'CFA Level 1', label: 'CFA Level 1 (current)' });
-    expect(profileCourseOptions(listed, 'Other')[3]).toEqual({ value: 'Other', label: 'Other (current)' });
-  });
-
-  it('does not offer a saved value that fails the label rule (over-long, control character, untrimmed, blank)', () => {
-    for (const bad of ['x'.repeat(121), 'a	b', ' CFA ', '   ']) {
-      expect(profileCourseOptions(listed, bad)).toHaveLength(3);
-    }
   });
 });

@@ -1266,6 +1266,24 @@
    "classification": "not-due-changing",
    "reason": "RPC get_public_note_preview: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
    "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
+  },
+  {
+   "id": "src/lib/courseOptions.js::fetchCourseOptions::rpc:get_course_options",
+   "classification": "not-due-changing",
+   "reason": "RPC get_course_options (T-002 B-06a, live 09/10/2026): STABLE SECURITY DEFINER reader; its saved live body (B-06a FUNCTIONS v2 10ebda036336, body hash verified live in the Gate 4 TEST) contains no INSERT, UPDATE, DELETE or other write, and it calls only reads of disciplines, subjects, profiles and study_sessions. Not an input of the due rule.",
+   "basis": "saved live function body"
+  },
+  {
+   "id": "src/lib/courseOptions.js::fetchCourseOptions::rpc:get_course_options_public",
+   "classification": "not-due-changing",
+   "reason": "RPC get_course_options_public (T-002 B-06a, live 09/10/2026): STABLE SECURITY DEFINER reader; its saved live body (B-06a FUNCTIONS v2 10ebda036336, body hash verified live in the Gate 4 TEST) contains no INSERT, UPDATE, DELETE or other write, and it calls only reads of disciplines, subjects, profiles and study_sessions. Not an input of the due rule.",
+   "basis": "saved live function body"
+  },
+  {
+   "id": "src/lib/courseOptions.js::fetchPickerSubjects::rpc:get_picker_subjects",
+   "classification": "not-due-changing",
+   "reason": "RPC get_picker_subjects (T-002 B-06a, live 09/10/2026): STABLE SECURITY DEFINER reader; its saved live body (B-06a FUNCTIONS v2 10ebda036336, body hash verified live in the Gate 4 TEST) contains no INSERT, UPDATE, DELETE or other write, and it calls only reads of disciplines, subjects, profiles and study_sessions. Not an input of the due rule.",
+   "basis": "saved live function body"
   }
  ]
 }

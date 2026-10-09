@@ -38,28 +38,3 @@ export function validateCourseLabel(raw) {
   }
   return { ok: true, value };
 }
-
-/**
- * A course name read from existing content that may be offered as a Signup dropdown option: it must already be a valid, trimmed label, and it must not
- * be the word "Other", which is the dropdown's own "add a custom course" entry (so one option value is never ambiguous).
- */
-export function isSelectableCourseName(name) {
-  if (typeof name !== 'string') return false;
-  const check = validateCourseLabel(name);
-  return check.ok && check.value === name && name.toLowerCase() !== 'other';
-}
-
-/**
- * Options of the Profile Settings course dropdown (brief B 5.5): the listed courses, plus the student's SAVED course when it is not one of them
- * (for example a custom course typed at Signup), marked "(current)", so the dropdown never shows blank for a saved custom course. A saved value that
- * fails the label rule (over-long, control characters, blank) is not offered. Only the saved value is added, never the value being edited, so the
- * student can switch to another course and back.
- */
-export function profileCourseOptions(listed, savedCourse) {
-  const options = listed.map((value) => ({ value, label: value }));
-  if (typeof savedCourse === 'string' && !listed.includes(savedCourse)) {
-    const check = validateCourseLabel(savedCourse);
-    if (check.ok && check.value === savedCourse) options.push({ value: savedCourse, label: `${savedCourse} (current)` });
-  }
-  return options;
-}

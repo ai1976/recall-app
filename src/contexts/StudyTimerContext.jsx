@@ -62,6 +62,7 @@
 import { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { isClassification } from '@/lib/courseOptions';
 
 const SHORT_BREAK_MS   = 4  * 60 * 60 * 1000; // < 4h  → auto-resume
 const PROMPT_CUTOFF_MS = 16 * 60 * 60 * 1000; // 4-16h → prompt, > 16h → discard
@@ -205,9 +206,12 @@ export function StudyTimerProvider({ children }) {
 
   // Sprint 8.5 — the actual study_sessions insert, once a category has been
   // chosen for whatever stopAndLog finalized into pendingLog.
-  const confirmCategory = useCallback(async (category) => {
+  // T-002 F1: every manual log is classified (platform course, custom course or General); `classification` carries the columns the picker built.
+  // A restored pending log passes through the same picker, so it is stored classified too.
+  const confirmCategory = useCallback(async (category, classification) => {
     if (!pendingLog) return { outcome: 'noop' };
     if (!CATEGORY_VALUES.includes(category)) return { outcome: 'noop' };
+    if (!isClassification(classification)) return { outcome: 'invalid' };
 
     let logged = 0;
     if (user) {
@@ -219,6 +223,7 @@ export function StudyTimerProvider({ children }) {
         session_date:     pendingLog.sessionDate,
         source:           'manual',
         category,
+        ...classification,
       });
       if (error) throw error;
       logged = pendingLog.durationSeconds;

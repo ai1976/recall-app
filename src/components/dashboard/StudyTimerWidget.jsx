@@ -21,6 +21,10 @@ import { Timer, Square } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useStudyTimer } from '@/contexts/StudyTimerContext';
 import { cn } from '@/lib/utils';
+import StudyLogCoursePicker from '@/components/dashboard/StudyLogCoursePicker';
+import { useCourseOptions } from '@/hooks/useCourseOptions';
+import { usePickerSubjects } from '@/hooks/usePickerSubjects';
+import { buildClassification, defaultCourseChoice, readLastSubject, rememberLastSubject, rememberedSubjectRow } from '@/lib/courseOptions';
 
 // Sprint 8.5 — required at stop/log time, both for the direct <4h stop path
 // and the resolved recovery-prompt path. Values match study_sessions.category's
@@ -76,6 +80,27 @@ export default function StudyTimerWidget() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [pendingViaRecovery, setPendingViaRecovery] = useState(false);
 
+  // T-002 F1 - the course and subject of the log. `null` / `undefined` mean "not chosen yet": the course then starts as the student's current course,
+  // and the subject as the one last used for that course on this device (or none).
+  const [courseChoice, setCourseChoice] = useState(null);
+  const [courseText, setCourseText] = useState('');
+  const [subjectChoice, setSubjectChoice] = useState(undefined);
+  const [subjectText, setSubjectText] = useState('');
+  const courseList = useCourseOptions('picker', { enabled: Boolean(pendingLog) });
+  const effectiveCourse = courseChoice || (courseList.status === 'ready' ? defaultCourseChoice(courseList.rows) : null);
+  const subjectCourseRow = effectiveCourse && effectiveCourse.type === 'row' ? effectiveCourse.row : null;
+  const subjectList = usePickerSubjects(subjectCourseRow, { enabled: Boolean(pendingLog) });
+  const remembered = subjectList.status === 'ready' ? rememberedSubjectRow(subjectList.rows, readLastSubject(subjectCourseRow)) : null;
+  const effectiveSubject = subjectChoice !== undefined ? subjectChoice : (remembered ? { type: 'row', row: remembered } : null);
+
+  const resetPicker = () => {
+    setSelectedCategory('');
+    setCourseChoice(null);
+    setCourseText('');
+    setSubjectChoice(undefined);
+    setSubjectText('');
+  };
+
   const clockRef = useRef(null);
 
   // Local per-second clock, driven off context's `startedAt` timestamp.
@@ -101,7 +126,7 @@ export default function StudyTimerWidget() {
       const result = await stop();
       if (result.outcome === 'needs_category') {
         setPendingViaRecovery(false);
-        setSelectedCategory('');
+        resetPicker();
       } else if (result.outcome === 'logged' && result.durationSeconds > 0) {
         setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
       } else if (result.outcome === 'too_short') {
@@ -131,7 +156,7 @@ export default function StudyTimerWidget() {
       const result = await stopAndLog(Math.round(recoveryPrompt.elapsedMs / 1000));
       if (result.outcome === 'needs_category') {
         setPendingViaRecovery(true);
-        setSelectedCategory('');
+        resetPicker();
       }
     } finally {
       setBusy(false);
@@ -149,7 +174,7 @@ export default function StudyTimerWidget() {
       const result = await stopAndLog(hrs * 3600);
       if (result.outcome === 'needs_category') {
         setPendingViaRecovery(true);
-        setSelectedCategory('');
+        resetPicker();
       }
     } finally {
       setCustomHours('');
@@ -160,16 +185,38 @@ export default function StudyTimerWidget() {
 
   const handleConfirmCategory = async () => {
     if (!selectedCategory) return;
+    const built = buildClassification({
+      course: effectiveCourse && effectiveCourse.type === 'other' ? { type: 'other', text: courseText } : effectiveCourse,
+      subject: effectiveSubject && effectiveSubject.type === 'other' ? { type: 'other', text: subjectText } : effectiveSubject,
+      rows: courseList.rows,
+    });
+    if (!built.ok) {
+      toast({ title: 'Please check the course', description: built.error, variant: 'destructive' });
+      return;
+    }
     setBusy(true);
     try {
-      const result = await confirmCategory(selectedCategory);
-      if (result.outcome === 'logged' && result.durationSeconds > 0) {
-        setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
-        if (pendingViaRecovery) setPostRecovery(true);
+      const result = await confirmCategory(selectedCategory, built.value);
+      if (result.outcome === 'logged') {
+        rememberLastSubject(subjectCourseRow, effectiveSubject && effectiveSubject.type === 'row' ? effectiveSubject.row : null);
+        if (result.durationSeconds > 0) {
+          setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
+          if (pendingViaRecovery) setPostRecovery(true);
+        }
+        resetPicker();
+        setPendingViaRecovery(false);
       }
+    } catch (error) {
+      // The session stays pending: nothing was stored, the choices are kept, and the student can fix the course and save again.
+      console.error('Error saving study session:', error);
+      toast({
+        title: 'Session not saved',
+        description: error && error.code === '23514'
+          ? 'This course or subject name cannot be saved as typed. If it is one of the listed courses, choose it from the list; otherwise change the name.'
+          : 'Something went wrong while saving. Your session is kept - please try again.',
+        variant: 'destructive',
+      });
     } finally {
-      setSelectedCategory('');
-      setPendingViaRecovery(false);
       setBusy(false);
     }
   };
@@ -268,7 +315,23 @@ export default function StudyTimerWidget() {
 
         {/* ── Category picker — required before the session is logged (Sprint 8.5) ── */}
         {pendingLog && !busy && (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            <StudyLogCoursePicker
+              courseStatus={courseList.status}
+              courseRows={courseList.rows}
+              onRetryCourses={courseList.reload}
+              course={effectiveCourse}
+              onCourse={(next) => { setCourseChoice(next); setSubjectChoice(undefined); setSubjectText(''); }}
+              courseText={courseText}
+              onCourseText={setCourseText}
+              subjectStatus={subjectList.status}
+              subjectRows={subjectList.rows}
+              onRetrySubjects={subjectList.reload}
+              subject={effectiveSubject}
+              onSubject={setSubjectChoice}
+              subjectText={subjectText}
+              onSubjectText={setSubjectText}
+            />
             <p className="text-xs sm:text-sm font-medium leading-snug">
               What were you studying?
             </p>
@@ -292,7 +355,7 @@ export default function StudyTimerWidget() {
             <Button
               size="sm"
               className="h-8 w-full"
-              disabled={!selectedCategory}
+              disabled={!selectedCategory || courseList.status !== 'ready' || !effectiveCourse || (subjectCourseRow !== null && subjectList.status !== 'ready')}
               onClick={handleConfirmCategory}
             >
               Save

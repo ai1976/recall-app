@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { submitAccessRequest } from '@/lib/dueSet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Lock } from 'lucide-react';
-import { validateCourseLabel } from '@/lib/courseLabel';
+import { validateCourseLabel, COURSE_LABEL_MAX } from '@/lib/courseLabel';
+import { OTHER_OPTION, describeCourseRow, matchTypedCourse } from '@/lib/courseOptions';
+import { useCourseOptions } from '@/hooks/useCourseOptions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,32 +18,36 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const COURSES = [
-  'CA Foundation',
-  'CA Intermediate',
-  'CA Final',
-  'CMA Foundation',
-  'CMA Intermediate',
-  'CMA Final',
-  'CS Foundation',
-  'CS Executive',
-  'CS Professional',
-];
-
-// The dropdown's own option for a course that is not in the list; it is never sent as the course.
-const OTHER_OPTION = '__other__';
-
 export default function ContentPreviewWall({ contentId, contentType, contentName }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [whatsappWarning, setWhatsappWarning] = useState('');
-  const [course, setCourse] = useState('');
+  const [chosenCourse, setChosenCourse] = useState('');
+  // T-002 F1: the course list is the database's catalogue: the public list for a visitor, the student's own list (current course first-class,
+  // "no longer offered" marked) for a signed-in student. The student's current course is preselected until they choose another.
+  const courseList = useCourseOptions('access');
+  const currentRow = courseList.rows.find((row) => row.is_current) || null;
+  const course = chosenCourse !== '' ? chosenCourse : (currentRow ? currentRow.label : '');
+  const setCourse = setChosenCourse;
+  const [savedCourseTooLong, setSavedCourseTooLong] = useState(false);
   const [customCourse, setCustomCourse] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // A saved course longer than the limit is never listed (brief B 5.4): the field stays empty and the student is told why.
+  useEffect(() => {
+    if (authLoading || !user) return undefined;
+    let cancelled = false;
+    supabase.from('profiles').select('course_level').eq('id', user.id).single().then(({ data }) => {
+      if (!cancelled) setSavedCourseTooLong(typeof data?.course_level === 'string' && Array.from(data.course_level.trim()).length > COURSE_LABEL_MAX);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, authLoading]);
 
   // Shown while typing, before submit (an empty box keeps the button disabled).
   const customCourseError = course === OTHER_OPTION && customCourse !== '' && !validateCourseLabel(customCourse).ok
@@ -68,14 +75,16 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
   const handleSubmit = async (e) => {
     e.preventDefault();
     const normalizedWhatsapp = normalizeWhatsapp(whatsapp.trim());
-    if (!name.trim() || !email.trim() || !normalizedWhatsapp || !course) return;
+    if (courseList.status !== 'ready' || !name.trim() || !email.trim() || !normalizedWhatsapp || !course) return;
 
     // The course sent is either a listed course or the typed text, trimmed and checked by the same rule as Signup (never the dropdown's own entry).
     let courseToSend = course;
     if (course === OTHER_OPTION) {
       const check = validateCourseLabel(customCourse);
       if (!check.ok) return;
-      courseToSend = check.value;
+      // A typed course that is already in the list is sent as that listed course.
+      const listed = courseList.status === 'ready' ? matchTypedCourse(courseList.rows, check.value) : null;
+      courseToSend = listed ? listed.label : check.value;
     }
 
     setLoading(true);
@@ -162,19 +171,27 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
           </div>
           <div className="space-y-1">
             <Label>Course preparing for</Label>
-            <Select value={course} onValueChange={setCourse}>
+            <Select value={course} onValueChange={setCourse} disabled={courseList.status !== 'ready'}>
               <SelectTrigger>
-                <SelectValue placeholder="Select course..." />
+                <SelectValue placeholder={courseList.status === 'error' ? 'Courses could not be loaded' : 'Select course...'} />
               </SelectTrigger>
               <SelectContent>
-                {COURSES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-                <SelectItem value={OTHER_OPTION}>Other (type your course)</SelectItem>
+                {courseList.rows.map((row) => (row.kind === 'other_action'
+                  ? <SelectItem key="other-action" value={OTHER_OPTION}>{row.label}</SelectItem>
+                  : <SelectItem key={`${row.kind}-${row.label}`} value={row.label}>{describeCourseRow(row)}</SelectItem>))}
               </SelectContent>
             </Select>
+            {courseList.status === 'error' && (
+              <p role="alert" className="text-xs text-red-600">
+                The course list could not be loaded.{' '}
+                <button type="button" onClick={courseList.reload} className="underline">Try again</button>
+              </p>
+            )}
+            {savedCourseTooLong && !currentRow && chosenCourse === '' && (
+              <p role="status" className="text-xs text-amber-700">
+                Your saved course is too long to use as a name. Choose a course or type a shorter one.
+              </p>
+            )}
           </div>
           {course === OTHER_OPTION && (
             <div className="space-y-1">
@@ -194,7 +211,7 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
           )}
           <Button
             type="submit"
-            disabled={loading || !name.trim() || !email.trim() || !whatsapp.trim() || !course || (course === OTHER_OPTION && !validateCourseLabel(customCourse).ok)}
+            disabled={loading || courseList.status !== 'ready' || !name.trim() || !email.trim() || !whatsapp.trim() || !course || (course === OTHER_OPTION && !validateCourseLabel(customCourse).ok)}
             className="w-full"
           >
             {loading ? 'Submitting...' : 'Notify me when available'}

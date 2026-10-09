@@ -24,16 +24,12 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useExamDateContext } from '@/contexts/ExamDateContext';
 import { MONTH_NAMES, buildExamMonthValue, daysUntilExamDate } from '@/lib/examDate';
 import ChangeEmail from '@/components/profile/ChangeEmail';
-import { validateCourseLabel, profileCourseOptions } from '@/lib/courseLabel';
+import { validateCourseLabel, COURSE_LABEL_MAX } from '@/lib/courseLabel';
+import { OTHER_OPTION, describeCourseRow, matchTypedCourse } from '@/lib/courseOptions';
+import { useCourseOptions } from '@/hooks/useCourseOptions';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const EXAM_YEAR_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2];
-
-const COURSE_LEVELS = [
-  'CA Foundation',
-  'CA Intermediate',
-  'CA Final',
-];
 
 // Static curated list — sorted alphabetically, "Other" always last.
 // To add new institutions, append to this array before "Other".
@@ -90,6 +86,9 @@ export default function ProfileSettings() {
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState('');
   const [courseLevel, setCourseLevel] = useState('');
+  // T-002 F1: the course list is the database's catalogue for this student (current course, "no longer offered" marking). "Other" opens a typed course.
+  const courseList = useCourseOptions('profile');
+  const [customCourse, setCustomCourse] = useState('');
   // Sprint 8.8.5c - course-change confirmation. `originalCourse` is the course as last saved; the form's
   // `courseLevel` may differ until the student confirms. Nothing is written until confirmation.
   const [originalCourse, setOriginalCourse] = useState('');
@@ -230,7 +229,31 @@ export default function ProfileSettings() {
 
     // The same course rule as Signup and the access form (T-002 F0), checked only when the course is being changed: a saved value the student
     // does not touch is never re-validated or rewritten here (the database trigger also fires only when the course changes).
-    if (courseLevel && courseLevel !== originalCourse) {
+    // A course choice made earlier is never saved while the list is unavailable (the list is what makes it valid); other details can still be saved.
+    if ((courseLevel === OTHER_OPTION || (courseLevel && courseLevel !== originalCourse)) && courseList.status !== 'ready') {
+      toast({
+        title: 'Course list not available',
+        description: 'Your course cannot be changed right now. Choose your course again once the list has loaded, or save your other details first.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+
+    let courseToSave = courseLevel;
+    if (courseLevel === OTHER_OPTION) {
+      const courseCheck = validateCourseLabel(customCourse);
+      if (!courseCheck.ok) {
+        toast({
+          title: 'Course not valid',
+          description: courseCheck.error,
+          variant: 'destructive',
+        });
+        return null;
+      }
+      // A typed course that is already in the list is saved as that listed course.
+      const listed = courseList.status === 'ready' ? matchTypedCourse(courseList.rows, courseCheck.value) : null;
+      courseToSave = listed ? listed.label : courseCheck.value;
+    } else if (courseLevel && courseLevel !== originalCourse) {
       const courseCheck = validateCourseLabel(courseLevel);
       if (!courseCheck.ok) {
         toast({
@@ -241,25 +264,41 @@ export default function ProfileSettings() {
         return null;
       }
     }
-    return { trimmedName, finalInstitution };
+    return { trimmedName, finalInstitution, courseToSave };
   };
 
-  const persistProfile = async () => {
-    const values = collectProfileValues();
+  const persistProfile = async (checked) => {
+    const values = checked || collectProfileValues();
     if (!values) return;
 
     setSaving(true);
     try {
       const { error } = await updateProfileDueFields(user.id, {
         full_name: values.trimmedName,
-        course_level: courseLevel || null,
+        course_level: values.courseToSave || null,
         institution: values.finalInstitution || null,
       });
 
       if (error) throw error;
 
-      const courseChanged = (courseLevel || '') !== originalCourse;
-      setOriginalCourse(courseLevel || '');
+      const courseChanged = (values.courseToSave || '') !== originalCourse;
+      // The database writes the canonical text of the course (for example "ca  final" becomes "CA Final"): read the saved value back so the form,
+      // the "current" mark and the course-change check all use what is really stored.
+      let savedCourse = values.courseToSave || '';
+      const { data: saved, error: savedError } = await supabase.from('profiles').select('course_level').eq('id', user.id).single();
+      const readBackFailed = Boolean(savedError) || !saved;
+      if (!readBackFailed) savedCourse = saved.course_level || '';
+      setOriginalCourse(savedCourse);
+      setCourseLevel(savedCourse);
+      setCustomCourse('');
+      courseList.reload();
+
+      if (readBackFailed) {
+        toast({
+          title: 'Saved, but your course could not be re-read',
+          description: 'Your changes were saved. Please refresh the page to see your course exactly as it is stored.',
+        });
+      }
 
       toast({
         title: 'Profile updated',
@@ -287,17 +326,18 @@ export default function ProfileSettings() {
   // WHOLE form unsaved (no partial save of the unrelated fields) and puts the course dropdown back.
   // Professors/admins manage teaching courses separately (profile_courses) and are not affected by archival.
   const handleSave = async () => {
-    if (!collectProfileValues()) return;
+    const values = collectProfileValues();
+    if (!values) return;
 
-    const needsConfirm = !isContentCreator && originalCourse && (courseLevel || '') !== originalCourse;
+    const needsConfirm = !isContentCreator && originalCourse && (values.courseToSave || '') !== originalCourse;
     if (!needsConfirm) {
-      await persistProfile();
+      await persistProfile(values);
       return;
     }
 
     setPreviewLoading(true);
     try {
-      const { data, error } = await supabase.rpc('preview_course_change', { p_new_course: courseLevel });
+      const { data, error } = await supabase.rpc('preview_course_change', { p_new_course: values.courseToSave });
       if (error) throw error;
       setCoursePreview(data);
       setConfirmOpen(true);
@@ -321,6 +361,7 @@ export default function ProfileSettings() {
   const cancelCourseChange = () => {
     setConfirmOpen(false);
     setCourseLevel(originalCourse);
+    setCustomCourse('');
     toast({
       title: 'Course change cancelled',
       description: 'Nothing was saved. Any other edits are still in the form - press Save Changes to save them.',
@@ -505,18 +546,46 @@ export default function ProfileSettings() {
           {/* Primary Course */}
           <div className="space-y-2">
             <Label>Primary Course</Label>
-            <Select value={courseLevel} onValueChange={setCourseLevel}>
+            <Select value={courseLevel} onValueChange={setCourseLevel} disabled={courseList.status !== 'ready'}>
               <SelectTrigger>
-                <SelectValue placeholder="Select your active course" />
+                <SelectValue placeholder={courseList.status === 'error' ? 'Courses could not be loaded' : 'Select your active course'} />
               </SelectTrigger>
               <SelectContent>
-                {profileCourseOptions(COURSE_LEVELS, originalCourse).map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
+                {courseList.status === 'ready'
+                  ? courseList.rows.map((row) => (row.kind === 'other_action'
+                    ? <SelectItem key="other-action" value={OTHER_OPTION}>{row.label}</SelectItem>
+                    : <SelectItem key={`${row.kind}-${row.label}`} value={row.label}>{describeCourseRow(row)}</SelectItem>))
+                  : (originalCourse && Array.from(originalCourse).length <= COURSE_LABEL_MAX
+                    ? <SelectItem value={originalCourse}>{originalCourse}</SelectItem>
+                    : null)}
               </SelectContent>
             </Select>
+            {courseList.status === 'error' && (
+              <p role="alert" className="text-xs text-red-600">
+                The course list could not be loaded, so your course cannot be changed right now. Your other details can still be saved.{' '}
+                <button type="button" onClick={courseList.reload} className="underline">Try again</button>
+              </p>
+            )}
+            {originalCourse && Array.from(originalCourse).length > COURSE_LABEL_MAX && courseLevel === originalCourse && (
+              <p role="status" className="text-xs text-amber-700">
+                Your saved course is too long to use as a name. Choose a course or type a shorter one.
+              </p>
+            )}
+            {courseLevel === OTHER_OPTION && (
+              <div className="space-y-1">
+                <Label htmlFor="profile-custom-course">Your course</Label>
+                <Input
+                  id="profile-custom-course"
+                  value={customCourse}
+                  onChange={(e) => setCustomCourse(e.target.value)}
+                  placeholder="e.g., CFA Level 1, ACCA, JEE, NEET, MSc Economics"
+                  aria-invalid={customCourse !== '' && !validateCourseLabel(customCourse).ok ? 'true' : 'false'}
+                />
+                {customCourse !== '' && !validateCourseLabel(customCourse).ok && (
+                  <p role="alert" className="text-xs text-red-600">{validateCourseLabel(customCourse).error}</p>
+                )}
+              </div>
+            )}
             {!isContentCreator && (
               <p className="text-xs text-gray-500">
                 Changing your course moves cards from your previous course out of My Study and Review.
