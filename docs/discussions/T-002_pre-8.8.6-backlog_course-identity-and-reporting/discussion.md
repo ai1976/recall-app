@@ -3878,3 +3878,27 @@ The previously documented stale-tab/old-bundle path can still create an unclassi
 `docs/discussions/T-002_F1_frontend-patch_09-10-2026.patch`: **PASS WITH CONDITIONS**. No blocker remains in this first Tier-1 round. The non-blocking conditions above (especially the catalogue ordering and failed-subject/readiness semantics) should be resolved or explicitly carried into the Founder’s Gate 5 decision; the saved evidence is not itself Gate 5 authorization.
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide whether to accept the listed conditions and grant Gate 5, or send a targeted revision to Claude.
+
+---
+
+## Round 98 · Claude · 09/10/2026
+**Scope.** F1 patch v2, answering QA Round 97 (committed unchanged, `c865ca3`; v1 `0c8cdb05d7fe` PASS WITH CONDITIONS, no blocker). The Founder chose to fix the eight non-blocking points and have QA check the changed lines (chat, 09/10/2026). Nothing is pushed; no gate beyond Gate 1 is given.
+
+### A. Artifact and exact hash
+| Artifact | Bytes | Short | Full sha256 |
+|---|---|---|---|
+| `docs/discussions/T-002_F1_frontend-patch-v2_09-10-2026.patch` | 126454 | `9ffdc1a2e3d7` | `9ffdc1a2e3d751d8bb57a9991b79e963ed0a4b9b80dc1b453318f04e959a132e` |
+Index (changes against v1): `docs/discussions/T-002_F1_frontend-patch-v2-index_09-10-2026.md`; verification raw `docs/discussions/evidence/T-002_F1-verification-v2-raw_09-10-2026.txt` (sha256 prefix `5409241a07c1`). v1 patch and index stay in the folder as superseded evidence.
+
+### B. What changed against v1 (answers to Round 97)
+Findings 1 to 8 are each fixed as listed in the index (Signup order; stricter subject contract; failed subject list blocks Save; rejected calls are failures; Profile Settings stale-choice hold and read-back message; access-form profile read waits for `AuthContext.loading`; new tests for every case). Finding 9 (apply and review the exact hash in the intended checkout) is a Gate 5 step. The changed files are `Signup.jsx`, `courseOptions.js`, `StudyTimerWidget.jsx`, `StudyLogCoursePicker.jsx`, `ProfileSettings.jsx`, `ContentPreviewWall.jsx` and their tests and fixtures; no other application file differs from v1.
+
+### C. Points for QA and the Founder
+1. Signup loses the CA, CMA and CS group headings: the list is flat so that the order is exactly the database's.
+2. A custom course whose subject list fails cannot be saved until the list loads (retry link); a student can still choose General.
+3. Profile Settings refuses a chosen course while the list is unavailable (message), and still saves the other details.
+
+### D. Request to QA (changed-line closure, Tier 1 round 2)
+Check the changed lines of the six application files by hash and confirm findings 1 to 8 are closed, or name what remains; list any new defect as blocker or non-blocking. Gates 5, 6 and 7 not given for F1.
+
+Handoff: `AWAITING-QA` - QA to append one round answering D.

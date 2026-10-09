@@ -1,0 +1,2421 @@
+diff --git a/scripts/dueSetManifest.json b/scripts/dueSetManifest.json
+index 80c51bc..fc50e5e 100644
+--- a/scripts/dueSetManifest.json
++++ b/scripts/dueSetManifest.json
+@@ -1266,6 +1266,24 @@
+    "classification": "not-due-changing",
+    "reason": "RPC get_public_note_preview: W1 shows no write to a due-input table (directly, transitively or indirectly) and no manual-review flag; W2 clears the policy preconditions. Evidence snapshot, not a behavioural proof.",
+    "basis": "live catalogue analysis (diagnostic 11 v4 W1 and diagnostic 12 W2)"
++  },
++  {
++   "id": "src/lib/courseOptions.js::fetchCourseOptions::rpc:get_course_options",
++   "classification": "not-due-changing",
++   "reason": "RPC get_course_options (T-002 B-06a, live 09/10/2026): STABLE SECURITY DEFINER reader; its saved live body (B-06a FUNCTIONS v2 10ebda036336, body hash verified live in the Gate 4 TEST) contains no INSERT, UPDATE, DELETE or other write, and it calls only reads of disciplines, subjects, profiles and study_sessions. Not an input of the due rule.",
++   "basis": "saved live function body"
++  },
++  {
++   "id": "src/lib/courseOptions.js::fetchCourseOptions::rpc:get_course_options_public",
++   "classification": "not-due-changing",
++   "reason": "RPC get_course_options_public (T-002 B-06a, live 09/10/2026): STABLE SECURITY DEFINER reader; its saved live body (B-06a FUNCTIONS v2 10ebda036336, body hash verified live in the Gate 4 TEST) contains no INSERT, UPDATE, DELETE or other write, and it calls only reads of disciplines, subjects, profiles and study_sessions. Not an input of the due rule.",
++   "basis": "saved live function body"
++  },
++  {
++   "id": "src/lib/courseOptions.js::fetchPickerSubjects::rpc:get_picker_subjects",
++   "classification": "not-due-changing",
++   "reason": "RPC get_picker_subjects (T-002 B-06a, live 09/10/2026): STABLE SECURITY DEFINER reader; its saved live body (B-06a FUNCTIONS v2 10ebda036336, body hash verified live in the Gate 4 TEST) contains no INSERT, UPDATE, DELETE or other write, and it calls only reads of disciplines, subjects, profiles and study_sessions. Not an input of the due rule.",
++   "basis": "saved live function body"
+   }
+  ]
+ }
+diff --git a/scripts/dueSetRpcClassification.json b/scripts/dueSetRpcClassification.json
+index 0e67e51..ea0b498 100644
+--- a/scripts/dueSetRpcClassification.json
++++ b/scripts/dueSetRpcClassification.json
+@@ -1390,6 +1390,33 @@
+     "writes_table_with_unresolved_trigger": [],
+     "needs_manual_review": false
+    }
++  },
++  "get_course_options": {
++   "classification": "not-due-changing",
++   "w1": {
++    "due_input_writes_transitive": [],
++    "due_input_writes_indirect": [],
++    "needs_manual_review": false
++   },
++   "evidence": "T-002 B-06a: read-only reader, no write in the saved live body (docs/database/t002/B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v2.sql); not part of the T-001 W1 snapshot"
++  },
++  "get_course_options_public": {
++   "classification": "not-due-changing",
++   "w1": {
++    "due_input_writes_transitive": [],
++    "due_input_writes_indirect": [],
++    "needs_manual_review": false
++   },
++   "evidence": "T-002 B-06a: read-only reader, no write in the saved live body (docs/database/t002/B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v2.sql); not part of the T-001 W1 snapshot"
++  },
++  "get_picker_subjects": {
++   "classification": "not-due-changing",
++   "w1": {
++    "due_input_writes_transitive": [],
++    "due_input_writes_indirect": [],
++    "needs_manual_review": false
++   },
++   "evidence": "T-002 B-06a: read-only reader, no write in the saved live body (docs/database/t002/B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v2.sql); not part of the T-001 W1 snapshot"
+   }
+  }
+ }
+diff --git a/src/components/dashboard/StudyLogCoursePicker.jsx b/src/components/dashboard/StudyLogCoursePicker.jsx
+new file mode 100644
+index 0000000..21b2aee
+--- /dev/null
++++ b/src/components/dashboard/StudyLogCoursePicker.jsx
+@@ -0,0 +1,180 @@
++// T-002 F1 - the "Course" and optional "Subject" rows of the study-log picker (brief B 4.5).
++//
++// Presentational: the widget owns the choices. The course row is preselected (the student's current course) and always visible before Save; the subject is
++// optional and skippable; General is one tap away; "Other" opens a typed course (or subject) that follows the same rule as every other course text.
++// The options and their order are the database's (B-06a readers); nothing is added or reordered here.
++
++import { useState } from 'react';
++import { Input } from '@/components/ui/input';
++import { cn } from '@/lib/utils';
++import { validateCourseLabel } from '@/lib/courseLabel';
++import { describeCourseRow } from '@/lib/courseOptions';
++
++function optionClass(selected) {
++  return cn(
++    'h-8 w-full rounded-md border px-3 text-left text-xs transition-colors',
++    selected ? 'border-amber-500 bg-amber-50 font-medium text-amber-800' : 'border-input hover:bg-muted'
++  );
++}
++
++function courseSummary(course) {
++  if (!course) return 'Choose a course';
++  if (course.type === 'general') return 'General (no specific course)';
++  if (course.type === 'other') return 'Other';
++  return describeCourseRow(course.row);
++}
++
++function subjectSummary(subject) {
++  if (!subject) return 'Skip';
++  if (subject.type === 'other') return 'Other';
++  return subject.row.label;
++}
++
++export default function StudyLogCoursePicker({
++  courseStatus, courseRows, onRetryCourses,
++  course, onCourse, courseText, onCourseText,
++  subjectStatus, subjectRows, onRetrySubjects,
++  subject, onSubject, subjectText, onSubjectText,
++}) {
++  const [courseOpen, setCourseOpen] = useState(false);
++  const [subjectOpen, setSubjectOpen] = useState(false);
++
++  const courseTextError = course && course.type === 'other' && courseText !== '' && !validateCourseLabel(courseText).ok ? validateCourseLabel(courseText).error : '';
++  const subjectTextError = subject && subject.type === 'other' && subjectText !== '' && !validateCourseLabel(subjectText).ok
++    ? validateCourseLabel(subjectText).error.replace('course name', 'subject name')
++    : '';
++
++  const hasSubjectStep = course && course.type !== 'general';
++  const typedCourse = course && course.type === 'other';
++
++  return (
++    <div className="space-y-3" data-testid="study-log-course-picker">
++      <div className="space-y-1.5">
++        <p className="text-xs sm:text-sm font-medium leading-snug">Course</p>
++        {(courseStatus === 'loading' || courseStatus === 'idle') && (
++          <p className="text-xs text-muted-foreground">Loading courses...</p>
++        )}
++        {courseStatus === 'error' && (
++          <p role="alert" className="text-xs text-red-600">
++            The course list could not be loaded.{' '}
++            <button type="button" className="underline" onClick={onRetryCourses}>Try again</button>
++          </p>
++        )}
++        {courseStatus === 'ready' && (
++          <>
++            <button type="button" className={optionClass(true)} onClick={() => setCourseOpen((open) => !open)} aria-expanded={courseOpen}>
++              {courseSummary(course)} <span className="text-muted-foreground">{courseOpen ? '(close)' : '(change)'}</span>
++            </button>
++            {courseOpen && (
++              <div className="grid grid-cols-1 gap-1.5">
++                {courseRows.map((row) => {
++                  const isOther = row.kind === 'other_action';
++                  const isGeneral = row.kind === 'general';
++                  const selected = isOther ? course && course.type === 'other' : isGeneral ? course && course.type === 'general' : course && course.type === 'row' && course.row === row;
++                  return (
++                    <button
++                      key={`${row.kind}-${row.label}`}
++                      type="button"
++                      className={optionClass(Boolean(selected))}
++                      onClick={() => {
++                        onCourse(isOther ? { type: 'other' } : isGeneral ? { type: 'general' } : { type: 'row', row });
++                        setSubjectOpen(false);
++                        if (!isOther) setCourseOpen(false);
++                      }}
++                    >
++                      {isOther || isGeneral ? row.label : describeCourseRow(row)}
++                    </button>
++                  );
++                })}
++              </div>
++            )}
++          </>
++        )}
++        {typedCourse && (
++          <div className="space-y-1">
++            <Input
++              value={courseText}
++              onChange={(e) => onCourseText(e.target.value)}
++              placeholder="Type your course"
++              className="h-8 text-xs"
++              aria-label="Your course"
++              aria-invalid={courseTextError ? 'true' : 'false'}
++            />
++            {courseTextError && <p role="alert" className="text-xs text-red-600">{courseTextError}</p>}
++          </div>
++        )}
++      </div>
++
++      {hasSubjectStep && (
++        <div className="space-y-1.5">
++          <p className="text-xs sm:text-sm font-medium leading-snug">Subject <span className="font-normal text-muted-foreground">(optional)</span></p>
++          {typedCourse ? (
++            <div className="space-y-1">
++              <Input
++                value={subjectText}
++                onChange={(e) => { onSubjectText(e.target.value); onSubject(e.target.value === '' ? null : { type: 'other' }); }}
++                placeholder="Subject, if you want to add one"
++                className="h-8 text-xs"
++                aria-label="Subject"
++                aria-invalid={subjectTextError ? 'true' : 'false'}
++              />
++              {subjectTextError && <p role="alert" className="text-xs text-red-600">{subjectTextError}</p>}
++            </div>
++          ) : (
++            <>
++              {(subjectStatus === 'loading' || subjectStatus === 'idle') && <p className="text-xs text-muted-foreground">Loading subjects...</p>}
++              {subjectStatus === 'error' && (
++                <p role="alert" className="text-xs text-red-600">
++                  The subject list could not be loaded, so this log cannot be saved yet.{' '}
++                  <button type="button" className="underline" onClick={onRetrySubjects}>Try again</button>
++                </p>
++              )}
++              {subjectStatus === 'ready' && (
++                <>
++                  <button type="button" className={optionClass(true)} onClick={() => setSubjectOpen((open) => !open)} aria-expanded={subjectOpen}>
++                    {subjectSummary(subject)} <span className="text-muted-foreground">{subjectOpen ? '(close)' : '(change)'}</span>
++                  </button>
++                  {subjectOpen && (
++                    <div className="grid grid-cols-1 gap-1.5">
++                      {subjectRows.map((row) => {
++                        const isSkip = row.kind === 'skip';
++                        const isOther = row.kind === 'other_action';
++                        const selected = isSkip ? !subject : isOther ? subject && subject.type === 'other' : subject && subject.type === 'row' && subject.row === row;
++                        return (
++                          <button
++                            key={`${row.kind}-${row.label}-${row.subject_id || ''}`}
++                            type="button"
++                            className={optionClass(Boolean(selected))}
++                            onClick={() => {
++                              onSubject(isSkip ? null : isOther ? { type: 'other' } : { type: 'row', row });
++                              if (!isOther) setSubjectOpen(false);
++                            }}
++                          >
++                            {row.label}
++                          </button>
++                        );
++                      })}
++                    </div>
++                  )}
++                  {subject && subject.type === 'other' && (
++                    <div className="space-y-1">
++                      <Input
++                        value={subjectText}
++                        onChange={(e) => onSubjectText(e.target.value)}
++                        placeholder="Type the subject"
++                        className="h-8 text-xs"
++                        aria-label="Subject"
++                        aria-invalid={subjectTextError ? 'true' : 'false'}
++                      />
++                      {subjectTextError && <p role="alert" className="text-xs text-red-600">{subjectTextError}</p>}
++                    </div>
++                  )}
++                </>
++              )}
++            </>
++          )}
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/src/components/dashboard/StudyTimerWidget.jsx b/src/components/dashboard/StudyTimerWidget.jsx
+index 8da45d5..a7202c7 100644
+--- a/src/components/dashboard/StudyTimerWidget.jsx
++++ b/src/components/dashboard/StudyTimerWidget.jsx
+@@ -21,6 +21,10 @@ import { Timer, Square } from 'lucide-react';
+ import { useToast } from '@/hooks/use-toast';
+ import { useStudyTimer } from '@/contexts/StudyTimerContext';
+ import { cn } from '@/lib/utils';
++import StudyLogCoursePicker from '@/components/dashboard/StudyLogCoursePicker';
++import { useCourseOptions } from '@/hooks/useCourseOptions';
++import { usePickerSubjects } from '@/hooks/usePickerSubjects';
++import { buildClassification, defaultCourseChoice, readLastSubject, rememberLastSubject, rememberedSubjectRow } from '@/lib/courseOptions';
+ 
+ // Sprint 8.5 — required at stop/log time, both for the direct <4h stop path
+ // and the resolved recovery-prompt path. Values match study_sessions.category's
+@@ -76,6 +80,27 @@ export default function StudyTimerWidget() {
+   const [selectedCategory, setSelectedCategory] = useState('');
+   const [pendingViaRecovery, setPendingViaRecovery] = useState(false);
+ 
++  // T-002 F1 - the course and subject of the log. `null` / `undefined` mean "not chosen yet": the course then starts as the student's current course,
++  // and the subject as the one last used for that course on this device (or none).
++  const [courseChoice, setCourseChoice] = useState(null);
++  const [courseText, setCourseText] = useState('');
++  const [subjectChoice, setSubjectChoice] = useState(undefined);
++  const [subjectText, setSubjectText] = useState('');
++  const courseList = useCourseOptions('picker', { enabled: Boolean(pendingLog) });
++  const effectiveCourse = courseChoice || (courseList.status === 'ready' ? defaultCourseChoice(courseList.rows) : null);
++  const subjectCourseRow = effectiveCourse && effectiveCourse.type === 'row' ? effectiveCourse.row : null;
++  const subjectList = usePickerSubjects(subjectCourseRow, { enabled: Boolean(pendingLog) });
++  const remembered = subjectList.status === 'ready' ? rememberedSubjectRow(subjectList.rows, readLastSubject(subjectCourseRow)) : null;
++  const effectiveSubject = subjectChoice !== undefined ? subjectChoice : (remembered ? { type: 'row', row: remembered } : null);
++
++  const resetPicker = () => {
++    setSelectedCategory('');
++    setCourseChoice(null);
++    setCourseText('');
++    setSubjectChoice(undefined);
++    setSubjectText('');
++  };
++
+   const clockRef = useRef(null);
+ 
+   // Local per-second clock, driven off context's `startedAt` timestamp.
+@@ -101,7 +126,7 @@ export default function StudyTimerWidget() {
+       const result = await stop();
+       if (result.outcome === 'needs_category') {
+         setPendingViaRecovery(false);
+-        setSelectedCategory('');
++        resetPicker();
+       } else if (result.outcome === 'logged' && result.durationSeconds > 0) {
+         setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
+       } else if (result.outcome === 'too_short') {
+@@ -131,7 +156,7 @@ export default function StudyTimerWidget() {
+       const result = await stopAndLog(Math.round(recoveryPrompt.elapsedMs / 1000));
+       if (result.outcome === 'needs_category') {
+         setPendingViaRecovery(true);
+-        setSelectedCategory('');
++        resetPicker();
+       }
+     } finally {
+       setBusy(false);
+@@ -149,7 +174,7 @@ export default function StudyTimerWidget() {
+       const result = await stopAndLog(hrs * 3600);
+       if (result.outcome === 'needs_category') {
+         setPendingViaRecovery(true);
+-        setSelectedCategory('');
++        resetPicker();
+       }
+     } finally {
+       setCustomHours('');
+@@ -160,16 +185,38 @@ export default function StudyTimerWidget() {
+ 
+   const handleConfirmCategory = async () => {
+     if (!selectedCategory) return;
++    const built = buildClassification({
++      course: effectiveCourse && effectiveCourse.type === 'other' ? { type: 'other', text: courseText } : effectiveCourse,
++      subject: effectiveSubject && effectiveSubject.type === 'other' ? { type: 'other', text: subjectText } : effectiveSubject,
++      rows: courseList.rows,
++    });
++    if (!built.ok) {
++      toast({ title: 'Please check the course', description: built.error, variant: 'destructive' });
++      return;
++    }
+     setBusy(true);
+     try {
+-      const result = await confirmCategory(selectedCategory);
+-      if (result.outcome === 'logged' && result.durationSeconds > 0) {
+-        setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
+-        if (pendingViaRecovery) setPostRecovery(true);
++      const result = await confirmCategory(selectedCategory, built.value);
++      if (result.outcome === 'logged') {
++        rememberLastSubject(subjectCourseRow, effectiveSubject && effectiveSubject.type === 'row' ? effectiveSubject.row : null);
++        if (result.durationSeconds > 0) {
++          setConfirmation(`Session logged: ${formatDuration(result.durationSeconds)}`);
++          if (pendingViaRecovery) setPostRecovery(true);
++        }
++        resetPicker();
++        setPendingViaRecovery(false);
+       }
++    } catch (error) {
++      // The session stays pending: nothing was stored, the choices are kept, and the student can fix the course and save again.
++      console.error('Error saving study session:', error);
++      toast({
++        title: 'Session not saved',
++        description: error && error.code === '23514'
++          ? 'This course or subject name cannot be saved as typed. If it is one of the listed courses, choose it from the list; otherwise change the name.'
++          : 'Something went wrong while saving. Your session is kept - please try again.',
++        variant: 'destructive',
++      });
+     } finally {
+-      setSelectedCategory('');
+-      setPendingViaRecovery(false);
+       setBusy(false);
+     }
+   };
+@@ -268,7 +315,23 @@ export default function StudyTimerWidget() {
+ 
+         {/* ── Category picker — required before the session is logged (Sprint 8.5) ── */}
+         {pendingLog && !busy && (
+-          <div className="space-y-2">
++          <div className="space-y-3">
++            <StudyLogCoursePicker
++              courseStatus={courseList.status}
++              courseRows={courseList.rows}
++              onRetryCourses={courseList.reload}
++              course={effectiveCourse}
++              onCourse={(next) => { setCourseChoice(next); setSubjectChoice(undefined); setSubjectText(''); }}
++              courseText={courseText}
++              onCourseText={setCourseText}
++              subjectStatus={subjectList.status}
++              subjectRows={subjectList.rows}
++              onRetrySubjects={subjectList.reload}
++              subject={effectiveSubject}
++              onSubject={setSubjectChoice}
++              subjectText={subjectText}
++              onSubjectText={setSubjectText}
++            />
+             <p className="text-xs sm:text-sm font-medium leading-snug">
+               What were you studying?
+             </p>
+@@ -292,7 +355,7 @@ export default function StudyTimerWidget() {
+             <Button
+               size="sm"
+               className="h-8 w-full"
+-              disabled={!selectedCategory}
++              disabled={!selectedCategory || courseList.status !== 'ready' || !effectiveCourse || (subjectCourseRow !== null && subjectList.status !== 'ready')}
+               onClick={handleConfirmCategory}
+             >
+               Save
+diff --git a/src/components/dashboard/StudyTimerWidget.test.jsx b/src/components/dashboard/StudyTimerWidget.test.jsx
+new file mode 100644
+index 0000000..fd88322
+--- /dev/null
++++ b/src/components/dashboard/StudyTimerWidget.test.jsx
+@@ -0,0 +1,160 @@
++import { describe, it, expect, vi, beforeEach } from 'vitest';
++import { render, screen, fireEvent, waitFor } from '@testing-library/react';
++import StudyTimerWidget from '@/components/dashboard/StudyTimerWidget';
++import { pickerRows, subjectRows, customSubjectRows } from '@/lib/courseOptions.fixtures';
++
++const confirmCategory = vi.fn();
++let timerState;
++vi.mock('@/contexts/StudyTimerContext', () => ({ useStudyTimer: () => timerState }));
++vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1' }, loading: false }) }));
++const toast = vi.fn();
++vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: (...a) => toast(...a) }) }));
++
++const rpc = vi.fn();
++vi.mock('@/lib/supabase', () => ({ supabase: { rpc: (...a) => rpc(...a) } }));
++
++function serve({ rows = pickerRows('CA Final', ['CFA Level 1']), subjects = subjectRows(['Audit', 'Tax']), customSubjects = customSubjectRows(['Ethics']), subjectsFail = false } = {}) {
++  rpc.mockImplementation((name, params) => {
++    if (name === 'get_course_options') return Promise.resolve({ data: rows, error: null });
++    if (name === 'get_picker_subjects') {
++      if (subjectsFail) return Promise.resolve({ data: null, error: { message: 'down' } });
++      return Promise.resolve({ data: params && params.p_course_key ? customSubjects : subjects, error: null });
++    }
++    return Promise.resolve({ data: null, error: { message: 'unexpected ' + name } });
++  });
++}
++
++function pending() {
++  return { startedAt: Date.now() - 3_600_000, durationSeconds: 3600, endedAt: new Date().toISOString(), sessionDate: '2026-10-09' };
++}
++
++beforeEach(() => {
++  window.localStorage.clear();
++  confirmCategory.mockReset();
++  confirmCategory.mockResolvedValue({ outcome: 'logged', durationSeconds: 3600 });
++  toast.mockReset();
++  rpc.mockReset();
++  serve();
++  timerState = {
++    isRunning: false, startedAt: null, recoveryPrompt: null, pendingLog: pending(),
++    start: vi.fn(), stop: vi.fn(), stopAndLog: vi.fn(), discard: vi.fn(), confirmCategory,
++  };
++});
++
++async function ready() {
++  render(<StudyTimerWidget />);
++  await waitFor(() => expect(screen.getByText(/CA Final/)).toBeTruthy());
++  await waitFor(() => expect(rpc).toHaveBeenCalledWith('get_picker_subjects', expect.anything()));
++  await waitFor(() => expect(screen.getByText(/Skip/)).toBeTruthy());
++}
++
++describe('Study log picker (T-002 F1)', () => {
++  it('shows the current course already chosen and the subject skipped, and the picker for a restored pending log', async () => {
++    await ready();
++    expect(rpc).toHaveBeenCalledWith('get_course_options', { p_surface: 'picker' });
++    expect(rpc).toHaveBeenCalledWith('get_picker_subjects', { p_discipline_id: 'd-0' });
++    expect(screen.getByText(/What were you studying/)).toBeTruthy();
++  });
++
++  it('saves a platform log with the discipline and the category, and remembers the subject on this device', async () => {
++    await ready();
++    fireEvent.click(screen.getByText(/Skip/).closest('button'));
++    fireEvent.click(await screen.findByRole('button', { name: 'Tax' }));
++    fireEvent.click(screen.getByRole('button', { name: 'Reading' }));
++    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
++    await waitFor(() => expect(confirmCategory).toHaveBeenCalledTimes(1));
++    expect(confirmCategory).toHaveBeenCalledWith('reading', { classification: 'platform', discipline_id: 'd-0', subject_id: 's-1' });
++    expect(window.localStorage.getItem('revisop_last_subject_d:d-0')).toBe('s-1');
++  });
++
++  it('keeps Save disabled until a category is chosen', async () => {
++    await ready();
++    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
++    fireEvent.click(screen.getByRole('button', { name: 'Mock Test (timed)' }));
++    expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
++  });
++
++  it('saves General with no course columns', async () => {
++    await ready();
++    fireEvent.click(screen.getByText(/CA Final/).closest('button'));
++    fireEvent.click(await screen.findByRole('button', { name: 'General' }));
++    fireEvent.click(screen.getByRole('button', { name: 'Paper Solving' }));
++    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
++    await waitFor(() => expect(confirmCategory).toHaveBeenCalledWith('paper_solving', { classification: 'general' }));
++  });
++
++  it('saves an earlier custom course as text and a typed course trimmed', async () => {
++    await ready();
++    fireEvent.click(screen.getByText(/CA Final/).closest('button'));
++    fireEvent.click(await screen.findByRole('button', { name: 'CFA Level 1' }));
++    fireEvent.click(screen.getByRole('button', { name: 'Reading' }));
++    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled());
++    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
++    await waitFor(() => expect(confirmCategory).toHaveBeenCalledWith('reading', { classification: 'custom', custom_course_label: 'CFA Level 1' }));
++  });
++
++  it('lets the student type a course and a subject, and blocks invalid text with a message', async () => {
++    await ready();
++    fireEvent.click(screen.getByText(/CA Final/).closest('button'));
++    fireEvent.click(await screen.findByRole('button', { name: 'Other...' }));
++    const course = await screen.findByLabelText('Your course');
++    fireEvent.change(course, { target: { value: 'x'.repeat(121) } });
++    expect(screen.getByRole('alert').textContent).toMatch(/too long/);
++    fireEvent.click(screen.getByRole('button', { name: 'Reading' }));
++    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
++    await waitFor(() => expect(toast).toHaveBeenCalled());
++    expect(confirmCategory).not.toHaveBeenCalled();
++    fireEvent.change(course, { target: { value: '  ACCA  ' } });
++    fireEvent.change(screen.getByLabelText('Subject'), { target: { value: ' Taxation ' } });
++    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
++    await waitFor(() => expect(confirmCategory).toHaveBeenCalledWith('reading', { classification: 'custom', custom_course_label: 'ACCA', custom_subject_label: 'Taxation' }));
++  });
++
++  it('keeps the session and the choices when saving fails, and explains a refused name', async () => {
++    confirmCategory.mockRejectedValue({ code: '23514' });
++    await ready();
++    fireEvent.click(screen.getByRole('button', { name: 'Reading' }));
++    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
++    await waitFor(() => expect(toast).toHaveBeenCalled());
++    expect(toast.mock.calls[0][0].description).toMatch(/cannot be saved as typed/);
++    expect(screen.getByText(/What were you studying/)).toBeTruthy();
++    expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
++  });
++
++  it('cannot save while the subject list of a listed course is unavailable (a failed subject call is a contract failure)', async () => {
++    serve({ subjectsFail: true });
++    render(<StudyTimerWidget />);
++    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/subject list could not be loaded/));
++    fireEvent.click(screen.getByRole('button', { name: 'Reading' }));
++    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
++    expect(confirmCategory).not.toHaveBeenCalled();
++  });
++
++  it('can still save General, which has no subject list, and a typed course, which has none either', async () => {
++    serve({ subjectsFail: true });
++    render(<StudyTimerWidget />);
++    await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
++    fireEvent.click(screen.getByText(/CA Final/).closest('button'));
++    fireEvent.click(await screen.findByRole('button', { name: 'General' }));
++    fireEvent.click(screen.getByRole('button', { name: 'Reading' }));
++    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
++    await waitFor(() => expect(confirmCategory).toHaveBeenCalledWith('reading', { classification: 'general' }));
++  });
++
++  it('offers no choice and cannot save when the course list breaks the contract', async () => {
++    serve({ rows: pickerRows('CA Final').filter((row) => row.kind !== 'general').map((row, i) => ({ ...row, position: i + 1 })) });
++    render(<StudyTimerWidget />);
++    await waitFor(() => expect(screen.getByText(/course list could not be loaded/i)).toBeTruthy());
++    fireEvent.click(screen.getByRole('button', { name: 'Reading' }));
++    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
++  });
++
++  it('starts without a course when the student has no current course and will not save until one is chosen', async () => {
++    serve({ rows: pickerRows(null, ['CFA Level 1']) });
++    render(<StudyTimerWidget />);
++    await waitFor(() => expect(screen.getByText('Choose a course')).toBeTruthy());
++    fireEvent.click(screen.getByRole('button', { name: 'Reading' }));
++    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
++    expect(rpc).not.toHaveBeenCalledWith('get_picker_subjects', expect.anything());
++  });
++});
+diff --git a/src/components/ui/ContentPreviewWall.jsx b/src/components/ui/ContentPreviewWall.jsx
+index 78005a2..e911acf 100644
+--- a/src/components/ui/ContentPreviewWall.jsx
++++ b/src/components/ui/ContentPreviewWall.jsx
+@@ -1,9 +1,12 @@
+-import { useState } from 'react';
++import { useEffect, useState } from 'react';
++import { supabase } from '@/lib/supabase';
+ import { submitAccessRequest } from '@/lib/dueSet';
+ import { useAuth } from '@/contexts/AuthContext';
+ import { useToast } from '@/hooks/use-toast';
+ import { Lock } from 'lucide-react';
+-import { validateCourseLabel } from '@/lib/courseLabel';
++import { validateCourseLabel, COURSE_LABEL_MAX } from '@/lib/courseLabel';
++import { OTHER_OPTION, describeCourseRow, matchTypedCourse } from '@/lib/courseOptions';
++import { useCourseOptions } from '@/hooks/useCourseOptions';
+ import { Button } from '@/components/ui/button';
+ import { Input } from '@/components/ui/input';
+ import { Label } from '@/components/ui/label';
+@@ -15,33 +18,37 @@ import {
+   SelectValue,
+ } from '@/components/ui/select';
+ 
+-const COURSES = [
+-  'CA Foundation',
+-  'CA Intermediate',
+-  'CA Final',
+-  'CMA Foundation',
+-  'CMA Intermediate',
+-  'CMA Final',
+-  'CS Foundation',
+-  'CS Executive',
+-  'CS Professional',
+-];
+-
+-// The dropdown's own option for a course that is not in the list; it is never sent as the course.
+-const OTHER_OPTION = '__other__';
+-
+ export default function ContentPreviewWall({ contentId, contentType, contentName }) {
+-  const { user } = useAuth();
++  const { user, loading: authLoading } = useAuth();
+   const { toast } = useToast();
+   const [name, setName] = useState('');
+   const [email, setEmail] = useState('');
+   const [whatsapp, setWhatsapp] = useState('');
+   const [whatsappWarning, setWhatsappWarning] = useState('');
+-  const [course, setCourse] = useState('');
++  const [chosenCourse, setChosenCourse] = useState('');
++  // T-002 F1: the course list is the database's catalogue: the public list for a visitor, the student's own list (current course first-class,
++  // "no longer offered" marked) for a signed-in student. The student's current course is preselected until they choose another.
++  const courseList = useCourseOptions('access');
++  const currentRow = courseList.rows.find((row) => row.is_current) || null;
++  const course = chosenCourse !== '' ? chosenCourse : (currentRow ? currentRow.label : '');
++  const setCourse = setChosenCourse;
++  const [savedCourseTooLong, setSavedCourseTooLong] = useState(false);
+   const [customCourse, setCustomCourse] = useState('');
+   const [loading, setLoading] = useState(false);
+   const [submitted, setSubmitted] = useState(false);
+ 
++  // A saved course longer than the limit is never listed (brief B 5.4): the field stays empty and the student is told why.
++  useEffect(() => {
++    if (authLoading || !user) return undefined;
++    let cancelled = false;
++    supabase.from('profiles').select('course_level').eq('id', user.id).single().then(({ data }) => {
++      if (!cancelled) setSavedCourseTooLong(typeof data?.course_level === 'string' && Array.from(data.course_level.trim()).length > COURSE_LABEL_MAX);
++    });
++    return () => {
++      cancelled = true;
++    };
++  }, [user, authLoading]);
++
+   // Shown while typing, before submit (an empty box keeps the button disabled).
+   const customCourseError = course === OTHER_OPTION && customCourse !== '' && !validateCourseLabel(customCourse).ok
+     ? validateCourseLabel(customCourse).error
+@@ -68,14 +75,16 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
+   const handleSubmit = async (e) => {
+     e.preventDefault();
+     const normalizedWhatsapp = normalizeWhatsapp(whatsapp.trim());
+-    if (!name.trim() || !email.trim() || !normalizedWhatsapp || !course) return;
++    if (courseList.status !== 'ready' || !name.trim() || !email.trim() || !normalizedWhatsapp || !course) return;
+ 
+     // The course sent is either a listed course or the typed text, trimmed and checked by the same rule as Signup (never the dropdown's own entry).
+     let courseToSend = course;
+     if (course === OTHER_OPTION) {
+       const check = validateCourseLabel(customCourse);
+       if (!check.ok) return;
+-      courseToSend = check.value;
++      // A typed course that is already in the list is sent as that listed course.
++      const listed = courseList.status === 'ready' ? matchTypedCourse(courseList.rows, check.value) : null;
++      courseToSend = listed ? listed.label : check.value;
+     }
+ 
+     setLoading(true);
+@@ -162,19 +171,27 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
+           </div>
+           <div className="space-y-1">
+             <Label>Course preparing for</Label>
+-            <Select value={course} onValueChange={setCourse}>
++            <Select value={course} onValueChange={setCourse} disabled={courseList.status !== 'ready'}>
+               <SelectTrigger>
+-                <SelectValue placeholder="Select course..." />
++                <SelectValue placeholder={courseList.status === 'error' ? 'Courses could not be loaded' : 'Select course...'} />
+               </SelectTrigger>
+               <SelectContent>
+-                {COURSES.map((c) => (
+-                  <SelectItem key={c} value={c}>
+-                    {c}
+-                  </SelectItem>
+-                ))}
+-                <SelectItem value={OTHER_OPTION}>Other (type your course)</SelectItem>
++                {courseList.rows.map((row) => (row.kind === 'other_action'
++                  ? <SelectItem key="other-action" value={OTHER_OPTION}>{row.label}</SelectItem>
++                  : <SelectItem key={`${row.kind}-${row.label}`} value={row.label}>{describeCourseRow(row)}</SelectItem>))}
+               </SelectContent>
+             </Select>
++            {courseList.status === 'error' && (
++              <p role="alert" className="text-xs text-red-600">
++                The course list could not be loaded.{' '}
++                <button type="button" onClick={courseList.reload} className="underline">Try again</button>
++              </p>
++            )}
++            {savedCourseTooLong && !currentRow && chosenCourse === '' && (
++              <p role="status" className="text-xs text-amber-700">
++                Your saved course is too long to use as a name. Choose a course or type a shorter one.
++              </p>
++            )}
+           </div>
+           {course === OTHER_OPTION && (
+             <div className="space-y-1">
+@@ -194,7 +211,7 @@ export default function ContentPreviewWall({ contentId, contentType, contentName
+           )}
+           <Button
+             type="submit"
+-            disabled={loading || !name.trim() || !email.trim() || !whatsapp.trim() || !course || (course === OTHER_OPTION && !validateCourseLabel(customCourse).ok)}
++            disabled={loading || courseList.status !== 'ready' || !name.trim() || !email.trim() || !whatsapp.trim() || !course || (course === OTHER_OPTION && !validateCourseLabel(customCourse).ok)}
+             className="w-full"
+           >
+             {loading ? 'Submitting...' : 'Notify me when available'}
+diff --git a/src/components/ui/ContentPreviewWall.test.jsx b/src/components/ui/ContentPreviewWall.test.jsx
+index 6a5ab46..fa33359 100644
+--- a/src/components/ui/ContentPreviewWall.test.jsx
++++ b/src/components/ui/ContentPreviewWall.test.jsx
+@@ -1,12 +1,24 @@
+ import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
+ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+ import ContentPreviewWall from '@/components/ui/ContentPreviewWall';
++import { publicRows, courseRow } from '@/lib/courseOptions.fixtures';
+ 
+ const submitAccessRequest = vi.fn();
+ vi.mock('@/lib/dueSet', () => ({ submitAccessRequest: (...a) => submitAccessRequest(...a) }));
+-vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
++let authState = { user: null, loading: false };
++vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => authState }));
+ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
+ 
++const rpc = vi.fn();
++let savedCourse = null;
++const profileRead = vi.fn();
++vi.mock('@/lib/supabase', () => ({
++  supabase: {
++    rpc: (...a) => rpc(...a),
++    from: () => ({ select: () => ({ eq: () => ({ single: () => { profileRead(); return Promise.resolve({ data: { course_level: savedCourse }, error: null }); } }) }) }),
++  },
++}));
++
+ beforeAll(() => {
+   // Radix Select needs these in jsdom.
+   window.HTMLElement.prototype.hasPointerCapture = () => false;
+@@ -17,6 +29,11 @@ beforeAll(() => {
+ beforeEach(() => {
+   submitAccessRequest.mockReset();
+   submitAccessRequest.mockResolvedValue({ error: null });
++  rpc.mockReset();
++  rpc.mockResolvedValue({ data: publicRows(), error: null });
++  authState = { user: null, loading: false };
++  savedCourse = null;
++  profileRead.mockReset();
+ });
+ 
+ function fillBasics() {
+@@ -25,16 +42,22 @@ function fillBasics() {
+   fireEvent.change(screen.getByLabelText('WhatsApp Number'), { target: { value: '+919876543210' } });
+ }
+ 
+-function chooseOther() {
+-  fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
+-  fireEvent.click(screen.getByRole('option', { name: 'Other (type your course)' }));
++async function openCourseList() {
++  const combobox = screen.getByRole('combobox');
++  await waitFor(() => expect(combobox).not.toBeDisabled());
++  fireEvent.keyDown(combobox, { key: 'Enter' });
++}
++
++async function chooseOther() {
++  await openCourseList();
++  fireEvent.click(screen.getByRole('option', { name: 'Other, type your own' }));
+ }
+ 
+ describe('ContentPreviewWall course field (T-002 F0)', () => {
+   it('offers a real text input instead of the literal Other, and sends the trimmed typed course', async () => {
+     render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
+     fillBasics();
+-    chooseOther();
++    await chooseOther();
+     const button = screen.getByRole('button', { name: /Notify me/ });
+     expect(button).toBeDisabled();
+     fireEvent.change(screen.getByLabelText('Your course'), { target: { value: '  CFA Level 1  ' } });
+@@ -44,10 +67,10 @@ describe('ContentPreviewWall course field (T-002 F0)', () => {
+     expect(submitAccessRequest.mock.calls[0][0].p_course).toBe('CFA Level 1');
+   });
+ 
+-  it('blocks a whitespace-only, over-long or control-character course with a visible message and no request', () => {
++  it('blocks a whitespace-only, over-long or control-character course with a visible message and no request', async () => {
+     render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
+     fillBasics();
+-    chooseOther();
++    await chooseOther();
+     const input = screen.getByLabelText('Your course');
+     const button = screen.getByRole('button', { name: /Notify me/ });
+     const cases = [
+@@ -68,7 +91,7 @@ describe('ContentPreviewWall course field (T-002 F0)', () => {
+   it('accepts the word Other as a typed course (no reserved word) and never sends the dropdown value', async () => {
+     render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
+     fillBasics();
+-    chooseOther();
++    await chooseOther();
+     fireEvent.change(screen.getByLabelText('Your course'), { target: { value: 'Other' } });
+     fireEvent.click(screen.getByRole('button', { name: /Notify me/ }));
+     await waitFor(() => expect(submitAccessRequest).toHaveBeenCalledTimes(1));
+@@ -78,10 +101,78 @@ describe('ContentPreviewWall course field (T-002 F0)', () => {
+   it('still sends a listed course unchanged', async () => {
+     render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
+     fillBasics();
+-    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
++    await openCourseList();
+     fireEvent.click(screen.getByRole('option', { name: 'CA Final' }));
+     fireEvent.click(screen.getByRole('button', { name: /Notify me/ }));
+     await waitFor(() => expect(submitAccessRequest).toHaveBeenCalledTimes(1));
+     expect(submitAccessRequest.mock.calls[0][0].p_course).toBe('CA Final');
+   });
++
++  it('sends a typed course that is already in the list as that listed course', async () => {
++    render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
++    fillBasics();
++    await chooseOther();
++    fireEvent.change(screen.getByLabelText('Your course'), { target: { value: '  ca   final ' } });
++    fireEvent.click(screen.getByRole('button', { name: /Notify me/ }));
++    await waitFor(() => expect(submitAccessRequest).toHaveBeenCalledTimes(1));
++    expect(submitAccessRequest.mock.calls[0][0].p_course).toBe('CA Final');
++  });
++});
++
++describe('ContentPreviewWall course list (T-002 F1)', () => {
++  it('uses the public list for a visitor and the access list for a signed-in student, never before the session state is known', async () => {
++    authState = { user: null, loading: true };
++    const { rerender } = render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
++    expect(rpc).not.toHaveBeenCalled();
++    authState = { user: null, loading: false };
++    rerender(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
++    await waitFor(() => expect(rpc).toHaveBeenCalledWith('get_course_options_public'));
++
++    rpc.mockClear();
++    authState = { user: { id: 'u1' }, loading: false };
++    rerender(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
++    await waitFor(() => expect(rpc).toHaveBeenCalledWith('get_course_options', { p_surface: 'access' }));
++  });
++
++  it('preselects the signed-in student\'s current course, including one that is no longer offered', async () => {
++    authState = { user: { id: 'u1' }, loading: false };
++    const rows = publicRows().map((row) => (row.label === 'CA Foundation' ? { ...row, is_active: false, is_current: true } : row));
++    rpc.mockResolvedValue({ data: rows, error: null });
++    render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
++    fillBasics();
++    const combobox = screen.getByRole('combobox');
++    await waitFor(() => expect(combobox.textContent).toMatch(/CA Foundation \(no longer offered\)/));
++    fireEvent.click(screen.getByRole('button', { name: /Notify me/ }));
++    await waitFor(() => expect(submitAccessRequest).toHaveBeenCalledTimes(1));
++    expect(submitAccessRequest.mock.calls[0][0].p_course).toBe('CA Foundation');
++  });
++
++  it('reads nothing about the student before the session state is known', async () => {
++    authState = { user: { id: 'u1' }, loading: true };
++    const { rerender } = render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
++    await new Promise((resolve) => setTimeout(resolve, 20));
++    expect(profileRead).not.toHaveBeenCalled();
++    expect(rpc).not.toHaveBeenCalled();
++    authState = { user: { id: 'u1' }, loading: false };
++    rerender(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
++    await waitFor(() => expect(profileRead).toHaveBeenCalledTimes(1));
++  });
++
++  it('leaves the field empty and says why when the saved course is too long', async () => {
++    authState = { user: { id: 'u1' }, loading: false };
++    savedCourse = 'z'.repeat(121);
++    render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
++    await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/too long to use as a name/));
++    expect(screen.getByRole('button', { name: /Notify me/ })).toBeDisabled();
++  });
++
++  it('shows a neutral state and sends nothing when the list breaks the contract', async () => {
++    rpc.mockResolvedValue({ data: [courseRow({ kind: 'platform', label: 'CA Final', discipline_id: 'd' })], error: null });
++    render(<ContentPreviewWall contentId="c1" contentType="note" contentName="n" />);
++    fillBasics();
++    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/could not be loaded/i));
++    expect(screen.getByRole('combobox')).toBeDisabled();
++    fireEvent.submit(screen.getByRole('button', { name: /Notify me/ }).closest('form'));
++    expect(submitAccessRequest).not.toHaveBeenCalled();
++  });
+ });
+diff --git a/src/contexts/StudyTimerContext.jsx b/src/contexts/StudyTimerContext.jsx
+index 9db4b59..3d5deeb 100644
+--- a/src/contexts/StudyTimerContext.jsx
++++ b/src/contexts/StudyTimerContext.jsx
+@@ -62,6 +62,7 @@
+ import { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+ import { supabase } from '@/lib/supabase';
+ import { useAuth } from '@/contexts/AuthContext';
++import { isClassification } from '@/lib/courseOptions';
+ 
+ const SHORT_BREAK_MS   = 4  * 60 * 60 * 1000; // < 4h  → auto-resume
+ const PROMPT_CUTOFF_MS = 16 * 60 * 60 * 1000; // 4-16h → prompt, > 16h → discard
+@@ -205,9 +206,12 @@ export function StudyTimerProvider({ children }) {
+ 
+   // Sprint 8.5 — the actual study_sessions insert, once a category has been
+   // chosen for whatever stopAndLog finalized into pendingLog.
+-  const confirmCategory = useCallback(async (category) => {
++  // T-002 F1: every manual log is classified (platform course, custom course or General); `classification` carries the columns the picker built.
++  // A restored pending log passes through the same picker, so it is stored classified too.
++  const confirmCategory = useCallback(async (category, classification) => {
+     if (!pendingLog) return { outcome: 'noop' };
+     if (!CATEGORY_VALUES.includes(category)) return { outcome: 'noop' };
++    if (!isClassification(classification)) return { outcome: 'invalid' };
+ 
+     let logged = 0;
+     if (user) {
+@@ -219,6 +223,7 @@ export function StudyTimerProvider({ children }) {
+         session_date:     pendingLog.sessionDate,
+         source:           'manual',
+         category,
++        ...classification,
+       });
+       if (error) throw error;
+       logged = pendingLog.durationSeconds;
+diff --git a/src/contexts/StudyTimerContext.test.jsx b/src/contexts/StudyTimerContext.test.jsx
+new file mode 100644
+index 0000000..c0ba299
+--- /dev/null
++++ b/src/contexts/StudyTimerContext.test.jsx
+@@ -0,0 +1,73 @@
++import { describe, it, expect, vi, beforeEach } from 'vitest';
++import { renderHook, act } from '@testing-library/react';
++import { StudyTimerProvider, useStudyTimer } from '@/contexts/StudyTimerContext';
++
++const insert = vi.fn();
++vi.mock('@/lib/supabase', () => ({ supabase: { from: (table) => ({ insert: (row) => insert(table, row) }) } }));
++vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1' } }) }));
++
++const PENDING = { startedAt: Date.parse('2026-10-09T08:00:00Z'), durationSeconds: 3600, endedAt: '2026-10-09T09:00:00.000Z', sessionDate: '2026-10-09' };
++
++beforeEach(() => {
++  window.localStorage.clear();
++  insert.mockReset();
++  insert.mockResolvedValue({ error: null });
++});
++
++function mount() {
++  return renderHook(() => useStudyTimer(), { wrapper: StudyTimerProvider });
++}
++
++describe('StudyTimerContext.confirmCategory (T-002 F1)', () => {
++  it('stores the classification columns together with the category, for a platform, a custom and a General log', async () => {
++    window.localStorage.setItem('revisop_manual_timer_pending_log', JSON.stringify(PENDING));
++    const { result } = mount();
++    expect(result.current.pendingLog).toBeTruthy();
++    await act(async () => { await result.current.confirmCategory('reading', { classification: 'platform', discipline_id: 'd1', subject_id: 's1' }); });
++    expect(insert).toHaveBeenCalledWith('study_sessions', {
++      user_id: 'u1', started_at: new Date(PENDING.startedAt).toISOString(), ended_at: PENDING.endedAt, duration_seconds: 3600, session_date: '2026-10-09',
++      source: 'manual', category: 'reading', classification: 'platform', discipline_id: 'd1', subject_id: 's1',
++    });
++    expect(window.localStorage.getItem('revisop_manual_timer_pending_log')).toBeNull();
++  });
++
++  it('stores a restored pending log classified: a log left unconfirmed before the upgrade passes through the same call', async () => {
++    window.localStorage.setItem('revisop_manual_timer_pending_log', JSON.stringify(PENDING));
++    const { result } = mount();
++    await act(async () => { await result.current.confirmCategory('mock_test', { classification: 'custom', custom_course_label: 'ACCA', custom_subject_label: 'Tax' }); });
++    const row = insert.mock.calls[0][1];
++    expect(row.source).toBe('manual');
++    expect(row.classification).toBe('custom');
++    expect(row.custom_course_label).toBe('ACCA');
++    expect(row.custom_subject_label).toBe('Tax');
++  });
++
++  it('writes nothing and keeps the pending log when the classification is missing or malformed (never a manual log without one)', async () => {
++    window.localStorage.setItem('revisop_manual_timer_pending_log', JSON.stringify(PENDING));
++    const { result } = mount();
++    for (const bad of [undefined, null, {}, { classification: 'platform' }, { classification: 'custom', custom_course_label: 'A', discipline_id: 'd1' }]) {
++      let outcome;
++      await act(async () => { outcome = await result.current.confirmCategory('reading', bad); });
++      expect(outcome).toEqual({ outcome: 'invalid' });
++    }
++    expect(insert).not.toHaveBeenCalled();
++    expect(window.localStorage.getItem('revisop_manual_timer_pending_log')).not.toBeNull();
++  });
++
++  it('keeps the pending log and throws when the database refuses the row', async () => {
++    window.localStorage.setItem('revisop_manual_timer_pending_log', JSON.stringify(PENDING));
++    insert.mockResolvedValue({ error: { code: '23514' } });
++    const { result } = mount();
++    await expect(act(async () => { await result.current.confirmCategory('reading', { classification: 'general' }); })).rejects.toMatchObject({ code: '23514' });
++    expect(window.localStorage.getItem('revisop_manual_timer_pending_log')).not.toBeNull();
++  });
++
++  it('still refuses an unknown category', async () => {
++    window.localStorage.setItem('revisop_manual_timer_pending_log', JSON.stringify(PENDING));
++    const { result } = mount();
++    let outcome;
++    await act(async () => { outcome = await result.current.confirmCategory('dancing', { classification: 'general' }); });
++    expect(outcome).toEqual({ outcome: 'noop' });
++    expect(insert).not.toHaveBeenCalled();
++  });
++});
+diff --git a/src/hooks/useCourseOptions.js b/src/hooks/useCourseOptions.js
+new file mode 100644
+index 0000000..bc73e0e
+--- /dev/null
++++ b/src/hooks/useCourseOptions.js
+@@ -0,0 +1,36 @@
++// T-002 F1 - loads the course catalogue rows for one screen, routed by the session state.
++//
++// Nothing is called until AuthContext.loading has resolved (plan v18 section 8, routing): with a session the authenticated reader is used (the student's
++// current course and own earlier labels are added), without one the public list. `status` is 'idle' (waiting for the session state, or disabled),
++// 'loading', 'ready' (rows follow the contract) or 'error' (the call failed or the rows broke the contract: the screen shows its neutral state).
++
++import { useCallback, useEffect, useState } from 'react';
++import { useAuth } from '@/contexts/AuthContext';
++import { fetchCourseOptions } from '@/lib/courseOptions';
++
++export function useCourseOptions(surface, { enabled = true } = {}) {
++  const { user, loading: authLoading } = useAuth();
++  const userId = user ? user.id : null;
++  const [result, setResult] = useState(null);
++  const [reloadKey, setReloadKey] = useState(0);
++
++  // One request per (surface, session, reload); `requestKey` is null while nothing may be called.
++  const requestKey = enabled && !authLoading ? `${surface}|${userId === null ? '' : userId}|${reloadKey}` : null;
++
++  useEffect(() => {
++    if (requestKey === null) return undefined;
++    let cancelled = false;
++    fetchCourseOptions(surface, userId !== null).then((fetched) => {
++      if (!cancelled) setResult({ key: requestKey, ok: fetched.ok, rows: fetched.ok ? fetched.rows : [] });
++    });
++    return () => {
++      cancelled = true;
++    };
++  }, [requestKey, surface, userId]);
++
++  const reload = useCallback(() => setReloadKey((key) => key + 1), []);
++
++  if (requestKey === null) return { status: 'idle', rows: [], reload };
++  if (result && result.key === requestKey) return { status: result.ok ? 'ready' : 'error', rows: result.rows, reload };
++  return { status: 'loading', rows: [], reload };
++}
+diff --git a/src/hooks/usePickerSubjects.js b/src/hooks/usePickerSubjects.js
+new file mode 100644
+index 0000000..57e5a51
+--- /dev/null
++++ b/src/hooks/usePickerSubjects.js
+@@ -0,0 +1,40 @@
++// T-002 F1 - the subject list of the course chosen in the study-log picker (B-06a get_picker_subjects).
++//
++// A platform course lists its active subjects; a custom course lists the student's own earlier subject labels for that course key. A course typed for the
++// first time, or General, has no list (the picker offers a typed subject, or none). `status` is 'idle' (no list applies), 'loading', 'ready' or 'error'.
++
++import { useCallback, useEffect, useState } from 'react';
++import { fetchPickerSubjects } from '@/lib/courseOptions';
++
++function subjectRequest(courseRow) {
++  if (!courseRow) return null;
++  if (courseRow.kind === 'platform') return { key: `d:${courseRow.discipline_id}`, params: { disciplineId: courseRow.discipline_id } };
++  if (typeof courseRow.custom_course_key === 'string') return { key: `c:${courseRow.custom_course_key}`, params: { courseKey: courseRow.custom_course_key } };
++  return null;
++}
++
++export function usePickerSubjects(courseRow, { enabled = true } = {}) {
++  const request = enabled ? subjectRequest(courseRow) : null;
++  const [reloadKey, setReloadKey] = useState(0);
++  const [result, setResult] = useState(null);
++  const requestKey = request ? `${request.key}|${reloadKey}` : null;
++  const disciplineId = request ? request.params.disciplineId || null : null;
++  const courseKey = request ? request.params.courseKey || null : null;
++
++  useEffect(() => {
++    if (requestKey === null) return undefined;
++    let cancelled = false;
++    fetchPickerSubjects({ disciplineId, courseKey }).then((fetched) => {
++      if (!cancelled) setResult({ key: requestKey, ok: fetched.ok, rows: fetched.ok ? fetched.rows : [] });
++    });
++    return () => {
++      cancelled = true;
++    };
++  }, [requestKey, disciplineId, courseKey]);
++
++  const reload = useCallback(() => setReloadKey((key) => key + 1), []);
++
++  if (requestKey === null) return { status: 'idle', rows: [], reload };
++  if (result && result.key === requestKey) return { status: result.ok ? 'ready' : 'error', rows: result.rows, reload };
++  return { status: 'loading', rows: [], reload };
++}
+diff --git a/src/lib/courseLabel.js b/src/lib/courseLabel.js
+index 41712e9..9c22dcc 100644
+--- a/src/lib/courseLabel.js
++++ b/src/lib/courseLabel.js
+@@ -38,28 +38,3 @@ export function validateCourseLabel(raw) {
+   }
+   return { ok: true, value };
+ }
+-
+-/**
+- * A course name read from existing content that may be offered as a Signup dropdown option: it must already be a valid, trimmed label, and it must not
+- * be the word "Other", which is the dropdown's own "add a custom course" entry (so one option value is never ambiguous).
+- */
+-export function isSelectableCourseName(name) {
+-  if (typeof name !== 'string') return false;
+-  const check = validateCourseLabel(name);
+-  return check.ok && check.value === name && name.toLowerCase() !== 'other';
+-}
+-
+-/**
+- * Options of the Profile Settings course dropdown (brief B 5.5): the listed courses, plus the student's SAVED course when it is not one of them
+- * (for example a custom course typed at Signup), marked "(current)", so the dropdown never shows blank for a saved custom course. A saved value that
+- * fails the label rule (over-long, control characters, blank) is not offered. Only the saved value is added, never the value being edited, so the
+- * student can switch to another course and back.
+- */
+-export function profileCourseOptions(listed, savedCourse) {
+-  const options = listed.map((value) => ({ value, label: value }));
+-  if (typeof savedCourse === 'string' && !listed.includes(savedCourse)) {
+-    const check = validateCourseLabel(savedCourse);
+-    if (check.ok && check.value === savedCourse) options.push({ value: savedCourse, label: `${savedCourse} (current)` });
+-  }
+-  return options;
+-}
+diff --git a/src/lib/courseLabel.test.js b/src/lib/courseLabel.test.js
+index 841fa32..8429bab 100644
+--- a/src/lib/courseLabel.test.js
++++ b/src/lib/courseLabel.test.js
+@@ -1,5 +1,5 @@
+ import { describe, it, expect } from 'vitest';
+-import { validateCourseLabel, isSelectableCourseName, profileCourseOptions, COURSE_LABEL_MAX } from '@/lib/courseLabel';
++import { validateCourseLabel, COURSE_LABEL_MAX } from '@/lib/courseLabel';
+ 
+ describe('validateCourseLabel (T-002 F0, brief B 5.1)', () => {
+   it('refuses empty, missing and blank-after-trim values with a message', () => {
+@@ -58,38 +58,3 @@ describe('validateCourseLabel (T-002 F0, brief B 5.1)', () => {
+     expect(validateCourseLabel('एमबीए प्रथम वर्ष').ok).toBe(true);
+   });
+ });
+-
+-describe('isSelectableCourseName (Signup options read from existing content)', () => {
+-  it('keeps clean labels and drops over-long, control-character, blank, untrimmed, non-text and the dropdown word Other', () => {
+-    expect(isSelectableCourseName('CFA Level 1')).toBe(true);
+-    const bad = ['x'.repeat(121), 'a\tb', '', '   ', ' CFA ', 'Other', 'OTHER', null, undefined, 42];
+-    for (const v of bad) {
+-      expect(isSelectableCourseName(v)).toBe(false);
+-    }
+-  });
+-});
+-
+-describe('profileCourseOptions (Profile Settings dropdown)', () => {
+-  const listed = ['CA Foundation', 'CA Intermediate', 'CA Final'];
+-
+-  it('returns just the listed courses when the saved course is listed, empty or missing', () => {
+-    const plain = listed.map((value) => ({ value, label: value }));
+-    expect(profileCourseOptions(listed, 'CA Final')).toEqual(plain);
+-    expect(profileCourseOptions(listed, '')).toEqual(plain);
+-    expect(profileCourseOptions(listed, null)).toEqual(plain);
+-    expect(profileCourseOptions(listed, undefined)).toEqual(plain);
+-  });
+-
+-  it('adds a saved custom course at the end, marked current, so the dropdown is never blank for it', () => {
+-    const options = profileCourseOptions(listed, 'CFA Level 1');
+-    expect(options).toHaveLength(4);
+-    expect(options[3]).toEqual({ value: 'CFA Level 1', label: 'CFA Level 1 (current)' });
+-    expect(profileCourseOptions(listed, 'Other')[3]).toEqual({ value: 'Other', label: 'Other (current)' });
+-  });
+-
+-  it('does not offer a saved value that fails the label rule (over-long, control character, untrimmed, blank)', () => {
+-    for (const bad of ['x'.repeat(121), 'a	b', ' CFA ', '   ']) {
+-      expect(profileCourseOptions(listed, bad)).toHaveLength(3);
+-    }
+-  });
+-});
+diff --git a/src/lib/courseOptions.fixtures.js b/src/lib/courseOptions.fixtures.js
+new file mode 100644
+index 0000000..d30973a
+--- /dev/null
++++ b/src/lib/courseOptions.fixtures.js
+@@ -0,0 +1,63 @@
++// Test fixtures for the course catalogue rows (B-06a readers). Not imported by application code.
++
++export function courseRow(overrides) {
++  return {
++    kind: 'platform',
++    position: 1,
++    label: 'CA Final',
++    discipline_id: null,
++    is_active: null,
++    is_current: false,
++    is_catalogue: false,
++    is_prior_custom: false,
++    custom_course_key: null,
++    last_used_at: null,
++    action: null,
++    ...overrides,
++  };
++}
++
++const PLATFORM = ['CA Final', 'CA Foundation', 'CA Intermediate'];
++const CATALOGUE = ['CMA Foundation', 'CMA Intermediate', 'CMA Final', 'CS Foundation', 'CS Executive', 'CS Professional'];
++
++/** The Signup base list as the database returns it: active platform courses, the six catalogue labels, Other. */
++export function publicRows() {
++  const rows = [
++    ...PLATFORM.map((label, i) => courseRow({ kind: 'platform', label, discipline_id: `d-${i}`, is_active: true })),
++    ...CATALOGUE.map((label) => courseRow({ kind: 'catalogue', label, is_catalogue: true, custom_course_key: label.toLowerCase() })),
++    courseRow({ kind: 'other_action', label: 'Other, type your own', action: 'enter_text' }),
++  ];
++  return rows.map((row, i) => ({ ...row, position: i + 1 }));
++}
++
++/** A picker list for a student whose current course is `current` (a platform label) with earlier custom labels `prior`. */
++export function pickerRows(current, prior = []) {
++  const platform = PLATFORM.map((label, i) => courseRow({ kind: 'platform', label, discipline_id: `d-${i}`, is_active: true, is_current: label === current }));
++  const currentRow = platform.filter((row) => row.is_current);
++  const others = platform.filter((row) => !row.is_current);
++  const priorRows = prior.map((label) => courseRow({ kind: 'prior_custom', label, is_prior_custom: true, custom_course_key: label.toLowerCase(), last_used_at: '2026-10-01T00:00:00Z' }));
++  const rows = [
++    ...currentRow, ...others, ...priorRows,
++    courseRow({ kind: 'general', label: 'General', action: 'write_general' }),
++    courseRow({ kind: 'other_action', label: 'Other...', action: 'enter_text' }),
++  ];
++  return rows.map((row, i) => ({ ...row, position: i + 1 }));
++}
++
++export function subjectRows(labels) {
++  const rows = [
++    ...labels.map((label, i) => ({ kind: 'subject', subject_id: `s-${i}`, label, position: 0, last_used_at: null, action: null })),
++    { kind: 'skip', subject_id: null, label: 'Skip', position: 0, last_used_at: null, action: 'skip' },
++  ];
++  return rows.map((row, i) => ({ ...row, position: i + 1 }));
++}
++
++/** The subject list of a custom course (a course key): earlier subject labels, Other, Skip. */
++export function customSubjectRows(labels) {
++  const rows = [
++    ...labels.map((label) => ({ kind: 'prior_custom_subject', subject_id: null, label, position: 0, last_used_at: '2026-10-01T00:00:00Z', action: null })),
++    { kind: 'other_action', subject_id: null, label: 'Other, type your own', position: 0, last_used_at: null, action: 'enter_text' },
++    { kind: 'skip', subject_id: null, label: 'Skip', position: 0, last_used_at: null, action: 'skip' },
++  ];
++  return rows.map((row, i) => ({ ...row, position: i + 1 }));
++}
+diff --git a/src/lib/courseOptions.js b/src/lib/courseOptions.js
+new file mode 100644
+index 0000000..444f79c
+--- /dev/null
++++ b/src/lib/courseOptions.js
+@@ -0,0 +1,230 @@
++// T-002 F1 - the course catalogue as the database serves it (B-06a readers), and the study-log classification built from a picker selection.
++//
++// Every screen that offers a course (Signup, Profile Settings, the access form, the study-log picker) renders the typed rows of ONE catalogue; none keeps
++// its own list. The rows, their order and the action rows ("Other", "General", "Skip") come from the database (plan v18 section 8). A result that breaks the
++// contract (not an array, empty, no "Other" row, unknown kind, positions out of order) is a contract failure: the screen shows a neutral state and offers
++// no choice, rather than guessing a list.
++//
++// The database stays the authority for every stored value (profiles trigger B-03, access_requests trigger B-07, study_sessions guard B-04a); the checks here
++// only avoid sending a request that the database would refuse.
++
++import { supabase } from '@/lib/supabase';
++import { validateCourseLabel } from '@/lib/courseLabel';
++
++// The dropdown's own value for "type a course that is not in the list". It is never sent as a course.
++export const OTHER_OPTION = '__other__';
++
++const COURSE_KINDS = new Set(['platform', 'current', 'catalogue', 'prior_custom', 'other_action', 'general']);
++const SUBJECT_KINDS = new Set(['subject', 'prior_custom_subject', 'other_action', 'skip']);
++const CHOICE_KINDS = new Set(['platform', 'current', 'catalogue', 'prior_custom']);
++
++function positionsAreInOrder(rows) {
++  return rows.every((row, index) => row.position === index + 1);
++}
++
++function isObject(value) {
++  return value !== null && typeof value === 'object' && !Array.isArray(value);
++}
++
++/**
++ * Check the rows of a course reader. `surface` is 'signup' (the public list), 'profile', 'access' or 'picker'.
++ * Returns { ok: true, rows } (sorted by position) or { ok: false, reason }.
++ */
++export function checkCourseRows(data, surface) {
++  if (!Array.isArray(data) || data.length === 0) return { ok: false, reason: 'empty' };
++  if (!data.every(isObject)) return { ok: false, reason: 'row' };
++  const rows = [...data].sort((a, b) => a.position - b.position);
++  if (!positionsAreInOrder(rows)) return { ok: false, reason: 'positions' };
++  for (const row of rows) {
++    if (!COURSE_KINDS.has(row.kind)) return { ok: false, reason: 'kind' };
++    if (typeof row.label !== 'string' || row.label === '') return { ok: false, reason: 'label' };
++    if (row.kind === 'platform' && typeof row.discipline_id !== 'string') return { ok: false, reason: 'discipline' };
++    if (CHOICE_KINDS.has(row.kind) && row.kind !== 'platform' && typeof row.custom_course_key !== 'string') return { ok: false, reason: 'key' };
++  }
++  const others = rows.filter((row) => row.kind === 'other_action');
++  if (others.length !== 1 || others[0].action !== 'enter_text') return { ok: false, reason: 'other' };
++  const generals = rows.filter((row) => row.kind === 'general');
++  if (surface === 'picker' ? generals.length !== 1 || generals[0].action !== 'write_general' : generals.length !== 0) return { ok: false, reason: 'general' };
++  if (!rows.some((row) => row.kind !== 'other_action' && row.kind !== 'general')) return { ok: false, reason: 'no-course' };
++  return { ok: true, rows };
++}
++
++/**
++ * Check the rows of the subject list. `custom` is true for a course key (the student's own earlier subject labels, with a typed "Other"), false for a
++ * platform course (its active subjects only: no typed subject, because a platform session cannot carry a custom subject label).
++ * Every list ends with exactly one Skip row, so it is never empty. Returns { ok: true, rows } or { ok: false, reason }.
++ */
++export function checkSubjectRows(data, { custom = false } = {}) {
++  if (!Array.isArray(data) || data.length === 0) return { ok: false, reason: 'empty' };
++  if (!data.every(isObject)) return { ok: false, reason: 'row' };
++  const rows = [...data].sort((a, b) => a.position - b.position);
++  if (!positionsAreInOrder(rows)) return { ok: false, reason: 'positions' };
++  for (const row of rows) {
++    if (!SUBJECT_KINDS.has(row.kind)) return { ok: false, reason: 'kind' };
++    if (typeof row.label !== 'string' || row.label === '') return { ok: false, reason: 'label' };
++    if (row.kind === 'subject' && (typeof row.subject_id !== 'string' || row.action !== null)) return { ok: false, reason: 'subject' };
++    if (row.kind === 'prior_custom_subject' && (row.subject_id !== null || row.action !== null || typeof row.last_used_at !== 'string')) return { ok: false, reason: 'prior' };
++    if (row.kind === 'skip' && (row.subject_id !== null || row.action !== 'skip')) return { ok: false, reason: 'skip' };
++    if (row.kind === 'other_action' && (row.subject_id !== null || row.action !== 'enter_text')) return { ok: false, reason: 'other' };
++  }
++  if (rows.filter((row) => row.kind === 'skip').length !== 1) return { ok: false, reason: 'skip' };
++  const others = rows.filter((row) => row.kind === 'other_action').length;
++  if (custom ? others !== 1 : others !== 0) return { ok: false, reason: 'other' };
++  if (custom ? rows.some((row) => row.kind === 'subject') : rows.some((row) => row.kind === 'prior_custom_subject')) return { ok: false, reason: 'kind' };
++  return { ok: true, rows };
++}
++
++/**
++ * Read the course list for a screen. Without a session only the public list exists (Signup, or the access form of a visitor); with a session the
++ * authenticated reader adds the student's current course and own earlier labels. Never call this before the session state is known.
++ */
++export async function fetchCourseOptions(surface, hasSession) {
++  try {
++    const result = hasSession
++      ? await supabase.rpc('get_course_options', { p_surface: surface })
++      : await supabase.rpc('get_course_options_public');
++    if (!result || result.error) return { ok: false, reason: 'error' };
++    return checkCourseRows(result.data, hasSession ? surface : 'signup');
++  } catch {
++    return { ok: false, reason: 'error' };
++  }
++}
++
++/** Read the subject list of a chosen platform course (disciplineId) or of a custom course (courseKey, as returned in `custom_course_key`). */
++export async function fetchPickerSubjects({ disciplineId = null, courseKey = null }) {
++  const params = disciplineId ? { p_discipline_id: disciplineId } : { p_course_key: courseKey };
++  try {
++    const result = await supabase.rpc('get_picker_subjects', params);
++    if (!result || result.error) return { ok: false, reason: 'error' };
++    return checkSubjectRows(result.data, { custom: !disciplineId });
++  } catch {
++    return { ok: false, reason: 'error' };
++  }
++}
++
++/** The text a dropdown shows for a row: the database's label, marked "(current)" for the student's own custom course and "(no longer offered)" for an inactive platform course. */
++export function describeCourseRow(row) {
++  if (row.kind === 'platform' && row.is_active === false) return `${row.label} (no longer offered)`;
++  if (row.kind === 'current') return `${row.label} (current)`;
++  return row.label;
++}
++
++// A hint only (never stored): the same words in other case or spacing as a row of the list. The database applies the real rule.
++function looseKey(text) {
++  return text.replace(/\s+/g, ' ').trim().toLowerCase();
++}
++
++/** The row of the list that a typed course name equals (ignoring case and spacing), or null. Used so a typed "ca final" is stored as the platform course. */
++export function matchTypedCourse(rows, typed) {
++  const key = looseKey(typed);
++  return rows.find((row) => CHOICE_KINDS.has(row.kind) && looseKey(row.label) === key) || null;
++}
++
++/**
++ * Build the classification columns of a manual study log from a picker selection.
++ *   course:  { type: 'row', row }  a row of the list (platform, current, catalogue or prior_custom)
++ *            { type: 'other', text }  a typed course
++ *            { type: 'general' }
++ *   subject: null (skipped) | { type: 'row', row }  a subject-list row | { type: 'other', text }  a typed subject (custom courses only)
++ *   rows:    the course rows that were shown (to recognise a typed platform course)
++ * Returns { ok: true, value } with the columns to insert, or { ok: false, error }. A platform course carries its discipline and, optionally, a platform
++ * subject; every other course is stored as the label text, with an optional subject label; General carries nothing else.
++ */
++export function buildClassification({ course, subject = null, rows = [] }) {
++  if (!course) return { ok: false, error: 'Please choose a course.' };
++  if (course.type === 'general') return { ok: true, value: { classification: 'general' } };
++
++  let chosen = null;
++  if (course.type === 'row') {
++    chosen = course.row;
++  } else if (course.type === 'other') {
++    const check = validateCourseLabel(course.text);
++    if (!check.ok) return { ok: false, error: check.error };
++    chosen = matchTypedCourse(rows, check.value) || { kind: 'typed', label: check.value };
++  } else {
++    return { ok: false, error: 'Please choose a course.' };
++  }
++
++  if (chosen.kind === 'platform') {
++    if (typeof chosen.discipline_id !== 'string') return { ok: false, error: 'Please choose a course.' };
++    const value = { classification: 'platform', discipline_id: chosen.discipline_id };
++    if (subject && subject.type === 'row' && subject.row.kind === 'subject') value.subject_id = subject.row.subject_id;
++    else if (subject && subject.type !== 'row') return { ok: false, error: 'Please choose a subject from the list, or skip it.' };
++    return { ok: true, value };
++  }
++
++  if (!CHOICE_KINDS.has(chosen.kind) && chosen.kind !== 'typed') return { ok: false, error: 'Please choose a course.' };
++  const value = { classification: 'custom', custom_course_label: chosen.label };
++  if (subject && subject.type === 'row' && subject.row.kind === 'prior_custom_subject') {
++    value.custom_subject_label = subject.row.label;
++  } else if (subject && subject.type === 'other') {
++    const check = validateCourseLabel(subject.text);
++    if (!check.ok) return { ok: false, error: check.error.replace('course name', 'subject name').replace('course', 'subject') };
++    value.custom_subject_label = check.value;
++  } else if (subject && subject.type === 'row') {
++    return { ok: false, error: 'Please choose a subject from the list, or skip it.' };
++  }
++  return { ok: true, value };
++}
++
++/** The picker's starting choice: the student's current course (the list marks it `is_current`), or nothing when they have none. */
++export function defaultCourseChoice(rows) {
++  const current = rows.find((row) => row.is_current && CHOICE_KINDS.has(row.kind));
++  return current ? { type: 'row', row: current } : null;
++}
++
++const CLASSIFICATION_KEYS = {
++  platform: ['classification', 'discipline_id', 'subject_id'],
++  custom: ['classification', 'custom_course_label', 'custom_subject_label'],
++  general: ['classification'],
++};
++
++/** True when `value` is exactly the shape buildClassification returns (the insert refuses anything else before it reaches the database). */
++export function isClassification(value) {
++  if (!isObject(value) || !Object.prototype.hasOwnProperty.call(CLASSIFICATION_KEYS, value.classification)) return false;
++  const allowed = CLASSIFICATION_KEYS[value.classification];
++  if (!Object.keys(value).every((key) => allowed.includes(key) && typeof value[key] === 'string' && value[key] !== '')) return false;
++  if (value.classification === 'platform') return typeof value.discipline_id === 'string';
++  if (value.classification === 'custom') return typeof value.custom_course_label === 'string';
++  return true;
++}
++
++// The last subject used per course is remembered on this device only (brief B 4.5); nothing is stored in the database for it.
++const LAST_SUBJECT_PREFIX = 'revisop_last_subject_';
++
++export function lastSubjectKey(courseRow) {
++  if (!courseRow) return null;
++  if (courseRow.kind === 'platform') return `${LAST_SUBJECT_PREFIX}d:${courseRow.discipline_id}`;
++  if (typeof courseRow.custom_course_key === 'string') return `${LAST_SUBJECT_PREFIX}c:${courseRow.custom_course_key}`;
++  return null;
++}
++
++export function readLastSubject(courseRow) {
++  const key = lastSubjectKey(courseRow);
++  if (!key) return null;
++  try {
++    return window.localStorage.getItem(key);
++  } catch {
++    return null;
++  }
++}
++
++export function rememberLastSubject(courseRow, subjectRow) {
++  const key = lastSubjectKey(courseRow);
++  if (!key) return;
++  try {
++    if (subjectRow && (subjectRow.kind === 'subject' || subjectRow.kind === 'prior_custom_subject')) {
++      window.localStorage.setItem(key, subjectRow.kind === 'subject' ? subjectRow.subject_id : subjectRow.label);
++    } else {
++      window.localStorage.removeItem(key);
++    }
++  } catch {
++    // Remembering is a convenience only.
++  }
++}
++
++/** The subject row that matches the remembered value, if it is still offered. */
++export function rememberedSubjectRow(subjectRows, remembered) {
++  if (!remembered) return null;
++  return subjectRows.find((row) => (row.kind === 'subject' && row.subject_id === remembered) || (row.kind === 'prior_custom_subject' && row.label === remembered)) || null;
++}
+diff --git a/src/lib/courseOptions.test.js b/src/lib/courseOptions.test.js
+new file mode 100644
+index 0000000..99bdff0
+--- /dev/null
++++ b/src/lib/courseOptions.test.js
+@@ -0,0 +1,211 @@
++import { describe, it, expect, vi, beforeEach } from 'vitest';
++import {
++  OTHER_OPTION, checkCourseRows, checkSubjectRows, buildClassification, isClassification, matchTypedCourse, defaultCourseChoice, describeCourseRow,
++  lastSubjectKey, readLastSubject, rememberLastSubject, rememberedSubjectRow, fetchCourseOptions, fetchPickerSubjects,
++} from '@/lib/courseOptions';
++import { publicRows, pickerRows, subjectRows, customSubjectRows, courseRow } from '@/lib/courseOptions.fixtures';
++
++const rpc = vi.fn();
++vi.mock('@/lib/supabase', () => ({ supabase: { rpc: (...a) => rpc(...a) } }));
++
++beforeEach(() => {
++  rpc.mockReset();
++  window.localStorage.clear();
++});
++
++describe('checkCourseRows (the contract of the course readers)', () => {
++  it('accepts the public list and the picker list, sorted by position', () => {
++    expect(checkCourseRows(publicRows(), 'signup').ok).toBe(true);
++    expect(checkCourseRows([...pickerRows('CA Final', ['ZZ Prior'])].reverse(), 'picker').ok).toBe(true);
++    expect(checkCourseRows([...publicRows()].reverse(), 'signup').rows.map((row) => row.position)).toEqual(publicRows().map((row) => row.position));
++  });
++
++  it('refuses anything that breaks the contract', () => {
++    const base = publicRows();
++    const bad = {
++      'not an array': null,
++      empty: [],
++      'a row that is not an object': [...base, 'x'],
++      'positions with a gap': base.map((row, i) => ({ ...row, position: i === 2 ? 99 : row.position })),
++      'an unknown kind': base.map((row, i) => (i === 0 ? { ...row, kind: 'mystery' } : row)),
++      'a blank label': base.map((row, i) => (i === 0 ? { ...row, label: '' } : row)),
++      'a platform row without a discipline': base.map((row, i) => (i === 0 ? { ...row, discipline_id: null } : row)),
++      'a catalogue row without a key': base.map((row) => (row.kind === 'catalogue' ? { ...row, custom_course_key: null } : row)),
++      'no Other row': base.filter((row) => row.kind !== 'other_action'),
++      'two Other rows': [...base, courseRow({ kind: 'other_action', label: 'Other again', action: 'enter_text', position: base.length + 1 })],
++      'an Other row with the wrong action': base.map((row) => (row.kind === 'other_action' ? { ...row, action: 'skip' } : row)),
++      'only action rows': base.filter((row) => row.kind === 'other_action').map((row) => ({ ...row, position: 1 })),
++    };
++    for (const [name, data] of Object.entries(bad)) expect(checkCourseRows(data, 'signup').ok, name).toBe(false);
++  });
++
++  it('requires General on the picker list and refuses it on every other list', () => {
++    expect(checkCourseRows(publicRows(), 'picker').ok).toBe(false);
++    expect(checkCourseRows(pickerRows('CA Final'), 'profile').ok).toBe(false);
++    expect(checkCourseRows(pickerRows('CA Final').filter((row) => row.kind !== 'general').map((row, i) => ({ ...row, position: i + 1 })), 'picker').ok).toBe(false);
++  });
++});
++
++describe('checkSubjectRows', () => {
++  it('accepts a platform list (subjects and Skip, no typed subject) and a custom list (earlier labels, Other, Skip)', () => {
++    expect(checkSubjectRows(subjectRows(['Audit', 'Tax'])).ok).toBe(true);
++    expect(checkSubjectRows(subjectRows([])).ok).toBe(true);
++    expect(checkSubjectRows(customSubjectRows(['Ethics']), { custom: true }).ok).toBe(true);
++    expect(checkSubjectRows(customSubjectRows([]), { custom: true }).ok).toBe(true);
++  });
++
++  it('refuses a list that breaks the contract', () => {
++    const platform = subjectRows(['Audit']);
++    const custom = customSubjectRows(['Ethics']);
++    const bad = {
++      'no Skip row': [platform[0]],
++      'empty list': [],
++      'not an array': null,
++      'a subject without an id': platform.map((row, i) => (i === 0 ? { ...row, subject_id: null } : row)),
++      'a Skip row with the wrong action': platform.map((row) => (row.kind === 'skip' ? { ...row, action: 'enter_text' } : row)),
++      'two Skip rows': [...platform, { ...platform[1], position: 3 }],
++      'positions with a gap': platform.map((row, i) => (i === 1 ? { ...row, position: 5 } : row)),
++      'an unknown kind': platform.map((row, i) => (i === 0 ? { ...row, kind: 'mystery' } : row)),
++    };
++    for (const [name, data] of Object.entries(bad)) expect(checkSubjectRows(data).ok, name).toBe(false);
++    expect(checkSubjectRows(custom.filter((row) => row.kind !== 'other_action').map((row, i) => ({ ...row, position: i + 1 })), { custom: true }).ok, 'custom list without Other').toBe(false);
++    expect(checkSubjectRows(custom.map((row) => (row.kind === 'other_action' ? { ...row, action: 'skip' } : row)), { custom: true }).ok, 'Other with the wrong action').toBe(false);
++    expect(checkSubjectRows(custom.map((row, i) => (i === 0 ? { ...row, last_used_at: null } : row)), { custom: true }).ok, 'earlier label without a date').toBe(false);
++    expect(checkSubjectRows(custom, { custom: false }).ok, 'typed subject offered on a platform course').toBe(false);
++    expect(checkSubjectRows(platform, { custom: true }).ok, 'platform subjects on a custom list').toBe(false);
++  });
++});
++
++describe('fetch wrappers', () => {
++  it('uses the public reader without a session and the authenticated reader with one', async () => {
++    rpc.mockResolvedValue({ data: publicRows(), error: null });
++    expect((await fetchCourseOptions('signup', false)).ok).toBe(true);
++    expect(rpc).toHaveBeenLastCalledWith('get_course_options_public');
++    rpc.mockResolvedValue({ data: pickerRows('CA Final'), error: null });
++    expect((await fetchCourseOptions('picker', true)).ok).toBe(true);
++    expect(rpc).toHaveBeenLastCalledWith('get_course_options', { p_surface: 'picker' });
++  });
++
++  it('treats a rejected call as a failure (never an endless wait)', async () => {
++    rpc.mockRejectedValue(new Error('network'));
++    expect(await fetchCourseOptions('signup', false)).toEqual({ ok: false, reason: 'error' });
++    expect(await fetchCourseOptions('picker', true)).toEqual({ ok: false, reason: 'error' });
++    expect(await fetchPickerSubjects({ disciplineId: 'd1' })).toEqual({ ok: false, reason: 'error' });
++    rpc.mockResolvedValue(undefined);
++    expect(await fetchCourseOptions('signup', false)).toEqual({ ok: false, reason: 'error' });
++  });
++
++  it('reports a failed call and a contract failure as not ok', async () => {
++    rpc.mockResolvedValue({ data: null, error: { message: 'x' } });
++    expect(await fetchCourseOptions('signup', false)).toEqual({ ok: false, reason: 'error' });
++    rpc.mockResolvedValue({ data: [], error: null });
++    expect((await fetchCourseOptions('signup', false)).ok).toBe(false);
++  });
++
++  it('asks the subject list with exactly one argument', async () => {
++    rpc.mockResolvedValue({ data: subjectRows(['Audit']), error: null });
++    expect((await fetchPickerSubjects({ disciplineId: 'd1' })).ok).toBe(true);
++    expect(rpc).toHaveBeenLastCalledWith('get_picker_subjects', { p_discipline_id: 'd1' });
++    rpc.mockResolvedValue({ data: customSubjectRows(['Ethics']), error: null });
++    expect((await fetchPickerSubjects({ courseKey: 'cfa level 1' })).ok).toBe(true);
++    expect(rpc).toHaveBeenLastCalledWith('get_picker_subjects', { p_course_key: 'cfa level 1' });
++    // a platform list is not a valid answer for a course key, and the other way round
++    expect((await fetchPickerSubjects({ disciplineId: 'd1' })).ok).toBe(false);
++    rpc.mockResolvedValue({ data: null, error: { message: 'x' } });
++    expect((await fetchPickerSubjects({ disciplineId: 'd1' })).ok).toBe(false);
++  });
++});
++
++describe('buildClassification (the columns of a manual log)', () => {
++  const rows = pickerRows('CA Final', ['CFA Level 1']);
++  const platform = rows.find((row) => row.label === 'CA Foundation');
++  const prior = rows.find((row) => row.kind === 'prior_custom');
++  const subjectRow = subjectRows(['Audit'])[0];
++
++  it('stores a platform course with its discipline and an optional platform subject', () => {
++    expect(buildClassification({ course: { type: 'row', row: platform }, rows }).value).toEqual({ classification: 'platform', discipline_id: platform.discipline_id });
++    expect(buildClassification({ course: { type: 'row', row: platform }, subject: { type: 'row', row: subjectRow }, rows }).value)
++      .toEqual({ classification: 'platform', discipline_id: platform.discipline_id, subject_id: 's-0' });
++  });
++
++  it('refuses a typed subject on a platform course', () => {
++    expect(buildClassification({ course: { type: 'row', row: platform }, subject: { type: 'other', text: 'Anything' }, rows }).ok).toBe(false);
++  });
++
++  it('stores an earlier custom label as custom text, with an optional subject label', () => {
++    expect(buildClassification({ course: { type: 'row', row: prior }, rows }).value).toEqual({ classification: 'custom', custom_course_label: 'CFA Level 1' });
++    const priorSubject = { kind: 'prior_custom_subject', label: 'Ethics', subject_id: null };
++    expect(buildClassification({ course: { type: 'row', row: prior }, subject: { type: 'row', row: priorSubject }, rows }).value)
++      .toEqual({ classification: 'custom', custom_course_label: 'CFA Level 1', custom_subject_label: 'Ethics' });
++    expect(buildClassification({ course: { type: 'row', row: prior }, subject: { type: 'other', text: '  Derivatives ' }, rows }).value.custom_subject_label).toBe('Derivatives');
++  });
++
++  it('stores a typed course trimmed, recognises a typed platform course, and refuses invalid text', () => {
++    expect(buildClassification({ course: { type: 'other', text: '  ACCA  ' }, rows }).value).toEqual({ classification: 'custom', custom_course_label: 'ACCA' });
++    expect(buildClassification({ course: { type: 'other', text: 'ca   FOUNDATION' }, rows }).value).toEqual({ classification: 'platform', discipline_id: platform.discipline_id });
++    for (const text of ['', '   ', 'x'.repeat(121), 'a\tb']) expect(buildClassification({ course: { type: 'other', text }, rows }).ok).toBe(false);
++    const subject = buildClassification({ course: { type: 'other', text: 'ACCA' }, subject: { type: 'other', text: 'x'.repeat(121) }, rows });
++    expect(subject.ok).toBe(false);
++    expect(subject.error).toMatch(/subject name/);
++  });
++
++  it('stores General with nothing else and refuses a missing course', () => {
++    expect(buildClassification({ course: { type: 'general' }, subject: { type: 'row', row: subjectRow }, rows }).value).toEqual({ classification: 'general' });
++    expect(buildClassification({ course: null, rows }).ok).toBe(false);
++    expect(buildClassification({ course: { type: 'row', row: courseRow({ kind: 'other_action', label: 'Other' }) }, rows }).ok).toBe(false);
++  });
++});
++
++describe('isClassification', () => {
++  it('accepts exactly the shapes the picker builds', () => {
++    expect(isClassification({ classification: 'general' })).toBe(true);
++    expect(isClassification({ classification: 'platform', discipline_id: 'd1' })).toBe(true);
++    expect(isClassification({ classification: 'platform', discipline_id: 'd1', subject_id: 's1' })).toBe(true);
++    expect(isClassification({ classification: 'custom', custom_course_label: 'ACCA', custom_subject_label: 'Tax' })).toBe(true);
++  });
++
++  it('refuses a missing, mixed or empty shape', () => {
++    for (const value of [undefined, null, {}, 'general', { classification: 'other' }, { classification: 'platform' }, { classification: 'platform', discipline_id: '' },
++      { classification: 'custom' }, { classification: 'custom', custom_course_label: 'A', discipline_id: 'd1' }, { classification: 'general', custom_course_label: 'A' },
++      { classification: 'platform', discipline_id: 'd1', source: 'manual' }, [{ classification: 'general' }]]) {
++      expect(isClassification(value)).toBe(false);
++    }
++  });
++});
++
++describe('small helpers', () => {
++  it('matches a typed course to a row ignoring case and spacing, never to an action row', () => {
++    const rows = publicRows();
++    expect(matchTypedCourse(rows, ' cma   FINAL ').label).toBe('CMA Final');
++    expect(matchTypedCourse(rows, 'Other, type your own')).toBeNull();
++    expect(matchTypedCourse(rows, 'Nothing like it')).toBeNull();
++  });
++
++  it('starts the picker on the current course, or on nothing', () => {
++    expect(defaultCourseChoice(pickerRows('CA Final')).row.label).toBe('CA Final');
++    expect(defaultCourseChoice(pickerRows(null))).toBeNull();
++  });
++
++  it('describes rows the way the dropdowns show them', () => {
++    expect(describeCourseRow(courseRow({ kind: 'platform', label: 'CA Final', is_active: true }))).toBe('CA Final');
++    expect(describeCourseRow(courseRow({ kind: 'platform', label: 'CA Final', is_active: false, is_current: true }))).toBe('CA Final (no longer offered)');
++    expect(describeCourseRow(courseRow({ kind: 'current', label: 'CFA Level 1', custom_course_key: 'cfa level 1' }))).toBe('CFA Level 1 (current)');
++    expect(OTHER_OPTION).toBe('__other__');
++  });
++
++  it('remembers the last subject per course on this device only', () => {
++    const platform = pickerRows('CA Final')[0];
++    const custom = pickerRows('CA Final', ['CFA Level 1']).find((row) => row.kind === 'prior_custom');
++    expect(lastSubjectKey(platform)).toBe(`revisop_last_subject_d:${platform.discipline_id}`);
++    expect(lastSubjectKey(custom)).toBe('revisop_last_subject_c:cfa level 1');
++    const list = subjectRows(['Audit', 'Tax']);
++    rememberLastSubject(platform, list[1]);
++    expect(readLastSubject(platform)).toBe('s-1');
++    expect(rememberedSubjectRow(list, readLastSubject(platform)).label).toBe('Tax');
++    rememberLastSubject(platform, null);
++    expect(readLastSubject(platform)).toBeNull();
++    expect(rememberedSubjectRow(list, 'gone')).toBeNull();
++    rememberLastSubject(custom, { kind: 'prior_custom_subject', label: 'Ethics' });
++    expect(readLastSubject(custom)).toBe('Ethics');
++  });
++});
+diff --git a/src/pages/auth/Signup.jsx b/src/pages/auth/Signup.jsx
+index e009266..2b6a9d3 100644
+--- a/src/pages/auth/Signup.jsx
++++ b/src/pages/auth/Signup.jsx
+@@ -1,8 +1,9 @@
+ import { useState, useEffect } from 'react';
+ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+ import { useAuth } from '@/contexts/AuthContext';
+-import { supabase } from '@/lib/supabase';
+-import { validateCourseLabel, isSelectableCourseName } from '@/lib/courseLabel';
++import { validateCourseLabel } from '@/lib/courseLabel';
++import { OTHER_OPTION } from '@/lib/courseOptions';
++import { useCourseOptions } from '@/hooks/useCourseOptions';
+ 
+ export default function Signup() {
+   const [email, setEmail] = useState('');
+@@ -10,16 +11,19 @@ export default function Signup() {
+   const [fullName, setFullName] = useState('');
+   const [courseLevel, setCourseLevel] = useState('');
+   const [customCourse, setCustomCourse] = useState('');
+-  const [allCourses, setAllCourses] = useState([]);
+   const [error, setError] = useState('');
+   const [loading, setLoading] = useState(false);
+   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+   const { signUp } = useAuth();
++  // The course list is the database's public catalogue (T-002 F1): active platform courses, then the CMA and CS labels, in the database's order.
++  const courseList = useCourseOptions('signup');
++  const allCourses = courseList.rows.filter((row) => row.kind === 'platform' || row.kind === 'catalogue').map((row) => row.label);
++  const otherRow = courseList.rows.find((row) => row.kind === 'other_action');
++  const coursesReady = courseList.status === 'ready';
+   const navigate = useNavigate();
+   const [searchParams] = useSearchParams();
+ 
+   useEffect(() => {
+-    fetchAllCourses();
+     // Preserve ref token from invite link so Dashboard can link it after login.
+     // This is a write-only point (the key is read in Dashboard.jsx, where the
+     // recall_* → revisop_* migrate-on-mount lives) — just write the new key here.
+@@ -28,69 +32,10 @@ export default function Signup() {
+   }, []);
+ 
+   // Shown while typing, before submit: the same rule the database applies (an empty box is reported by the form on submit).
+-  const customCourseError = courseLevel === 'Other' && customCourse !== '' && !validateCourseLabel(customCourse).ok
++  const customCourseError = courseLevel === OTHER_OPTION && customCourse !== '' && !validateCourseLabel(customCourse).ok
+     ? validateCourseLabel(customCourse).error
+     : '';
+ 
+-  const fetchAllCourses = async () => {
+-    try {
+-      const { data: noteCourses, error: noteError } = await supabase
+-        .from('notes')
+-        .select('target_course')
+-        .not('target_course', 'is', null);
+-
+-      const { data: flashcardCourses, error: flashError } = await supabase
+-        .from('flashcards')
+-        .select('target_course')
+-        .not('target_course', 'is', null);
+-
+-      // Sprint 8.8.5f: the old read of profiles.course_level was removed - a visitor who is not logged in is never allowed to read
+-      // profiles (it always returned nothing), and the profiles table is no longer open to the logged-out role at all.
+-      if (noteError) throw noteError;
+-      if (flashError) throw flashError;
+-
+-      const predefinedCourses = [
+-        'CA Foundation',
+-        'CA Intermediate',
+-        'CA Final',
+-        'CMA Foundation',
+-        'CMA Intermediate',
+-        'CMA Final',
+-        'CS Foundation',
+-        'CS Executive',
+-        'CS Professional'
+-      ];
+-
+-      const customFromNotes = noteCourses?.map(n => n.target_course) || [];
+-      const customFromFlashcards = flashcardCourses?.map(f => f.target_course) || [];
+-      const allCustomCourses = [...new Set([
+-        ...customFromNotes,
+-        ...customFromFlashcards
+-      ])];
+-
+-      const uniqueCustomCourses = allCustomCourses.filter(
+-        course => !predefinedCourses.includes(course) && isSelectableCourseName(course)
+-      );
+-
+-      const mergedCourses = [...predefinedCourses, ...uniqueCustomCourses.sort()];
+-
+-      setAllCourses(mergedCourses);
+-    } catch (error) {
+-      console.error('Error fetching courses:', error);
+-      setAllCourses([
+-        'CA Foundation',
+-        'CA Intermediate',
+-        'CA Final',
+-        'CMA Foundation',
+-        'CMA Intermediate',
+-        'CMA Final',
+-        'CS Foundation',
+-        'CS Executive',
+-        'CS Professional'
+-      ]);
+-    }
+-  };
+-
+   const handleSubmit = async (e) => {
+     e.preventDefault();
+     setError('');
+@@ -101,13 +46,18 @@ export default function Signup() {
+       return;
+     }
+ 
++    if (!coursesReady) {
++      setError('The course list could not be loaded. Please refresh the page and try again.');
++      return;
++    }
++
+     if (!courseLevel) {
+       setError('Please select your course');
+       return;
+     }
+ 
+     let customCourseValue = null;
+-    if (courseLevel === 'Other') {
++    if (courseLevel === OTHER_OPTION) {
+       const check = validateCourseLabel(customCourse);
+       if (!check.ok) {
+         setError(check.error);
+@@ -119,7 +69,7 @@ export default function Signup() {
+     setLoading(true);
+ 
+     try {
+-      const finalCourseLevel = courseLevel === 'Other' ? customCourseValue : courseLevel;
++      const finalCourseLevel = courseLevel === OTHER_OPTION ? customCourseValue : courseLevel;
+       
+       const result = await signUp(email, password, fullName, finalCourseLevel);
+ 
+@@ -217,72 +167,31 @@ export default function Signup() {
+               value={courseLevel}
+               onChange={(e) => setCourseLevel(e.target.value)}
+               required
++              disabled={!coursesReady}
+               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+             >
+-              <option value="">Select your course...</option>
++              <option value="">{courseList.status === 'error' ? 'Courses could not be loaded' : 'Select your course...'}</option>
+               
+-              <optgroup label="Chartered Accountancy (CA)">
+-                {allCourses
+-                  .filter(course => course.startsWith('CA '))
+-                  .map(course => (
+-                    <option key={course} value={course}>
+-                      {course}
+-                    </option>
+-                  ))
+-                }
+-              </optgroup>
+-
+-              <optgroup label="Cost & Management Accountant (CMA)">
+-                {allCourses
+-                  .filter(course => course.startsWith('CMA '))
+-                  .map(course => (
+-                    <option key={course} value={course}>
+-                      {course}
+-                    </option>
+-                  ))
+-                }
+-              </optgroup>
+-
+-              <optgroup label="Company Secretary (CS)">
+-                {allCourses
+-                  .filter(course => course.startsWith('CS '))
+-                  .map(course => (
+-                    <option key={course} value={course}>
+-                      {course}
+-                    </option>
+-                  ))
+-                }
+-              </optgroup>
+-
+-              {allCourses.some(course => 
+-                !course.startsWith('CA ') && 
+-                !course.startsWith('CMA ') && 
+-                !course.startsWith('CS ')
+-              ) && (
+-                <optgroup label="Other Courses">
+-                  {allCourses
+-                    .filter(course => 
+-                      !course.startsWith('CA ') && 
+-                      !course.startsWith('CMA ') && 
+-                      !course.startsWith('CS ')
+-                    )
+-                    .map(course => (
+-                      <option key={course} value={course}>
+-                        {course}
+-                      </option>
+-                    ))
+-                  }
+-                </optgroup>
+-              )}
+-
+-              <option value="Other">+ Add custom course</option>
++              {/* The database's order, as served (T-002 F1): no list or grouping of our own. */}
++              {allCourses.map((course) => (
++                <option key={course} value={course}>
++                  {course}
++                </option>
++              ))}
++
++              {otherRow && <option value={OTHER_OPTION}>+ Add custom course</option>}
+             </select>
+             <p className="text-xs text-gray-500 mt-1">
+               Don't see your course? Select "Add custom course"
+             </p>
++            {courseList.status === 'error' && (
++              <p role="alert" className="text-xs text-red-600 mt-1">
++                The course list could not be loaded. <button type="button" onClick={courseList.reload} className="underline">Try again</button>
++              </p>
++            )}
+           </div>
+ 
+-          {courseLevel === 'Other' && (
++          {courseLevel === OTHER_OPTION && (
+             <div>
+               <label htmlFor="customCourse" className="block text-sm font-medium text-gray-700 mb-2">
+                 Specify your course
+diff --git a/src/pages/auth/Signup.test.jsx b/src/pages/auth/Signup.test.jsx
+index 07a3a86..51f1606 100644
+--- a/src/pages/auth/Signup.test.jsx
++++ b/src/pages/auth/Signup.test.jsx
+@@ -2,24 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
+ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+ import { MemoryRouter } from 'react-router-dom';
+ import Signup from '@/pages/auth/Signup';
++import { publicRows } from '@/lib/courseOptions.fixtures';
+ 
+ const signUp = vi.fn();
+-vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ signUp: (...a) => signUp(...a) }) }));
++vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ signUp: (...a) => signUp(...a), user: null, loading: false }) }));
+ 
+-let courseRows = [];
+-vi.mock('@/lib/supabase', () => ({
+-  supabase: {
+-    from: () => ({
+-      select: () => ({ not: () => Promise.resolve({ data: courseRows, error: null }) }),
+-    }),
+-  },
+-}));
++const rpc = vi.fn();
++vi.mock('@/lib/supabase', () => ({ supabase: { rpc: (...a) => rpc(...a) } }));
+ 
+ beforeEach(() => {
+   signUp.mockReset();
+   signUp.mockResolvedValue({ user: { identities: [{ id: 1 }] } });
++  rpc.mockReset();
++  rpc.mockResolvedValue({ data: publicRows(), error: null });
+   vi.spyOn(window, 'alert').mockImplementation(() => {});
+-  courseRows = [];
+ });
+ 
+ function renderSignup() {
+@@ -34,10 +30,56 @@ function fillBasics() {
+ 
+ async function chooseCustom() {
+   const select = await screen.findByLabelText(/which course/i);
+-  fireEvent.change(select, { target: { value: 'Other' } });
++  await waitFor(() => expect(select).not.toBeDisabled());
++  fireEvent.change(select, { target: { value: '__other__' } });
+   return screen.findByLabelText(/specify your course/i);
+ }
+ 
++describe('Signup course list (T-002 F1)', () => {
++  it('reads the public catalogue and nothing else: no table read, the database order, one custom-course entry', async () => {
++    renderSignup();
++    const select = await screen.findByLabelText(/which course/i);
++    await waitFor(() => expect(select).not.toBeDisabled());
++    expect(rpc).toHaveBeenCalledTimes(1);
++    expect(rpc).toHaveBeenCalledWith('get_course_options_public');
++    const values = Array.from(select.options).map((o) => o.value);
++    expect(values).toEqual([
++      '', 'CA Final', 'CA Foundation', 'CA Intermediate',
++      'CMA Foundation', 'CMA Intermediate', 'CMA Final', 'CS Foundation', 'CS Executive', 'CS Professional', '__other__',
++    ]);
++  });
++
++  it('shows the courses in the order the database serves them, even when that mixes the old CA, CMA and CS groups', async () => {
++    const rows = publicRows();
++    const mixed = [rows[3], rows[0], rows[6], rows[1], rows[4], rows[2], rows[5], rows[7], rows[8], rows[9]].map((row, i) => ({ ...row, position: i + 1 }));
++    rpc.mockResolvedValue({ data: mixed, error: null });
++    renderSignup();
++    const select = await screen.findByLabelText(/which course/i);
++    await waitFor(() => expect(select).not.toBeDisabled());
++    expect(Array.from(select.options).map((o) => o.value)).toEqual([
++      '', 'CMA Foundation', 'CA Final', 'CS Foundation', 'CA Foundation', 'CMA Intermediate', 'CA Intermediate', 'CMA Final', 'CS Executive', 'CS Professional', '__other__',
++    ]);
++    expect(select.querySelectorAll('optgroup')).toHaveLength(0);
++  });
++
++  it('shows a neutral state and sends nothing when the list cannot be loaded or breaks the contract', async () => {
++    rpc.mockResolvedValue({ data: null, error: { message: 'down' } });
++    renderSignup();
++    fillBasics();
++    const select = await screen.findByLabelText(/which course/i);
++    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/could not be loaded/i));
++    expect(select).toBeDisabled();
++    fireEvent.submit(select.closest('form'));
++    expect(signUp).not.toHaveBeenCalled();
++
++    rpc.mockResolvedValue({ data: publicRows().filter((row) => row.kind !== 'other_action'), error: null });
++    fireEvent.click(screen.getByRole('button', { name: /try again/i }));
++    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2));
++    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/could not be loaded/i));
++    expect(select).toBeDisabled();
++  });
++});
++
+ describe('Signup custom course (T-002 F0)', () => {
+   it('sends the trimmed custom course to signUp', async () => {
+     renderSignup();
+@@ -79,21 +121,13 @@ describe('Signup custom course (T-002 F0)', () => {
+     expect(signUp.mock.calls[0][3]).toBe('y'.repeat(120));
+   });
+ 
+-  it('does not offer existing course names that fail the rule, or the word Other, as dropdown options', async () => {
+-    courseRows = [
+-      { target_course: 'CFA Level 1' },
+-      { target_course: 'x'.repeat(121) },
+-      { target_course: 'bad\tname' },
+-      { target_course: 'Other' },
+-      { target_course: ' padded ' },
+-    ];
++  it('accepts the word Other as a typed course (the dropdown value is never sent)', async () => {
+     renderSignup();
+-    const select = await screen.findByLabelText(/which course/i);
+-    await waitFor(() => expect(Array.from(select.options).map((o) => o.value)).toContain('CFA Level 1'));
+-    const values = Array.from(select.options).map((o) => o.value);
+-    expect(values).not.toContain('x'.repeat(121));
+-    expect(values).not.toContain('bad\tname');
+-    expect(values).not.toContain(' padded ');
+-    expect(values.filter((v) => v === 'Other')).toHaveLength(1);
++    fillBasics();
++    const input = await chooseCustom();
++    fireEvent.change(input, { target: { value: 'Other' } });
++    fireEvent.submit(input.closest('form'));
++    await waitFor(() => expect(signUp).toHaveBeenCalledTimes(1));
++    expect(signUp.mock.calls[0][3]).toBe('Other');
+   });
+ });
+diff --git a/src/pages/dashboard/Profile/ProfileSettings.jsx b/src/pages/dashboard/Profile/ProfileSettings.jsx
+index 9a55ae1..44deb91 100644
+--- a/src/pages/dashboard/Profile/ProfileSettings.jsx
++++ b/src/pages/dashboard/Profile/ProfileSettings.jsx
+@@ -24,17 +24,13 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
+ import { useExamDateContext } from '@/contexts/ExamDateContext';
+ import { MONTH_NAMES, buildExamMonthValue, daysUntilExamDate } from '@/lib/examDate';
+ import ChangeEmail from '@/components/profile/ChangeEmail';
+-import { validateCourseLabel, profileCourseOptions } from '@/lib/courseLabel';
++import { validateCourseLabel, COURSE_LABEL_MAX } from '@/lib/courseLabel';
++import { OTHER_OPTION, describeCourseRow, matchTypedCourse } from '@/lib/courseOptions';
++import { useCourseOptions } from '@/hooks/useCourseOptions';
+ 
+ const CURRENT_YEAR = new Date().getFullYear();
+ const EXAM_YEAR_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2];
+ 
+-const COURSE_LEVELS = [
+-  'CA Foundation',
+-  'CA Intermediate',
+-  'CA Final',
+-];
+-
+ // Static curated list — sorted alphabetically, "Other" always last.
+ // To add new institutions, append to this array before "Other".
+ const INSTITUTION_OPTIONS = [
+@@ -90,6 +86,9 @@ export default function ProfileSettings() {
+   const [saving, setSaving] = useState(false);
+   const [fullName, setFullName] = useState('');
+   const [courseLevel, setCourseLevel] = useState('');
++  // T-002 F1: the course list is the database's catalogue for this student (current course, "no longer offered" marking). "Other" opens a typed course.
++  const courseList = useCourseOptions('profile');
++  const [customCourse, setCustomCourse] = useState('');
+   // Sprint 8.8.5c - course-change confirmation. `originalCourse` is the course as last saved; the form's
+   // `courseLevel` may differ until the student confirms. Nothing is written until confirmation.
+   const [originalCourse, setOriginalCourse] = useState('');
+@@ -230,7 +229,31 @@ export default function ProfileSettings() {
+ 
+     // The same course rule as Signup and the access form (T-002 F0), checked only when the course is being changed: a saved value the student
+     // does not touch is never re-validated or rewritten here (the database trigger also fires only when the course changes).
+-    if (courseLevel && courseLevel !== originalCourse) {
++    // A course choice made earlier is never saved while the list is unavailable (the list is what makes it valid); other details can still be saved.
++    if ((courseLevel === OTHER_OPTION || (courseLevel && courseLevel !== originalCourse)) && courseList.status !== 'ready') {
++      toast({
++        title: 'Course list not available',
++        description: 'Your course cannot be changed right now. Choose your course again once the list has loaded, or save your other details first.',
++        variant: 'destructive',
++      });
++      return null;
++    }
++
++    let courseToSave = courseLevel;
++    if (courseLevel === OTHER_OPTION) {
++      const courseCheck = validateCourseLabel(customCourse);
++      if (!courseCheck.ok) {
++        toast({
++          title: 'Course not valid',
++          description: courseCheck.error,
++          variant: 'destructive',
++        });
++        return null;
++      }
++      // A typed course that is already in the list is saved as that listed course.
++      const listed = courseList.status === 'ready' ? matchTypedCourse(courseList.rows, courseCheck.value) : null;
++      courseToSave = listed ? listed.label : courseCheck.value;
++    } else if (courseLevel && courseLevel !== originalCourse) {
+       const courseCheck = validateCourseLabel(courseLevel);
+       if (!courseCheck.ok) {
+         toast({
+@@ -241,25 +264,41 @@ export default function ProfileSettings() {
+         return null;
+       }
+     }
+-    return { trimmedName, finalInstitution };
++    return { trimmedName, finalInstitution, courseToSave };
+   };
+ 
+-  const persistProfile = async () => {
+-    const values = collectProfileValues();
++  const persistProfile = async (checked) => {
++    const values = checked || collectProfileValues();
+     if (!values) return;
+ 
+     setSaving(true);
+     try {
+       const { error } = await updateProfileDueFields(user.id, {
+         full_name: values.trimmedName,
+-        course_level: courseLevel || null,
++        course_level: values.courseToSave || null,
+         institution: values.finalInstitution || null,
+       });
+ 
+       if (error) throw error;
+ 
+-      const courseChanged = (courseLevel || '') !== originalCourse;
+-      setOriginalCourse(courseLevel || '');
++      const courseChanged = (values.courseToSave || '') !== originalCourse;
++      // The database writes the canonical text of the course (for example "ca  final" becomes "CA Final"): read the saved value back so the form,
++      // the "current" mark and the course-change check all use what is really stored.
++      let savedCourse = values.courseToSave || '';
++      const { data: saved, error: savedError } = await supabase.from('profiles').select('course_level').eq('id', user.id).single();
++      const readBackFailed = Boolean(savedError) || !saved;
++      if (!readBackFailed) savedCourse = saved.course_level || '';
++      setOriginalCourse(savedCourse);
++      setCourseLevel(savedCourse);
++      setCustomCourse('');
++      courseList.reload();
++
++      if (readBackFailed) {
++        toast({
++          title: 'Saved, but your course could not be re-read',
++          description: 'Your changes were saved. Please refresh the page to see your course exactly as it is stored.',
++        });
++      }
+ 
+       toast({
+         title: 'Profile updated',
+@@ -287,17 +326,18 @@ export default function ProfileSettings() {
+   // WHOLE form unsaved (no partial save of the unrelated fields) and puts the course dropdown back.
+   // Professors/admins manage teaching courses separately (profile_courses) and are not affected by archival.
+   const handleSave = async () => {
+-    if (!collectProfileValues()) return;
++    const values = collectProfileValues();
++    if (!values) return;
+ 
+-    const needsConfirm = !isContentCreator && originalCourse && (courseLevel || '') !== originalCourse;
++    const needsConfirm = !isContentCreator && originalCourse && (values.courseToSave || '') !== originalCourse;
+     if (!needsConfirm) {
+-      await persistProfile();
++      await persistProfile(values);
+       return;
+     }
+ 
+     setPreviewLoading(true);
+     try {
+-      const { data, error } = await supabase.rpc('preview_course_change', { p_new_course: courseLevel });
++      const { data, error } = await supabase.rpc('preview_course_change', { p_new_course: values.courseToSave });
+       if (error) throw error;
+       setCoursePreview(data);
+       setConfirmOpen(true);
+@@ -321,6 +361,7 @@ export default function ProfileSettings() {
+   const cancelCourseChange = () => {
+     setConfirmOpen(false);
+     setCourseLevel(originalCourse);
++    setCustomCourse('');
+     toast({
+       title: 'Course change cancelled',
+       description: 'Nothing was saved. Any other edits are still in the form - press Save Changes to save them.',
+@@ -505,18 +546,46 @@ export default function ProfileSettings() {
+           {/* Primary Course */}
+           <div className="space-y-2">
+             <Label>Primary Course</Label>
+-            <Select value={courseLevel} onValueChange={setCourseLevel}>
++            <Select value={courseLevel} onValueChange={setCourseLevel} disabled={courseList.status !== 'ready'}>
+               <SelectTrigger>
+-                <SelectValue placeholder="Select your active course" />
++                <SelectValue placeholder={courseList.status === 'error' ? 'Courses could not be loaded' : 'Select your active course'} />
+               </SelectTrigger>
+               <SelectContent>
+-                {profileCourseOptions(COURSE_LEVELS, originalCourse).map((option) => (
+-                  <SelectItem key={option.value} value={option.value}>
+-                    {option.label}
+-                  </SelectItem>
+-                ))}
++                {courseList.status === 'ready'
++                  ? courseList.rows.map((row) => (row.kind === 'other_action'
++                    ? <SelectItem key="other-action" value={OTHER_OPTION}>{row.label}</SelectItem>
++                    : <SelectItem key={`${row.kind}-${row.label}`} value={row.label}>{describeCourseRow(row)}</SelectItem>))
++                  : (originalCourse && Array.from(originalCourse).length <= COURSE_LABEL_MAX
++                    ? <SelectItem value={originalCourse}>{originalCourse}</SelectItem>
++                    : null)}
+               </SelectContent>
+             </Select>
++            {courseList.status === 'error' && (
++              <p role="alert" className="text-xs text-red-600">
++                The course list could not be loaded, so your course cannot be changed right now. Your other details can still be saved.{' '}
++                <button type="button" onClick={courseList.reload} className="underline">Try again</button>
++              </p>
++            )}
++            {originalCourse && Array.from(originalCourse).length > COURSE_LABEL_MAX && courseLevel === originalCourse && (
++              <p role="status" className="text-xs text-amber-700">
++                Your saved course is too long to use as a name. Choose a course or type a shorter one.
++              </p>
++            )}
++            {courseLevel === OTHER_OPTION && (
++              <div className="space-y-1">
++                <Label htmlFor="profile-custom-course">Your course</Label>
++                <Input
++                  id="profile-custom-course"
++                  value={customCourse}
++                  onChange={(e) => setCustomCourse(e.target.value)}
++                  placeholder="e.g., CFA Level 1, ACCA, JEE, NEET, MSc Economics"
++                  aria-invalid={customCourse !== '' && !validateCourseLabel(customCourse).ok ? 'true' : 'false'}
++                />
++                {customCourse !== '' && !validateCourseLabel(customCourse).ok && (
++                  <p role="alert" className="text-xs text-red-600">{validateCourseLabel(customCourse).error}</p>
++                )}
++              </div>
++            )}
+             {!isContentCreator && (
+               <p className="text-xs text-gray-500">
+                 Changing your course moves cards from your previous course out of My Study and Review.
+diff --git a/src/pages/dashboard/Profile/ProfileSettings.test.jsx b/src/pages/dashboard/Profile/ProfileSettings.test.jsx
+new file mode 100644
+index 0000000..a7a00cf
+--- /dev/null
++++ b/src/pages/dashboard/Profile/ProfileSettings.test.jsx
+@@ -0,0 +1,182 @@
++import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
++import { render, screen, fireEvent, waitFor } from '@testing-library/react';
++import ProfileSettings from '@/pages/dashboard/Profile/ProfileSettings';
++import { publicRows } from '@/lib/courseOptions.fixtures';
++
++vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1', email: 'asha@example.com' }, loading: false }) }));
++vi.mock('@/contexts/CourseContext', () => ({
++  useCourseContext: () => ({
++    teachingCourses: [], isContentCreator: false, addCourse: vi.fn(), removeCourse: vi.fn(), setPrimaryCourse: vi.fn(), refetchTeachingCourses: vi.fn(), loading: false,
++  }),
++}));
++vi.mock('@/contexts/ExamDateContext', () => ({ useExamDateContext: () => ({ examDate: null, examMonth: null, loading: false, saveExamDate: vi.fn() }) }));
++vi.mock('@/hooks/usePushNotifications', () => ({
++  usePushNotifications: () => ({ isSupported: false, isSubscribed: false, permission: 'default', isLoading: false, needsIOSInstall: false, subscribe: vi.fn(), unsubscribe: vi.fn() }),
++}));
++vi.mock('@/components/profile/ChangeEmail', () => ({ default: () => null }));
++let courseListOverride = null;
++vi.mock('@/hooks/useCourseOptions', async (importOriginal) => {
++  const real = await importOriginal();
++  // The real hook always runs (hook order stays fixed); a test may replace what it returns to simulate the list failing after a choice was made.
++  return { useCourseOptions: (...args) => { const live = real.useCourseOptions(...args); return courseListOverride || live; } };
++});
++vi.mock('@/components/layout/PageContainer', () => ({ default: ({ children }) => <div>{children}</div> }));
++const toast = vi.fn();
++vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: (...a) => toast(...a) }) }));
++
++const updateProfileDueFields = vi.fn();
++vi.mock('@/lib/dueSet', () => ({
++  updateProfileDueFields: (...a) => updateProfileDueFields(...a),
++  updateDailyGoal: vi.fn(),
++}));
++
++let savedCourse = 'CA Final';
++let readBackFails = false;
++let rowsToServe;
++const rpc = vi.fn();
++vi.mock('@/lib/supabase', () => ({
++  supabase: {
++    rpc: (...a) => rpc(...a),
++    from: () => ({
++      select: (columns) => ({
++        eq: () => ({
++          single: () => (readBackFails && !columns.includes('full_name')
++            ? Promise.resolve({ data: null, error: { message: 'down' } })
++            : Promise.resolve({
++            data: columns.includes('full_name')
++              ? { full_name: 'Asha', course_level: savedCourse, institution: null, daily_review_goal: null, daily_study_goal_minutes: null }
++              : { course_level: savedCourse },
++            error: null,
++          })),
++        }),
++      }),
++    }),
++  },
++}));
++
++beforeAll(() => {
++  window.HTMLElement.prototype.hasPointerCapture = () => false;
++  window.HTMLElement.prototype.releasePointerCapture = () => {};
++  window.HTMLElement.prototype.scrollIntoView = () => {};
++});
++
++function profileRows(overrides = {}) {
++  return publicRows().map((row) => ({ ...row, ...(overrides[row.label] || {}) }));
++}
++
++beforeEach(() => {
++  toast.mockReset();
++  updateProfileDueFields.mockReset();
++  updateProfileDueFields.mockResolvedValue({ error: null });
++  savedCourse = 'CA Final';
++  readBackFails = false;
++  courseListOverride = null;
++  rowsToServe = profileRows({ 'CA Final': { is_current: true } });
++  rpc.mockReset();
++  rpc.mockImplementation((name) => {
++    if (name === 'get_course_options') return Promise.resolve({ data: rowsToServe, error: null });
++    if (name === 'preview_course_change') return Promise.resolve({ data: { moving_out: 0, returning: 0 }, error: null });
++    return Promise.resolve({ data: null, error: { message: 'unexpected ' + name } });
++  });
++});
++
++async function loaded() {
++  render(<ProfileSettings />);
++  const trigger = await screen.findByText('Primary Course');
++  await waitFor(() => expect(screen.getAllByRole('combobox')[0]).not.toBeDisabled());
++  return trigger;
++}
++
++function openCourseList() {
++  fireEvent.keyDown(screen.getAllByRole('combobox')[0], { key: 'Enter' });
++}
++
++describe('Profile Settings course (T-002 F1)', () => {
++  it('reads the profile list from the database and shows the saved course, marked when it is the student\'s own custom course', async () => {
++    savedCourse = 'CFA Level 1';
++    rowsToServe = [
++      ...profileRows().filter((row) => row.kind !== 'other_action'),
++      { ...publicRows()[0], kind: 'current', label: 'CFA Level 1', discipline_id: null, is_active: null, is_current: true, custom_course_key: 'cfa level 1' },
++      publicRows().find((row) => row.kind === 'other_action'),
++    ].map((row, i) => ({ ...row, position: i + 1 }));
++    await loaded();
++    expect(rpc).toHaveBeenCalledWith('get_course_options', { p_surface: 'profile' });
++    await waitFor(() => expect(screen.getAllByRole('combobox')[0].textContent).toMatch(/CFA Level 1 \(current\)/));
++  });
++
++  it('marks an inactive current course as no longer offered', async () => {
++    rowsToServe = profileRows({ 'CA Final': { is_current: true, is_active: false } });
++    await loaded();
++    await waitFor(() => expect(screen.getAllByRole('combobox')[0].textContent).toMatch(/CA Final \(no longer offered\)/));
++  });
++
++  it('says why when the saved course is too long to use as a name', async () => {
++    savedCourse = 'z'.repeat(121);
++    rowsToServe = profileRows();
++    await loaded();
++    await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/too long to use as a name/));
++  });
++
++  it('saves a typed course trimmed after the confirmation preview, and reads back what the database stored', async () => {
++    await loaded();
++    openCourseList();
++    fireEvent.click(await screen.findByRole('option', { name: 'Other, type your own' }));
++    const input = await screen.findByLabelText('Your course');
++    fireEvent.change(input, { target: { value: '  CFA Level 1  ' } });
++    savedCourse = 'CFA Level 1';
++    fireEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
++    await waitFor(() => expect(rpc).toHaveBeenCalledWith('preview_course_change', { p_new_course: 'CFA Level 1' }));
++    fireEvent.click(await screen.findByRole('button', { name: /Change course and save/ }));
++    await waitFor(() => expect(updateProfileDueFields).toHaveBeenCalledTimes(1));
++    expect(updateProfileDueFields.mock.calls[0][1].course_level).toBe('CFA Level 1');
++  });
++
++  it('blocks an invalid typed course with a message and saves nothing', async () => {
++    await loaded();
++    openCourseList();
++    fireEvent.click(await screen.findByRole('option', { name: 'Other, type your own' }));
++    const input = await screen.findByLabelText('Your course');
++    fireEvent.change(input, { target: { value: 'x'.repeat(121) } });
++    expect(screen.getAllByRole('alert')[0].textContent).toMatch(/too long/);
++    fireEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
++    await waitFor(() => expect(toast).toHaveBeenCalled());
++    expect(updateProfileDueFields).not.toHaveBeenCalled();
++  });
++
++  it('does not save a course chosen earlier when the list becomes unavailable, but the other details can still be saved', async () => {
++    await loaded();
++    openCourseList();
++    fireEvent.click(await screen.findByRole('option', { name: 'CA Foundation' }));
++    courseListOverride = { status: 'error', rows: [], reload: vi.fn() };
++    fireEvent.change(screen.getByDisplayValue('Asha'), { target: { value: 'Asha K' } });
++    fireEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
++    await waitFor(() => expect(toast).toHaveBeenCalled());
++    expect(toast.mock.calls[0][0].title).toBe('Course list not available');
++    expect(updateProfileDueFields).not.toHaveBeenCalled();
++  });
++
++  it('says so when the stored course cannot be re-read after a save, and keeps what was saved', async () => {
++    await loaded();
++    openCourseList();
++    fireEvent.click(await screen.findByRole('option', { name: 'Other, type your own' }));
++    fireEvent.change(await screen.findByLabelText('Your course'), { target: { value: 'CFA Level 1' } });
++    readBackFails = true;
++    fireEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
++    fireEvent.click(await screen.findByRole('button', { name: /Change course and save/ }));
++    await waitFor(() => expect(updateProfileDueFields).toHaveBeenCalledTimes(1));
++    await waitFor(() => expect(toast.mock.calls.map((c) => c[0].title)).toContain('Saved, but your course could not be re-read'));
++    expect(toast.mock.calls.map((c) => c[0].title)).toContain('Profile updated');
++  });
++
++  it('does not block saving the other details when the course list cannot be loaded', async () => {
++    rpc.mockImplementation((name) => (name === 'get_course_options'
++      ? Promise.resolve({ data: null, error: { message: 'down' } })
++      : Promise.resolve({ data: null, error: { message: 'unexpected' } })));
++    render(<ProfileSettings />);
++    await waitFor(() => expect(screen.getByText(/course list could not be loaded/i)).toBeTruthy());
++    expect(screen.getAllByRole('combobox')[0]).toBeDisabled();
++    fireEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
++    await waitFor(() => expect(updateProfileDueFields).toHaveBeenCalledTimes(1));
++    expect(updateProfileDueFields.mock.calls[0][1].course_level).toBe('CA Final');
++  });
++});

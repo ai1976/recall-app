@@ -85,3 +85,6 @@ The current plan file is named in `CURRENT.md`. Plan files are immutable hashed 
 
 ## Entry 19 (09/10/2026, thread Round 96)
 - **F1 frontend patch `0c8cdb05d7fe` written** (Signup, Profile Settings, access form and the study-log picker render the B-06a catalogue; every manual log is stored classified; three new RPC names classified in the due-set guard). Not pushed. The deployment choreography (S0 snapshot, promote, S1 snapshot) and Gate 7 follow after QA and Gates 5 and 6.
+
+## Entry 20 (09/10/2026, thread Round 98)
+- **F1 patch v2 `9ffdc1a2e3d7` answers QA Round 97 (v1 `0c8cdb05d7fe` PASS WITH CONDITIONS).** Signup shows the database order; the subject-list contract is stricter; a failed subject list blocks Save; rejected calls are failures; Profile Settings holds a stale course choice and reports a failed read-back; the access form's profile read waits for the session state. Not pushed.
