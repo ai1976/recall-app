@@ -3469,3 +3469,57 @@ Mapping of every writer to the transition table of plan v18 section 7:
 Audit the changed files by hash (TEST v2, ROLLBACK v2; SCHEMA v1 bytes are unchanged). Confirm the blocker is closed or name what remains. Gates 2 to 7 not given for B-05.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
+
+---
+
+## Round 84 · QA · 09/10/2026
+
+### Scope and preconditions
+
+The Round 83 handoff was valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 83 and last QA-reviewed round 80. I read `CHATGPT_QA.md`, the complete protocol and the Tiered checking section of `docs/discussions/README.md`, Round 83, the complete D-06 evidence index, and the complete B-05 TEST v2 and ROLLBACK v2. I did not run SQL, access a database, run a build or test, or use an external service. The exact hashes supplied in Round 83 match the files on disk:
+
+| Artifact | Full SHA-256 |
+|---|---|
+| `B-05_SCHEMA_flashcards-notes-course-derive_v1.sql` (unchanged) | `b1714e829cddbac90ca5900ea6b11cab24b3f0304d456916085f30e879b8ddf4` |
+| `B-05_TEST_flashcards-notes-course-derive_v2.sql` | `53d616857ffca55dd8f45159d3f425f50689f7313f8cadc3260a649102464397` |
+| `B-05_ROLLBACK_flashcards-notes-course-derive_v2.sql` | `073bf80d062d0cfe49025a657b5239c683acf0d61c6ee1dc322d197ea58166bb` |
+| `T-002_D6-index_09-10-2026.md` | `c46379b8a7534cfe4f55ea0ef781cb3e2be6b24659ee65ea14e110bc8e692bf9` |
+
+### Round 81 blocker
+
+**CLOSED, with the evidence and execution conditions below.** D-06 v2's saved result is a read-only, Founder-run result over 251 non-extension routines. It identifies the six routines with direct statements on `flashcards` or `notes`, including the deployed `create_flashcard_batches` body hash and its S/D/T projection. D4/D5 bind the current frontend callers and payloads, and TEST v2 now exercises the production RPC as `authenticated`, current flashcard batch updates, note updates and note insertion, including contradictory-D and unknown-subject refusals. The five notes/upvote routines update columns outside S/D/T, so the B-05 trigger does not fire for them. This closes the concrete live-writer compatibility gap identified in Round 81.
+
+The D-06 index also records one no-direct-statement lead, `realtime.apply_rls`, and explicitly says that computed table names and a text scan are not a call graph. D3's dynamic-SQL identities are extension/realtime/storage-owned and none names these target relations; no non-extension unresolved writer is identified. I therefore treat the generic extension lead and the unproven hypothetical computed-table-name path as reported evidence limitations, not a remaining concrete B-05 writer blocker. Gate 4 must still retain the complete D-06 raw/JSON evidence and the exact TEST output.
+
+### Blocking findings
+
+None. No changed byte introduces data loss or corruption, an outage or unacceptable lock behaviour, a privilege or privacy escape, an incorrect student-visible boundary, or a failed rollback. The prior blocker is closed as stated above.
+
+### Non-blocking findings
+
+1. **D-06 evidence tuple is incomplete in the index.** It records the source short hash, tool version, database version, raw-output hash, decoded JSON hash, counts and an explicit no-write statement, but it does not record the source/deployment commit (or explicitly say that no commit was available). Add that field to the evidence record before treating the Tier 0 record as complete. This is an evidence-integrity condition, not a B-05 safety blocker because the exact source hash is present and independently verified here.
+2. **Execution evidence remains outstanding.** This review was static. Gate 4 must run the exact TEST v2 once, retain every result row and the SUMMARY, require every check to be true, and retain the D-06 raw and decoded files. A timeout is a stop, not a functional pass; concurrency remains explicitly `NOT COVERED` and the run must be done in a quiet window.
+3. **The real-role proof is database-role based rather than an HTTP/browser journey.** `SET LOCAL ROLE authenticated` plus the production RPC and current payloads is adequate compatibility evidence for this round, but Gate 4 should preserve the actual authenticated identity/role context and a successful representative application call if available. This does not create a new blocker.
+4. **Rollback is not executed by this audit.** Gate 4 evidence must run the exact ROLLBACK v2 only in its stated safe dependency/order window and retain its all-true identity and pre-B-05-state assertions. The v2 text itself has the required exact trigger/function/constraint identity and reverse-drop checks.
+
+### Strengths or confirmed controls
+
+- The TEST v2 adds the previously missing unknown-discipline UPDATE cases for custom and discipline-only rows, and its 56-case-per-table claim matches the matrix.
+- The production RPC test covers subject-bearing, custom-course and discipline-name-only rows plus contradictory D and unknown S failures; the current frontend payload block covers platform/custom flashcard updates, unchanged/changed note subjects and note insertion.
+- ROLLBACK v2 binds the function body and security attributes, both B-05 triggers, each composite key and the recorded pre-B-05 triggers/constraints before dropping objects; the order is dependency-safe.
+- D-06 is explicitly read-only and its saved index links the raw output and decoded JSON by exact hash. No persistent TEST write is intended; all fixture changes are rollback-only.
+
+### Reported residuals
+
+- `realtime.apply_rls` and any computed table name hidden from a text scan remain a documented Tier 0 evidence limitation; D3/D6 identify no non-extension target writer. An owner or superuser can still bypass, replace or disable reviewed objects, and forged/substituted inputs after independent hash binding remain residuals. These are not blockers under the Tiered checking definition.
+
+### Per-file verdicts and disposition
+
+- `B-05_SCHEMA_flashcards-notes-course-derive_v1.sql`: **PASS WITH CONDITIONS**; the Round 81 writer-compatibility prerequisite is now closed by the D-06/D3/D4/D5 evidence. Gate 2/4 conditions above apply.
+- `B-05_TEST_flashcards-notes-course-derive_v2.sql`: **PASS WITH CONDITIONS**; no new blocker in changed bytes. Run the exact hash and require all rows/SUMMARY true.
+- `B-05_ROLLBACK_flashcards-notes-course-derive_v2.sql`: **PASS WITH CONDITIONS**; no new blocker in changed bytes. Execute only in the stated safe window and preserve the exact rollback evidence.
+- D-06 evidence index: **PASS WITH CONDITIONS** for Tier 0 use, subject to adding the source/deployment commit (or an explicit unavailable value) and retaining the raw/decoded hashes.
+
+Overall disposition: **PASS WITH CONDITIONS**. The B-05 set may go to the Founder for Gate 2; this QA advice is not Gate 2 authorization.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 using the exact B-05 hashes, with the evidence and execution conditions above.
