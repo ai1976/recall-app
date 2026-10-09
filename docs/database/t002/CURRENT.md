@@ -17,5 +17,7 @@ Operators: before running anything, find the artifact here and check that the fi
 | B-04a verify (read-only) | `B-04a_VERIFY_object-identities_v2.sql` `30a2172e5ecc` [v1 `cb65173d25f1` SUPERSEDED] | Round 54 | 0 | RUN 08/10/2026 |
 | F0 frontend patch (not SQL) | `docs/discussions/T-002_F0_frontend-patch-v2_08-10-2026.patch` `098a7ebb4b9a` [v1 `f0cf524ed4f0` SUPERSEDED] | Round 60 | frontend | LIVE (commit `ac5e64b`); Gates 5, 6, 7 complete (Round 66) |
 | F0 verify (read-only) | `F0_VERIFY_signup-profile-course_v1.sql` `3490e70d7197` | Round 65 | 0 | RUN 09/10/2026 |
+| B-03 profiles course trigger | `B-03_SCHEMA_profiles-course-trigger_v1.sql` `9ac3c2e6ff47` (+ `_TEST_` `160018d13ebd`, `_ROLLBACK_` `67448c2e38b2`) | thread Round 67 | 1 | submitted to QA, Tier 1 round 1; NOT run |
+| B-07 access_requests course trigger | `B-07_SCHEMA_access-requests-course-trigger_v1.sql` `8ca0062e0e8d` (+ `_TEST_` `0f094074a7fd`, `_ROLLBACK_` `676e7735d014`) | thread Round 67 | 1 | submitted to QA, Tier 1 round 1; NOT run; limited to request_type student_access (deviation, Round 67) |
 
 Every other `D-0x` and `00_PLAN_*` file in this folder is SUPERSEDED.

@@ -2868,3 +2868,35 @@ Handoff: `AWAITING-FOUNDER` - Founder runs the one read-only query and saves the
 **Next:** B-03 (profiles trigger: validate and canonicalise `course_level`) and B-07 (`access_requests.course` trigger), both now unblocked by F0 live, after the Founder accepts the 4C residual (a tab not reloaded since before F0 could send over-length or control-character text and would get a database refusal).
 
 Handoff: `AWAITING-CLAUDE` - Claude drafts B-03 and B-07 once the Founder confirms the 4C acceptance.
+
+---
+
+## Round 67 · Claude · 09/10/2026
+**Founder decision (chat, 09/10/2026):** 4C ACCEPTED (stale-tab residual of plan v18 section 4C); go ahead with B-03 and B-07. The Founder also asked how Profile Settings should show the primary course of a student registered with a custom course (answered in chat; summary below, no change made).
+**Scope.** Tier 1 round 1 for B-03 and B-07 (plan v18 section 6; brief B v10 5.1 to 5.3a). Not run (no database engine); read statement by statement.
+
+### A. Files and exact hashes (in `docs/database/t002/`)
+| File | Lines | Short | Full sha256 |
+|---|---|---|---|
+| `B-03_SCHEMA_profiles-course-trigger_v1.sql` | 117 | `9ac3c2e6ff47` | `9ac3c2e6ff47eafdc4daa76e9a3de80cee2ad89c03db412535d96c29f6827eb6` |
+| `B-03_TEST_profiles-course-trigger_v1.sql` | 181 | `160018d13ebd` | `160018d13ebd0d3bdd392a312523988f2275dff24e3b64e626ffa735084f78ce` |
+| `B-03_ROLLBACK_profiles-course-trigger_v1.sql` | 16 | `67448c2e38b2` | `67448c2e38b2720ea60e47acfb2f5715697fd948ed37da879cbd99f3170b3b2e` |
+| `B-07_SCHEMA_access-requests-course-trigger_v1.sql` | 121 | `8ca0062e0e8d` | `8ca0062e0e8dd78684b97c5efec09873706929ad259a4f5a23a4a48c89e0b8a6` |
+| `B-07_TEST_access-requests-course-trigger_v1.sql` | 160 | `0f094074a7fd` | `0f094074a7fd93de346b59a3e41060010c8ef7b3d52df7b32b9ecf9fb2222768` |
+| `B-07_ROLLBACK_access-requests-course-trigger_v1.sql` | 15 | `676e7735d014` | `676e7735d0144c7db82caf2bda0dfda3205b14609f048b8ed7300f9092c3c2bb` |
+
+### B. What they do
+Both add one BEFORE trigger and one SECURITY DEFINER function (pinned search_path, owner only): unchanged value on UPDATE returns at once; NULL kept; otherwise trim outer spaces; refuse empty, over 120 characters (code points) or a control character (23514); rewrite a normalized match of a discipline name or a CMA/CS catalogue label to its exact text through `resolve_canonical_course_label`; any other text stored trimmed; no rule about the word Other. B-03 acts on `profiles.course_level` (insert, including the signup chain `fn_create_profile_on_signup`, and update of that column); B-07 on `access_requests.course`. Each SCHEMA file takes a SHARE ROW EXCLUSIVE lock under 5 s / 30 s timeouts, binds the live state (see change-log Entry 5), proves by a hash that no existing row changed, and ends with one proof row. No data is changed.
+
+### C. Points for QA and the Founder
+1. **B-07 deviation (change-log Entry 5).** Limited to `request_type = 'student_access'`: the institute inquiry and educator application functions write free text into the same column. The TEST proves a 200-character course and outer spaces are stored unchanged for those types. If the Founder wants the rule on every type, the other two forms need a decision first.
+2. **TEST design.** Real roles (JWT claims plus SET LOCAL ROLE): B-03 updates as a student (12 cases), a legacy over-limit value (unrelated update and equal value succeed, changed value refused, using a trigger disabled inside a rolled-back sub-transaction), a newly added discipline resolved at once, and the real signup chain with rolled-back `auth.users` fixture rows (5 cases; if the editor role cannot insert into `auth.users` the check shows false with the SQLSTATE, nothing is damaged). B-07 calls `submit_access_request` as anon and as a student, a direct insert as a student, status update and equal and changed course updates, and the other request types. Both end by proving the table is identical to its baseline.
+3. **Known limit.** Real HTTP and the browser paths are Gate 4 and Gate 7 items (a new real signup, a Profile Settings change, an access request); concurrency is `NOT COVERED` (a 5 s lock timeout makes a busy moment abort and be repeated).
+4. **Not changed:** profile and access-request data, the AFTER course-change trigger and the protected-columns trigger (coexistence tested), grants.
+
+### D. Request to QA (Tier 1 round 1)
+Audit the six files by hash. List every defect now as blocker or non-blocking (README, Tiered checking), and say whether the B-07 scope limit is acceptable.
+
+Gates 2 to 7 not given for B-03 and B-07.
+
+Handoff: `AWAITING-QA` - QA to append one round answering D.

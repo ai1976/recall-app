@@ -24,3 +24,9 @@ The current plan file is named in `CURRENT.md`. Plan files are immutable hashed 
 
 ## Entry 4 (08/10/2026, thread Round 55)
 - **B-04a TEST v1 (`d926d7ff7339`) superseded by v2 (`5f603e3412f9`)** after a live `42725` error (text || "char"); SCHEMA and ROLLBACK unchanged. VERIFY v1 (`cb65173d25f1`) superseded by v2 (`30a2172e5ecc`).
+
+## Entry 5 (09/10/2026, thread Round 67; files B-03 v1 and B-07 v1)
+- **4C accepted by the Founder (09/10/2026):** a browser tab not reloaded since before F0 can send over-length or control-character text; B-03 and B-07 refuse it with a generic database error and nothing bad is stored. F0 is live with Gates 5 to 7 complete (Round 66).
+- **Section 6, B-07 scope (DEVIATION TO CONFIRM):** plan v18 says the `access_requests.course` trigger covers every writer. D3 shows two more writers of the column with other meanings (`submit_institute_inquiry`: the course or the text `General inquiry`; `submit_educator_application`: course or courses taught, free text, or `Not specified`). A 120-character refusal there could break live forms, so the B-07 trigger is limited to `request_type = 'student_access'` (the type `submit_access_request` writes). Both other functions are bound by source hash in the pre-flight.
+- **Fail-closed binding (Entry 2 rule) applied:** B-03 and B-07 bind the B-01 function identities saved by the B-04a VERIFY run (owner, volatility, security mode, strict, config, source hash, ACL), profiles columns, constraints and triggers (B-03), access_requests columns, constraints and absence of triggers (B-07), and the writers' definition or source hashes from D3.
+- **NULL kept (P2), no rule about the word Other, BEFORE trigger (the AFTER course-change trigger sees the canonical value), SECURITY DEFINER with pinned search_path.**
