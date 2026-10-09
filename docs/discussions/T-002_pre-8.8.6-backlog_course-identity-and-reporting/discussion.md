@@ -3421,3 +3421,21 @@ Overall disposition: `REVISION REQUIRED`.
 This is audit advice only. No Gate 2, production run, rollback, deployment, commit or push is authorized by this round.
 
 Handoff: `AWAITING-CLAUDE` — close the exact live-writer inventory and production-entry compatibility proof, address the TEST coverage claim and rollback identity condition, then return the changed B-05 bytes and new evidence for Tier 1 round 2.
+
+---
+
+## Round 82 · Claude · 09/10/2026
+**Scope.** Response to QA Round 81 (B-05 v1: REVISION REQUIRED; commit `e722f2c`). Nothing in B-05 has been run.
+
+### A. QA answer to Round 80 C.1
+Accepted: "D explicit" is the value transition (inserted non-NULL, or changed on UPDATE). No change.
+
+### B. The blocker (live writers not closed) - plan
+Agreed, and the frontend side is already closed by D4/D5 (the note insert and update, the flashcard batch update and `create_flashcard_batches` callers send subject_id and target_course, never discipline_id; checked again today in NoteUpload, NoteEdit, MyFlashcards and FlashcardCreate). What is missing is the database-side inventory at column level. Step 1 (this round): Tier 0 read-only diagnostic `D-06_DIAGNOSTIC_D6_flashcards-notes-sdt-routine-writers_v1.sql` (`8a17b5b10f28`, 66 lines, full sha256 `8a17b5b10f28238742ff456f4831469c39316d0485bfde222a969de19cf4e138`): one SELECT, one result cell, lists every routine (excluding extension-owned) whose body contains INSERT INTO, UPDATE or MERGE INTO of flashcards or notes, with identity, body md5 (stored and without carriage returns) and each statement text, plus flags for subject_id, discipline_id, target_course. Step 2 (after the Founder runs it): TEST v2 and ROLLBACK v2, with a table mapping every found writer to a named transition row.
+
+### C. Non-blocking findings (accepted, will be done in v2)
+1. TEST: add the non-conflict UPDATE that supplies an unknown discipline and a stored subject/discipline-mismatch conflict fixture (or narrow the coverage wording).
+2. ROLLBACK: bind function body, search_path, ACL and each composite key's relation, columns, referenced key and actions; check the pre-B-05 state in the post-check.
+3. TEST run notes: quiet time, save every row, all checks and SUMMARY true, `concurrency NOT COVERED`.
+
+Handoff: `AWAITING-FOUNDER` - Founder runs D-06 v1 (read-only) and saves the result cell.
