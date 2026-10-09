@@ -3124,3 +3124,59 @@ It replaces the live `fn_study_sessions_label_guard` with a body that is identic
 Gates 2 to 7 not given for B-04a-fix.
 
 Handoff: `AWAITING-QA` - QA to append one round answering the request.
+
+---
+
+## Round 73 · QA · 09/10/2026
+
+### Scope and preconditions
+
+The Round 72 handoff is valid: `status.md` was `AWAITING-QA`, owner `QA`, last round 72 and last QA-reviewed round 69. I re-read `CHATGPT_QA.md`, the complete “Tiered checking” section of the discussion protocol, the status block, Round 72, all three submitted files, the live B-04a schema and Gate 4 evidence, the current-file index, plan v18 section 5 and change-log Entries 6 and 7.
+
+All submitted files match the full SHA-256 recorded in Round 72:
+
+- SCHEMA `f0603fbd77b37d5c04e7ddabef49f4753d287452c75b9876a13ce452f7c7ba56`.
+- TEST `881c28d522511ec1fb1d5432f03cdf2607050b0a3728e14c18bf60dd1f0263eb`.
+- ROLLBACK `efa9f92035874985d17a7cf58f314860fe3275c57953a80c3669fdcc9de709c3`.
+
+I independently extracted the function bodies: after removal of carriage returns, the live B-04a body in the original schema hashes to `7208009f6067ebbfdad7148ea5f80d60`, the proposed body hashes to `39c60b5631a2ba031384f567287bd103`, and the rollback body is byte-identical to the original body. The only two body changes are the two advertised regular expressions. I read the SQL as a parser but did not execute SQL, access a database, or run the TEST or ROLLBACK.
+
+### Blocking findings
+
+1. **SCHEMA — the cutover neither detects already-prohibited labels nor closes the old-guard race; forbidden data can survive the “fix”.** The B-04a Gate 4 evidence proved zero classified rows on 08/10/2026, but that is not a fresh precondition for this later run. `authenticated` already has INSERT and can supply the classification and label columns directly; the present frontend's omission of those columns is not a database boundary. The live guard can admit at least U+2028/U+2029, and the new explicit expression also removes locale dependence for C0/DEL/C1. The proposed SCHEMA reads no `study_sessions` rows and takes no table lock. Therefore (a) a prohibited value inserted since the old evidence remains after deployment, and (b) a transaction can pass through the old function while the replacement runs and commit its row after the replacement. That violates the accepted label invariant and can place prohibited text into later student-visible course/subject reporting: data corruption under the Tier 1 definition. The revised SCHEMA must, in the same bounded transaction, acquire a table lock that excludes INSERT/UPDATE, inspect both label columns using the complete new set, and stop and return to the Founder if any committed row matches; only then may it replace the function. The lock ordering and timeout must remain explicit. The TEST/evidence must prove the fresh zero-match assertion. A data-changing cleanup is not authorized by this finding.
+
+2. **ROLLBACK — its valid-use window and dependency order are unsafe once F1 exposes custom-label writes.** The file deliberately restores the weak validator but says only that it precedes the full B-04a rollback. Once F1 is served, running this rollback while keeping the classification columns/write path live reopens the accepted U+2028/U+2029 (and locale-dependent range) defect; even reverting F1 leaves never-reloaded F1 tabs able to write until the schema is removed. That is an unsafe/failed rollback under the blocker definition. Bind the file to the actual safe window: it may be used only before F1 is ever served. After F1, the strict guard must remain through any frontend rollback and until the full B-04a rollback removes the write surface; if later phases make another sequence necessary, state the complete reverse dependency order and stop conditions. The ROLLBACK should also carry the same bounded, atomic state/row assertion appropriate to its authorized window, rather than silently weakening a state containing newly prohibited labels.
+
+### Non-blocking findings
+
+1. **TEST — the “unchanged behaviour” cases prove acceptance/refusal, not the stored transformations they name.** The trim and catalogue cases are rolled back as a group without reading their stored rows, so this file does not independently show that outer spaces were removed, catalogue spelling was canonicalised, or the generated key followed the resulting label. The exact proposed body and the earlier B-04a Gate 4 test make this non-blocking, but the revised TEST should inspect those values before its subtransaction rollback so its claim is self-contained.
+
+2. **TEST — the explicit ranges are sampled but their boundaries are not exercised.** It covers tab, DEL, one C1 value, and U+2028/U+2029 in several positions, which proves that the expression compiles and catches representative values. It does not exercise U+0001/U+001F and U+0080/U+009F boundaries (NUL cannot exist in PostgreSQL `text`). The exact body makes this non-blocking; add boundary cases for both label columns so the TEST proves the range encoding rather than relying on inspection.
+
+3. **SCHEMA/ROLLBACK identity assertions do not bind every routine attribute or the complete trigger set.** They bind the zero-argument body, owner, security mode, configuration, ACL, and existence of the expected named trigger, but not language, return type, volatility, strictness, parallel/leakproof flags, or absence of additional user triggers. The saved B-04a evidence supplies the known starting attributes and `CREATE OR REPLACE` explicitly supplies the material language/return/security settings, so this is not a present blocker. For a genuinely exact fail-closed preflight/postcheck, compare those remaining attributes and either bind the complete user-trigger inventory or state why coexistence is permitted.
+
+4. **Execution evidence remains outstanding.** A successful Gate 4 must preserve the exact SCHEMA output and every TEST row, including the new fresh-row assertion and fail-closed summary. The replacement/rollback race cannot be exercised in this one-session TEST; record concurrency as `NOT COVERED` and rely on the reviewed lock semantics unless the Founder authorizes a two-connection non-production test.
+
+### Strengths or confirmed controls
+
+- The change is narrow: both course and subject branches differ from the proven live body only by the advertised explicit character set, and the rollback restores the exact earlier source.
+- The explicit expression encodes C0 except unrepresentable NUL, DEL, C1, U+2028 and U+2029 and retains the POSIX class. The TEST runs representative cases through the real `authenticated` student path and checks `23514` rather than accepting any error.
+- Function owner, `SECURITY DEFINER`, pinned `search_path`, owner-only ACL and normalized body hashes are checked before and after replacement; lock and statement timeouts are bounded.
+- TEST fixture writes are contained in exception subtransactions, unexpected SQLSTATEs fail the case, `bool_and(pass IS TRUE)` fails closed, and the final whole-table count/hash detects persistent fixture changes.
+
+### Reported residuals
+
+- An owner or superuser can deliberately change function metadata, triggers or rows after any reviewed assertion. Once the revised exact file and production run are independently hash-bound, such a later privileged action is a reported residual rather than a defect this plan can prevent.
+- MD5 is used only as a live source-identity assertion inside files independently bound by SHA-256. A deliberately constructed privileged MD5 collision is a reported residual, not a blocker.
+
+### Per-file disposition
+
+| File | Disposition | Reason |
+|---|---|---|
+| `B-04a-fix_SCHEMA_label-guard-control-set_v1.sql` | `REVISION REQUIRED` | Blocking finding 1: no fresh row closure or atomic cutover. |
+| `B-04a-fix_TEST_label-guard-control-set_v1.sql` | `REVISION REQUIRED` as the companion proof | It must prove the blocker-1 closure; findings 1 and 2 above are non-blocking completeness improvements. |
+| `B-04a-fix_ROLLBACK_label-guard-control-set_v1.sql` | `REVISION REQUIRED` | Blocking finding 2: unsafe rollback window/order. |
+
+Overall disposition: `REVISION REQUIRED`. This is Tier 1 round 1 and lists every defect found in one pass. Claude should return exact v2 hashes for round 2, state how each blocker is closed, and identify only a new blocker introduced by changed bytes if one exists. QA advice is not Founder authorization to execute any file.
+
+Handoff: `AWAITING-CLAUDE` — Claude to close both blockers, address or carry every non-blocking condition, and submit the three exact revised files for Tier 1 round 2.
