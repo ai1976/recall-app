@@ -3105,3 +3105,22 @@ Handoff: `AWAITING-FOUNDER` — Founder to decide separately: (1) Gate 2 for the
 **Run steps given to the Founder** (see chat; each file as ONE selection; CURRENT.md checked first): B-03 SCHEMA (122 lines, `5a024d962024`), B-03 TEST (186 lines, `e1b35bd045fe`), B-07 SCHEMA (138 lines, `1248837761af`), B-07 TEST (217 lines, `51766024a07e`). Evidence names: `T-002_B03-TEST-raw_09-10-2026.raw.txt`, `T-002_B07-TEST-raw_09-10-2026.raw.txt`; the SCHEMA result rows are to be reported (rows_before = rows_after, hashes equal).
 
 Handoff: `AWAITING-FOUNDER` - Founder runs the four files and saves the two TEST grids.
+
+---
+
+## Round 72 · Claude · 09/10/2026
+**Gate 4 for B-03 v2 and B-07 v2.** The Founder ran the four files (Round 71). SCHEMA proof rows: B-03 299 rows before and after, profiles hash identical (`e0a58891f8a8...`); B-07 8 rows before and after, table hash identical (`0d4084bab0f3...`). TEST raw files `docs/discussions/evidence/T-002_B03-TEST-raw_09-10-2026.raw.txt` (`c91fb56853c2`, 10 of 10 true) and `T-002_B07-TEST-raw_09-10-2026.raw.txt` (`bcf9018230d3`, 10 of 10 true); index `docs/discussions/evidence/T-002_B03-B07-index_09-10-2026.md`. QA Round 70 conditions: every exact TEST row true including the fail-closed summary (met); raw output preserved (met); rollbacks not run; concurrency NOT COVERED. Schema doc, changelog, `CURRENT.md` and change-log Entry 7 updated. Remaining Gate 7 items for B-03 and B-07 (plan 4B): a new real signup, a Profile Settings change and an access request through the real forms now that the database enforces the rule (Claude can drive the access request and Profile Settings in the pane with the test student; the signup needs a Founder-created account).
+**Finding while preparing the next file.** Function bodies pasted in the SQL editor are stored with CRLF line endings (change-log Entry 7); later bindings compare the body with carriage returns removed.
+
+**B-04a-fix submitted (the Founder's queued item).** Tier 1 round 1; files in `docs/database/t002/`:
+| File | Lines | Short | Full sha256 |
+|---|---|---|---|
+| `B-04a-fix_SCHEMA_label-guard-control-set_v1.sql` | 95 | `f0603fbd77b3` | `f0603fbd77b37d5c04e7ddabef49f4753d287452c75b9876a13ce452f7c7ba56` |
+| `B-04a-fix_TEST_label-guard-control-set_v1.sql` | 236 | `881c28d52251` | `881c28d522511ec1fb1d5432f03cdf2607050b0a3728e14c18bf60dd1f0263eb` |
+| `B-04a-fix_ROLLBACK_label-guard-control-set_v1.sql` | 90 | `efa9f9203587` | `efa9f92035874985d17a7cf58f314860fe3275c57953a80c3669fdcc9de709c3` |
+It replaces the live `fn_study_sessions_label_guard` with a body that is identical except that both control-character tests use the explicit set (the locale class plus `\u0001-\u001f`, `\u007f-\u009f`, `\u2028`, `\u2029`). The pre-flight stops unless the live function is exactly the B-04a one (owner, security mode, config, ACL, body hash without carriage returns, and the unchanged trigger); the post-check raises unless the new body is in place; the TEST proves, as the real student, 8 control-character positions for each of the two labels refused (23514), the earlier behaviour unchanged, an owner-level UPDATE refused, and the table identical afterwards. No table data is read or changed by the SCHEMA file. Not run.
+**Request to QA (Tier 1 round 1):** audit the three B-04a-fix files by hash; list every defect now as blocker or non-blocking.
+
+Gates 2 to 7 not given for B-04a-fix.
+
+Handoff: `AWAITING-QA` - QA to append one round answering the request.

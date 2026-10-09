@@ -66,6 +66,7 @@
 
 ### Access Control
 - **access_requests** - WhatsApp lead capture + B2B institute access requests + educator applications. `request_type` (`student_access` default / `institute_inquiry` / `educator_application`, ✅ deployed 2026-07-01, Phase 5 Sprint 5) distinguishes the three flows; `message` (nullable) carries institute city + optional note, or (educator_application) the credential/LinkedIn + why. `status` CHECK ✅ Phase 5 Sprint 6 (deployed 2026-07-02) extends `('pending','contacted','enrolled')` to add `'approved'`/`'rejected'` for educator applications — `'dismissed'` (offered in `AdminDashboard.jsx`'s status dropdown) was historically missing from the CHECK (selecting it threw 23514); closed by `22_SCHEMA` (✅ deployed 2026-07-02), CHECK now also allows `'dismissed'`. See `submit_access_request()` / `submit_institute_inquiry()` / `submit_educator_application()` / `approve_educator_application()` / `reject_educator_application()` in §4.
+  - **T-002 B-07 (live 09/10/2026):** trigger `trg_access_requests_course_label_guard` (BEFORE INSERT OR UPDATE OF `course`, `request_type`; only for `request_type = 'student_access'`; function `fn_access_requests_course_label_guard`, SECURITY DEFINER, owner only): the same course rule as profiles; a row entering `student_access` by a change of `request_type` is always validated; institute-inquiry and educator-application rows (free text in `course`) are not affected.
 - **content_flags** - Content reporting (auto-escalates to 'high' at 3+ flags)
 
 ### Revenue Tracking
@@ -81,6 +82,8 @@
 ## 2. DATABASE TABLES
 
 ### 2.1 profiles
+
+**T-002 B-03 (live 09/10/2026):** trigger `trg_profiles_course_label_guard` (BEFORE INSERT OR UPDATE OF `course_level`, only when the new value is not NULL; function `fn_profiles_course_label_guard`, SECURITY DEFINER, owner only): on an UPDATE that does not change the value it returns at once; otherwise it trims outer spaces, refuses empty, over 120 characters or a control character (C0, DEL, C1, U+2028, U+2029; SQLSTATE 23514), and rewrites a normalized match of a discipline name or a CMA/CS catalogue label to its exact text; any other text is stored trimmed; NULL is kept; no rule about the word Other. It runs before the AFTER trigger `trg_course_change_archive_restore`. Evidence: `docs/discussions/evidence/T-002_B03-B07-index_09-10-2026.md`.
 
 **Purpose:** User accounts with 4-tier role system (student/professor/admin/super_admin)
 **Created:** December 2025 (Phase 0.5)

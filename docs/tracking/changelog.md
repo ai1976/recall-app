@@ -1,6 +1,16 @@
 # Changelog
 
 ---
+## [09/10/2026] feat(db+ui): T-002 B-03, B-07 and F0b live - course text rule in the database; Profile Settings shows a saved custom course
+
+### Added
+- Database triggers on `profiles.course_level` (B-03) and on `access_requests.course` for student access requests (B-07): outer spaces trimmed, empty / over 120 characters / control characters refused, exact platform and CMA/CS catalogue names written in canonical text.
+- Profile Settings shows a saved custom course as "(current)" instead of a blank dropdown (F0b).
+
+### Visible effect
+- A student who types a course with extra spaces now gets it saved clean; an invalid course is refused (the app already blocks the same values before sending). Existing data was not changed.
+
+---
 ## [08/10/2026] feat(db): T-002 B-04a live - course classification columns, keys and label guard on study_sessions (no screen uses them yet)
 
 ### Added
