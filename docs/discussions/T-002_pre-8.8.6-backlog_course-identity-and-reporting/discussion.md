@@ -3540,3 +3540,34 @@ Handoff: `AWAITING-FOUNDER` - Founder runs SCHEMA v1 then TEST v2 and saves the 
 **Where T-002 stands.** LIVE: B-01, B-02a, B-02b, B-04a, B-04a-fix, B-03, B-07, B-05; frontend F0 and F0b. Remaining: B-06a (catalogue readers and wrappers), F1 (picker and screens) with its deployment choreography and Gate 7, data fix and observation, B-04b (enforcement), B-06b, B-06c, F2 (progress by course). Pending Gate 7 items for B-03 and B-07 (plan 4B) and for B-05 (a real card or note saved through the screens now that the database derives the course) until F1. Test rows still held for the end of T-002.
 
 Handoff: `AWAITING-CLAUDE` - Claude authors B-06a on the Founder's go-ahead.
+
+---
+
+## Round 87 · Claude · 09/10/2026
+**Scope.** Tier 1 round 1 for B-06a (plan v18 section 8; brief B v10 4.5, 5.4, 5.5; the Founder said "go ahead with B-06a"). Not run (no database engine); read statement by statement.
+
+### A. Files and exact hashes (in `docs/database/t002/`)
+| File | Lines | Short | Full sha256 |
+|---|---|---|---|
+| `B-06a_FUNCTIONS_course-catalogue-and-picker-subjects_v1.sql` | 297 | `2aa1a058f25c` | `2aa1a058f25ce99872c8febd6b2546606e1c5500ba7864c0fd143165ab786d56` |
+| `B-06a_TEST_course-catalogue-and-picker-subjects_v1.sql` | 384 | `e7357edd6fed` | `e7357edd6fed2e43cb1264518f244e2c6a0ce853fce322fca12dee607626324b` |
+| `B-06a_ROLLBACK_course-catalogue-and-picker-subjects_v1.sql` | 56 | `4a4e5a537fb5` | `4a4e5a537fb55dc7d89aadfb240c54561fb3a4f2dbf3022ff2cb07d9085590f7` |
+
+### B. What the FUNCTIONS file does
+Creates four functions and nothing else (no table, data, trigger or policy). **Core** `fn_course_options_core(p_surface, p_user_id)`, owner only: platform courses from `disciplines` in order (order_num, name), the six CMA and CS labels from `course_catalogue_labels()` (B-01), the caller's current course from `profiles.course_level` (blank or over 120 characters is not offered) and earlier custom labels from the caller's own `study_sessions` (key, display label of the greatest (created_at, id), most recent first). Every comparison uses `normalize_course_text`. Projections: Signup base list; Profile Settings and access form (active platform, catalogue with the current one as kind `current`, then the current value if outside both, then Other); picker (current first, other active platform courses, at most ten earlier labels, General, Other). Positions are set in the core. **Public reader** `get_course_options_public()` (anon, authenticated): the Signup list, no overlay. **Authenticated reader** `get_course_options(p_surface)`: profile, access or picker, user from `auth.uid()` only (no session 28000, unknown surface 22023). **Subject list** `get_picker_subjects(p_discipline_id, p_course_key)`: exactly one argument (22023 otherwise); a discipline lists its active subjects (an inactive discipline is allowed) then Skip; a key lists the caller's own earlier custom subject labels (ten at most), Other, Skip. The file binds the B-01 identities (from the B-04a VERIFY run), the B-02a index, the B-04a subject key and the columns it reads before creating anything, takes no table lock, and checks every function after creation (owner, security mode, volatility, search_path, language, body hash, no PUBLIC privilege, exact anon/authenticated/service_role execute matrix). Change-log Entry 15 lists the readings below.
+
+### C. Points for QA and the Founder
+1. **Names** are chosen here (plan v18 fixes behaviour and grants, not names).
+2. **Reading:** `get_picker_subjects` returns no `other_action` for a platform course, because B-04a forbids a custom subject label on a platform session; the list is never empty (Skip).
+3. **Reading:** the ten-label cap counts earlier custom labels and earlier-used catalogue labels together; Profile Settings and the access form carry the prior-custom flag but list no prior_custom rows (brief B 5.5 table).
+4. **Reading:** an inactive current discipline is a `platform` row with is_active false (first in the picker; after the catalogue on Profile Settings and the access form).
+5. **Wording** of the action rows is fixed in the core: 'Other, type your own', 'Other...' (picker, ASCII), 'General', 'Skip'. F1 may translate nothing; the text is the database's.
+6. **TEST design.** Nine checks: setup; the four functions as built; the public list as anon and authenticated; Profile Settings (nine cases); the access form equals Profile Settings; the picker (nine cases including the ten-label cap, the greatest-(created_at, id) display label, the over-limit profile value, an inactive current course, another student); the denials (anon, authenticated on the core, no session, unknown and NULL surface); the subject list (argument matrix, inactive discipline, inactive subject, key path, tie-break, cap, no other student's text); live data unchanged. Every case is a rolled-back sub-transaction; fixtures are inserted as the owner through the real study_sessions guard; to store an over-limit course the profile course guard trigger is disabled inside that case's own sub-transaction only (bounded timeouts, restored by the rollback, state re-asserted at the end). Concurrency NOT COVERED.
+7. **Not in this file:** F1 routing, the guard manifest and RPC classification entries, the B-06b and B-06c readers.
+
+### D. Request to QA (Tier 1 round 1)
+Audit the three files by hash; list every defect now as blocker or non-blocking (README, Tiered checking), and confirm or correct the readings in points 2 to 4.
+
+Gates 2 to 7 not given for B-06a.
+
+Handoff: `AWAITING-QA` - QA to append one round answering D.
