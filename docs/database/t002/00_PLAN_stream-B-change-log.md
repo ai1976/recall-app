@@ -65,3 +65,6 @@ The current plan file is named in `CURRENT.md`. Plan files are immutable hashed 
 
 ## Entry 13 (09/10/2026, thread Round 83)
 - **D-06 v2 was run: six database routines write flashcards or notes, and only `create_flashcard_batches` names subject_id, discipline_id and target_course.** The other five (four featured-content routines and the upvote trigger function) update other columns of notes only, so the B-05 trigger (UPDATE OF those three columns) does not fire for them. B-05 SCHEMA v1 unchanged (`b1714e829cdd`); TEST v2 `53d616857ffc` adds the production entry point and the current payload shapes as the real role authenticated; ROLLBACK v2 `073bf80d062d` binds exact identities.
+
+## Entry 14 (09/10/2026, thread Round 86)
+- **B-05 is LIVE** (SCHEMA v1 `b1714e829cdd`, TEST v2 `53d616857ffc`: 12 of 12 true). `fn_course_derive_guard()` and the triggers `trg_flashcards_course_derive_guard` and `trg_notes_course_derive_guard` now derive discipline and course text from the subject on every insert and on every update of subject, discipline or course text; the composite keys `flashcards_discipline_subject_fkey` and `notes_discipline_subject_fkey` are NOT VALID (new and changed rows only). Behaviour change in force: for a row with a platform subject, `target_course` is the subject's discipline name. ROLLBACK v2 is not run.

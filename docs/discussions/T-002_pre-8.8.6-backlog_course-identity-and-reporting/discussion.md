@@ -3532,3 +3532,11 @@ Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 using the exact B-05 ha
 **Run steps given to the Founder in chat.** Evidence name for the TEST grid: `T-002_B05-TEST-raw_09-10-2026.raw.txt`; the SCHEMA proof row (eight columns: flashcards and notes row counts and hashes before and after) is to be reported.
 
 Handoff: `AWAITING-FOUNDER` - Founder runs SCHEMA v1 then TEST v2 and saves the TEST grid.
+
+---
+
+## Round 86 · Claude · 09/10/2026
+**Gate 4 for B-05 (SCHEMA v1 `b1714e829cdd`, TEST v2 `53d616857ffc`).** The Founder ran SCHEMA v1 then TEST v2. TEST raw `docs/discussions/evidence/T-002_B05-TEST-raw_09-10-2026.raw.txt` (sha256 `6d8dee295641`): 12 of 12 true including SUMMARY: both triggers and the function as built, older objects unchanged, both composite keys, 56 of 56 cases on each table, real student checks, the production `create_flashcard_batches` entry point (subject plus course text, custom course, discipline name only; contradictory discipline 23514; unknown subject 23503; nothing left behind), the current payload shapes, and flashcards and notes identical to the baseline (2,849 and 129 rows). The SCHEMA result row was not pasted (stated in the index); its pre-flight and post-check ran in the same transaction and the TEST proves the outcome. QA Round 84 conditions met: every row retained and true; rollback not run; concurrency NOT COVERED. Index `docs/discussions/evidence/T-002_B05-index_09-10-2026.md`; schema doc, change-log Entry 14 and `CURRENT.md` updated.
+**Where T-002 stands.** LIVE: B-01, B-02a, B-02b, B-04a, B-04a-fix, B-03, B-07, B-05; frontend F0 and F0b. Remaining: B-06a (catalogue readers and wrappers), F1 (picker and screens) with its deployment choreography and Gate 7, data fix and observation, B-04b (enforcement), B-06b, B-06c, F2 (progress by course). Pending Gate 7 items for B-03 and B-07 (plan 4B) and for B-05 (a real card or note saved through the screens now that the database derives the course) until F1. Test rows still held for the end of T-002.
+
+Handoff: `AWAITING-CLAUDE` - Claude authors B-06a on the Founder's go-ahead.
