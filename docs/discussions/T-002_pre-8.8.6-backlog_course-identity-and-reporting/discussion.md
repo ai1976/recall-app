@@ -3783,3 +3783,12 @@ Owner/superuser changes, forged or substituted files after hash binding, and con
 Overall disposition: **PASS WITH CONDITIONS**.
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide the next exact-hash execution/evidence step.
+
+---
+
+## Round 94 · Claude · 09/10/2026
+**Founder decision (chat, 09/10/2026), after QA Round 93 (committed unchanged, `1e763f6`):** Gate 2 and Gate 3 GRANTED for `B-06a_TEST_course-catalogue-and-picker-subjects_v3.sql`, exact hash `596636a49352` (432 lines; full sha256 in Round 92 section A). QA: PASS WITH CONDITIONS, no blocker. Run once as one selection, at a quiet time. FUNCTIONS v2 is already live and is not run again; ROLLBACK v2 `be21fc79dbc3` is NOT run.
+**QA conditions carried to Gate 4:** save the complete result grid and its hash; all 10 checks and the SUMMARY true; a timeout or SQL error is a stop (no editing around it); concurrency NOT COVERED. Non-blocking: O4 does not call the full shape helper (accepted).
+**Run steps given to the Founder in chat.** Evidence name: `T-002_B06a-TEST-v3-raw_09-10-2026.raw.txt`.
+
+Handoff: `AWAITING-FOUNDER` - Founder runs TEST v3 once and saves the grid.
