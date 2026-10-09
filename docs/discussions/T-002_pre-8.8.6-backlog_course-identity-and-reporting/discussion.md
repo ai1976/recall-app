@@ -3342,3 +3342,31 @@ Handoff: `AWAITING-FOUNDER` - Founder runs SCHEMA v2 then TEST v3 and saves the 
 **Where T-002 stands.** LIVE: B-01, B-02a, B-02b, B-04a, B-04a-fix, B-03, B-07; frontend F0 and F0b. Remaining: B-05 (flashcards and notes: derive trigger and composite keys), B-06a (catalogue readers), F1 (picker and screens) with its deployment choreography and Gate 7, data fix and observation, B-04b (enforcement), B-06b, B-06c, F2 (progress by course). Pending Gate 7 items for B-03 and B-07 (plan 4B): a new real signup, a Profile Settings change and an access request through the real forms now that the database enforces the rule. Test rows are still held for the end of T-002 (admin 12-minute session, access request and test account `anandmore+t002b@outlook.com`).
 
 Handoff: `AWAITING-CLAUDE` - Claude authors B-05 on the Founder's go-ahead.
+
+---
+
+## Round 80 · Claude · 09/10/2026
+**Scope.** Tier 1 round 1 for B-05 (plan v18 section 7; brief B v10 6.1 to 6.3; the Founder said "go ahead with B-05"). Not run (no database engine); read statement by statement.
+
+### A. Files and exact hashes (in `docs/database/t002/`)
+| File | Lines | Short | Full sha256 |
+|---|---|---|---|
+| `B-05_SCHEMA_flashcards-notes-course-derive_v1.sql` | 206 | `b1714e829cdd` | `b1714e829cddbac90ca5900ea6b11cab24b3f0304d456916085f30e879b8ddf4` |
+| `B-05_TEST_flashcards-notes-course-derive_v1.sql` | 596 | `6b9519adbaac` | `6b9519adbaacc889f6fe45c0338e19d5f8cc1f4a51195fd7bd8f808d71a39cdb` |
+| `B-05_ROLLBACK_flashcards-notes-course-derive_v1.sql` | 46 | `d0487d7cc334` | `d0487d7cc334b9fcc0065588947b6022d0732ceda42c567ec2e5958ceda18a21` |
+
+### B. What the SCHEMA file does
+One shared SECURITY DEFINER function `fn_course_derive_guard()` (pinned search_path, owner only) on `flashcards` and `notes`, BEFORE INSERT OR UPDATE OF `subject_id`, `discipline_id`, `target_course`; it returns at once if none of the three changed (so unrelated edits never fire it and legacy rows stay editable). It evaluates the OLD row first: a row already in conflict is refused when S, D or T changes (23514), never repaired. Otherwise: S set gives D := discipline of S and T := its exact name (an explicit D that differs is refused; an unknown subject is 23503); S NULL and D NULL with a T that resolves to a discipline name gives D and the exact name, any other T is left alone; S NULL and D explicit gives T := name of D (unknown D 23503); S NULL with D carried and S changed to NULL or T changed resolves the new T. Plus two NOT VALID composite keys on `(discipline_id, subject_id)` to `subjects (discipline_id, id)` (skipped for the NULL `discipline_id` of every existing row). It takes SHARE ROW EXCLUSIVE on both tables under 5 s and 30 s timeouts, binds the live state (columns, constraints and triggers of both tables as D2 recorded; the B-01 identities; the exact B-02a index; the B-04a unique pair; role postgres), and proves by a hash over every column of every row, taken under the lock, that nothing changed. Detail in change-log Entry 11.
+
+### C. Points for QA and the Founder
+1. **Reading of the plan table (Entry 11).** "D explicit" = inserted non-NULL or changed; a carried, unchanged D is not explicit, so a move to a subject of another discipline derives D (no refusal). QA to confirm this reading against plan 7.
+2. **Behaviour change.** For a platform-subject row `target_course` is always the subject's discipline name afterwards. Writers found in the frontend never write `discipline_id`; database routines that write `flashcards.target_course` are not enumerated by D3 and D5 (they cover `study_sessions`); the trigger applies to every writer.
+3. **TEST design.** 54 cases per table through one executor with one sub-transaction per case; legacy and conflict fixtures disable only the exact B-05 trigger of that table for that sub-transaction (bounded timeouts, rolled back, state re-asserted); two real-role cases; table hashes identical at the end. Concurrency is NOT COVERED (the 5 s lock timeout aborts and can be repeated).
+4. **Not in this file:** no backfill of existing rows (E10), no change to grants, no frontend change (F1 adds the subject-only transition test).
+
+### D. Request to QA (Tier 1 round 1)
+Audit the three files by hash; list every defect now as blocker or non-blocking (README, Tiered checking), and confirm or correct the reading in point 1.
+
+Gates 2 to 7 not given for B-05.
+
+Handoff: `AWAITING-QA` - QA to append one round answering D.
