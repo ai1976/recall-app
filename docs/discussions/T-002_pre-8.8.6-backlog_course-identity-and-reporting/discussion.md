@@ -3902,3 +3902,43 @@ Findings 1 to 8 are each fixed as listed in the index (Signup order; stricter su
 Check the changed lines of the six application files by hash and confirm findings 1 to 8 are closed, or name what remains; list any new defect as blocker or non-blocking. Gates 5, 6 and 7 not given for F1.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
+
+---
+
+## Round 99 · QA · 09/10/2026
+
+### Scope and exact-hash checks
+
+The Round 98 handoff was valid (`AWAITING-QA`, owner `QA`). I read the complete v2 patch, its changed-line index, the complete saved verification output, and the relevant v1 findings. The v2 patch hash is the requested `9ffdc1a2e3d751d8bb57a9991b79e963ed0a4b9b80dc1b453318f04e959a132e` (short `9ffdc1a2e3d7`); the verification raw hash is `5409241a07c1d97a22d511aa0e076dc426ce8dc8b3787639885871f29d368bb0`. I did not run the application, database, build, tests or Git operations; this is changed-line/evidence review only.
+
+### Blocking findings
+
+None. No changed line introduces data loss, failed live writes, a privilege/privacy escape, an incorrect student-visible access boundary, or a failed rollback. The saved v2 evidence reports the guard pass (214 classified calls), 16 test files/240 tests passing, and a successful build.
+
+### Round 97 findings 1–8
+
+1. **Signup order — substantially closed, one non-blocking condition remains.** The hard-coded CA/CMA/CS grouping is gone and choice rows now render in their database order, including the new interleaved-order test. The `other_action` row is still removed into `otherRow` and appended after `allCourses`, rather than rendered at its returned `position`. The live contract currently places that action last, but an otherwise valid future response that places it elsewhere would still be reordered. This is non-blocking; preserve the action row's position as well, or record the live “always last” invariant explicitly.
+2. **Subject-row contract — closed.** The v2 validator checks row kind, IDs, action/nullability, prior-label timestamps, exactly one Skip, and the platform-versus-custom form; the new refusal tests cover these cases.
+3. **Failed subject list — closed.** Save is disabled for a listed platform/custom course while the subject request is loading or failed, with retry messaging; General and a typed course correctly have no subject request and remain saveable.
+4. **Rejected reader promises — closed.** Both fetch wrappers now catch rejected/undefined results, returning the neutral error state; the new test exercises rejection.
+5. **Profile stale course change — closed.** Submit-time validation refuses a changed/Other course while the catalogue is not ready while still permitting unrelated profile fields; the new test covers a selection followed by list failure.
+6. **Profile readback failure — closed.** A failed post-save readback is surfaced, the saved value is retained, and the user is told to refresh; the new test covers this path.
+7. **Access routing — closed.** The direct profile read now waits for `AuthContext.loading` to resolve and for a user to exist; the test confirms no student read occurs before that point.
+8. **Changed-line tests — closed for the listed cases.** The v2 suite adds the rejected call, failed subject Save, stale Profile selection, failed readback and interleaved Signup-order cases. The saved result is 240/240 passing.
+
+### New or remaining defects (changed bytes only)
+
+- **Non-blocking:** the Signup `other_action` position condition described in finding 1 above. This is the only material condition found in the v2 changed lines. No new blocker was introduced.
+- The direct Profile/ContentPreview read promises still have no explicit rejection handler, but that behavior is unchanged from v1 and is not reopened as a new v2 defect under the changed-line rule. The live PostgREST path is represented by resolved `{ error }` results in the saved tests.
+
+### Confirmed controls and evidence conditions
+
+- The exact v2 patch supersedes v1 and the supplied hash matches disk. The three reader guard/classification entries remain read-only and the saved due-set guard reports all 214 calls classified.
+- All four write paths still enforce the intended boundary: Signup and access block without a valid course projection, Profile prevents a course mutation without a ready projection, and the picker prevents an invalid classification or failed listed-course subject projection from reaching `study_sessions`.
+- The v2 verification remains draft-worktree evidence. Gate 5 still requires applying/reviewing this exact v2 hash in the intended checkout; Gates 6 and 7 remain ungranted. The stale-tab residual and other previously reported deployment conditions are unchanged and are not new v2 blockers.
+
+### Disposition
+
+`docs/discussions/T-002_F1_frontend-patch-v2_09-10-2026.patch`: **PASS WITH CONDITIONS**. Round 97 findings 2–8 are closed; finding 1 is closed for the existing live shape but retains the non-blocking action-position condition above. No blocker remains, so this file may go to the Founder for Gate 5 decision and exact-hash execution steps.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide whether to accept the remaining non-blocking condition and grant Gate 5.
