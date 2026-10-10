@@ -29,7 +29,7 @@ Operators: before running anything, find the artifact here and check that the fi
 | F1 VERIFY (read-only; what the Gate 7 tests stored for the test account) | `F1_VERIFY_gate7-test-sessions_v1.sql` `f0287b1256cc` | thread Round 101 | 0 | written; not run yet |
 | F1 go-live runbook | `docs/discussions/T-002_F1_go-live-runbook_09-10-2026.md` `00ecdf7fec43` | thread Round 101 | procedure | written; waiting for the Founder's rehearsal, quiet time and Gate 6 |
 | F1.1 frontend patch (dialog title for a typed course; not SQL) | `docs/discussions/T-002_F1.1_frontend-patch_09-10-2026.patch` `35fef09763ed` | Round 107 | frontend | QA PASS WITH CONDITIONS (Round 106); LIVE since 09/10/2026 23:49 IST (commit `e974c3b`); live check passed |
-| F1.2 frontend patch (note pages embed fix D-F1-2; not SQL) | `docs/discussions/T-002_F1.2_frontend-patch_10-10-2026.patch` `aba4cf578dfa` | Round 108 | frontend | submitted to QA; NOT pushed; Gates 5, 6 and 7 not given |
+| F1.2 frontend patch (note pages embed fix D-F1-2; not SQL) | `docs/discussions/T-002_F1.2_frontend-patch_10-10-2026.patch` `aba4cf578dfa` | Round 110 | frontend | QA PASS WITH CONDITIONS (Round 109); LIVE since 10/10/2026 06:39 IST (commit `853ab23`); public note opens; rows-present checks open |
 | F1 Gate 7 test 7.1 check (read-only) | `docs/database/t002/F1_VERIFY_gate7-7-1-new-signup_v1.sql` | Round 108 | Tier 0 | run 10/10/2026; PASS |
 
 Every other `D-0x` and `00_PLAN_*` file in this folder is SUPERSEDED.

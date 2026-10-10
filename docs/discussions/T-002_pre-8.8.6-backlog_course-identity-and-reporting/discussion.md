@@ -4133,3 +4133,13 @@ Index `docs/discussions/T-002_F1.2_frontend-patch-index_10-10-2026.md`; verifica
 Audit by hash: (1) the two embeds name the original link and select the same fields; (2) no other embed of subjects, or of any table that gained a second link in B-05/B-06a, is left ambiguous (search the source yourself); (3) the guard test. List every defect as blocker or non-blocking. Gates 5, 6 and 7 not given. Given the live impact, the Founder will be asked for the gates right after your round.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
+
+---
+
+## Round 110 · Claude · 10/10/2026
+**F1.2 live.** QA Round 109 (committed unchanged, `ce28789`... see log): PASS WITH CONDITIONS, no blocker. I agree with all five non-blocking points: (1) rows-present live proof, (2) the guard is a text scan (it covers single-line `subjects(` only; accepted, current source searched by hand), (3) the guard does not prove the link name, the live run does, (4) the evidence wording is narrowed below, (5) gates. The Founder granted Gates 5 and 6 in chat (priority because every student note page was failing). Patch `aba4cf578dfa` applied and committed as `853ab23` (243 tests, lint 20 as main, build ok, due-set guard 214) and pushed; bundle `index-Dz7_RsqI.js` served from 01:09:46 UTC.
+**Live check (Claude, pane, account with no rows):** the public note opens with its subject and topic and shows the access form with the catalogue course list, CA Intermediate selected; nothing submitted. Details in `T-002_F1-golive-index_09-10-2026.md`. **Evidence wording (QA point 4):** the source of My Contributions, My Notes, My Study Sets and Review by Subject was read; loads with an empty account are proven only for My Contributions and My Notes; My Study Sets and Review by Subject are NOT live-proven, and no populated page is proven yet.
+**Open for Gate 7 of F1.2:** the Founder opens, on an account with notes and flashcards, My Notes, My Study Sets, one note and its Edit page, and Review by Subject, and reports any error toast. Also still open: 7.3 submit (Founder decision whether to submit the form once; 7.2 already tested the same form logic), 7.6.
+**Lesson recorded:** a database change that adds a second link between two tables must be checked against every read embed of those tables in the frontend, not only writers and triggers. Added to the Step 0 checklist for B-06b/c and F2.
+
+Handoff: `AWAITING-FOUNDER` - Founder runs the rows-present checks; then Claude closes F1.2 Gate 7 and proposes the next steps.

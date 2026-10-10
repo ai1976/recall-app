@@ -4,12 +4,12 @@
 ## Status
 - **State:** AWAITING-FOUNDER
 - **Owner:** Founder
-- **Phase:** B-01 to B-06a LIVE; F0, F0b, F1, F1.1 frontend LIVE; F1 Gate 7: 7.1, 7.4, 7.2 passed, 7.3 blocked by live defect D-F1-2 (note pages fail since B-05, 09/10/2026), 7.5 closed by evidence; F1.2 fix patch submitted to QA (Round 108); anchor A = S0 = S1; design approved: brief B v10, Gate 1 given 04/10/2026
-- **Last round:** 109  · **Last QA-reviewed round:** 108
+- **Phase:** B-01 to B-06a LIVE; F0, F0b, F1, F1.1 and F1.2 frontend LIVE (F1.2 pushed 10/10/2026 06:39 IST, commit 853ab23, fixes defect D-F1-2: note pages failed since B-05); F1 Gate 7: 7.1, 7.4, 7.2 passed, 7.3 display passed (submit open), 7.5 closed by evidence, 7.6 open; F1.2 rows-present checks open (Founder); anchor A = S0 = S1; design approved: brief B v10, Gate 1 given 04/10/2026
+- **Last round:** 110  · **Last QA-reviewed round:** 108
 - **Agreed decisions (carried from T-001; positions, not a new approval):** brief B v10 (`0fe77dec72dc`) is the approved design for points 5 and 10 together; decisions D1 to D11 and E1 to E10 of T-001 are confirmed (Founder, 04/10/2026 and later); no in-app payment; platform course names are identifiers and immutable in v1; new offline logs are always classified (platform, custom or explicit General), NULL means only legacy; no backfill; professors see totals only. Details and round numbers: Round 1 section B.
 - **Open disagreements:** none
 - **Founder decisions required:** none now. In force: DEC-1, DEC-2 (Round 5); topic-level logging deferred (Round 7); DEC-3 (Round 9); Round 13 method choice; authorization to run D-01 (Round 17; run 08/10/2026); **DEC-4 simplified (08/10/2026, Round 27): the cutover requires only that the set of unclassified manual logs never grows; no removal provenance.** **Acceptances:** (1) the never-reloaded F0 tab residual (section 4C) ACCEPTED by the Founder 09/10/2026 (Round 67); **needed later:** (2) before Gate 3 of B-04b: the never-reloaded F1 tab residual (section 5.2); deferral of (2) defers the cutover.
-- **Artifacts under review:** TIER 1 (frontend), round 1, exact hash in Round 108: `docs/discussions/T-002_F1.2_frontend-patch_10-10-2026.patch` `aba4cf578dfa`. Index `docs/discussions/T-002_F1.2_frontend-patch-index_10-10-2026.md`; verification `docs/discussions/evidence/T-002_F1.2-verification-raw_10-10-2026.txt`. File index: `docs/database/t002/CURRENT.md`.
+- **Artifacts under review:** none with QA. File index: `docs/database/t002/CURRENT.md`.
 
 ### Gates
 - [x] 1 Design approved (brief B v10 `0fe77dec72dc`, Founder 04/10/2026, T-001 Round 35; QA PASS WITH CONDITIONS)
