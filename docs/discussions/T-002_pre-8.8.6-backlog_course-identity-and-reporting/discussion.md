@@ -3249,6 +3249,7 @@ Handoff: `AWAITING-QA` - QA to append one round answering C.
 
 ---
 
+
 ## Round 75 · QA · 09/10/2026
 
 ### Scope and preconditions
@@ -4289,3 +4290,61 @@ Index `docs/discussions/evidence/T-002_B-04b-index-v2_10-10-2026.md`. The embedd
 Audit v2 by hash; confirm the two blockers are closed and list any remaining blocker. Gates not given.
 
 Handoff: `AWAITING-QA` - QA to append one round answering C.
+
+---
+
+## Round 116 · QA · 10/10/2026
+
+### Scope and exact-hash checks
+
+The Round 115 handoff was valid: the status block was `AWAITING-QA`, owner `QA`, and the three v2 artifacts were identified by short SHA-256. I read the complete Round 115 request, its evidence index, and all three SQL files. The full hashes on disk are:
+
+| Artifact | Full SHA-256 |
+|---|---|
+| `B-04b_SCHEMA_study-sessions-manual-classification-cutover_v2.sql` | `50e930f00cfea1502c161e9c05b721a7ff52b8057ff525f6b26fac0480d2056c` |
+| `B-04b_TEST_study-sessions-manual-classification-cutover_v2.sql` | `80ccfda8ddda385f9aabc376f6d36a50ecd1a82a77c726e49f0e16628a78bccf` |
+| `B-04b_ROLLBACK_study-sessions-manual-classification-cutover_v2.sql` | `390e876e016f9e75ad4cc49d09a4d227cf9bd4c5f62a0c93f531a740c131cd21` |
+
+All match the supplied hashes. I did not run SQL, a database, a build, a test, a browser, deployment or Git mutation. The SQL was checked textually, including the transaction, CTE, privilege, constraint, exception, quotation and bracket boundaries.
+
+### Round 114 blockers
+
+1. **INSERT privilege closure — CLOSED (PASS).** SCHEMA and TEST now enumerate every non-superuser, non-owner role with effective INSERT on the table or any column through `has_any_column_privilege`, require the exact result `authenticated`, and separately require table-level INSERT for `authenticated`. The explicit PUBLIC ACL check remains. A column-only grant or an additional effective role therefore stops the cutover instead of escaping the assertion.
+
+2. **NULL-safe cutover rule and source nullability — CLOSED (PASS).** The new constraint is exactly `CHECK (source IS DISTINCT FROM 'manual' OR classification IS NOT NULL) NOT VALID`. SCHEMA fails before any DDL when `source` is nullable, and its post-check (also repeated by TEST) verifies the deparsed NOT VALID definition. TEST expects a NULL-source insert to fail with `23502`. The old SQL three-valued-NULL bypass is therefore closed for the asserted live state.
+
+### New blocking findings
+
+None. No changed byte introduces data loss/corruption, an outage or failed live write, a privilege escape, an incorrect access boundary, or a failed rollback.
+
+### Non-blocking findings and Gate conditions
+
+1. The SQL's local catalogue scan remains intentionally incomplete for tokenization/comment variants, transitive view closure, extension/compiled routines, dynamic SQL and unresolved leads. The fresh D-03/D-04/D-05 closure and clearance evidence must be compared at Gate 3 before authorization; these files do not replace that evidence.
+
+2. SCHEMA preflight now binds source nullability, but it still does not bind the exact definitions of all five B-04a constraints, the source CHECK, the trigger function/body/ACL, or the complete privilege ceiling. Gate 2/3 must compare those facts from the fresh D-02/closure evidence.
+
+3. TEST exercises a temporary JSONB model of the SA rather than executing the SCHEMA's embedded anchor CTE. It does not directly mutate the embedded anchor hash or run a same-id reinsert against the live CTE. Gate 4 must retain the exact SCHEMA result and the raw TEST output; the model does not prove those unexecuted branches.
+
+4. ROLLBACK is materially stronger: it requires the exact NOT VALID definition and reports the legacy-set hash and total row count. It still has no cryptographic creation identity or before/after full-table fingerprint, so the Gate 4 record must bind the rollback result to the exact authorized SCHEMA/ROLLBACK hashes and preserve the raw result. This is not a demonstrated rollback failure.
+
+5. The access-exclusive lock and the one-session assertion are not covered by a two-connection test. Before Gate 3 the Founder must either accept this stated concurrency/lock residual or require a rollback-only staging test. Execution must also preserve the files' stated whole-selection, single-transaction boundary; no SQL was run here to verify the editor's transaction wrapper.
+
+6. The new `search_path` pin is a confirmed control: `pg_catalog` is first, so unqualified built-ins cannot be shadowed. Gate 2 should still retain the PostgreSQL 17.6/D2 evidence that the `sha256` and UUID functions resolve under that pinned path.
+
+### Strengths or confirmed controls
+
+- The exact v2 hashes and the Round 115 index agree; the 1,411-pair anchor is unchanged.
+- SCHEMA locks before checking, performs the removal-tolerant SA before one `NOT VALID` constraint, and aborts on added or altered legacy rows.
+- The role closure now covers effective table and column INSERT capability, while UPDATE and PUBLIC INSERT/UPDATE remain closed.
+- The NULL-safe rule, source NOT NULL preflight, exact post-check, TEST's 23502 expectation, full-table count/fingerprint preservation and the rollback definition guard are internally coherent on textual review.
+- No SQL run or execution claim is being made by QA.
+
+### Reported residuals
+
+Owner/superuser or SQL-editor changes after the assertions, concurrent role/catalogue changes, and forged or substituted files after exact-hash binding remain reported residuals. They are outside what these bytes can prevent and are not blockers.
+
+### Disposition
+
+The two Round 114 blockers are closed. The three v2 files are **PASS WITH CONDITIONS** for Founder Gate 2: no blocker remains in the changed bytes, but the fresh closure/identity evidence, exact hashes, transaction boundary and Gate 4 raw rollback/TEST evidence must be retained before Gate 3. This is QA advice, not Founder authorization to run.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 and the listed Gate 3/4 conditions.
