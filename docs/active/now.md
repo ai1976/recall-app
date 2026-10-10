@@ -10,6 +10,8 @@
 
 **Working method (Founder decision 10/10/2026): two lanes.** Lane 1: small fixes students can see (wrong message, missing button, broken page): Claude fixes, tests, checks the live page, QA reviews afterwards. Lane 2: anything that changes the database or student data: full QA and the Founder's gates by exact file.
 
+**Order agreed by the Founder (10/10/2026):** (1) blueprint, now.md and the changelog made current (this catch-up); (2) CLAUDE.md and the QA (ChatGPT/Codex) settings rewritten; (3) batch group removal (point 1). The rules rewrite is not started: a draft exists as an unreviewed patch file (`docs/discussions/evidence/T-002_governance-rules-combined-diff_10-10-2026.patch`) and nothing from it is in force.
+
 ### The Founder's points (his own numbering)
 
 | # | Point (short) | Status | What is left | Waiting for |
@@ -43,7 +45,7 @@ Order of work (Founder, T-001): 6+7 (done), 10 (almost), 1+2, 8.8.6, 5, 4. Brief
 
 ## Edge function comment syntax error in cron-daily-study-summary - source fixed (08/10/2026); live function measured HEALTHY; nothing deployed
 
-Found while building the T-002 code-inventory script: the header comment of `supabase/functions/cron-daily-study-summary/index.ts` contained `*/15`, which ended the block comment early, so the repository file did not parse (Babel and esbuild agree). One-line comment reword applied; all eight edge-function files now parse. **Measured by the Founder 08/10/2026** (`docs/database/bugfixes/19_DIAGNOSTIC_...`): the cron job ran 672/672 times in 7 days and the last 24 answers are HTTP 200 with the function's own counts body, so the deployed copy works and must differ from the repository copy. Do not deploy the repository file until the two are compared. Still open: confirm a real delivery by re-running RUN 2 at about 22:20 IST; the status-less pg_net answer is a 5-second pg_net timeout at the 02:30 UTC `daily-review-reminders` slot (the reminder function loops over students one at a time, so it likely takes longer than 5 s); whether reminders still go out is unverified (dashboard logs or a student). Not committed yet.
+Found while building the T-002 code-inventory script: the header comment of `supabase/functions/cron-daily-study-summary/index.ts` contained `*/15`, which ended the block comment early, so the repository file did not parse (Babel and esbuild agree). One-line comment reword applied; all eight edge-function files now parse. **Measured by the Founder 08/10/2026** (`docs/database/bugfixes/19_DIAGNOSTIC_...`): the cron job ran 672/672 times in 7 days and the last 24 answers are HTTP 200 with the function's own counts body, so the deployed copy works and must differ from the repository copy. Do not deploy the repository file until the two are compared. Still open: confirm a real delivery by re-running RUN 2 at about 22:20 IST; the status-less pg_net answer is a 5-second pg_net timeout at the 02:30 UTC `daily-review-reminders` slot (the reminder function loops over students one at a time, so it likely takes longer than 5 s); whether reminders still go out is unverified (dashboard logs or a student). Committed as `a9d97d0` (08/10/2026); the deployed function was not changed.
 
 ## T-001 slice 1 (points 6 + 7: Review badge and heatmap) - SQL applied and verified; frontend committed (`36e36a7`) and pushed 07/10/2026; Gate 7 live verification ACCEPTED for the verified items (07/10/2026)
 
@@ -54,19 +56,19 @@ One definition of "due" now feeds the nav Review badge, the Progress tiles, the 
 
 Professors now see only batches assigned to them (list, detail, member list, reports); membership alone never counts for a professor; student report = students only; professor self-join through a batch link and admin direct-add of non-students are refused. Six deploy-day assignments are live (Kaustubh -> CAFC May 27; CA Anand More -> CAFC May 27, CA Inter, CA Final; Niraj and Abhay -> CA Inter). Admin Dashboard -> Batch Groups -> Professors manages them. **Next:** 8.8.6 (optionally first: plain-admin check of the Professors panel). **Follow-ups recorded:** assignment-based professor sharing; clean-up of professor memberships in active batches (Kaustubh); align `admin_batch_action_denial` with the new suspension-aware helper; anon execute on `join_group_by_token` / `get_browsable_notes`. Then 8.8.6.
 
-## Sprint 8.8.5f: profile privacy (D-52) - ALL 3 STEPS DEPLOYED & VERIFIED (Step 1 24/24, Step 3 20/20); frontend pushed (`ac8645d`); fixed test files + docs awaiting commit (01/10/2026)
+## Sprint 8.8.5f: profile privacy (D-52) - ALL 3 STEPS DEPLOYED & VERIFIED (Step 1 24/24, Step 3 20/20); frontend pushed (`ac8645d`); test files and docs committed (`342039e`) (01/10/2026)
 
 Emails and `access_request_ref` are NO LONGER readable by other users (column allow-list live; admins read them via `admin_read_profiles`). Live-verified as super admin and as a student. Remaining: commit the corrected test files (`04`, `07`) + `09` diagnostic + these doc updates. Earlier status (kept for the record): Done: `admin_read_profiles`, `search_users_for_group_invite`, hardened `get_author_profile` (live); frontend moved to them (checked: Admin + Super Admin dashboards, access-request matching, audit log names, Profile Settings, bell, group invite by name / exact email / partial email, non-member refusal). **Next:** commit + push the frontend; smoke-test live (incl. logged-out Signup in a private window); wait several hours (overnight); run `06` then `07` (rollback `08`); final live check incl. a STUDENT group-invite test (founder types the login, use a test student). **Follow-up recorded:** a dedicated visibility/privacy classification of the remaining profile fields (goals, timezone, exam date, onboarding flags, account type, status, institution, created_at) - their omission here does not mean they are public. Broader grants audit still open (INSERT/UPDATE/DELETE on `profiles` left as-is for authenticated; `study_groups` UPDATE incl. `group_type`; `profile_courses`, `notes`, `flashcard_decks`, `access_requests`). Then 8.8.5d, 8.8.6.
 
-## Sprint 8.8.5e: batch group rename (deferred #7, D-51) - SQL DEPLOYED & VERIFIED (12/12); frontend BUILT + live-tested; NOT yet committed/pushed (01/10/2026)
+## Sprint 8.8.5e: batch group rename (deferred #7, D-51) - SQL DEPLOYED & VERIFIED (12/12); frontend live-tested; committed and pushed (`27b6bba`) (01/10/2026)
 
 Admin/super_admin can rename an active batch group via `rename_batch_group` (Rename button in Admin Dashboard batch list). Founder renamed "CA Intermediate May & Sept 27" to "CA Inter May & Sept 27" live. Old notifications/archive snapshots keep the old name. **Next:** commit + push (SQL already deployed); glance at the `rename_batch_group` audit entry; then profile privacy sprint, 8.8.5d, 8.8.6. Decisions answered 01/10/2026: rejecting a batch request notifies nobody (yes); a student added directly is notified (yes).
 
-## Sprint 8.8.5b6: email change (deferred bug #6, D-50) - SQL DEPLOYED & VERIFIED (10/10); frontend BUILT + checked on localhost; NOT yet committed/pushed; real round trip pending (01/10/2026)
+## Sprint 8.8.5b6: email change (deferred bug #6, D-50) - SQL DEPLOYED & VERIFIED (10/10); frontend checked on localhost; committed and pushed (`b72d9a8`, `1b4a305`); real round trip pending (01/10/2026)
 
 Auth email is authoritative; a trigger copies a changed email into `profiles.email` (lowercase) and writes an `email_changed` audit entry. Profile Settings has a "Change email" form (Supabase secure change: both addresses confirm). Lost-mailbox recovery = super admin edits the email in the Supabase dashboard (runbook `docs/reference/RUNBOOK_change_user_email.md`); the plain Admin role has no email-change power. **Next:** commit + push; turn ON the "Email address changed" security notification in Supabase; founder round trip on TestOutlook (plus-alias address, open both links, check the audit entry, change back); then #7 group rename; then a PROFILE PRIVACY sprint (email readable by every signed-in user; `get_author_profile` returns full email); then 8.8.5d, 8.8.6.
 
-## Sprint 8.8.5b5: batch bulk membership (deferred bug #5, D-49) - SQL DEPLOYED & VERIFIED (17/17); frontend BUILT + live-checked on localhost; NOT yet committed/pushed (30/09/2026)
+## Sprint 8.8.5b5: batch bulk membership (deferred bug #5, D-49) - SQL DEPLOYED & VERIFIED (17/17); frontend live-checked on localhost; committed and pushed (`9732f15`) (30/09/2026)
 
 Users tab: select many enrolled students -> "Add to batch" (confirmation + honest result with skip reasons). Batch Groups tab: select pending requests -> Approve / Reject selected. Students are notified on add/approve; every bulk call writes one audit entry. Notification bell knows the two new types. **Next:** run `sprint8.8.5b5/07_CLEANUP` (removes TestOutlook from the real batch the live check added it to); commit + push; live-check on production as admin; then #6 email change, #7 group rename, 8.8.5d, 8.8.6. **Assumptions to confirm:** rejection notifies nobody; direct add notifies. **Lesson:** extend `notifications_type_check` before adding any notification type.
 
@@ -77,7 +79,7 @@ Plain admins can now grant access / suspend / reactivate through server-authoriz
 **Closeout status (30/09/2026):** functions `08` (`09`: 19 PASS + 2 SKIP, U4 fixed by `13`), immutability trigger `10` (`11`: 7/7 incl. the real user-deletion path), user-delete provenance bug found + fixed (`12`, `13`). Frontend switched to the server functions (SuperAdminDashboard, AdminDashboard, BulkUploadFlashcards, BulkUploadTopics, AuthContext); lint + build green.
 **Done 30/09/2026:** closeout frontend pushed; file `14` run and `15` PASSED 12/12 (browser writes to audit + role history closed, `notify_access_granted` retired); live checks passed in the browser pane as super admin AND as plain admin Shailaja (see D-48). **Real grant confirmed:** `17` shows 4 grants by Shailaja, all enrolled, 1 notification each. **Minor untested items carried forward:** educator approve/reject audit entries (no pending application yet); Shailaja's own login/suspend/reactivate entries not yet read in the Super Admin audit log. **Next:** deferred #5/#6/#7 -> 8.8.5d -> 8.8.6. Rollback for everything: `16`. E1/E2 (educator approve/reject audit) are unverified until a real application is pending.
 
-## Sprint 8.8.5b3: dashboard new-student fix (D-47) - SQL DEPLOYED & VERIFIED (5/5); frontend BUILT + linted + checked as TestOutlook; NOT yet committed/pushed (30/09/2026)
+## Sprint 8.8.5b3: dashboard new-student fix (D-47) - SQL DEPLOYED & VERIFIED (5/5); frontend linted and checked as TestOutlook; committed and pushed (`ebe77d6`) (30/09/2026)
 
 Students with study sessions or added cards but no graded card were shown the first-time "Get Started" page (5 confirmed: Aarya Bapat, ananya bhagwat, Abhay Musale, Niranjan Jog, Yogesh Shinde). Fix: `Dashboard.jsx` new-student rule + `get_my_enrollment_count` (D-47). **Next:** commit + push; ask the five students to confirm; then Admin Dashboard access -> deferred #5/#6/#7 -> 8.8.5d -> 8.8.6.
 **Auth track (Rujuta) - closed 30/09/2026:** Supabase reset template is the standard `{{ .ConfirmationURL }}`; Site URL `https://www.revisop.com`; redirect allow-list has localhost:5173, recallapp.co.in, www.recallapp.co.in, recall-app-omega.vercel.app, www.revisop.com (plain `revisop.com` not listed - only matters if that address does not redirect to www; local dev port is 5183, not 5173). A real recovery link from www.revisop.com (TestOutlook) landed on the "set a new password" page, so the 8.8.5b recovery handling works. Rujuta's original cause is unconfirmed (Free plan keeps auth logs ~1 day).
@@ -91,7 +93,7 @@ Decision record: **D-46** in `blueprint.md`. Files: `docs/database/sprint8.8.5b2
 **Test data left by the live check on TestOutlook (app cannot delete `study_sessions` rows):** ids `043a16ea-b708-4203-83f0-17658d1ba10d`, `8b7ea15c-519a-4285-a788-017c3fdfb0e4`, `f405e609-7b48-4775-be11-afabdf47c5f3` - remove in the SQL editor if wanted.
 **Privileges on `study_sessions` hardened** (`07` + `08` 7/7 PASS, 30/09/2026; rollback `09`). Test-row clean-up `10` provided (run in the SQL editor). **Open:** live checks not yet run: native leave prompt, 10-min idle, hidden tab, 4-hour stop. Note-upload guard check CLOSED (Private note saved fine).
 
-## Sprint 8.8.5c: course-change archival, backfill, bulk actions - SQL DEPLOYED & VERIFIED (30/09/2026); frontend BUILT, not yet pushed or live-verified
+## Sprint 8.8.5c: course-change archival, backfill, bulk actions - SQL DEPLOYED & VERIFIED (30/09/2026); frontend committed and pushed (`721b8b0`)
 
 Decision record: **D-44** (status paragraph added) in `blueprint.md`. Package + exact run order: `docs/database/sprint8.8.5c/README_RUN_ORDER.md` (steps 1-10 all run: `08` 27/27, `10` = 24 users / 1,903 rows, `11` 7/7, `09` 7/7).
 
@@ -109,7 +111,7 @@ Decision record: **D-45** in `blueprint.md` (includes a correction: the first se
 
 **Still open:** (a) upload one Private note as TestOutlook (last client path; then delete it) and delete the test card "GUARD TEST - delete me" (Strategic Management / Case Scenarios); (b) `profile_courses` self-insert — read `get_author_profile` before deciding; (c) Rujuta Auth-log / Site URL / redirect allow-list / reset template check (auth track); (d) 8.8.5c SQL — pre-SQL checks done (24 users / 1,903 enrolments incl. Sairaj Kandhare, approved), SQL package being written.
 
-## Sprint 8.8.5b: Student-facing stabilization — 🟡 SQL DEPLOYED & VERIFIED, frontend built/linted, NOT yet committed/pushed or live-verified (29/09/2026)
+## Sprint 8.8.5b: Student-facing stabilization — 🟡 SQL DEPLOYED & VERIFIED, frontend committed and pushed (`107e870`) (29/09/2026)
 
 Decision record: **D-43** (this sprint) and **D-44** (locked, not implemented: 8.8.5c course-change archival + backfill + My Study bulk actions; 8.8.5d professor↔batch assignment) in `blueprint.md`.
 
@@ -302,7 +304,7 @@ Phase 8.8 Navigation IA is locked in `blueprint.md` §3.1 Decision Log, entries 
 
 ---
 
-## Sprint 8.7.9: Rich Content / Scenario Rendering (D-31) — Phase 8 (24/09/2026) — 🟡 code + automated tests + build/lint green; Stage 8 live proof NOT YET RUN (blocked, see below)
+## Sprint 8.7.9: Rich Content / Scenario Rendering (D-31) — Phase 8 (24/09/2026) — 🟡 code + automated tests + build/lint green; Stage 8 live proof complete (`1ebe519`)
 
 **Context:** Closes the display half of the CA Final Audit bulk-import gate — the client-side renderer for the locked corpus `[[TABLE]]` rich-content contract in `front_text`/`back_text`/`scenario`, plus Decision 3 (scenario now supported on `theory` rows, stored separately from `front`, not concatenated).
 
@@ -418,14 +420,14 @@ Full details: blueprint.md D-27, DATABASE_SCHEMA.md §2.4B–§2.4D. Files: `doc
 
 ---
 
-## Sprint 8.7.7: Theory Display + Console Diagnosis (21/09/2026) — frontend built, NOT pushed; B1/B2/B3 partly open
+## Sprint 8.7.7: Theory Display + Console Diagnosis (21/09/2026) — frontend committed and pushed (several commits tagged sprint-8.7.7); B1/B2/B3 not re-checked in the 10/10/2026 catch-up
 
 **Just Completed:** Theory cards left-aligned prose (D-24). Reviewed-cards lookup chunked (39KB URL -> 400 fixed, live-verified 20/20 200). Step 0: stored theory answers have 0 line breaks — data issue for extraction thread, no renderer change.
 **B1 ✅ closed (stale-session noise, recovery reproduced live). B2 ✅ fixed and live-verified (role-gated audit insert in BulkUploadFlashcards.jsx; 403/42501 proven for professor; post-deploy professor upload sent 0 audit requests). Operator to run 07_CLEANUP (orphan test provenance row). B3 ✅ closed (SQL + live end-to-end 201).** Question Type filter passthrough ✅ (?type=), case-study scenario ✅ bounded scroll box, label alignment ✅ — pushed. B3 trigger count = 0 (closed). Count mismatch ✅ fixed: v8 SQL deployed and test-verified, frontend pushed (per-type counts now sum to 1,091). Search-box totals ✅ fixed (narrowSubject), held with v8 frontend. Filter count mismatch: cause proven (card_count is deck total by design); v8 RPC design awaiting approval.
 
 ---
 
-## Sprint 8.7.6: Merge-Batches Provenance Rule (21/09/2026) — ✅ SQL deployed & test-verified; frontend built, NOT yet pushed; live regression pending operator
+## Sprint 8.7.6: Merge-Batches Provenance Rule (21/09/2026) — ✅ SQL deployed & test-verified; frontend committed and pushed (`b3abd46`); live regression not re-checked in the 10/10/2026 catch-up
 
 **Just Completed:** D-23 (blueprint). Step 0 diagnostics run by operator: no existing trigger touches batch_id; authenticated has SELECT-only on provenance; 1438 legacy batches / 14 with provenance; 0 orphans; 0 NULL-batch cards; 0 multi-owner batches. Migration (guard + statement-level cleanup triggers) deployed; 02_TEST ALL PASS (11 cases). Frontend: `MyFlashcards.jsx` pre-check reusing `provenanceByBatch` (no new fetch), graceful RV601/MERGE_* handling, no-batch group blocked. Lint/build clean.
 **Live regression done (21/09/2026, dev build → live DB):** all five display surfaces clean; merge cases verified live (identical allowed, differing name blocked, provenance-vs-legacy blocked); merged-away provenance row confirmed deleted by SQL; 0 orphans; test data cleaned (0/0/0). **Pending:** git commit + push, then one repeat of the blocked-merge check on www.recallapp.co.in. Final-card-delete orphan path recorded, not fixed.
@@ -459,7 +461,7 @@ Full details: blueprint.md D-27, DATABASE_SCHEMA.md §2.4B–§2.4D. Files: `doc
 
 **Incidental finding, same session:** the operator spotted 7 (turned out to be 8) leftover flashcards live in the app from Sprint 8.7.2's own verification — that sprint, unlike 8.7.3/8.7.4, never had a cleanup script written or run. Diagnosed via `docs/database/sprint8.7.5/03_DIAGNOSTIC_find_sprint8.7.2_leftover_test_data.sql` (found all 8 rows across 7 batches, all tied to 8.7.2-labelled provenance rows, no orphans — one card, "refactor smoke test front", didn't match the `Sprint 8.7.2%` front_text pattern and was only caught by the batch→provenance join, confirming the broader-net query in the diagnostic was necessary, not redundant). Cleaned via `docs/database/sprint8.7.5/04_CLEANUP_remove_sprint8.7.2_leftover_test_data.sql` (exact-ID delete, not pattern match — avoids any risk of catching a real card), which also removed the two now-empty test decks it left behind, guarded on `card_count = 0` post-delete. Re-verified at 0 rows across flashcards/provenance/decks, confirmed by the operator.
 
-## Sprint 8.7.4: Provenance Display + Phase Reconciliation — Phase 8 (18/09/2026) — ✅ SQL deployed & live-verified via operator; frontend not yet pushed
+## Sprint 8.7.4: Provenance Display + Phase Reconciliation — Phase 8 (18/09/2026) — ✅ SQL deployed & live-verified via operator; frontend committed and pushed (`3029c6b`)
 
 **Context:** Last sprint in the phase — closes the display half of D-21 that 8.7.1 deliberately deferred (flashcard/note creation now declares provenance server-side as of 8.7.2/8.7.3; this sprint makes it visible). See D-21, blueprint.md §3.1.
 
