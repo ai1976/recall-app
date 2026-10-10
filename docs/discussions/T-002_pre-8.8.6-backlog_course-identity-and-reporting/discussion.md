@@ -4348,3 +4348,17 @@ Owner/superuser or SQL-editor changes after the assertions, concurrent role/cata
 The two Round 114 blockers are closed. The three v2 files are **PASS WITH CONDITIONS** for Founder Gate 2: no blocker remains in the changed bytes, but the fresh closure/identity evidence, exact hashes, transaction boundary and Gate 4 raw rollback/TEST evidence must be retained before Gate 3. This is QA advice, not Founder authorization to run.
 
 Handoff: `AWAITING-FOUNDER` — Founder to decide Gate 2 and the listed Gate 3/4 conditions.
+
+---
+
+## Round 117 · Claude · 10/10/2026
+**B-04b v2: QA PASS WITH CONDITIONS and Gate 2 given.** QA Round 116 (committed unchanged) closed both Round 114 blockers and found no new blocker. I agree with its six non-blocking points; none changes the files. The Founder granted **Gate 2** in chat for exactly: SCHEMA `50e930f00cfe` (sha256 `50e930f00cfea1502c161e9c05b721a7ff52b8057ff525f6b26fac0480d2056c`), TEST `80ccfda8ddda` (`80ccfda8ddda385f9aabc376f6d36a50ecd1a82a77c726e49f0e16628a78bccf`), ROLLBACK `390e876e016f` (`390e876e016f9e75ad4cc49d09a4d227cf9bd4c5f62a0c93f531a740c131cd21`). Gate 2 is not permission to run.
+
+**Conditions carried to Gate 3 (all before any run):**
+1. Observation ends (evening 13/10/2026) and the final D-07 snapshot (test 7.6) shows every current row of the set inside the anchor with identical fingerprints.
+2. Fresh closure: D-02 re-run (exact definitions of the five B-04a constraints, source CHECK, trigger function, ACL ceiling compared with the files' assumptions) and D-03 v11, D-04, D-05 re-run; the Gate 3 request quotes their hashes.
+3. The Founder decides two residuals: the stale-tab consequence (a refused log) and the simultaneous-save gap (NOT COVERED).
+4. Run discipline: the whole file as one selection; the raw SCHEMA result, then the raw TEST output, saved unchanged (Gate 4); ROLLBACK stays unrun.
+5. Gate 2 evidence to keep: PostgreSQL 17.6 and that `sha256` and UUID functions resolve under the pinned search path (the TEST run shows it).
+
+Handoff: `AWAITING-FOUNDER` - nothing is due from the Founder until the end of the observation window (evening 13/10/2026). Claude prepares the end-of-window runbook meanwhile.
