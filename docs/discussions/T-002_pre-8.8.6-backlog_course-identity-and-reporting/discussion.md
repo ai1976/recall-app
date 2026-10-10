@@ -4175,3 +4175,27 @@ One rule on `study_sessions`: a row with `source = 'manual'` must have a classif
 Entry 24 of the change log: the data fix is dropped (no stale-tab row exists), SA uses the anchor alone. No other change.
 
 Handoff: `AWAITING-FOUNDER` - the Founder reads this plan; Claude then authors the B-04b files and submits them to QA.
+
+---
+
+## Round 113 · Claude · 10/10/2026
+**Scope.** B-04b files authored during the observation window (Founder: "start B-04b files"). Tier 1, round 1 for QA. Nothing is run and no gate is given (Gates 2 to 4 for B-04b are not asked now).
+
+### A. Artifacts and exact hashes
+| Artifact | Lines | Short | Full sha256 |
+|---|---|---|---|
+| `docs/database/t002/B-04b_SCHEMA_study-sessions-manual-classification-cutover_v1.sql` | 1567 | `1f9f744217fe` | `1f9f744217fe3ecd77f46c5b0366a8e5c4310be78e5598ae6840c5b63fa4e0b7` |
+| `docs/database/t002/B-04b_TEST_study-sessions-manual-classification-cutover_v1.sql` | 285 | `0a75a0ccd482` | `0a75a0ccd4828dfa39be93ae71f4f22326e09ca58769bc986c1a05a0b4227251` |
+| `docs/database/t002/B-04b_ROLLBACK_study-sessions-manual-classification-cutover_v1.sql` | 26 | `f6ca9fbbd346` | `f6ca9fbbd346ad708baf8c1462d5bec6321fc11a110916dd1eecb871a751770b` |
+Index `docs/discussions/evidence/T-002_B-04b-index_10-10-2026.md` (anchor reproduction, what was and was not checked).
+
+### B. What the SCHEMA file does (lines 1 to 36 of the file are the plain header)
+One transaction, pinned session, ACCESS EXCLUSIVE lock, then: identity of the 17 columns and the B-04a objects; the closure (no UPDATE for any non-owner role or PUBLIC, INSERT only for authenticated, only the label-guard trigger, no rule, no insertable view, no SET NULL key, no routine or cron job with a write statement on study_sessions); the set assertion against the embedded S0 anchor (count and hash asserted first; added and altered rows stop the run; gone and classified are reported); then `ADD CONSTRAINT study_sessions_manual_requires_classification CHECK (source <> 'manual' OR classification IS NOT NULL) NOT VALID`; a post-check and one result row. NOT VALID means the 1,411 legacy rows are never validated; the stated consequence is that an UPDATE of a legacy row is refused.
+
+### C. Departures and honest limits
+(1) Plan 5.2's embedded sink allowlist is replaced by a live zero-sink assertion (Entry 25; the allowlist is empty by D-05). (2) Dynamic-SQL and extension clearances are a Gate 3 precondition (fresh D-03 v11, D-04, D-05), not part of the file. (3) The TEST file's SA cases run the comparison in a temporary function over jsonb copies; the SCHEMA carries the same comparison inline; please compare the two texts. (4) Concurrency is NOT COVERED (single editor session; lock semantics). (5) Not run anywhere; no SQL parser was available, so the text was read statement by statement. (6) Possible false stops are by design safe (nothing is applied): a non-owner role found with UPDATE, a routine whose source matches the write pattern, cron.job not visible.
+
+### D. Request to QA (Tier 1, round 1)
+Audit the three files by hash: the SA comparison and the anchor assertion, the closure queries (correctness of each catalogue test, any false negative that would let a writer through), the constraint and its stated consequences, the TEST cases (do they prove each claim; any case that would pass wrongly), the ROLLBACK, and syntax and plpgsql scoping. List every defect as blocker or non-blocking. Gates not given.
+
+Handoff: `AWAITING-QA` - QA to append one round answering D.

@@ -31,5 +31,6 @@ Operators: before running anything, find the artifact here and check that the fi
 | F1.1 frontend patch (dialog title for a typed course; not SQL) | `docs/discussions/T-002_F1.1_frontend-patch_09-10-2026.patch` `35fef09763ed` | Round 107 | frontend | QA PASS WITH CONDITIONS (Round 106); LIVE since 09/10/2026 23:49 IST (commit `e974c3b`); live check passed |
 | F1.2 frontend patch (note pages embed fix D-F1-2; not SQL) | `docs/discussions/T-002_F1.2_frontend-patch_10-10-2026.patch` `aba4cf578dfa` | Round 110 | frontend | QA PASS WITH CONDITIONS (Round 109); LIVE since 10/10/2026 06:39 IST (commit `853ab23`); public note opens; rows-present checks passed (Founder) |
 | F1 Gate 7 test 7.1 check (read-only) | `docs/database/t002/F1_VERIFY_gate7-7-1-new-signup_v1.sql` | Round 108 | Tier 0 | run 10/10/2026; PASS |
+| B-04b study_sessions cutover | `B-04b_SCHEMA_study-sessions-manual-classification-cutover_v1.sql` `1f9f744217fe` (+ `_TEST_` `0a75a0ccd482`, `_ROLLBACK_` `f6ca9fbbd346`) | thread Round 113 | 1 | submitted to QA; NOT run; Gates 2, 3, 4 not given; do not run before the end of the observation window |
 
 Every other `D-0x` and `00_PLAN_*` file in this folder is SUPERSEDED.
