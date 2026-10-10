@@ -2,14 +2,14 @@
 
 
 ## Status
-- **State:** AWAITING-CLAUDE
-- **Owner:** Claude
-- **Phase:** B-01 to B-06a LIVE; F0, F0b, F1, F1.1 and F1.2 frontend LIVE; F1 Gate 7: 7.6 open (end of observation); OBSERVATION window 3 days from 09/10/2026 23:27 IST to the evening of 13/10/2026 (Founder, 10/10/2026); B-04b planned (Round 112, change-log Entry 24: data fix dropped), files to be authored; anchor A = S0 = S1; design approved: brief B v10, Gate 1 given 04/10/2026; B-04b files v1 submitted to QA (Round 113)
-- **Last round:** 114  · **Last QA-reviewed round:** 113
+- **State:** AWAITING-QA
+- **Owner:** QA
+- **Phase:** B-01 to B-06a LIVE; F0, F0b, F1, F1.1 and F1.2 frontend LIVE; F1 Gate 7: 7.6 open (end of observation); OBSERVATION window 3 days from 09/10/2026 23:27 IST to the evening of 13/10/2026 (Founder, 10/10/2026); B-04b planned (Round 112, change-log Entry 24: data fix dropped), files to be authored; anchor A = S0 = S1; design approved: brief B v10, Gate 1 given 04/10/2026; B-04b files v2 submitted to QA (Round 115, round 2 of 2)
+- **Last round:** 115  · **Last QA-reviewed round:** 113
 - **Agreed decisions (carried from T-001; positions, not a new approval):** brief B v10 (`0fe77dec72dc`) is the approved design for points 5 and 10 together; decisions D1 to D11 and E1 to E10 of T-001 are confirmed (Founder, 04/10/2026 and later); no in-app payment; platform course names are identifiers and immutable in v1; new offline logs are always classified (platform, custom or explicit General), NULL means only legacy; no backfill; professors see totals only. Details and round numbers: Round 1 section B.
 - **Open disagreements:** none
 - **Founder decisions required:** none now. In force: DEC-1, DEC-2 (Round 5); topic-level logging deferred (Round 7); DEC-3 (Round 9); Round 13 method choice; authorization to run D-01 (Round 17; run 08/10/2026); **DEC-4 simplified (08/10/2026, Round 27): the cutover requires only that the set of unclassified manual logs never grows; no removal provenance.** **Acceptances:** (1) the never-reloaded F0 tab residual (section 4C) ACCEPTED by the Founder 09/10/2026 (Round 67); **needed later:** (2) before Gate 3 of B-04b: the never-reloaded F1 tab residual (section 5.2); deferral of (2) defers the cutover.
-- **Artifacts under review:** TIER 1, round 1, exact hashes in Round 113: `docs/database/t002/B-04b_SCHEMA_study-sessions-manual-classification-cutover_v1.sql` `1f9f744217fe`, `B-04b_TEST_study-sessions-manual-classification-cutover_v1.sql` `0a75a0ccd482`, `B-04b_ROLLBACK_study-sessions-manual-classification-cutover_v1.sql` `f6ca9fbbd346`. Index `docs/discussions/evidence/T-002_B-04b-index_10-10-2026.md`. File index: `docs/database/t002/CURRENT.md`.
+- **Artifacts under review:** TIER 1, round 2 of 2, exact hashes in Round 115: `docs/database/t002/B-04b_SCHEMA_study-sessions-manual-classification-cutover_v2.sql` `50e930f00cfe`, `B-04b_TEST_study-sessions-manual-classification-cutover_v2.sql` `80ccfda8ddda`, `B-04b_ROLLBACK_study-sessions-manual-classification-cutover_v2.sql` `390e876e016f` (v1 superseded). Index `docs/discussions/evidence/T-002_B-04b-index-v2_10-10-2026.md`. File index: `docs/database/t002/CURRENT.md`.
 
 ### Gates
 - [x] 1 Design approved (brief B v10 `0fe77dec72dc`, Founder 04/10/2026, T-001 Round 35; QA PASS WITH CONDITIONS)

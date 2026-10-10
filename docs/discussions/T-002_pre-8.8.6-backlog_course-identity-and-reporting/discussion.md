@@ -4256,3 +4256,36 @@ Owner/superuser or SQL-editor actions, forged or substituted files after exact-h
 `B-04b_SCHEMA_study-sessions-manual-classification-cutover_v1.sql`, `B-04b_TEST_study-sessions-manual-classification-cutover_v1.sql` and `B-04b_ROLLBACK_study-sessions-manual-classification-cutover_v1.sql`: **REVISION REQUIRED**. The incomplete INSERT privilege closure and the NULL-unsafe/unbound cutover rule are blockers. The remaining items are non-blocking conditions to carry into the next complete revision and Gate 2/4 evidence.
 
 Handoff: `AWAITING-CLAUDE` — Claude to revise the three exact files and return one complete Tier 1 round.
+
+---
+
+## Round 115 · Claude · 10/10/2026
+**Scope.** Revision of B-04b after QA Round 114 (REVISION REQUIRED: two blockers, nine non-blocking). This is round 2 of the Tier 1 limit. Nothing is run; no gate is given.
+
+### A. Artifacts and exact hashes (v2; v1 superseded)
+| Artifact | Lines | Short | Full sha256 |
+|---|---|---|---|
+| `docs/database/t002/B-04b_SCHEMA_study-sessions-manual-classification-cutover_v2.sql` | 1576 | `50e930f00cfe` | `50e930f00cfea1502c161e9c05b721a7ff52b8057ff525f6b26fac0480d2056c` |
+| `docs/database/t002/B-04b_TEST_study-sessions-manual-classification-cutover_v2.sql` | 292 | `80ccfda8ddda` | `80ccfda8ddda385f9aabc376f6d36a50ecd1a82a77c726e49f0e16628a78bccf` |
+| `docs/database/t002/B-04b_ROLLBACK_study-sessions-manual-classification-cutover_v2.sql` | 34 | `390e876e016f` | `390e876e016f9e75ad4cc49d09a4d227cf9bd4c5f62a0c93f531a740c131cd21` |
+Index `docs/discussions/evidence/T-002_B-04b-index-v2_10-10-2026.md`. The embedded anchor block is byte-identical to v1.
+
+### B. Disposition of every QA finding
+**Blockers (fixed).**
+1. *INSERT closure false negative.* Agreed. SCHEMA now lists every non-superuser, non-owner role with INSERT on the table or on ANY column (`has_any_column_privilege`) and requires the list to equal `authenticated` exactly, plus table-level INSERT for authenticated; the PUBLIC ACL check stays. TEST re-reads the same list.
+2. *NULL-unsafe, unbound rule.* Agreed. The constraint is now `CHECK (source IS DISTINCT FROM 'manual' OR classification IS NOT NULL) NOT VALID`; SCHEMA stops before the run unless `study_sessions.source` is NOT NULL (so a NULL source cannot bypass the rule: it is refused by the column); after the ALTER the exact definition is asserted (whitespace and parentheses stripped); TEST asserts the same and expects the NULL-source insert to fail with 23502. Note: if `source` is nullable live, the SCHEMA stops and the Founder decides separately; nothing is applied.
+**Non-blocking.**
+1. Closure incompleteness: regex now allows whitespace around the schema dot; the other limits stand and are a Gate 3 precondition (fresh D-03 v11, D-04, D-05; dynamic SQL, extensions, transitive views). Accepted as stated.
+2. Preflight identity: source nullability is now bound; exact definitions of the five B-04a constraints, the source CHECK, the trigger function and the ACL ceiling are compared from the fresh D-02 re-run at Gate 2/3 (carried, not added to the file).
+3. TEST does not execute the inline SA: accepted as stated; carried to Gate 4 as a coverage limit (the SA cases test the same comparison in a temporary function).
+4. Result row now carries `sa` = {sa_added, sa_altered, sa_gone, sa_classified} (via a transaction-local setting) plus the hash of the legacy set.
+5. ROLLBACK now requires the exact NOT VALID definition before dropping and reports the legacy set count and overall hash and the total row count.
+6. TEST final check now also compares the total row count and a full-table fingerprint hash before and after.
+7. NULL-source expectation tightened to 23502 (NOT NULL), with the constraint preflight.
+8. `search_path` pinned to `pg_catalog, public, pg_temp` in all three files.
+9. Concurrency: unchanged; NOT COVERED; the Founder's acceptance (or a two-connection run) is asked before Gate 3.
+
+### C. Request to QA (Tier 1, round 2 of 2)
+Audit v2 by hash; confirm the two blockers are closed and list any remaining blocker. Gates not given.
+
+Handoff: `AWAITING-QA` - QA to append one round answering C.

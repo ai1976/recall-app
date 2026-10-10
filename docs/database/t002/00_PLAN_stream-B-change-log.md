@@ -105,3 +105,6 @@ The current plan file is named in `CURRENT.md`. Plan files are immutable hashed 
 
 ## Entry 25 (10/10/2026, thread Round 113): B-04b files authored
 - B-04b SCHEMA/TEST/ROLLBACK v1 written (hashes in `docs/discussions/evidence/T-002_B-04b-index_10-10-2026.md`). The embedded sink allowlist of plan 5.2 is replaced by a live zero-sink assertion (the study_sessions sink allowlist is empty: D-05, 08/10/2026), plus the SA anchor (1,411 S0 pairs), the identity checks and the lock. The constraint is NOT VALID and named `study_sessions_manual_requires_classification`. The D-03/D-04/D-05 re-run stays a Gate 3 precondition.
+
+## Entry 26 (10/10/2026, thread Round 115): B-04b v2
+- After QA Round 114: the cutover rule is the plan's NULL-safe form (`source IS DISTINCT FROM 'manual' OR classification IS NOT NULL`), `source` must be NOT NULL (asserted before the run), the exact definition is asserted after, and INSERT is closed over the same effective role universe as UPDATE (table and every column; only authenticated, at table level). v1 superseded.
