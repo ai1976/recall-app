@@ -1,6 +1,45 @@
 # NOW - Current Development Status
 
-**Last Updated:** 08/10/2026
+**Last Updated:** 10/10/2026
+
+## T-002 and the pre-8.8.6 backlog - where things stand (10/10/2026)
+
+**Live for students:** Review badge fix and heatmap in-app/offline split (points 6 and 7, 07/10/2026); one course-text rule, the course lists from one database catalogue in Signup, Profile Settings and the access form, and a Course + optional Subject picker when an offline study log is saved (point 10, F0 to F1.2, 08/10 to 10/10/2026). **Live in the database, no screen yet:** course classification columns on `study_sessions`, course-text guards on `profiles` and `access_requests`, course/subject derivation on flashcards and notes (B-05), catalogue and picker readers (B-06a).
+**Found and fixed 10/10/2026 (F1.2):** note detail and note edit pages failed with "Note not found" for every student since B-05 (09/10/2026) because the app asked for a note's subject without naming which link to use; fixed by naming the link and a guard test. Lesson: after any database change, the screens that read the same tables are checked live before the change is called done.
+**Observation window:** 3 days from 09/10/2026 23:27 IST to the evening of 13/10/2026: the set of manual study logs without a course (1,411 rows) must stay unchanged. **B-04b files (v2, QA passed with conditions, Gate 2 given 10/10/2026) are NOT run;** Gate 3 waits for the end of the window.
+
+**Working method (Founder decision 10/10/2026): two lanes.** Lane 1: small fixes students can see (wrong message, missing button, broken page): Claude fixes, tests, checks the live page, QA reviews afterwards. Lane 2: anything that changes the database or student data: full QA and the Founder's gates by exact file.
+
+### The Founder's points (his own numbering)
+
+| # | Point (short) | Status | What is left | Waiting for |
+|---|---|---|---|---|
+| 1 | Remove students from a batch group | PENDING (design approved, brief A). Founder reports 100+ students added with no way to remove them; the batch group screens sent on 10/10/2026 show no remove control (Admin Dashboard list: Copy Invite Link, Professors, Rename, Archive; group page: the performance report). Urgent | find out why, then fix | Founder's lane choice; can start now |
+| 2 | Know which student joined with which invite | PENDING (design approved) | build | brief A |
+| 3 | Review all admission steps and dialogs | PENDING (design approved) | build, live checks | brief A |
+| 4 | Content access given by the creator, not the admin | PENDING (design approved, no in-app payment in v1) | build | brief A, base for payment (target 27/01/2027) |
+| 5 | Progress by course (current course first) | IN PROGRESS | B-04b, B-06b, B-06c, the F2 screen | B-04b |
+| 6 | Red badge on Review stays | DONE 07/10/2026 | nothing | - |
+| 7 | Heatmap shows in-app and offline time | DONE 07/10/2026 | live checks not done: time zone west of UTC, touch device, screen reader | - |
+| 10 | Course and subject on offline study logs | ALMOST DONE | B-04b cutover, test 7.6, closure | end of observation |
+
+Numbering note: point 10 was added during T-001 ("seven-point backlog plus point 10"); no point 8 or 9 exists in the records. The admin-screen items 2.6 to 2.10 of T-001 were proposed as "point 11"; the Founder has not decided.
+
+### Loose items (so they do not get lost)
+
+| Item | Status | Next step |
+|---|---|---|
+| Subject Mastery table shows 7 subjects incl. Business Laws (24 due) after a course round trip (`get_subject_mastery_v1`) | UNEXPLAINED | look at it with point 5 (F2) |
+| QA's two test additions (save equals preview; failed-preview retry) | CARRIED | add with the next frontend change |
+| Stale-tab risk (a tab opened before 09/10/2026 23:27 IST and never refreshed would have its log refused after B-04b) | Founder decision needed before B-04b Gate 3 | decide at end of window |
+| Save at the exact instant of the cutover | cannot be tested in one SQL session; Founder decision before Gate 3 | decide at end of window |
+| Optional reload-on-error handler for stale tabs | IDEA, not decided | decide with the stale-tab risk |
+| Professor course switcher (bottom left) for students | DEFERRED by the Founder 10/10/2026 | only if asked again |
+| Supabase log-volume fix (badge polling every 30 s in `useBadges.js`, per-deck upvote lookups in `UpvoteButton.jsx`) | DEFERRED; Claude must remind the Founder BEFORE T-003 (brief A) starts | reminder at T-003 start |
+| Remove all T-002 test rows (one cleanup SQL file) | WAITING for all T-002 tests | end of T-002 |
+| Draft worktree `recall-app-f1` | still on disk | remove safely (delete the node_modules junction first) |
+
+Order of work (Founder, T-001): 6+7 (done), 10 (almost), 1+2, 8.8.6, 5, 4. Brief A (points 1 to 4) is the next thread. 8.8.6 scope is locked (D-38).
 
 ## Edge function comment syntax error in cron-daily-study-summary - source fixed (08/10/2026); live function measured HEALTHY; nothing deployed
 

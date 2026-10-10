@@ -1,6 +1,25 @@
 # Changelog
 
 ---
+## [10/10/2026] feat(db+ui) / fix: T-002 course identity - B-04a-fix, B-05, B-06a and F0, F1, F1.1, F1.2 live; note pages repaired
+
+### Added
+- Database (08/10 to 09/10/2026, all verified by their own tests): B-04a-fix (label guard control set); B-05 (flashcards and notes: the course/subject columns are derived by one shared trigger function, plus two composite course-subject keys, NOT VALID); B-06a (four read functions: platform + current + earlier custom course lists for Signup, Profile Settings, the access form and the study-log picker, and the subject list of a chosen course).
+- Screens: F0 (08/10): one course-name rule in Signup, Profile Settings and the access form. F1 (pushed 09/10 23:27 IST): the three course lists come from one database catalogue; saving an offline study log now asks for a Course (already set to the student's own course) and an optional Subject (or Skip); the last subject is remembered on the device. F1.1 (09/10 23:49 IST): the course-change confirmation shows the course being saved instead of an internal placeholder.
+
+### Fixed
+- **F1.2 (10/10/2026 06:39 IST): note detail and note edit pages showed "Note not found" for every student since B-05 (09/10/2026).** The page asked for the note's subject without naming which link to use, and B-05 had added a second link. The link is named now (`subjects!subject_id`) and a test fails if any such lookup is left unnamed.
+
+### Visible effect
+- New offline study logs carry a course (and optionally a subject). Earlier logs are unchanged (1,411 logs without a course are kept as they are and shown as legacy once the reports are built). A browser tab opened before the 09/10 evening update may show a blank page when a new page is opened: refresh it.
+
+### Not yet
+- B-04b (database refuses manual logs without a course) is written, QA-passed (Gate 2 given 10/10/2026) but NOT run; it waits for the end of the 3-day observation window (13/10/2026).
+
+### Files Changed
+`docs/database/t002/*`, `src/lib/courseOptions.js`, `src/lib/courseLabel.js`, `src/hooks/useCourseOptions.js`, `src/hooks/usePickerSubjects.js`, `src/components/dashboard/StudyLogCoursePicker.jsx`, `StudyTimerWidget.jsx`, `StudyTimerContext.jsx`, `Signup.jsx`, `ProfileSettings.jsx`, `ContentPreviewWall.jsx`, `NoteDetail.jsx`, `NoteEdit.jsx`; commits `ac5e64b`, `083f7f3`, `6afed64`, `e974c3b`, `853ab23`. Evidence: `docs/discussions/evidence/T-002_*`.
+
+---
 ## [09/10/2026] feat(db+ui): T-002 B-03, B-07 and F0b live - course text rule in the database; Profile Settings shows a saved custom course
 
 ### Added

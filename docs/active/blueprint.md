@@ -1,7 +1,7 @@
 # REVISOP — MASTER BLUEPRINT
 
 **Prepared:** December 2025  
-**Last Updated:** 07/10/2026  
+**Last Updated:** 10/10/2026  
 **Stack:** React 19 + Vite 7 · TailwindCSS + shadcn/ui · Supabase (PostgreSQL + Auth + RLS + Storage + Edge Functions) · Vercel  
 **Live URL:** https://www.revisop.com (redirects from https://www.recallapp.co.in)  
 **Repository:** https://github.com/ai1976/recall-app
@@ -55,6 +55,8 @@
   - **Real bug found and fixed along the way (not originally in scope, low-risk one-line fix, same pattern as Sprint 7.5's Dashboard.jsx bonus fix):** `Progress.jsx` had its own stale, independently-maintained question-type label map (`QT_LABELS`, keys `match`/`fill_blank`/`short_answer`/`case_study` — none ever real CHECK-constraint values) instead of the shared `formatQuestionType()` `src/lib/questionTypes.js` already exports for exactly this purpose — live-observed rendering the new `match_the_following` row as its raw db key. Fixed by deleting the local map and delegating to the shared helper; re-verified live, `npx eslint` clean.
   - **Files:** *new* — `src/lib/matchTheFollowing.js`, `src/components/revisop/MatchZone.jsx`, `docs/database/sprint7.8/00_DIAGNOSTIC_preflight.sql`. *changed* — `src/lib/questionTypes.js`, `src/components/revisop/index.js`, `src/pages/dashboard/Study/StudyMode.jsx`, `src/pages/dashboard/Content/FlashcardCreate.jsx`, `src/pages/dashboard/Study/Progress.jsx` (bonus fix), `docs/reference/{DATABASE_SCHEMA,FILE_STRUCTURE}.md`, `docs/active/blueprint.md`. **Not yet done:** git commit + push (operator action, per this sprint's own MANDATORY checklist).
 
+
+- **T-002 — Course identity and reporting (Oct 2026), points 5 and 10 of the pre-8.8.6 backlog:** ✅ *B-01, B-02a, B-02b, B-04a, B-04a-fix, B-03, B-07, B-05, B-06a deployed and verified 08/10 to 09/10/2026; frontend F0, F0b, F1, F1.1 and F1.2 live 08/10 to 10/10/2026.* One course-text rule in the database; course classification columns on `study_sessions` (offline logs now store a platform, custom or General course and an optional subject); flashcards and notes derive their course/subject from one trigger; four catalogue readers feed Signup, Profile Settings, the access form and the study-log picker. **Defect found and fixed 10/10/2026 (F1.2):** note pages broke after B-05 because an embed named only the table; always name the link (`subjects!subject_id`). **Open:** B-04b (manual logs must carry a course) written and QA-passed, not run, waits for the observation window ending 13/10/2026; then B-06b, B-06c and the progress-by-course screen (F2). Tracker: `docs/active/now.md`.
 ---
 
 ## TABLE OF CONTENTS
@@ -455,8 +457,16 @@ Completed study sessions only. Incomplete sessions live in localStorage and are 
 | ended_at | timestamptz NOT NULL | |
 | duration_seconds | integer NOT NULL | CHECK > 0 |
 | session_date | date NOT NULL | User's LOCAL date (YYYY-MM-DD) — not UTC |
-| source | text NOT NULL | manual / study_mode |
+| source | text NOT NULL | manual / study_mode / practice_mode (CHECK `study_sessions_source_check`) |
 | created_at | timestamptz | |
+| category | text | activity type (reading, writing_practice, lecture_viewing, paper_solving, mock_test); required for manual logs |
+| session_id | uuid | |
+| classification | text | **T-002 B-04a (08/10/2026):** `platform`, `custom`, `general` or NULL (NULL only for logs made before 09/10/2026 23:27 IST, 1,411 rows, never backfilled) |
+| discipline_id, subject_id | uuid | platform course / subject (composite key to `subjects(discipline_id, id)`, NOT VALID) |
+| custom_course_label, custom_subject_label | text | the student's own course / subject text (guarded by `fn_study_sessions_label_guard`: trimmed, 1 to 120 chars, no control characters, never a platform course name) |
+| custom_course_key, custom_subject_key | text | stored generated: `normalize_course_text(label)`; cannot be set by a client |
+
+**B-04b (written, QA-passed, NOT run):** will add `study_sessions_manual_requires_classification` (manual logs must have a classification) after the observation window ending 13/10/2026.
 
 ---
 
@@ -601,6 +611,16 @@ No formal migration files exist (direct Supabase SQL editor). Milestones by spri
 | Notification RPCs (6) | get/mark/delete notifications | useNotifications.js |
 | Group RPCs (14) | create/invite/accept/decline/leave/share groups | MyGroups, GroupDetail |
 | `cleanup_old_notifications()` | Delete notifications > 60 days (pg_cron) | cron job |
+
+#### T-002 course identity additions (08/10 to 09/10/2026)
+
+| Object | Purpose |
+|--------|---------|
+| `normalize_course_text`, `resolve_canonical_course_label`, `course_catalogue_labels` (B-01) | the one course-text rule (trim, collapse spaces, lower-case key; catalogue labels written canonically) |
+| Triggers on `profiles.course_level` (B-03) and `access_requests.course` for student requests (B-07) | validate and canonicalise course text |
+| `fn_study_sessions_label_guard` + `trg_study_sessions_label_guard` (B-04a, fix) | guards the custom labels of `study_sessions` |
+| `fn_course_derive_guard` + `trg_flashcards_course_derive_guard`, `trg_notes_course_derive_guard` (B-05) | derive course/subject columns on flashcards and notes; two NOT VALID composite keys `flashcards_discipline_subject_fkey`, `notes_discipline_subject_fkey` (**these add a second link from notes/flashcards to subjects: every embed must name its link, e.g. `subjects!subject_id`**) |
+| `get_course_options_public()` (anon + authenticated), `get_course_options(text)`, `get_picker_subjects(uuid, text)` (authenticated), `fn_course_options_core` (owner only) (B-06a) | the course lists and the picker subject lists; STABLE SECURITY DEFINER |
 
 #### Additional RPCs found in code (previously undocumented)
 
@@ -954,6 +974,9 @@ Key pages with data flows:
 | `src/lib/supabase.js` | Supabase client (singleton). Always import as `import { supabase } from '@/lib/supabase'`. |
 | `src/lib/dueSet.js` | **T-001 C-03 (07/10/2026)** — the only place that changes what is due: wrappers for the 34 due-changing RPCs plus profile, friendship, card, note, deck and flashcard-update writes; each signals `notifyReviewDataChanged()` only on success (graded answers debounced 1.5 s). Enforced by `scripts/dueSetGuard.mjs` (`npm run guard:due`, `prebuild`) against `scripts/dueSetManifest.json` and `scripts/dueSetRpcClassification.json`. |
 | `src/lib/heatmapGrid.js` | **T-001 C-03** — heatmap grid and local calendar-date helpers (`ymd`, `parseYmd`, `buildGrid`, `longestStreakOf`); no UTC parsing, no `toISOString()`. |
+| `src/lib/courseOptions.js` | **T-002 F1 (09/10/2026)** — validates and shapes the catalogue rows (`checkCourseRows`, `checkSubjectRows`), typed-course matching, `buildClassification` for the study-log insert, last-subject memory per course (localStorage). |
+| `src/lib/courseLabel.js` | **T-002 F0** — the one client-side course-name rule (mirrors `normalize_course_text`). |
+| `src/hooks/useCourseOptions.js`, `src/hooks/usePickerSubjects.js` | **T-002 F1** — fetch the catalogue for Signup / Profile Settings / access form / picker; neutral state on failure. `src/components/dashboard/StudyLogCoursePicker.jsx` is the Course + Subject picker shown when an offline log is saved.
 | `src/lib/noteStorage.js` | **New, 16/09/2026** — `extractNoteStoragePath(imageUrl)` (public-URL → bucket path) and `deleteNoteStorageImage(imageUrl)` (best-effort `storage.remove()`, warns not throws). Shared by `MyNotes.jsx` and `AdminDashboard.jsx`'s note-delete handlers so deleting a note also removes its image — `NoteEdit.jsx`'s own inline extractor (image *replace* path) was left as-is, out of scope for this fix. |
 | `src/lib/utils.js` | `cn()` utility (clsx + `extendTailwindMerge` — `rv-*` radius/shadow/colour families merge last-wins, Sprint 7.0) |
 | `src/lib/navActive.js` | **Sprint 7.1** — pure `(pathname) => boolean` active-route predicates shared by `NavDesktop` + `NavBottomTabs`: `isExact`, `underAny`, `isCreateActive`, `isStudyActive`, `isManageActive`, `isGroupsActive` (behaviour locked to the Sprint 6.0/6.2 output) + `isReviewTabActive` (bottom-bar "Review" tab). No Supabase, no React. |
@@ -1936,6 +1959,7 @@ Theory cards are structurally different from recall cards, so `question_type='th
 
 | Task | Why | Notes |
 |------|-----|-------|
+| **Pre-8.8.6 backlog (points 1 to 5, 10)** | Founder's list; status per point is kept in `docs/active/now.md` | Points 6, 7 done; 10 almost done (B-04b after 13/10/2026); 5 needs B-04b, B-06b, B-06c, F2; points 1 to 4 = brief A (batch group removal is urgent) |
 | **PostHog integration** | Listed in Privacy Policy; not in code | Install `posthog-js`; init in `src/main.jsx`; API key from posthog.com |
 | **Sentry integration** | Listed in Privacy Policy; not in code | Install `@sentry/react`; init in `src/main.jsx`; DSN from sentry.io |
 | **Remove `tesseract.js`** | Dead dependency | Verify no imports; remove from package.json |

@@ -301,6 +301,11 @@ recall-app
 - `src/lib/supabase.js` — Supabase client
 - `src/lib/dueSet.js` — T-001 C-03 (07/10/2026): the ONLY place that changes what is due (wrappers signal a refresh on success; `subscribeReviewDataChanged`, `notifyReviewDataChanged`, `flushReviewDataChanged`)
 - `src/lib/heatmapGrid.js` — T-001 C-03: local calendar-date helpers and the heatmap grid builder (no UTC parsing, no `toISOString()`)
+- `src/lib/courseLabel.js` — T-002 F0: the one client-side course-name rule
+- `src/lib/courseOptions.js` (+ `courseOptions.fixtures.js`, tests) — T-002 F1: catalogue row checks, typed-course matching, classification builder, last-subject memory
+- `src/lib/embedAmbiguity.test.js` — T-002 F1.2: fails if any `subjects(...)` embed does not name its link
+- `src/hooks/useCourseOptions.js`, `src/hooks/usePickerSubjects.js` — T-002 F1: course catalogue and picker subject lists
+- `src/components/dashboard/StudyLogCoursePicker.jsx` — T-002 F1: Course + optional Subject picker shown when an offline log is saved
 - `src/contexts/DueSnapshotContext.jsx` — T-001 C-03: the shared due snapshot; `src/components/progress/ForecastCard.jsx` — the Progress forecast tile (unknown = dash, neutral tone)
 - `scripts/dueSetGuard.mjs`, `scripts/dueSetGuard.run.mjs`, `scripts/dueSetManifest.json`, `scripts/dueSetRpcClassification.json` — T-001 C-03: the fail-closed guard (`npm run guard:due`, `prebuild`), the classification of every database call and the per-RPC classification from the W1/W2 evidence
 - Removed 07/10/2026: `src/hooks/useDueForecast.js` (replaced by `DueSnapshotContext`)
