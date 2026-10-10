@@ -2457,6 +2457,7 @@ Gates 2 to 7 not given for B-02b.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
 
+
 ## Round 109 · QA · 10/10/2026
 
 ### Scope and exact-hash checks
@@ -4199,3 +4200,59 @@ One transaction, pinned session, ACCESS EXCLUSIVE lock, then: identity of the 17
 Audit the three files by hash: the SA comparison and the anchor assertion, the closure queries (correctness of each catalogue test, any false negative that would let a writer through), the constraint and its stated consequences, the TEST cases (do they prove each claim; any case that would pass wrongly), the ROLLBACK, and syntax and plpgsql scoping. List every defect as blocker or non-blocking. Gates not given.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
+
+## Round 114 · QA · 10/10/2026
+
+### Scope and exact-hash checks
+
+The Round 113 handoff was valid: state `AWAITING-QA`, owner `QA`, and all three artifacts were identified by short SHA-256. I read the complete Round 113 request, the evidence index, and all three files statement by statement. The hashes on disk match exactly:
+
+- `B-04b_SCHEMA_study-sessions-manual-classification-cutover_v1.sql` — `1f9f744217fe3ecd77f46c5b0366a8e5c4310be78e5598ae6840c5b63fa4e0b7`.
+- `B-04b_TEST_study-sessions-manual-classification-cutover_v1.sql` — `0a75a0ccd4828dfa39be93ae71f4f22326e09ca58769bc986c1a05a0b4227251`.
+- `B-04b_ROLLBACK_study-sessions-manual-classification-cutover_v1.sql` — `f6ca9fbbd346ad708baf8c1462d5bec6321fc11a110916dd1eecb871a751770b`.
+
+No database, SQL engine, build, test, browser, deployment or Git operation was run by QA. The files themselves state that no run has occurred; syntax was reviewed textually, not executed.
+
+### Blocking findings
+
+1. **The INSERT closure has a privilege false negative (SCHEMA and TEST).** The assertion checks only table-level `has_table_privilege` for `anon`, `service_role` and `authenticated`. It never checks effective column-level INSERT for those roles, nor INSERT held by any other non-owner, non-superuser role. A role with only a column INSERT grant, or another role with INSERT, can therefore pass the closure while still being able to create a manual row with a NULL classification. The PUBLIC ACL check does not repair this: it checks explicit PUBLIC ACL entries, not every role's effective column capability. This is a security/data-boundary escape and conflicts with plan 5.2's effective role-universe rule. The schema and its TEST need a complete effective table-and-column INSERT comparison, with authenticated-only (or an explicitly hashed consumer exception) as the result.
+
+2. **The cutover constraint is not the approved NULL-safe form, and the preflight does not bind source nullability.** The schema adds `CHECK (source <> 'manual' OR classification IS NOT NULL)`, while the approved plan form is `source IS DISTINCT FROM 'manual' OR classification IS NOT NULL`. The identity check freezes types but not `attnotnull`. If `source` is nullable in a drifted live state, a new `(source NULL, classification NULL)` row passes this CHECK (and the existing source CHECK also permits NULL under SQL's three-valued CHECK semantics), defeating the claimed invariant. The TEST's NULL-source case would expose the drift only after the schema had already been allowed to run. Use the approved null-safe expression and/or fail closed on the live nullability before adding it, and assert the exact constraint definition.
+
+### Non-blocking findings
+
+1. **The remaining catalogue closure is deliberately incomplete inside these files.** The routine regex can miss valid tokenization such as comments or whitespace around a qualified dot; the view query is direct-dependency based rather than a transitive closure; and extension, compiled, dynamic-SQL and unresolved-lead cases are not asserted here. Round 113 makes the fresh D3/D4/D5 clearances a Gate 3 precondition, so this is a required Gate 3 comparison condition rather than a second blocker in these bytes.
+
+2. **Preflight identity is weaker than the live contract.** It binds column names/types and constraint names/validation, but not nullability, exact definitions of the five B-04a constraints, the source CHECK definition, trigger function identity/body/ACL, or the complete ACL ceiling. Existing B-04a Gate 4 evidence and the fresh closure can supply those facts; Gate 2/3 must freeze and compare them rather than rely on names alone.
+
+3. **The inline SA is sound for the stated set comparison, but the TEST does not execute it.** The SCHEMA correctly rejects a current manual/NULL row outside the anchor or with a changed fingerprint and permits shrinkage, including reporting gone/classified rows. The TEST exercises a JSONB model instead of the embedded anchor and inline CTE. It does not test the embedded-anchor hash mismatch, a same-id reinsert with different content against the live CTE, or each closure stop by altering the actual input. Those are Gate 4 coverage conditions, not proof that the inline comparison is wrong.
+
+4. **The SCHEMA result does not expose all cutover evidence promised by its header/plan.** The header names `sa_added` and `sa_altered`, but the result row omits them; the `gone` and `classified` counts exist only in a `NOTICE`, not in the saved JSON result. The Gate 3/4 record should preserve those counts and the final set comparison explicitly.
+
+5. **The rollback guard is name-based and its proof row is weak.** ROLLBACK checks only that a constraint with the chosen name exists, then drops it; it does not verify the exact CHECK definition, `NOT VALID` state, owner or the B-04b creation identity. Its final result reports only the legacy-set count, not a deterministic before/after fingerprint or total-row assertion. Because the rollback takes an access-exclusive lock and changes no rows, this is a verification/guard condition rather than a demonstrated failed rollback.
+
+6. **The TEST's “nothing changed” assertion covers only the legacy set.** It compares the count and hash of manual/NULL rows and looks for its custom-course fixture, but it does not compare total `study_sessions` count or a full-table fingerprint. A leaked classified, study-mode or practice-mode fixture would not be detected by that final check. Add a total-row/full-row preservation assertion or record the limitation at Gate 4.
+
+7. **The TEST's NULL-source expectation is too broad.** It accepts any `23502` or `23514` as “refused”, rather than proving the intended source-nullability/constraint mechanism. This should be tightened with the exact expected constraint once the null-safe rule is corrected.
+
+8. **The SQL is not self-contained about function resolution.** The schema and TEST call `sha256` and other unqualified functions without pinning `search_path`; execution therefore depends on the SQL Editor's configured extension path and could be shadowed by an owner-level path change. A failed lookup safely aborts the transaction, but Gate 2 should record the expected path or qualify/pin it.
+
+9. **Concurrency remains NOT COVERED.** The access-exclusive lock gives the intended atomic ordering, but neither file proves the two-connection blocking/timeout scenario. The plan already requires either that test in a non-production environment or the Founder's explicit acceptance before Gate 3; it remains a reported operational condition.
+
+### Strengths or confirmed controls
+
+- All three exact hashes match the Round 113 handoff.
+- The SCHEMA acquires the access-exclusive lock before its assertions, performs the set comparison before adding a single `NOT VALID` constraint, and aborts on added or altered legacy rows.
+- The anchor count/hash and the 17-column, NULL-safe, length-prefixed fingerprint order are internally coherent; the embedded anchor contains 1,411 well-formed pairs according to the saved index.
+- The TEST uses rollback markers for its fixtures and exercises manual classified/unclassified, machine-source, legacy-update and role-authenticated paths.
+- ROLLBACK takes the same table lock, refuses to proceed when the named constraint is absent, and does not itself modify rows.
+
+### Reported residuals
+
+Owner/superuser or SQL-editor actions, forged or substituted files after exact-hash binding, and the accepted never-reloaded stale-tab consequence remain reported residuals. They are not additional defects introduced by these file bytes.
+
+### Disposition
+
+`B-04b_SCHEMA_study-sessions-manual-classification-cutover_v1.sql`, `B-04b_TEST_study-sessions-manual-classification-cutover_v1.sql` and `B-04b_ROLLBACK_study-sessions-manual-classification-cutover_v1.sql`: **REVISION REQUIRED**. The incomplete INSERT privilege closure and the NULL-unsafe/unbound cutover rule are blockers. The remaining items are non-blocking conditions to carry into the next complete revision and Gate 2/4 evidence.
+
+Handoff: `AWAITING-CLAUDE` — Claude to revise the three exact files and return one complete Tier 1 round.
