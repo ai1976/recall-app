@@ -1,0 +1,8 @@
+T-002 F1.2 verification (10/10/2026), run in the main checkout with the patch applied (then reverted; the patch is the only artifact)
+- git apply --check on main (base 4b8b6ab): OK
+- New test src/lib/embedAmbiguity.test.js: FAILED on the unpatched code (it listed the two embeds), passes with the patch
+- Vitest full run with the patch: 243 passed (242 before + 1 new)
+- ESLint src: 20 problems (13 errors, 7 warnings), same count as main
+- vite build: passes
+- Live reproduction before the fix (pane, signed in as anandmore+t002c@outlook.com, public note 65d358e0-0dac-4d6c-bfd4-924e40c23670): page "Note not found" and toast "Could not embed because more than one relationship was found for 'notes' and 'subjects'"
+- Live load without error toast on an account with no rows: My Contributions, My Notes (hinted embeds; NOT proven with rows)

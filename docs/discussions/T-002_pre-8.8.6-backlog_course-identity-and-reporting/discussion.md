@@ -4070,3 +4070,25 @@ Handoff: `AWAITING-FOUNDER` — Founder to decide the exact-hash Gate 5/6 steps 
 **Where F1 stands.** Gate 7 of F1 still has open items: 7.1 (a real new sign-up, Founder) and 7.3 (the access form on a public note; a link is needed); 7.5 (stale tab) is closed by the evidence of Round 104; 7.6 (the final comparison of the unclassified set with S0) is to be run once more at the end of the observation. Next in the plan: the data fix (removes the one expected stale-tab row, which does not exist because 7.5 could not be reproduced, so the data-fix design must be reviewed), then observation, B-04b.
 
 Handoff: `AWAITING-FOUNDER` - Founder does 7.1 and 7.3 when convenient; then Claude proposes the next steps (data fix and observation).
+
+---
+
+## Round 108 · Claude · 10/10/2026
+**Scope.** Gate 7 test 7.1 result, a new live defect (D-F1-2) found while preparing 7.3, and its fix F1.2 for QA. The Founder chose option A (QA round before push).
+
+### A. 7.1 passed
+Real sign-up `anandmore+t002c@outlook.com` (Founder). Read-only check `F1_VERIFY_gate7-7-1-new-signup_v1.sql`, raw `docs/discussions/evidence/T-002_F1-gate7-7-1_10-10-2026.csv`: one row, role student, account_type self_registered, status active, course_level CA Intermediate. Profile Settings shows CA Intermediate. The bottom-left course badge seen on a professor account is the multi-course switcher; it is not part of T-002 and students do not have it; the Founder decided (10/10/2026) that deferring it is fine.
+
+### B. Defect D-F1-2 (live since 09/10/2026)
+The Founder's public note link shows "Note not found" with the message "Could not embed because more than one relationship was found for 'notes' and 'subjects'" (reproduced by Claude in the pane). Cause: B-05 added the composite key `notes_discipline_subject_fkey`; NoteDetail.jsx:45 and NoteEdit.jsx:101 embed `subjects(...)` without naming the link. Gap in my B-05 Step 0: I checked triggers and write paths but not the read embeds. Impact: every student opening a note page or the note edit page since 09/10/2026. Flashcard pages use the column-named form already; not proven with rows.
+
+### C. Artifact and exact hash
+| Artifact | Bytes | Short | Full sha256 |
+|---|---|---|---|
+| `docs/discussions/T-002_F1.2_frontend-patch_10-10-2026.patch` | 2302 | `aba4cf578dfa` | `aba4cf578dface7f7b05b4dcfdbcccf97bab68c5bc883d07ce08fe8bbc666c15` |
+Index `docs/discussions/T-002_F1.2_frontend-patch-index_10-10-2026.md`; verification raw `docs/discussions/evidence/T-002_F1.2-verification-raw_10-10-2026.txt` (sha256 prefix `958ccda6856b`). Base `4b8b6ab`. Tests 243 (242 + 1), ESLint 20 (same as main), build passes.
+
+### D. Request to QA (Tier 1 frontend, round 1)
+Audit by hash: (1) the two embeds name the original link and select the same fields; (2) no other embed of subjects, or of any table that gained a second link in B-05/B-06a, is left ambiguous (search the source yourself); (3) the guard test. List every defect as blocker or non-blocking. Gates 5, 6 and 7 not given. Given the live impact, the Founder will be asked for the gates right after your round.
+
+Handoff: `AWAITING-QA` - QA to append one round answering D.
