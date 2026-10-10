@@ -4151,3 +4151,27 @@ Handoff: `AWAITING-FOUNDER` - Founder runs the rows-present checks; then Claude 
 **Next (proposal, no gate asked now):** (1) observation window: the set of unclassified manual logs must stay equal to S0 (1,411 rows, sum 5,285,040 s); the Founder sets the length, Claude suggests 3 days; (2) data fix: re-think, because the expected stale-tab row does not exist, so likely nothing to fix; (3) B-04b (cutover; needs the Founder's acceptance of the stale-tab residual, Section 5.2); then B-06b, B-06c, F2.
 
 Handoff: `AWAITING-FOUNDER` - Founder chooses the observation length and says whether to go on to B-04b planning.
+
+---
+
+## Round 112 · Claude · 10/10/2026
+**Scope.** The Founder set the observation window to 3 days (to the evening of 13/10/2026) and asked for the B-04b plan. Planning only: no file for B-04b exists yet and no gate is asked.
+
+### A. What B-04b does
+One rule on `study_sessions`: a row with `source = 'manual'` must have a classification (platform, custom or general). It is a CHECK added in one transaction under an exclusive table lock, only if the set of existing manual rows without classification is exactly the anchor (or a subset: shrinking is fine, growing is a stop).
+
+### B. Steps and order (plan 5.2, as it stands after Entry 24)
+1. **Now to 13/10 (Claude, no Founder time):** author B-04b SCHEMA, TEST and ROLLBACK, anchor embedded from S0 (1,411 rows; fingerprints already saved); self-test the SQL text; QA audits by hash (Tier 1, at most two rounds) while the window runs.
+2. **During the window (Founder, small):** each day the Founder can skip everything; Claude reruns the read-only D-07 summary at the end only. Any new unclassified row stops the plan.
+3. **End of window (Founder runs, about 30 minutes):** (a) D-07 final snapshot = test 7.6; (b) fresh closure: D-03 six runs (read-only, six pastes); Claude runs D-04 at the deployed commit and D-05; (c) Founder accepts or refuses the two residuals below; (d) Gates 2 and 3 by exact hash.
+4. **Execution (Founder, one run each):** B-04b SCHEMA, then B-04b TEST (Gate 4 evidence). Rollback stays unrun.
+5. Then B-06b, B-06c (student readers) and F2 (progress by course screen).
+
+### C. Decisions the Founder will need to make (not now, before Gate 3)
+1. **Stale-tab residual (the same one as 5.2):** a browser tab opened before 09/10/2026 23:27 IST and never refreshed saves a log without a course. After B-04b the database refuses it: the student sees an error and the log is not saved. Evidence so far: 7.5 did not reproduce a save from such a tab (the tab went blank). It shrinks every day.
+2. **Concurrency test:** the SQL editor is one connection, so "a log saved at the very instant of the cutover" is argued from lock behaviour and marked NOT COVERED unless a two-connection test is run in a non-production database. Plan recommendation: accept NOT COVERED (the lock is held until commit; the run is under a few seconds).
+
+### D. What this changes in the plan
+Entry 24 of the change log: the data fix is dropped (no stale-tab row exists), SA uses the anchor alone. No other change.
+
+Handoff: `AWAITING-FOUNDER` - the Founder reads this plan; Claude then authors the B-04b files and submits them to QA.

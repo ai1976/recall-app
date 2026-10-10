@@ -97,3 +97,8 @@ The current plan file is named in `CURRENT.md`. Plan files are immutable hashed 
 
 ## Entry 23 (09/10/2026, thread Round 105)
 - **F1.1 patch `35fef09763ed` written** (defect D-F1-1: the Profile Settings course-change confirmation shows the course being saved, not the dropdown's internal value). Not pushed.
+
+## Entry 24 (10/10/2026, thread Round 112): B-04b plan after F1
+- **Data fix removed from the path.** Plan 5.2 item 3 (the single data fix of one stale-tab test row) assumed a stale-tab log exists. Gate 7 test 7.5 could not reproduce one (the stale tab went blank instead) and the set of manual logs without a classification stayed equal to the anchor (S0 = S1, 1,411 rows). With no row to remove, the data fix, its archive table `public.t002_study_sessions_datafix_archive` and its rollback are NOT built. SA is then evaluated with `A` alone as the permitted set (no extra test id). If the observation shows an extra row, the data fix returns to the plan.
+- **Observation window:** 3 days (Founder, 10/10/2026), from F1 live (09/10/2026 23:27 IST) to the evening of 13/10/2026.
+- **Authoring now:** B-04b SCHEMA, TEST and ROLLBACK are authored during the observation, with the anchor embedded from the S0 pages (1,411 rows); QA audits them (Tier 1, at most two rounds) before the window ends. Gate 3 waits for the fresh closure and the final anchor comparison.
