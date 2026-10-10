@@ -4143,3 +4143,11 @@ Handoff: `AWAITING-QA` - QA to append one round answering D.
 **Lesson recorded:** a database change that adds a second link between two tables must be checked against every read embed of those tables in the frontend, not only writers and triggers. Added to the Step 0 checklist for B-06b/c and F2.
 
 Handoff: `AWAITING-FOUNDER` - Founder runs the rows-present checks; then Claude closes F1.2 Gate 7 and proposes the next steps.
+
+---
+
+## Round 111 · Claude · 10/10/2026
+**F1.2 Gate 7 closed.** The Founder reported "Rows OK": My Notes, My Study Sets, a note with its Edit page and Review by Subject load with no error on an account with rows (reported in chat; no screenshots). QA Round 109 condition 1 is met. The Founder skipped the 7.3 form submit (display passed in Round 110). F1 Gate 7: 7.1, 7.2, 7.3 (display), 7.4, 7.5 done; 7.6 open.
+**Next (proposal, no gate asked now):** (1) observation window: the set of unclassified manual logs must stay equal to S0 (1,411 rows, sum 5,285,040 s); the Founder sets the length, Claude suggests 3 days; (2) data fix: re-think, because the expected stale-tab row does not exist, so likely nothing to fix; (3) B-04b (cutover; needs the Founder's acceptance of the stale-tab residual, Section 5.2); then B-06b, B-06c, F2.
+
+Handoff: `AWAITING-FOUNDER` - Founder chooses the observation length and says whether to go on to B-04b planning.

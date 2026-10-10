@@ -17,3 +17,8 @@
 - Patch `aba4cf578dfa` applied and committed as `853ab23` on main (243 tests, ESLint 20 problems as main, build ok, due-set guard 214 calls), pushed about 01:09 UTC (06:39 IST on 10/10/2026). New bundle `index-Dz7_RsqI.js` first seen at 01:09:46 UTC (previous `index-CPNJlBSP.js`).
 - **Live check by Claude in the pane (account anandmore+t002c@outlook.com, student, no rows):** the public note link 65d358e0-0dac-4d6c-bfd4-924e40c23670 opens: title "SM1 Ch7 Overall Scheme of Valuation (Sec 15)", Subject GST, Topic Value of Supply, then the access form with the catalogue course list (CA Foundation to CS Professional plus "Other, type your own"), CA Intermediate selected. The form was NOT submitted. This also covers the display part of Gate 7 test 7.3. PASS.
 - Still to be checked with rows present (QA condition 1): My Notes, My Study Sets, a note's edit page, by the Founder on an account that has notes (his professor account has 107 notes).
+
+## F1.2 rows-present check and 7.3 closure (10/10/2026, Founder report in chat)
+- Founder, signed in on an account with notes and flashcards (his own, as reported): My Notes, My Study Sets, a note and its Edit page, and Review by Subject all load with no error. Reported as "Rows OK". Reported by the Founder, no screenshots saved.
+- Gate 7 test 7.3: display PASS (Claude, pane, 10/10/2026); the form submit was SKIPPED by the Founder's decision (same form logic as 7.2).
+- F1.2 Gate 7 closed. F1 Gate 7 now open only for 7.6 (final comparison of the unclassified set with S0, at the end of observation).
