@@ -42,7 +42,7 @@ export default function NoteDetail() {
         .from('notes')
         .select(`
           *,
-          subject:subjects(id, name),
+          subject:subjects!subject_id(id, name),
           topic:topics(id, name)
         `)
         .eq('id', id)
