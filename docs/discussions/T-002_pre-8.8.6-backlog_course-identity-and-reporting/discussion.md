@@ -2457,6 +2457,47 @@ Gates 2 to 7 not given for B-02b.
 
 Handoff: `AWAITING-QA` - QA to append one round answering D.
 
+## Round 109 · QA · 10/10/2026
+
+### Scope and exact-hash checks
+
+The Round 108 handoff was valid: state `AWAITING-QA`, owner `QA`, last round 108, and the F1.2 patch identified by the requested short hash. I read the complete Round 108 handoff, the patch, its index, the saved verification output, and the relevant source embeds. The patch hashes to full SHA-256 `aba4cf578dface7f7b05b4dcfdbcccf97bab68c5bc883d07ce08fe8bbc666c15` (short `aba4cf578dfa`). I independently recomputed the index and verification-raw hashes; they match the Round 108 records (`4a23181df8e1…` and `958ccda6856b…`).
+
+I did not run the database, application, browser, build, tests, Git, or any external service. The saved raw evidence reports those checks; this round verifies the artifact and claims against the saved files and source.
+
+### Blocking findings
+
+None found in the changed bytes. Both affected note embeds now use `subject:subjects!subject_id(id, name)`, preserving the original alias (`subject`) and selected fields (`id`, `name`) while disambiguating the second B-05 relationship. The source search found no remaining ambiguous `subjects(...)` embed: other subject and topic embeds use the column-named form, and the `disciplines(...)` embed in `CourseContext` has no newly added competing link. The patch is read-only frontend code and introduces no write, privilege, rollback, or access-boundary change.
+
+### Non-blocking findings
+
+1. **Rows-present live proof remains a Gate 7 condition.** The saved verification includes the pre-fix reproduction and no-row loads, but does not demonstrate every affected note/detail/edit and flashcard path with populated rows after this exact patch. Gate 7 must confirm that `subjects!subject_id` resolves against the deployed relationship and that the public note, note edit, My Notes, My Study Sets, and access-form flows load successfully with rows.
+
+2. **The new guard is lexical rather than runtime.** It scans `.js`/`.jsx` source lines for a single-line `subjects(` pattern. It does not exercise a Supabase request, inspect `.ts`/`.tsx`, or catch multiline/dynamically assembled embeds or analogous ambiguity in a future table. Manual source search covers the current files, so this is a coverage limitation, not a present blocker.
+
+3. **The guard does not assert the exact relationship and field set.** It would accept any syntactically hinted `subjects!…` form; it does not prove that `!subject_id` is the relationship accepted by the deployed schema or that `id,name` remain unchanged. The patch text itself preserves those fields, and Gate 7 supplies the runtime check.
+
+4. **Evidence wording is broader than the saved live checks.** The index says the other embeds were checked, while the raw run demonstrates some no-row loads rather than all populated-row paths (notably MyFlashcards/My Study Sets). Reconcile that evidence at Gate 7.
+
+5. **Gates 5, 6 and 7 are not granted.** The exact hash must be applied and reviewed in the intended checkout, then committed/pushed and live-verified under the Founder’s gates. This is a gate condition, not a new application defect.
+
+### Strengths or confirmed controls
+
+- The exact patch hash matches the Round 108 handoff.
+- Both formerly ambiguous note embeds are changed and no unrelated application or database path is touched.
+- The saved guard fails against the old two ambiguous lines and passes with the patch; the saved full test/build results are green with the stated baseline lint count.
+- The source search found all current subject/topic embeds explicitly relation-named; the discipline embed is outside the newly ambiguous B-05 relationship set.
+
+### Reported residuals
+
+Stale tabs, old bundles/chunks, and any forged or substituted artifact after exact-hash binding remain the previously reported deployment residuals. They are not defects introduced by this patch and do not block it.
+
+### Disposition
+
+`docs/discussions/T-002_F1.2_frontend-patch_10-10-2026.patch`: **PASS WITH CONDITIONS**. No blocker remains. The Founder may decide Gate 5, Gate 6 and Gate 7, with the rows-present runtime checks above.
+
+Handoff: `AWAITING-FOUNDER` — Founder to decide the exact-hash Gate 5/6 steps and the Gate 7 live verification.
+
 ---
 
 ## Round 48 · QA · 08/10/2026
